@@ -15,7 +15,7 @@ Vías, de más a menos oficial:
 3. **Navegador integrado con la cuenta del alumno** (solo lectura): recorrer las clases, leer la pestaña
    *Trabajo de clase* y descargar los materiales a la carpeta del tema.
 
-Prueba de concepto en marcha con la vía 3 (lectura de clases, tareas, fechas y materiales).
+Resultado de la prueba: la API está bloqueada para alumnos menores (ver [classroom-investigacion.md](classroom-investigacion.md)); se construye sobre la vía 3 + la 2.
 
 ## plan-de-estudio
 
