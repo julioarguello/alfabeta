@@ -1,0 +1,25 @@
+{
+  "_comment": "Copia este fichero a ~/.alfabeta/config.json y rellénalo. Nunca lo subas al repo.",
+  "student": {
+    "name": "Ane",
+    "grade": "3º ESO",
+    "school_year_starts_month": 9
+  },
+  "storage": {
+    "base_dir": "~/Library/CloudStorage/Dropbox/Documents/Ane",
+    "tools_dir": "~/Library/CloudStorage/Dropbox/Documents/Ane/_herramientas/alfabeta",
+    "topic_folder_pattern": "{year}/{subject}/Tema {nn} - {title}"
+  },
+  "subjects": {
+    "Fisika eta Kimika": "FiQui",
+    "Biologia eta Geologia": "Bio"
+  },
+  "languages": ["es", "eu", "en"],
+  "notebook": {
+    "enabled": true,
+    "title_pattern": "{grade}. {subject}. Tema {nn} - {title}"
+  },
+  "sciencebits": {
+    "url": "https://learning-bits.com/intranet/es/myclasses/index"
+  }
+}

@@ -1,0 +1,9 @@
+# Datos personales y de trabajo: nunca al repo
+config.local.json
+*.local.*
+raw/
+out/
+work/
+*.zip
+.DS_Store
+__pycache__/
