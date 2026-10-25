@@ -1,179 +1,208 @@
 # Data Model: spec 001
 
-Entidades del dominio (dataclasses inmutables en `src/alfabeta/modelo.py`) y los ficheros donde
-persisten. Los identificadores de Classroom son opacos: se guardan, en mensajes solo aparecen abreviados y nunca
-aparecen en el repositorio.
+Domain entities (immutable dataclasses in `src/alfabeta/model.py`) and the files where they
+persist. Classroom identifiers are opaque: they are stored, in messages they only appear abbreviated and they never
+appear in the repository.
 
-## Alumno
+## Language of names
 
-Configuración privada en `~/.alfabeta/<alumno>/config.toml` (contrato:
-[config-template.toml](contracts/config-template.toml)). Los campos usan los nombres de la plantilla.
+Technical names (entities, fields, values, files outside the Drive) are English. What the student
+and the family read stays Spanish. Where a technical value becomes a name in the Drive or in
+`agenda.md`, this is the name the student sees:
 
-| Campo | Tipo | Regla |
+| Technical name | Name the student sees |
+|---|---|
+| Attachment `role` `statement` | `enunciado - <name>` |
+| Attachment `role` `submission` | `entrega - <name>` |
+| Attachment `role` `grading` | `correccion.md` |
+| Attachment `role` `links` | `enlaces.md` |
+| Attachment `role` `description` | `descripcion.md` |
+| Attachment `role` `material` | the material file's own name |
+| Attachment `role` `announcement` | `YYYY-MM-DD - aviso - <summary>.md` |
+| Agenda `list` `pending` | «Pendiente» |
+| Agenda `list` `done` | «Hecho» |
+| Agenda `list` `posted` | «Publicado» |
+| Agenda `category` `exam` · `assignment` · `quiz` · `material` · `announcement` | «examen» · «entrega» · «cuestionario» · «material» · «aviso» |
+| Item `status` `pending` · `turned_in` · `returned` · `overdue` · `missing_per_teacher` | «pendiente» · «entregada» · «devuelta» · «vencida» · «falta según el profesor» |
+| Agenda entry `detected: true` | «detectado» |
+| Agenda entry `date: null` | «sin fecha» |
+| Attachment not fetched, noted in `enlaces.md` | «no traído» |
+| Summary for the family (stderr of `apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
+| Book topic folder | `Tema NN - <title>` |
+| Teacher's topic folder with no book equivalent | `Tema PNN - <teacher's title>` |
+| Month folder (item with no confirmed topic) | `YYYY-MM` |
+| Previous version of a replica | `<name> (anterior YYYY-MM-DD)` |
+
+## Student
+
+Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
+[config-template.toml](contracts/config-template.toml)). The fields use the template's names.
+
+| Field | Type | Rule |
 |---|---|---|
-| `id` | texto | Alias opaco que elige la familia, nunca el nombre del alumno; minúsculas ASCII; nombre de su carpeta en `~/.alfabeta/`; se pasa con `--alumno` |
-| `alumno.nombre_visible` | texto | Con él se dirige Claude a la familia en el chat; la orden `python -m alfabeta` nunca lo imprime, ni va al registro, a URLs ni al Drive (SC-009) |
-| `alumno.curso_escolar` | texto `AAAA-AAAA` | Primer nivel de la estructura |
-| `alumno.nivel` | texto | Para los nombres de cuaderno (épica 3): es el `<nivel>` de «`<nivel>. <asignatura>. Tema NN - <título>`» |
-| `alumno.idiomas` | lista | Idiomas en que pueden venir títulos y anuncios |
-| `classroom.cuenta` | correo | Se compara en local con el botón de cuenta; nunca va en una URL |
-| `drive.raiz` | ruta | Carpeta propia de alfabeta dentro del Drive montado; debe existir y no ser la raíz de «Mi unidad»; nunca se muestra |
-| `descargas.carpeta` | ruta | Donde Chrome deja las descargas |
-| `sincronizacion.revision_completa_dias` | entero ≥ 1 | Cada cuántos días se vuelven a descargar todos los adjuntos |
-| `sincronizacion.bloqueo_inactividad_minutos` | entero ≥ 1 | Tras cuántos minutos sin renovar se libera el bloqueo de una ejecución muerta |
-| `sincronizacion.capturas_conservadas` | entero ≥ 1 | Capturas que se conservan por clase |
-| `herramientas.carpeta` | ruta | Donde las skills copian sus scripts de trabajo; fuera de Dropbox y de la carpeta compartida |
-| `herramientas.repositorio` | ruta | Clon de alfabeta desde el que las skills ejecutan `uv run --project <repositorio> python -m alfabeta` en el Mac |
-| `sciencebits.url` | URL | Página de clases de Science Bits |
-| `sciencebits.idiomas` | lista | Idiomas en que se captura cada tema; el primero da el título de la carpeta |
-| `cuaderno.activado` | booleano | Si se crea el cuaderno de cada tema |
-| `asignaturas` | lista de `Asignatura` | Al menos una |
-| `programacion.diaria` | hora `HH:MM` o vacío | Hora de la tarea programada; vacío = solo a demanda |
+| `id` | text | Opaque alias the family chooses, never the student's name; lowercase ASCII; name of their folder in `~/.alfabeta/`; passed with `--student` |
+| `student.display_name` | text | Claude uses it to address the family in the chat; the `python -m alfabeta` command never prints it, and it never goes to the log, to URLs or to the Drive (SC-009) |
+| `student.school_year` | text `YYYY-YYYY` | First level of the structure |
+| `student.grade_level` | text | For notebook names (epic 3): it is the `<grade level>` of «`<grade level>. <Subject>. Tema NN - <title>`» |
+| `student.languages` | list | Languages that titles and announcements may come in |
+| `classroom.account` | email address | Compared locally with the account button; never goes in a URL |
+| `drive.root` | path | alfabeta's own folder inside the mounted Drive; must exist and must not be the root of «Mi unidad» (My Drive); never shown |
+| `downloads.folder` | path | Where Chrome leaves its downloads |
+| `sync.full_review_days` | integer ≥ 1 | Every how many days all attachments are downloaded again |
+| `sync.lock_idle_minutes` | integer ≥ 1 | After how many minutes without renewal the lock of a dead run is released |
+| `sync.kept_captures` | integer ≥ 1 | Captures kept per class |
+| `tools.folder` | path | Where the skills copy their working scripts; outside Dropbox and the shared folder |
+| `tools.repository` | path | Clone of alfabeta from which the skills run `uv run --project <repository> python -m alfabeta` on the Mac |
+| `sciencebits.url` | URL | Science Bits class page |
+| `sciencebits.languages` | list | Languages each topic is captured in; the first one gives the folder's title |
+| `notebook.enabled` | boolean | Whether each topic's notebook is created |
+| `subjects` | list of `Subject` | At least one |
+| `schedule.daily` | time `HH:MM` or empty | Time of the scheduled task; empty = on demand only |
 
-## Asignatura
+## Subject
 
-| Campo | Tipo | Regla |
+| Field | Type | Rule |
 |---|---|---|
-| `carpeta` | texto | Nombre de la carpeta de la asignatura (p. ej. `FyQ`) |
-| `clase_classroom` | texto | Título de la clase en Classroom; solo para proponer la asociación |
-| `libro` | texto o vacío | Proveedor de libro (`sciencebits`) y nombre de su subcarpeta |
-| `clase_libro` | texto o vacío | Nombre de la clase en la plataforma del libro (p. ej. la de Science Bits) |
+| `folder` | text | Name of the subject's folder (e.g. `FyQ`) |
+| `classroom_class` | text | Title of the class in Classroom; only for proposing the link |
+| `book` | text or empty | Book provider (`sciencebits`) and name of its subfolder |
+| `book_class` | text or empty | Name of the class on the book's platform (e.g. the Science Bits one) |
 
-`[sciencebits] url` e `idiomas` admiten `""` y `[]` cuando ninguna asignatura tiene `libro = "sciencebits"`.
+`[sciencebits] url` and `languages` accept `""` and `[]` when no subject has `book = "sciencebits"`.
 
-Los temas del libro no se configuran: son las carpetas `Tema NN - <título>` de la asignatura que ya
-tienen la subcarpeta de su libro en el Drive.
+Book topics are not configured: they are the subject's `Tema NN - <title>` folders that already
+hold their book's subfolder in the Drive.
 
-La asociación efectiva entre una asignatura y su clase es una `Decision` de tipo `clase_asociada`,
-ligada al id de la clase; el título solo sirve para proponerla.
+The effective link between a subject and its class is a `Decision` of type `class_link`,
+tied to the class id; the title only serves to propose it.
 
-## Fuente
+## Source
 
-Protocol en `src/alfabeta/fuentes.py`: `nombre` (la subcarpeta: `classroom` o el valor de `libro`) y
-`elementos()` normalizados. Implementaciones: `FuenteClassroom` (capturas del extractor) y
-`FuenteLibro` (directorio con el resultado de un proveedor de libro).
+Protocol in `src/alfabeta/sources.py`: `name` (the subfolder: `classroom` or the value of `book`) and
+normalized `items()`. Implementations: `ClassroomSource` (the extractor's captures) and
+`BookSource` (directory with the result of a book provider).
 
-## Decisión (en `datos/decisiones.json`)
+## Decision (in `data/decisions.json`)
 
-| Campo | Tipo | Regla |
+| Field | Type | Rule |
 |---|---|---|
-| `tipo` | `clase_asociada` · `emparejamiento_tema` · `emparejamiento_elemento` · `examen_detectado` (propuesta de Claude) · `candidato_descartado` (Claude juzga que un candidato a examen no anuncia ninguno; origen = el elemento) · `correccion_examen` (de la familia) · `numero_tema_profesor` (lo escribe `aplicar` en la ejecución que coloca por primera vez algo de un tema `Tema PNN`: en una asignatura con libro, tras rechazarse su emparejamiento; en una sin libro, sin confirmación) | `emparejamiento_elemento` lo propone Claude para cada elemento de un tema del profesor que abarca varios temas del libro, y prevalece sobre la decisión de su tema |
-| `origen` | id de Classroom (clase, tema o elemento); para `examen_detectado` y `correccion_examen`, `<elemento>#examen-<k>`, donde Claude asigna `k` = 1, 2… al proponer (el clasificador da un solo candidato por elemento) | Clave única por `(tipo, origen)` entre las no sustituidas; una propuesta repetida no escribe |
-| `destino` | asignatura, carpeta de tema, examen (`fecha`, `motivo`), corrección (`fecha`, `categoria`, `descartado`) o el `NN` de un tema `Tema PNN` | |
-| `motivo` | texto | Lo que llevó a la propuesta o a la corrección |
-| `seguridad` | `alta` · `media` · `baja` | Solo en propuestas |
-| `estado` | `propuesta` → `confirmada` · `rechazada`; `confirmada` o `rechazada` → `sustituida` | Solo `confirmada` cuenta, salvo `examen_detectado` (aparece en la agenda como detectado) y `candidato_descartado` (el candidato deja de estar pendiente), que cuentan desde que son `propuesta`; la familia puede rechazar un `candidato_descartado` y el candidato vuelve a pendientes. Un `(tipo, origen)` con una decisión no sustituida no se vuelve a proponer; una `rechazada`, solo si su origen muestra una modificación posterior al rechazo. `examen_detectado` no se rechaza: se descarta con una `correccion_examen` |
-| `fecha` | fecha | De la última transición |
-| `huella_origen` | SHA-256 o vacío | Del texto del que se dedujo un `examen_detectado` o un `candidato_descartado`; si el texto cambia, el candidato vuelve a pendientes y la decisión anterior pasa a `sustituida`, salvo que la familia la corrigiera (`correccion_examen`) |
+| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) · `teacher_topic_number` (written by `apply` in the run that first places something from a `Tema PNN` topic: in a subject with a book, after its match is rejected; in one without a book, without confirmation) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
+| `origin` | Classroom id (class, topic or item); for `detected_exam` and `exam_correction`, `<item>#exam-<k>`, where Claude assigns `k` = 1, 2… when proposing (the classifier gives a single candidate per item) | Unique key per `(type, origin)` among the non-superseded ones; a repeated proposal does not write |
+| `target` | subject, topic folder, exam (`date`, `reason`), correction (`date`, `category`, `discarded`) or the `NN` of a `Tema PNN` topic | |
+| `reason` | text | What led to the proposal or to the correction |
+| `confidence` | `high` · `medium` · `low` | Only in proposals |
+| `state` | `proposed` → `confirmed` · `rejected`; `confirmed` or `rejected` → `superseded` | Only `confirmed` counts, except `detected_exam` (it appears in the agenda as detected) and `dismissed_candidate` (the candidate stops being pending), which count from the moment they are `proposed`; the family can reject a `dismissed_candidate` and the candidate returns to pending. A `(type, origin)` with a non-superseded decision is not proposed again; a `rejected` one, only if its origin shows a modification after the rejection. `detected_exam` is not rejected: it is discarded with an `exam_correction` |
+| `date` | date | Of the last transition |
+| `origin_hash` | SHA-256 or empty | Of the text a `detected_exam` or a `dismissed_candidate` was deduced from; if the text changes, the candidate returns to pending and the previous decision becomes `superseded`, unless the family corrected it (`exam_correction`) |
 
-## Elemento de Classroom
+## Classroom item
 
-| Campo | Tipo | Regla |
+| Field | Type | Rule |
 |---|---|---|
-| `id` | id de Classroom | De la URL de detalle; estable |
-| `clase` | id de Classroom | |
-| `tema` | id de tema o vacío | Vacío o sin emparejar confirmado → carpeta de mes |
-| `tipo` | `tarea` · `material` · `pregunta` · `anuncio` | |
-| `titulo` | texto | Tal como lo escribe el profesor |
-| `publicado` | fecha | De «Fecha de creación»; nunca de «Última modificación» |
-| `modificado` | fecha o vacío | De «Última modificación»; dispara una nueva descarga de sus adjuntos |
-| `entrega` | fecha-hora o vacío | Resuelta por `ResolvedorFechas` respecto al momento de la captura |
-| `estado` | `pendiente` · `entregada` · `devuelta` · `vencida` · `falta_segun_profesor` · vacío | Del detalle (tabla de abajo); solo tareas y preguntas |
-| `descripcion` | texto | Instrucciones o texto del anuncio |
-| `adjuntos` | lista de `Adjunto` | |
-| `entrega_alumno` | lista de `Adjunto` | Ficheros que entregó el alumno |
-| `correccion` | `Correccion` o vacío | |
+| `id` | Classroom id | From the detail URL; stable |
+| `class_id` | Classroom id | |
+| `topic_id` | topic id or empty | Empty or without a confirmed match → month folder |
+| `type` | `assignment` · `material` · `question` · `announcement` | |
+| `title` | text | As the teacher writes it |
+| `posted_at` | date | From «Fecha de creación» (creation date); never from «Última modificación» (last modified) |
+| `modified_at` | date or empty | From «Última modificación»; triggers a new download of its attachments |
+| `due_at` | date-time or empty | Resolved by `DateResolver` relative to the capture instant |
+| `status` | `pending` · `turned_in` · `returned` · `overdue` · `missing_per_teacher` · empty | From the detail (table below); assignments and questions only |
+| `description` | text | Instructions or the announcement's text |
+| `attachments` | list of `Attachment` | |
+| `submission` | list of `Attachment` | Files the student turned in |
+| `grading` | `Grading` or empty | |
 
-### Estado desde los textos del detalle
+### Status from the detail texts
 
-| Texto de «Tu trabajo» | Aviso del detalle | `estado` |
+| «Tu trabajo» (your work) text | Detail notice | `status` |
 |---|---|---|
-| «Asignado» o «Falta» y fecha de entrega futura o sin fecha | — | `pendiente` |
-| «Asignado» o «Falta» y fecha de entrega pasada | — | `vencida` |
-| «Entregado» o «Entregado con retraso» | — | `entregada` |
-| «Calificado» o «Devuelto» | — | `devuelta` |
-| cualquiera | «El profesor ha indicado que falta esto» | `falta_segun_profesor` (gana a todo lo anterior) |
-| otro texto | — | la ejecución lo registra como desconocido y deja `estado` vacío |
+| «Asignado» (assigned) or «Falta» (missing) and a future due date or no date | — | `pending` |
+| «Asignado» or «Falta» and a past due date | — | `overdue` |
+| «Entregado» (turned in) or «Entregado con retraso» (turned in late) | — | `turned_in` |
+| «Calificado» (graded) or «Devuelto» (returned) | — | `returned` |
+| any | «El profesor ha indicado que falta esto» (the teacher marked this as missing) | `missing_per_teacher` (overrides everything above) |
+| other text | — | the run records it as unknown and leaves `status` empty |
 
-La comparación «pasada/futura» usa el momento de la captura.
+The "past/future" comparison uses the capture instant.
 
-## Adjunto
+## Attachment
 
-| Campo | Tipo | Regla |
+| Field | Type | Rule |
 |---|---|---|
-| `id` | id de Drive, URL de YouTube o URL | Estable |
-| `clase_adjunto` | `fichero` · `documento_google` · `video` · `enlace` · `formulario` | Los tres últimos no se descargan |
-| `nombre` | texto | Nombre mostrado |
-| `papel` | `enunciado` · `entrega` · `material` | |
+| `id` | Drive id, YouTube URL or URL | Stable |
+| `kind` | `file` · `google_doc` · `video` · `link` · `form` | The last three are not downloaded |
+| `name` | text | Name shown |
+| `role` | `statement` · `submission` · `material` | |
 
-## Réplica (en `datos/estado.json`)
+## Replica (in `data/state.json`)
 
-| Campo | Tipo | Regla |
+| Field | Type | Rule |
 |---|---|---|
-| `fuente` | nombre de la fuente | `classroom` o el del libro |
-| `elemento`, `adjunto` | ids | Clave única |
-| `papel` | `enunciado` · `entrega` · `correccion` · `enlaces` · `descripcion` · `material` · `aviso` | Prefijo del nombre en carpetas de tarea |
-| `ruta` | ruta relativa a `drive.raiz` | Calculada por `Ubicador`; nombre de 255 bytes UTF-8 como máximo |
-| `huella` | SHA-256 | Cambia → versión nueva; la anterior pasa a `<nombre> (anterior AAAA-MM-DD)` |
-| `version` | entero | Empieza en 1 |
-| `modificado_visto` | fecha o vacío | La marca de modificación del elemento cuando se hizo la réplica |
-| `retirado` | fecha o vacío | El elemento ya no está en una captura completa de su clase; la réplica se conserva |
+| `source` | source name | `classroom` or the book's |
+| `item`, `attachment` | ids | Unique key |
+| `role` | `statement` · `submission` · `grading` · `links` · `description` · `material` · `announcement` | Name prefix in assignment folders |
+| `path` | path relative to `drive.root` | Computed by `Placer`; name of 255 UTF-8 bytes at most |
+| `hash` | SHA-256 | Changes → new version; the previous one becomes `<name> (anterior YYYY-MM-DD)` |
+| `version` | integer | Starts at 1 |
+| `modified_seen` | date or empty | The item's modification mark when the replica was made |
+| `withdrawn_at` | date or empty | The item is no longer in a complete capture of its class; the replica is kept |
 
-Además de las réplicas, `estado.json` guarda de cada elemento su última versión normalizada (`Elemento`,
-con su categoría), que solo se reescribe si cambia. El `capturado` de la última captura de cada clase no
-se guarda en el estado: se lee de la más reciente de `datos/capturas/` (siempre queda al menos una,
-`capturas_conservadas` ≥ 1), que es registro propio de la ejecución (FR-025). De los dos salen la agenda
-y las reglas de FR-020c.
+Besides the replicas, `state.json` keeps each item's last normalized version (`Item`,
+with its category), which is rewritten only if it changes. The `captured_at` of each class's last capture is not
+stored in the state: it is read from the most recent one in `data/captures/` (at least one always remains,
+`kept_captures` ≥ 1), which is part of the run's own records (FR-025). The agenda
+and the rules of FR-020c come from both.
 
-## Corrección
+## Grading
 
-`estado_calificacion` (`calificado`, `devuelto`), `nota` (texto o vacío: solo si Classroom la muestra al
-alumno), `puntos_maximos`, `comentario_profesor`, `fecha_devolucion` (de `texto_devolucion` de la
-captura, o vacía si Classroom no la muestra). Describe la devolución; el estado
-de la tarea sigue siendo el de `Elemento.estado`. Se escribe como `correccion.md` en la carpeta de la
-tarea.
+`grading_state` (`graded`, `returned`), `grade` (text or empty: only if Classroom shows it to the
+student), `max_points`, `teacher_comment`, `returned_at` (from the capture's `returned_text`,
+or empty if Classroom does not show it). It describes the return; the assignment's status
+is still the one in `Item.status`. It is written as `correccion.md` in the assignment's
+folder.
 
-## Entrada de agenda
+## Agenda entry
 
-Contrato: [agenda.schema.json](contracts/agenda.schema.json).
+Contract: [agenda.schema.json](contracts/agenda.schema.json).
 
-| Campo | Tipo | Regla |
+| Field | Type | Rule |
 |---|---|---|
-| `elemento` | id | Un examen detectado es `<elemento>#examen-<k>`; su elemento de origen conserva su propia entrada |
-| `asignatura` | texto | Carpeta de la asignatura |
-| `lista` | `pendiente` · `hecho` · `publicado` | Según la tabla de FR-020c; material y aviso van a `publicado` |
-| `solo_fecha` | booleano | `true` si Classroom no da hora |
-| `categoria` | `examen` · `entrega` · `cuestionario` · `material` · `aviso` | Exactamente una; precedencia examen > cuestionario > entrega > material > aviso |
-| `titulo` | texto | |
-| `fecha` | fecha-hora, fecha o vacío | Vacío → al final de «Pendiente» |
-| `estado` | como en Elemento, o vacío para material y aviso | |
-| `detectado` | booleano | `true` si el examen sale de un texto |
-| `origen` | id del elemento del que se dedujo | Solo si `detectado` |
-| `corregido` | booleano | `true` si la familia lo corrigió |
-| `enlace_classroom` | URL | Sin `/u/<n>` (el índice no es estable); la agenda legible indica abrirlo con la cuenta escolar |
-| `carpeta` | ruta relativa o vacío | Vacío si el elemento no tiene réplica |
+| `item` | id | A detected exam is `<item>#exam-<k>`; its origin item keeps its own entry |
+| `subject` | text | The subject's folder |
+| `list` | `pending` · `done` · `posted` | Per the FR-020c table; material and announcement go to `posted` |
+| `date_only` | boolean | `true` if Classroom gives no time |
+| `category` | `exam` · `assignment` · `quiz` · `material` · `announcement` | Exactly one; precedence exam > quiz > assignment > material > announcement |
+| `title` | text | |
+| `date` | date-time, date or empty | Empty → at the end of «Pendiente» |
+| `status` | as in Item, or empty for material and announcement | |
+| `detected` | boolean | `true` if the exam comes from a text |
+| `origin` | id of the item it was deduced from | Only if `detected` |
+| `corrected` | boolean | `true` if the family corrected it |
+| `classroom_link` | URL | Without `/u/<n>` (the index is not stable); the readable agenda says to open it with the school account |
+| `folder` | relative path or empty | Empty if the item has no replica |
 
-## Ejecución (en `datos/registro.jsonl`)
+## Run (in `data/log.jsonl`)
 
-Una línea por ejecución: `inicio`, `fin`, `modo` (`interactiva` · `programada`, de `bloqueo tomar --modo`), índice `/u/<n>` usado (de `indice_cuenta` en la captura de clases),
-`clases` recorridas, contadores `anadidos`, `cambiados`, `retirados`, `no_traidos` (con motivo por
-elemento, sin datos del alumno), `estados_desconocidos`, `decisiones_pendientes`, `revision_completa`
-(booleano: la próxima revisión completa se cuenta desde la última línea que la tiene), `resultado` (`ok` ·
-`parcial` · `detenida`) y `motivo` (de la detención o de una `parcial`. Una parada en el navegador —sesión caducada, desafío o interfaz inesperada— antes de capturar ninguna clase deja la ejecución `detenida` sin escribir en la carpeta del alumno; después de capturar al menos una, `aplicar` aplica las ya capturadas, deja sin aplicar la de la captura `parada` y el resultado es `parcial` con ese motivo. Igual en los dos modos. Drive sin montar, bloqueo ocupado o configuración inválida siempre detienen antes de escribir) (`sesion_caducada`, `desafio`,
-`interfaz_inesperada`, `drive_no_montado`, `bloqueo_ocupado`, `bloqueo_no_tomado`,
-`configuracion_invalida`, `inactividad`). Cada línea lleva el `ejecucion` de su bloqueo. `libro colocar` escribe una línea
-más corta: `tipo: libro`, `instante`, `ejecucion`, `fuente`, `tema` y `resultado` (`colocado` · `sin_cambios`).
-`registro cuaderno` escribe otra: `tipo: cuaderno`, `instante`, `ejecucion`, `tema` y `resultado` (`creado` ·
-`sin_cambios` · `fallo` · `desactivado`), con `motivo` si falla (texto corto, sin datos del alumno). `sin_cambios`: el cuaderno ya existía y
-no faltaba ninguna fuente.
+One line per run: `started_at`, `ended_at`, `mode` (`interactive` · `scheduled`, from `lock take --mode`), the `/u/<n>` index used (`account_index`, from the classes capture),
+`classes` visited, counters `added`, `changed`, `withdrawn`, `not_fetched` (with a reason per
+item, without student data), `unknown_statuses`, `pending_decisions`, `full_review`
+(boolean: the next full review is counted from the last line that has it), `result` (`ok` ·
+`partial` · `stopped`) and `reason` (of the stop or of a `partial` one. A stop in the browser —session expired, challenge or unexpected interface— before capturing any class leaves the run `stopped` without writing to the student's folder; after capturing at least one, `apply` applies those already captured, leaves the class of the `stop` capture unapplied and the result is `partial` with that reason. The same in both modes. Drive not mounted, lock busy or invalid configuration always stop before writing) (`session_expired`, `challenge`,
+`unexpected_ui`, `drive_not_mounted`, `lock_busy`, `lock_not_held`,
+`invalid_config`, `idle`). Each line carries the `run` of its lock. `book place` writes a shorter
+line: `type: book`, `at`, `run`, `source`, `topic` and `result` (`placed` · `unchanged`).
+`log notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
+`unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data). `unchanged`: the notebook already existed and
+no source was missing.
 
-## Transiciones
+## Transitions
 
-- Decisión: `propuesta` → `confirmada` | `rechazada`; `confirmada` o `rechazada` → `sustituida`
-  cuando la familia la cambia. Una rechazada genera una propuesta nueva solo si su origen muestra una
-  modificación posterior al rechazo; para un tema, si cambia su título o aparece en el Drive un tema
-  del libro nuevo.
-- Réplica: `nueva` → `vigente` → (`sustituida` → `anterior`) | (`retirada`). Nunca `borrada`. Un
-  cambio de emparejamiento mueve la réplica sin cambiar su versión.
-- Entrada de agenda: el estado se recalcula en cada ejecución desde el detalle de Classroom; una
-  corrección de la familia sobre un examen detectado prevalece sobre lo detectado.
+- Decision: `proposed` → `confirmed` | `rejected`; `confirmed` or `rejected` → `superseded`
+  when the family changes it. A rejected one generates a new proposal only if its origin shows a
+  modification after the rejection; for a topic, if its title changes or a new book topic
+  appears in the Drive.
+- Replica: `new` → `current` → (`superseded` → `previous`) | (`withdrawn`). Never `deleted`. A
+  match change moves the replica without changing its version.
+- Agenda entry: the status is recomputed in every run from the Classroom detail; a
+  family correction of a detected exam prevails over what was detected.

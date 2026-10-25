@@ -1,4 +1,4 @@
-# Feature Specification: Los contenidos de cada asignatura, de Classroom al Drive de la familia, con configuración por alumno
+# Feature Specification: Each subject's content, from Classroom to the family's Drive, with per-student configuration
 
 **Feature Branch**: `docs/1-spec-001-classroom-sync` (spec dir `001-classroom-sync`)
 
@@ -6,393 +6,398 @@
 
 **Status**: Draft
 
-**Input**: User description: "Épica 1 de alfabeta: classroom-sync + estructura de carpetas + configuración por alumno. Problema: el material de estudio de un alumno de secundaria está repartido entre Google Classroom (materiales, adjuntos de tareas, enlaces, anuncios y tareas con fechas, organizados por cada profesor en temas dentro de «Trabajo de clase») y el libro digital (Science Bits). Nada está donde el alumno estudia, y la familia no ve de un vistazo qué hay pendiente. (1) Configuración por alumno: plantilla en el repo → configuración privada fuera del repo → datos y secretos en una carpeta de datos local y el llavero; un segundo alumno solo requiere otra configuración; guardarraíl que impida subir datos reales. (2) Vía de acceso: navegador integrado de la app de escritorio, en solo lectura, con la sesión del alumno; la API está descartada. (3) Reglas: solo lectura en Classroom, datos del menor al mínimo, ninguna herramienta escribe credenciales." Cambio de enfoque del operador (2026-10-25): "No sincronizamos Classroom, sincronizamos los contenidos de la asignatura: primer nivel el curso, luego la asignatura y luego tema o mes; dentro, `classroom` o `sciencebits`, y el nombre del archivo de Classroom incluye la fecha. El scraper recorre Classroom; me interesan sobre todo los recordatorios de lo pendiente y que se descarguen los problemas y ejercicios que les van poniendo y se ubiquen en el sitio correcto del Drive. Quiero una réplica del documento que publica el profesor en nuestro Drive, para combinarla con los libros que vayamos descargando (de momento Science Bits) y que todo junto vaya al cuaderno. Lo hacemos con el Drive familiar; el alumno tiene cuenta personal de Gmail."
+**Input**: User description (translated from Spanish): "alfabeta epic 1: classroom-sync + folder structure + per-student configuration. Problem: a secondary-school student's study material is spread between Google Classroom (materials, assignment attachments, links, announcements and assignments with dates, organised by each teacher into topics inside «Trabajo de clase» (Classwork)) and the digital textbook (Science Bits). Nothing is where the student studies, and the family cannot see at a glance what is pending. (1) Per-student configuration: template in the repo → private configuration outside the repo → data and secrets in a local data folder and the keychain; a second student only needs another configuration; a guardrail that prevents pushing real data. (2) Access path: the desktop app's built-in browser, read-only, with the student's session; the API is ruled out. (3) Rules: read-only on Classroom, the minor's data kept to the minimum, no tool types credentials." Operator's change of approach (2026-10-25): "We do not sync Classroom, we sync the subject's content: first level the school year, then the subject and then topic or month; inside, `classroom` or `sciencebits`, and the Classroom file name includes the date. The scraper walks Classroom; what I care about most is reminders of what is pending, and that the problems and exercises they keep assigning get downloaded and placed in the right spot of the Drive. I want a replica of the document the teacher posts in our Drive, to combine it with the books we download (Science Bits for now) and have it all go to the notebook together. We do it with the family Drive; the student has a personal Gmail account."
 
-## Contexto y alcance
+## Context and scope
 
-Esta épica es la primera de tres:
+This epic is the first of three:
 
-1. **Esta**: los contenidos de cada asignatura llegan al Drive de la familia con una estructura común
-   a todas las fuentes (Classroom y los libros), más una agenda con exámenes, entregas y lo que se
-   publica.
-2. **Recordatorios**: la agenda pasa a un calendario con avisos, con un color por categoría (FR-020a;
-   colores propuestos en Assumptions),
-   y se valora Google Tasks para que el alumno marque como hechas sus entregas desde el calendario.
-   Se alimenta de la agenda de esta épica.
-3. **«Prepárame el tema»**: todo lo que hay en la carpeta de un tema, de todas las fuentes, va a su
-   cuaderno de Gemini Notebook.
+1. **This one**: each subject's content reaches the family's Drive with a structure common to every
+   source (Classroom and the books), plus an agenda with exams, assignments and what gets
+   posted.
+2. **Reminders**: the agenda moves to a calendar with alerts, one colour per category (FR-020a;
+   colours proposed in Assumptions),
+   and Google Tasks is evaluated so the student can mark assignments as done from the calendar.
+   It is fed by this epic's agenda.
+3. **«Prepárame el tema»** ("prepare the topic for me"): everything in a topic's folder, from every
+   source, goes to its Gemini Notebook notebook.
 
-Quedan fuera de esta épica los recordatorios, los cuadernos, la sincronización sin la app de Claude
-(MCP local, issue #2) y los proveedores de libro distintos de Science Bits.
+Out of this epic: reminders, notebooks, syncing without the Claude app (local MCP, issue #2) and
+book providers other than Science Bits.
 
 ## Clarifications
 
 ### Session 2026-10-25
 
-- Q: ¿El documento de pendientes incluye también los exámenes que el profesor anuncia en el tablón o
-  en un material, o solo las tareas con fecha de Classroom? → A: Incluye los exámenes. Todo elemento
-  con fecha se clasifica en una categoría cerrada (examen, entrega, cuestionario, material, aviso)
-  para que la épica de recordatorios lo distinga a simple vista en el calendario; el documento pasa
-  a ser una agenda.
-- Q: ¿Qué trae la primera sincronización de una asignatura: todo lo publicado desde el inicio del
-  curso o solo desde una fecha reciente? → A: Todo lo del curso escolar en curso, con carácter
-  retrospectivo. Lo ya entregado o devuelto aparece como hecho según el estado que muestra Classroom,
-  y la agenda abre con una lista de comprobación de lo pendiente, empezando por lo más próximo, para
-  que el alumno la revise al llegar a casa (FR-020c).
-- Q: ¿Se replican también los ficheros que el propio alumno entregó en cada tarea? → A: Sí, junto al
-  enunciado y a la corrección, y bien diferenciados en el Drive: cada tarea es una carpeta con
-  `enunciado`, `entrega` y `correccion` (FR-015a).
-- Q: ¿Dónde se escribe el material: solo en el Drive familiar o también en la nube anterior
-  (Dropbox)? → A: Solo en el Drive familiar, que es el destino de la sincronización. Dropbox queda
-  fuera de esta épica: no se lee, no se escribe y no se migra lo que ya hay allí.
+- Q: Does the pending-items document also include the exams the teacher announces on the stream or
+  in a material, or only Classroom's dated assignments? → A: It includes the exams. Every dated item
+  is classified into a closed category (exam, assignment, quiz, material, announcement) so the
+  reminders epic can tell them apart at a glance in the calendar; the document becomes an agenda.
+- Q: What does a subject's first sync bring: everything posted since the start of the school year,
+  or only since a recent date? → A: Everything in the current school year, retroactively. What was
+  already turned in or returned appears as done according to the status Classroom shows, and the
+  agenda opens with a checklist of what is pending, nearest first, for the student to review on
+  getting home (FR-020c).
+- Q: Are the files the student turned in for each assignment also replicated? → A: Yes, next to the
+  statement and the grading, and clearly told apart in the Drive: each assignment is a folder with
+  `enunciado`, `entrega` and `correccion` (FR-015a).
+- Q: Where is the material written: only to the family Drive, or also to the previous cloud
+  (Dropbox)? → A: Only to the family Drive, which is the sync target. Dropbox is out of this
+  epic: it is not read, not written, and what is already there is not migrated.
 
 ## User Scenarios & Testing *(mandatory)*
 
-Los actores son **la familia** (el padre o la madre que configura y lanza alfabeta), **el alumno**
-(inicia sesión en Classroom y estudia con lo que queda en su carpeta compartida) y **el profesorado**
-(publica en Classroom; nunca interactúa con alfabeta).
+The actors are **the family** (the parent who configures and launches alfabeta), **the student**
+(signs in to Classroom and studies with what ends up in their shared folder) and **the teachers**
+(post in Classroom; never interact with alfabeta).
 
-### User Story 1 - Lo que publica el profesor, replicado en la carpeta de su tema o de su mes (Priority: P1)
+### User Story 1 - What the teacher posts, replicated in the folder of its topic or its month (Priority: P1)
 
-La familia pide sincronizar una asignatura. Con la sesión de Classroom que el alumno ya inició,
-alfabeta recorre el «Trabajo de clase» de esa clase y deja una réplica de cada material y de cada
-adjunto de tarea (los problemas y ejercicios que manda el profesor) en la subcarpeta `classroom` de su
-tema o, si el profesor no le puso tema, de su mes. Cada fichero lleva delante la fecha en que se
-publicó. Lo que no es un fichero (un vídeo, un enlace web, un cuestionario) queda anotado con su
-enlace. Al terminar, la familia ve un resumen de lo que se ha guardado y de lo que no, y por qué.
+The family asks to sync a subject. With the Classroom session the student already started,
+alfabeta walks that class's «Trabajo de clase» and leaves a replica of every material and every
+assignment attachment (the problems and exercises the teacher sets) in the `classroom` subfolder of
+its topic or, if the teacher gave it no topic, of its month. Each file is prefixed with the date it
+was posted. What is not a file (a video, a web link, a quiz) is noted with its link. At the end,
+the family sees a summary of what was saved and what was not, and why.
 
-**Why this priority**: es lo que el operador pide en primer lugar: el material del profesor en el
-sitio correcto, listo para estudiar y para juntarlo con el libro.
+**Why this priority**: it is what the operator asks for first: the teacher's material in the right
+place, ready to study and to combine with the book.
 
-**Independent Test**: con una configuración de alumno de prueba y una clase con dos temas, un material
-sin tema y adjuntos de los tipos habituales (PDF, documento de Google, presentación, vídeo, enlace,
-formulario), sincronizar la asignatura y comprobar elemento a elemento, contra lo que ve el alumno en
-«Trabajo de clase», que cada uno está en su carpeta con la fecha delante o anotado con su enlace.
+**Independent Test**: with a test student configuration and a class with two topics, a material
+without a topic and attachments of the usual kinds (PDF, Google document, presentation, video, link,
+form), sync the subject and check item by item, against what the student sees in
+«Trabajo de clase», that each one is in its folder with the date in front or noted with its link.
 
 **Acceptance Scenarios**:
 
-1. **Given** una asignatura configurada y la sesión del alumno iniciada, **When** la familia pide
-   sincronizarla, **Then** los materiales y los adjuntos de tareas de cada tema están en
-   `<tema>/classroom/`, cada elemento con nombre `AAAA-MM-DD - <título>` (fichero o carpeta según
-   FR-015), donde la fecha es la de publicación.
-2. **Given** un material sin tema publicado en marzo, **When** se sincroniza, **Then** queda en
-   `<AAAA-03>/classroom/` de su asignatura.
-3. **Given** un adjunto que es un documento, una presentación o una hoja de cálculo de Google,
-   **When** se sincroniza, **Then** su réplica queda guardada como PDF.
-4. **Given** un elemento con un vídeo, un enlace web o un formulario, **When** se sincroniza,
-   **Then** queda una nota con su título, su fecha y sus enlaces, sin descargar nada ni abrir el
-   formulario.
-5. **Given** la sesión de Classroom caducada o sin iniciar, **When** la familia pide sincronizar,
-   **Then** alfabeta se detiene antes de leer nada y pide al alumno que inicie sesión.
+1. **Given** a configured subject and the student's session started, **When** the family asks to
+   sync it, **Then** the materials and assignment attachments of each topic are in
+   `<topic>/classroom/`, each item named `YYYY-MM-DD - <title>` (file or folder according to
+   FR-015), where the date is the posting date.
+2. **Given** a material without a topic posted in March, **When** it is synced, **Then** it ends up
+   in its subject's `<YYYY-03>/classroom/`.
+3. **Given** an attachment that is a Google document, presentation or spreadsheet,
+   **When** it is synced, **Then** its replica is saved as a PDF.
+4. **Given** an item with a video, a web link or a form, **When** it is synced,
+   **Then** a note is left with its title, its date and its links, without downloading anything or
+   opening the form.
+5. **Given** the Classroom session expired or not started, **When** the family asks to sync,
+   **Then** alfabeta stops before reading anything and asks the student to sign in.
 
 ---
 
-### User Story 2 - La agenda del alumno: exámenes, entregas y lo que se publica, en un solo documento (Priority: P1)
+### User Story 2 - The student's agenda: exams, assignments and what gets posted, in a single document (Priority: P1)
 
-La familia quiere ver de un vistazo qué tiene el alumno por delante y qué se ha publicado. Tras
-sincronizar, hay en la carpeta del curso una agenda con todo lo que tiene fecha en las asignaturas
-configuradas, cada cosa con su categoría: exámenes (también los que el profesor solo anuncia en el
-tablón o en un material), entregas, cuestionarios, material nuevo y avisos. Lo pendiente lleva su
-estado y todo lleva el enlace a su carpeta. El mismo contenido existe en un formato que pueda leer una
-herramienta: es la entrada de la épica de recordatorios, que pintará cada categoría de un color.
+The family wants to see at a glance what the student has ahead and what has been posted. After
+syncing, the school-year folder holds an agenda with everything dated in the configured
+subjects, each with its category: exams (including those the teacher only announces on the
+stream or in a material), assignments, quizzes, new material and announcements. Pending items carry
+their status and everything carries the link to its folder. The same content exists in a format a
+tool can read: it is the input of the reminders epic, which will paint each category in a colour.
 
-**Why this priority**: es lo que más interesa al operador (los recordatorios, y los exámenes antes
-que nada) y la base de la épica 2.
+**Why this priority**: it is what interests the operator most (the reminders, and exams above
+all) and the basis of epic 2.
 
-**Independent Test**: con elementos de prueba de cada categoría (una tarea con fecha esta semana,
-otra sin fecha, otra vencida, un cuestionario, un examen que es una tarea, un examen anunciado solo en
-el tablón, un material y un aviso), sincronizar y comprobar que la agenda los lista todos, en orden,
-cada uno con su categoría y, lo pendiente, con su estado.
+**Independent Test**: with test items of every category (an assignment due this week, another
+without a date, another overdue, a quiz, an exam that is an assignment, an exam announced only on
+the stream, a material and an announcement), sync and check that the agenda lists them all, in
+order, each with its category and, for pending ones, with its status.
 
 **Acceptance Scenarios**:
 
-1. **Given** tareas pendientes en varias asignaturas, **When** se sincroniza, **Then** la agenda las
-   lista ordenadas por fecha, con asignatura, categoría, título, fecha, estado, enlace a Classroom y
-   enlace a su carpeta.
-2. **Given** un anuncio del tablón que dice que hay examen de un tema en una fecha, **When** se
-   sincroniza, **Then** la agenda tiene un examen en esa fecha, marcado como «detectado» y con enlace
-   al anuncio del que sale.
-3. **Given** un examen detectado que la familia corrige (otra fecha, o que no era un examen), **When**
-   se vuelve a sincronizar, **Then** la agenda conserva la corrección.
-4. **Given** una tarea sin fecha de entrega, **When** se sincroniza, **Then** aparece en un apartado
-   «sin fecha» de la agenda.
-5. **Given** una tarea cuya fecha ya pasó y que Classroom muestra sin entregar, **When** se sincroniza,
-   **Then** aparece marcada como vencida.
-6. **Given** un material o un aviso publicado hoy, **When** se sincroniza, **Then** aparece en la
-   agenda en su fecha de publicación con su categoría.
-7. **Given** exámenes, entregas y cuestionarios, unos ya entregados y otros no, **When** se sincroniza,
-   **Then** la agenda abre con la lista «Pendiente», ordenada empezando por lo más próximo y con lo
-   sin fecha al final, seguida de «Hecho» con lo entregado marcado.
-8. **Given** una agenda generada, ningún cambio en Classroom y ninguna fecha de entrega o de examen
-   entre las dos capturas, **When** se vuelve a sincronizar otro día, **Then** los ficheros de la agenda
-   no se reescriben. Si una fecha quedó entre las dos, solo cambia la lista de esa entrada (FR-020c).
+1. **Given** pending assignments in several subjects, **When** it is synced, **Then** the agenda
+   lists them sorted by date, with subject, category, title, date, status, Classroom link and
+   link to its folder.
+2. **Given** a stream announcement saying there is an exam on a topic on a date, **When** it is
+   synced, **Then** the agenda has an exam on that date, marked «detectado» and with a link to the
+   announcement it comes from.
+3. **Given** a detected exam that the family corrects (another date, or it was not an exam), **When**
+   it is synced again, **Then** the agenda keeps the correction.
+4. **Given** an assignment without a due date, **When** it is synced, **Then** it appears in a
+   «sin fecha» ("no date") section of the agenda.
+5. **Given** an assignment whose date has passed and that Classroom shows as not turned in, **When**
+   it is synced, **Then** it appears marked as overdue.
+6. **Given** a material or an announcement posted today, **When** it is synced, **Then** it appears
+   in the agenda on its posting date with its category.
+7. **Given** exams, assignments and quizzes, some already turned in and others not, **When** it is
+   synced, **Then** the agenda opens with the «Pendiente» list, sorted nearest first and with
+   the undated ones last, followed by «Hecho» with what was turned in checked off.
+8. **Given** a generated agenda, no change in Classroom and no due or exam date
+   between the two captures, **When** it is synced again another day, **Then** the agenda files
+   are not rewritten. If a date fell between the two, only that entry's list changes (FR-020c).
 
 ---
 
-### User Story 3 - Volver a sincronizar sin duplicar y enterándose de los cambios (Priority: P2)
+### User Story 3 - Syncing again without duplicating, and learning what changed (Priority: P2)
 
-Pasados unos días la familia vuelve a sincronizar. alfabeta solo trae lo nuevo o lo cambiado: un
-material nuevo, un adjunto que el profesor ha editado, una fecha de entrega movida. No duplica nada y
-no borra nada. Al terminar, la familia ve qué ha cambiado desde la última vez, y queda registro de
-cada sincronización.
+A few days later the family syncs again. alfabeta brings only what is new or changed: a
+new material, an attachment the teacher edited, a moved due date. It duplicates nothing and
+deletes nothing. At the end, the family sees what changed since last time, and every sync
+is logged.
 
-**Why this priority**: sin esto la carpeta se degrada con cada uso y la familia deja de fiarse de
-ella. Depende de la historia 1.
+**Why this priority**: without this the folder degrades with every use and the family stops trusting
+it. It depends on story 1.
 
-**Independent Test**: sincronizar dos veces seguidas sin cambios y comprobar que la segunda no escribe
-nada en la carpeta; después cambiar una fecha, editar un adjunto, añadir y retirar un material en la
-clase de prueba, sincronizar y comprobar cada efecto.
+**Independent Test**: sync twice in a row without changes and check that the second writes
+nothing to the folder; then change a date, edit an attachment, add and withdraw a material in the
+test class, sync and check each effect.
 
 **Acceptance Scenarios**:
 
-1. **Given** una sincronización completa reciente, ningún cambio en Classroom y ninguna fecha de
-   entrega o de examen entre las dos capturas, **When** se sincroniza
-   otra vez, **Then** no se crea, modifica ni borra ningún fichero de la carpeta del alumno y el
-   resumen dice «sin cambios».
-2. **Given** una fecha de entrega movida por el profesor, **When** se sincroniza, **Then** la agenda
-   muestra la nueva fecha y el resumen lo menciona.
-3. **Given** un adjunto de un elemento que Classroom muestra modificado después de la última réplica,
-   **When** se sincroniza, **Then** su carpeta tiene la versión nueva y la anterior se conserva al lado,
-   identificada como anterior. Un adjunto editado solo en Drive, sin marca en Classroom, llega en la
-   revisión completa periódica (FR-026).
-4. **Given** un material que el profesor retiró de Classroom, **When** se sincroniza, **Then** su réplica
-   se conserva, queda marcada como retirada en el registro y el resumen lo menciona.
-5. **Given** cualquier sincronización, **When** termina, **Then** el registro guarda cuándo empezó y
-   acabó, qué asignaturas recorrió y qué elementos añadió, cambió, marcó como retirados o no pudo
-   traer.
+1. **Given** a recent full sync, no change in Classroom and no due or exam date
+   between the two captures, **When** it is synced
+   again, **Then** no file in the student's folder is created, modified or deleted and the
+   summary says «sin cambios» ("no changes").
+2. **Given** a due date moved by the teacher, **When** it is synced, **Then** the agenda
+   shows the new date and the summary mentions it.
+3. **Given** an attachment of an item that Classroom shows as modified after the last replica,
+   **When** it is synced, **Then** its folder has the new version and the previous one is kept beside
+   it, identified as previous. An attachment edited only in Drive, with no mark in Classroom, arrives
+   in the periodic full review (FR-026).
+4. **Given** a material the teacher withdrew from Classroom, **When** it is synced, **Then** its
+   replica is kept, marked as withdrawn in the log, and the summary mentions it.
+5. **Given** any sync, **When** it ends, **Then** the log records when it started and
+   ended, which subjects it walked and which items it added, changed, marked as withdrawn or could
+   not fetch.
 
 ---
 
-### User Story 4 - El libro, en la misma estructura (Priority: P2)
+### User Story 4 - The book, in the same structure (Priority: P2)
 
-La skill de Science Bits deja sus ficheros en la subcarpeta `sciencebits` del mismo tema en el que
-Classroom deja los suyos, dentro del Drive familiar.
+The Science Bits skill leaves its files in the `sciencebits` subfolder of the same topic where
+Classroom leaves its own, inside the family Drive.
 
-**Why this priority**: el operador quiere juntar el material del profesor con los libros para
-llevarlos al cuaderno (épica 3). Sin una carpeta de tema común, esa combinación no es posible.
+**Why this priority**: the operator wants to combine the teacher's material with the books to
+take them to the notebook (epic 3). Without a common topic folder, that combination is not possible.
 
-**Independent Test**: capturar un tema de prueba con la skill y comprobar que queda en
-`<curso>/<asignatura>/<tema>/sciencebits/` del Drive familiar, junto a `classroom/` si existe.
+**Independent Test**: capture a test topic with the skill and check that it ends up in
+`<school-year>/<subject>/<topic>/sciencebits/` of the family Drive, next to `classroom/` if it
+exists.
 
 **Acceptance Scenarios**:
 
-1. **Given** la configuración por alumno, **When** se captura un tema de Science Bits, **Then** sus
-   ficheros quedan en la subcarpeta `sciencebits` de la carpeta de ese tema.
+1. **Given** the per-student configuration, **When** a Science Bits topic is captured, **Then** its
+   files end up in the `sciencebits` subfolder of that topic's folder.
 
 ---
 
-### User Story 5 - Un segundo alumno sin tocar el código, y nada personal en el repositorio (Priority: P2)
+### User Story 5 - A second student without touching the code, and nothing personal in the repository (Priority: P2)
 
-La familia quiere usar alfabeta también con el hermano. Copia la plantilla, rellena su configuración
-privada y sincroniza: su carpeta, su registro y sus datos quedan separados de los del primer alumno.
-Mientras, cualquiera que contribuya al repositorio público tiene un guardarraíl que le impide subir
-por despiste un nombre, un correo, una ruta personal o un identificador real.
+The family wants to use alfabeta with the sibling too. They copy the template, fill in the sibling's
+private configuration and sync: the sibling's folder, log and data stay separate from the first
+student's. Meanwhile, anyone contributing to the public repository has a guardrail that stops them
+from accidentally pushing a real name, email, personal path or identifier.
 
-**Why this priority**: es un principio de la constitución (I, II y III). Se prueba sola, con alumnos
-inventados, sin Classroom.
+**Why this priority**: it is a principle of the constitution (I, II and III). It is tested on its own,
+with invented students, without Classroom.
 
-**Independent Test**: dar de alta dos alumnos inventados desde la plantilla y comprobar que el diff del
-repositorio está vacío y que sus salidas no se mezclan; plantar datos reales de prueba en un commit y
-comprobar que el guardarraíl lo rechaza.
+**Independent Test**: register two invented students from the template and check that the
+repository diff is empty and that their outputs do not mix; plant real-looking test data in a commit
+and check that the guardrail rejects it.
 
 **Acceptance Scenarios**:
 
-1. **Given** la plantilla del repositorio, **When** la familia crea la configuración de un segundo
-   alumno, **Then** puede sincronizarlo sin modificar ningún fichero del repositorio.
-2. **Given** dos alumnos configurados, **When** se sincroniza uno, **Then** solo se escriben su carpeta,
-   su registro y sus datos.
-3. **Given** una configuración a la que le falta una clave o que conserva un valor de ejemplo,
-   **When** se lanza alfabeta, **Then** se detiene antes de hacer nada y nombra la clave, nunca su
-   valor.
-4. **Given** un cambio que contiene un valor de la configuración real de un alumno (nombre, correo,
-   ruta o título de clase), **When** se intenta hacer commit en un Mac con esa configuración, **Then**
-   el gancho de pre-commit, instalado al preparar el entorno, lo rechaza y dice qué fichero y qué
-   línea, sin repetir el dato.
-5. **Given** un cambio que contiene un correo, una ruta de usuario o un identificador con forma real,
-   **When** pasa por la integración continua, **Then** el guardarraíl lo rechaza igual.
+1. **Given** the repository template, **When** the family creates a second student's
+   configuration, **Then** they can sync that student without modifying any repository file.
+2. **Given** two configured students, **When** one is synced, **Then** only that student's folder,
+   log and data are written.
+3. **Given** a configuration missing a key or still holding an example value,
+   **When** alfabeta is launched, **Then** it stops before doing anything and names the key, never
+   its value.
+4. **Given** a change containing a value from a student's real configuration (name, email,
+   path or class title), **When** a commit is attempted on a Mac with that configuration, **Then**
+   the pre-commit hook, installed when setting up the environment, rejects it and says which file and
+   which line, without repeating the data.
+5. **Given** a change containing an email, a user path or an identifier with a real shape,
+   **When** it goes through continuous integration, **Then** the guardrail rejects it as well.
 
 ---
 
-### User Story 6 - Tablón, entregas del alumno y correcciones (Priority: P3)
+### User Story 6 - Stream, the student's submissions and gradings (Priority: P3)
 
-Los profesores también publican avisos en el tablón (cambios de examen, material extra) y devuelven
-las tareas corregidas con nota y comentario. alfabeta guarda cada anuncio con su fecha, su texto y sus
-adjuntos; y en la carpeta de cada tarea, junto al enunciado, guarda lo que entregó el alumno y la
-corrección (nota y comentario del profesor), para repasar lo que falló con todo a la vista.
+Teachers also post announcements on the stream (exam changes, extra material) and return
+graded assignments with a grade and a comment. alfabeta saves each announcement with its date, its
+text and its attachments; and in each assignment's folder, next to the statement, it saves what the
+student turned in and the grading (grade and teacher's comment), to review what went wrong with
+everything in view.
 
-**Why this priority**: útil para los recordatorios y para estudiar, pero el material y las fechas de
-entrega viven en «Trabajo de clase». Puede esperar a que lo demás funcione.
+**Why this priority**: useful for the reminders and for studying, but the material and the due
+dates live in «Trabajo de clase». It can wait until the rest works.
 
-**Independent Test**: con dos anuncios de prueba, uno con adjunto, una tarea entregada sin corregir y
-otra devuelta con nota y comentario, sincronizar y comprobar que cada cosa está en su sitio y con su
-papel reconocible por el nombre, y que no se ha guardado ningún comentario ni nombre de compañeros.
+**Independent Test**: with two test announcements, one with an attachment, an assignment turned in
+and not graded and another returned with a grade and a comment, sync and check that each thing is in
+its place with its role recognisable by its name, and that no classmates' comment or name has been
+saved.
 
 **Acceptance Scenarios**:
 
-1. **Given** anuncios en el tablón, **When** se sincroniza, **Then** cada uno queda en la carpeta de su
-   mes con su fecha, su texto y sus adjuntos, sin comentarios de alumnos ni nombres de otras personas.
-2. **Given** una tarea que el alumno entregó con ficheros, **When** se sincroniza, **Then** su carpeta
-   tiene esos ficheros como `entrega - <nombre>`, junto a los `enunciado - <nombre>` del profesor.
-3. **Given** una tarea devuelta con nota y comentario, **When** se sincroniza, **Then** su carpeta tiene
-   un `correccion` con el estado de calificación, la nota si Classroom la muestra al alumno, el
-   comentario del profesor y la fecha de devolución.
-4. **Given** una tarea que el alumno volvió a entregar, **When** se sincroniza, **Then** la entrega
-   nueva queda como `entrega` y la anterior se conserva como anterior.
+1. **Given** announcements on the stream, **When** it is synced, **Then** each one ends up in its
+   month's folder with its date, its text and its attachments, without student comments or names
+   of other people.
+2. **Given** an assignment the student turned in with files, **When** it is synced, **Then** its
+   folder has those files as `entrega - <name>`, next to the teacher's `enunciado - <name>`.
+3. **Given** an assignment returned with a grade and a comment, **When** it is synced, **Then** its
+   folder has a `correccion` with the grading state, the grade if Classroom shows it to the
+   student, the teacher's comment and the return date.
+4. **Given** an assignment the student turned in again, **When** it is synced, **Then** the new
+   submission is the `entrega` and the earlier one is kept as previous.
 
 ### Edge Cases
 
-- Una clase de Classroom que no corresponde a ninguna asignatura configurada: no se sincroniza, y el
-  resumen la lista para que la familia decida si la añade.
-- Los temas del profesor y los del libro no van de la mano: otra numeración, otro idioma, un tema del
-  profesor que junta dos del libro o uno que no existe en el libro. alfabeta propone y la familia
-  confirma (FR-013); hasta entonces, lo de ese tema espera en la carpeta de su mes.
-- Un emparejamiento confirmado que resulta equivocado: la familia lo cambia con la orden de
-  decisiones y la siguiente sincronización mueve las réplicas a su carpeta correcta, sin duplicarlas
-  ni perderlas.
-- Dos elementos con el mismo título y la misma fecha en la misma carpeta, o títulos con caracteres no
-  válidos o muy largos: el nombre se sanea y, si choca, se desambigua sin perder ninguno.
-- Un adjunto de Drive al que el alumno no tiene acceso, borrado o demasiado grande: se anota con su
-  enlace y el motivo, y la sincronización sigue.
-- Una descarga que no llega o llega incompleta: no se da por guardada; se reintenta en la siguiente
-  sincronización.
-- Ficheros ajenos en la carpeta de descargas del Mac: alfabeta solo recoge lo que ha pedido.
-- La sesión caduca a mitad de la sincronización: se detiene, se registra hasta dónde llegó y la
-  siguiente continúa sin duplicar.
-- Classroom responde con un desafío anti-robot o un bloqueo: la sincronización de esa fuente se
-  detiene y se avisa; no se intenta evitar.
-- La carpeta del Drive no está montada o Drive para escritorio está desconectado: alfabeta no escribe
-  en ningún otro sitio; se detiene y lo dice.
-- Drive para escritorio todavía está subiendo ficheros de la sincronización anterior: no afecta,
-  porque alfabeta escribe en la carpeta del disco.
-- Dos sincronizaciones del mismo alumno a la vez: la segunda no arranca mientras la primera siga.
-- Fechas en los cambios de horario de verano e invierno: la fecha mostrada es la que muestra
-  Classroom.
+- A Classroom class that matches no configured subject: it is not synced, and the
+  summary lists it so the family can decide whether to add it.
+- The teacher's topics and the book's do not line up: different numbering, a different language, a
+  teacher's topic that joins two of the book's or one that does not exist in the book. alfabeta
+  proposes and the family confirms (FR-013); until then, that topic's items wait in their month's
+  folder.
+- A confirmed match that turns out wrong: the family changes it with the `decisions` command and
+  the next sync moves the replicas to their correct folder, without duplicating or
+  losing them.
+- Two items with the same title and the same date in the same folder, or titles with invalid or
+  very long characters: the name is sanitised and, if it collides, disambiguated without losing any.
+- A Drive attachment the student has no access to, deleted or too large: it is noted with its
+  link and the reason, and the sync goes on.
+- A download that does not arrive or arrives incomplete: it is not taken as saved; it is retried in
+  the next sync.
+- Foreign files in the Mac's downloads folder: alfabeta only collects what it requested.
+- The session expires mid-sync: it stops, logs how far it got, and the
+  next one continues without duplicating.
+- Classroom answers with an anti-bot challenge or a block: the sync of that source
+  stops and the family is told; no attempt is made to get around it.
+- The Drive folder is not mounted or Google Drive for desktop is disconnected: alfabeta writes
+  nowhere else; it stops and says so.
+- Google Drive for desktop is still uploading files from the previous sync: no effect,
+  because alfabeta writes to the folder on disk.
+- Two syncs of the same student at once: the second does not start while the first is still running.
+- Dates around the summer and winter daylight-saving changes: the date shown is the one Classroom
+  shows.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-**Configuración por alumno**
+**Per-student configuration**
 
-- **FR-001**: El repositorio MUST contener una plantilla de configuración que documente cada clave con
-  un valor de ejemplo (`changeme` en los textos; un número razonable en los números). Sustituye al
-  `config.example.json` actual.
-- **FR-002**: La configuración de cada alumno MUST vivir fuera del repositorio, y sus datos y secretos
-  (registro, estado de sincronización, sesiones, identificadores) en una carpeta de datos local del
-  alumno y en el llavero del sistema, fuera de la carpeta que se comparte.
-- **FR-003**: Al arrancar, alfabeta MUST validar la configuración contra la plantilla: una clave que
-  falta, sobra, cambia de tipo o contiene `changeme` (en cualquier parte del valor) detiene la
-  ejecución con un mensaje que nombra la clave y no muestra su valor.
-- **FR-004**: Dar de alta otro alumno MUST requerir solo crear su configuración. Cada ejecución MUST
-  operar sobre un único alumno, elegido explícitamente.
-- **FR-005**: Un guardarraíl MUST rechazar, en cada commit hecho en un Mac con configuraciones de
-  alumnos, cualquier fichero que contenga sus valores reales (nombres, correos, rutas personales) o los
-  identificadores de Classroom, Drive o cuadernos guardados en sus datos (decisiones y estado); y, en
-  cada commit y en la integración continua (que no tiene configuraciones), patrones genéricos de correo, de ruta de
-  usuario o de identificador con forma de Classroom, de Drive o de cuaderno (UUID). Los dominios reservados para ejemplos (`example.org`, `example.com`) no cuentan como
-  correos reales. MUST tener casos de prueba que demuestren que salta y que la plantilla pasa.
+- **FR-001**: The repository MUST contain a configuration template that documents every key with
+  an example value (`changeme` for text; a reasonable number for numbers). It replaces the
+  current `config.example.json`.
+- **FR-002**: Each student's configuration MUST live outside the repository, and their data and
+  secrets (log, sync state, sessions, identifiers) in a local data folder of the student and in the
+  system keychain, outside the shared folder.
+- **FR-003**: On start-up, alfabeta MUST validate the configuration against the template: a key that
+  is missing, extra, changes type or contains `changeme` (anywhere in the value) stops the
+  run with a message that names the key and does not show its value.
+- **FR-004**: Registering another student MUST require only creating their configuration. Each run
+  MUST operate on a single student, chosen explicitly.
+- **FR-005**: A guardrail MUST reject, on every commit made on a Mac with student configurations,
+  any file containing their real values (names, emails, personal paths) or the
+  Classroom, Drive or notebook identifiers kept in their data (decisions and state); and, on
+  every commit and in continuous integration (which has no configurations), generic patterns of email,
+  user path or identifier shaped like Classroom, Drive or notebook ones (UUID). The domains reserved
+  for examples (`example.org`, `example.com`) do not count as real emails. It MUST have test cases
+  showing that it fires and that the template passes.
 
-**Lectura de Classroom, en solo lectura**
+**Reading Classroom, read-only**
 
-- **FR-006**: alfabeta MUST leer Classroom con la sesión que el propio alumno inicia en Chrome con la
-  extensión de Claude. El navegador integrado de la app queda para una épica posterior, cuando se
-  pruebe en él la descarga de adjuntos. Ninguna herramienta MUST escribir credenciales.
-- **FR-007**: alfabeta MUST NOT entregar, comentar, marcar como hecho, cambiar ningún estado ni abrir
-  un cuestionario o un formulario en Classroom. Las únicas páginas a las que navega son: la página de
-  inicio (lista de clases), «Trabajo de clase», el tablón y la página de detalle de cada tarea,
-  material o pregunta, que solo se lee. Nunca sigue un enlace a un formulario o a un cuestionario
-  (Google Forms o similares) y nunca pulsa un botón del panel «Tu trabajo». Si la interfaz de
-  Classroom no muestra las etiquetas esperadas (por ejemplo, porque está en otro idioma), se detiene
-  y lo dice en vez de adivinar.
-- **FR-008**: alfabeta MUST leer la lista de clases (visibles, ocultas y archivadas) y, por cada clase
-  activa del curso escolar en curso y desde su inicio (las archivadas quedan fuera): los temas de
-  «Trabajo de clase» y sus elementos (materiales, tareas y preguntas, con título, tipo, tema, fecha de
-  publicación, fecha de entrega si la tiene, y adjuntos), el detalle de cada elemento y los anuncios
-  del tablón. Las clases ocultas por el alumno se listan en el resumen y solo se sincronizan si la
-  familia las asocia a una asignatura.
-- **FR-008a**: El estado de una tarea MUST leerse de su página de detalle, no del listado de
-  «Trabajo de clase», porque pueden discrepar (un listado que dice «Completada» mientras el detalle
-  dice que el profesor la marca como no entregada).
-- **FR-009**: alfabeta MUST NOT guardar comentarios de alumnos ni nombres de otras personas: el extractor
-  descarta los comentarios de clase y privados y los campos de autor. El texto libre que escribe el
-  profesor (instrucciones, anuncios, comentario de corrección) se guarda tal cual; si nombra a alguien,
-  alfabeta no lo detecta (límite conocido).
-- **FR-010**: El acceso MUST ser el de un alumno navegando: una clase cada vez, al menos 2 segundos
-  (con variación aleatoria) entre dos páginas o descargas, y sin evasión. Ante un desafío anti-robot
-  (CAPTCHA, página intermedia de verificación, error de demasiadas peticiones), la sincronización de
-  esa fuente deja de navegar y se avisa a la familia; la ejecución termina `detenida` con motivo
-  `desafio` si aún no había capturado ninguna clase, o `parcial` con ese motivo, aplicando las ya
-  capturadas, si ya las había (data-model, «Ejecución»).
+- **FR-006**: alfabeta MUST read Classroom with the session the student starts in Chrome with the
+  Claude extension. The app's built-in browser is left for a later epic, once attachment download is
+  tested in it. No tool MUST type credentials.
+- **FR-007**: alfabeta MUST NOT turn in, comment, mark as done, change any status or open
+  a quiz or a form in Classroom. The only pages it navigates to are: the home
+  page (class list), «Trabajo de clase», the stream and the detail page of each assignment,
+  material or question, which is only read. It never follows a link to a form or a quiz
+  (Google Forms or similar) and never presses a button in the «Tu trabajo» (Your work) panel. If
+  Classroom's interface does not show the expected labels (for example, because it is in another
+  language), it stops and says so instead of guessing.
+- **FR-008**: alfabeta MUST read the class list (visible, hidden and archived) and, for each active
+  class of the current school year and since its start (archived ones are out): the topics of
+  «Trabajo de clase» and their items (materials, assignments and questions, with title, type, topic,
+  posting date, due date if any, and attachments), each item's detail and the stream
+  announcements. Classes hidden by the student are listed in the summary and are only synced if the
+  family links them to a subject.
+- **FR-008a**: An assignment's status MUST be read from its detail page, not from the
+  «Trabajo de clase» listing, because they can disagree (a listing saying «Completada» (Completed)
+  while the detail says the teacher marks it as not turned in).
+- **FR-009**: alfabeta MUST NOT save student comments or names of other people: the extractor
+  drops class and private comments and author fields. The free text the
+  teacher writes (instructions, announcements, grading comment) is saved as is; if it names someone,
+  alfabeta does not detect it (known limitation).
+- **FR-010**: Access MUST be that of a student browsing: one class at a time, at least 2 seconds
+  (with random variation) between two pages or downloads, and no evasion. On an anti-bot challenge
+  (CAPTCHA, intermediate verification page, too-many-requests error), the sync of
+  that source stops navigating and the family is told; the run ends `stopped` with reason
+  `challenge` if it had not yet captured any class, or `partial` with that reason, applying the
+  classes already captured, if it had (data-model, "Run").
 
-**Estructura de la carpeta del alumno**
+**Structure of the student's folder**
 
-- **FR-011**: Cada alumno MUST tener una carpeta raíz propia de alfabeta dentro del Drive de la
-  familia, nunca la raíz de «Mi unidad», que ya tiene contenido del alumno. Vive en la carpeta que
-  Drive para escritorio monta en el Mac; alfabeta solo escribe en esa carpeta del disco y la
-  sincronización con la nube la hace Drive para escritorio.
-- **FR-012**: Dentro de la raíz, la estructura MUST ser común a todas las fuentes:
-  `<curso>/<asignatura>/<Tema NN - título | Tema PNN - título del profesor | AAAA-MM>/<fuente>/`, con
-  `classroom` y `sciencebits`
-  como fuentes de esta épica. El primer nivel es el curso escolar (`2026-2027`), como hoy en
-  Science Bits.
-- **FR-013**: Solo se sincroniza una clase asociada a una asignatura configurada: alfabeta propone
-  la asociación por el título de la clase que figura en la configuración, la familia la confirma una
-  vez y desde entonces vale el identificador de la clase, no su título. Las carpetas de tema MUST
-  llamarse como el tema del libro (`Tema NN - <título>`) cuando la asignatura tiene libro (los temas
-  del libro son las carpetas `Tema NN - <título>` que ya tienen la subcarpeta de su libro en el Drive), y cada tema
-  del profesor MUST emparejarse con ellas así:
-  - alfabeta propone el emparejamiento a partir de todo lo que tiene: el número, el título en
-    cualquiera de los idiomas del alumno, el contenido de los elementos y el orden en que se publican.
-    Cada propuesta dice por qué y con qué seguridad (alta, media o baja).
-  - La familia confirma o rechaza cada emparejamiento nuevo una vez, y puede cambiar uno confirmado.
-    Rechazar un emparejamiento significa que ese tema del profesor no está en el libro: pasa a su
-    propia carpeta `Tema PNN`. Un tema rechazado se vuelve a proponer solo si cambia su título o
-    aparece en el Drive un tema del libro nuevo; la familia también puede cambiar una decisión
-    rechazada.
-    Las decisiones se guardan en la carpeta de datos del alumno, ligadas al identificador del tema en
-    Classroom, de modo que si el profesor lo renombra el emparejamiento se mantiene.
-  - Varios temas del profesor MAY ir al mismo tema del libro.
-  - Si un tema del profesor abarca varios del libro, alfabeta propone el tema de cada elemento por su
-    contenido, y la familia lo confirma igual.
-  - Un tema del profesor sin equivalente en el libro (repaso, proyecto, introducción) y cualquier tema
-    de una asignatura sin libro tienen su propia carpeta `Tema PNN - <título del profesor>`, donde `NN`
-    es el orden del tema en «Trabajo de clase» en la ejecución que coloca por primera vez algo de ese
-    tema (se guarda en las decisiones y no se recalcula si el profesor reordena) y la `P` lo distingue
-    de los temas del libro. En una asignatura sin libro no hay nada que confirmar.
-  - Mientras un emparejamiento esté sin confirmar, sus elementos no se mueven de sitio: se sincronizan
-    en la carpeta de su mes y el resumen pide la confirmación.
-- **FR-014**: Un elemento sin tema y un anuncio MUST ir a la carpeta del mes de su fecha de
-  publicación (`AAAA-MM`).
-- **FR-015**: Dentro de `classroom/`, cada elemento MUST llevar delante su fecha de publicación,
-  `AAAA-MM-DD - <título del elemento>`, y su forma MUST depender de su tipo:
-  - un **material** con un solo fichero, sin enlaces y sin descripción es ese fichero; con varios
-    ficheros, con enlaces o con descripción, es una carpeta con sus ficheros, una nota `descripcion`
-    con su texto si lo tiene y una nota `enlaces` si tiene enlaces;
-  - un **aviso** es una nota `.md` con su texto o, si tiene adjuntos, una carpeta con la nota y los
-    adjuntos; lleva `aviso` tras la fecha (`AAAA-MM-DD - aviso - <resumen>`), donde `<resumen>` son
-    las primeras palabras del anuncio, saneadas y cortadas a 60 caracteres;
-  - una **tarea** o una **pregunta** (también una que es examen o cuestionario) es siempre una carpeta,
-    aunque solo tenga un adjunto, para que su entrega y su corrección se añadan sin mover nada; sus
-    instrucciones o el texto de la pregunta van en `enunciado.md`;
-  - un **material** sin ficheros ni enlaces, solo con texto, es una nota `AAAA-MM-DD - <título>.md`
-    (esta regla gana a la del material con descripción).
-- **FR-015a**: Dentro de la carpeta de una tarea, cada fichero MUST llevar delante su papel, con
-  nombres fijos sin acentos: `enunciado - <nombre>` (lo que adjunta el profesor), `entrega - <nombre>`
-  (lo que entregó el alumno), `correccion` (nota, comentario del profesor y fecha de devolución) y
-  `enlaces` (vídeos, enlaces y formularios, con título y enlace).
-- **FR-015b**: Una versión sustituida (un adjunto que el profesor editó, una entrega repetida) MUST
-  conservarse junto a la vigente como `<nombre> (anterior AAAA-MM-DD)`.
-- **FR-015c**: Los nombres MUST ser válidos en el sistema de ficheros y en Drive, de 255 bytes UTF-8
-  como máximo, y únicos en su carpeta sin perder ningún elemento; los títulos del profesor conservan
-  sus acentos.
+- **FR-011**: Each student MUST have their own alfabeta root folder inside the family's
+  Drive, never the root of «Mi unidad» (My Drive), which already holds the student's content. It
+  lives in the folder Google Drive for desktop mounts on the Mac; alfabeta only writes to that folder
+  on disk and Google Drive for desktop does the sync with the cloud.
+- **FR-012**: Inside the root, the structure MUST be common to every source:
+  `<school-year>/<subject>/<Tema NN - title | Tema PNN - teacher's title | YYYY-MM>/<source>/`, with
+  `classroom` and `sciencebits`
+  as this epic's sources. The first level is the school year (`2026-2027`), as in
+  Science Bits today.
+- **FR-013**: Only a class linked to a configured subject is synced: alfabeta proposes
+  the link from the class title stated in the configuration, the family confirms it once,
+  and from then on the class identifier counts, not its title. Topic folders MUST be
+  named after the book topic (`Tema NN - <title>`) when the subject has a book (the book
+  topics are the `Tema NN - <title>` folders that already have their book's subfolder in the Drive),
+  and each teacher's topic MUST be matched to them as follows:
+  - alfabeta proposes the match from everything it has: the number, the title in
+    any of the student's languages, the content of the items and the order in which they are posted.
+    Each proposal says why and with what confidence (high, medium or low).
+  - The family confirms or rejects each new match once, and can change a confirmed one.
+    Rejecting a match means that teacher's topic is not in the book: it moves to its
+    own `Tema PNN` folder. A rejected topic is proposed again only if its title changes or a
+    new book topic appears in the Drive; the family can also change a rejected
+    decision.
+    Decisions are kept in the student's data folder, tied to the topic's Classroom identifier,
+    so that if the teacher renames it the match holds.
+  - Several teacher's topics MAY go to the same book topic.
+  - If a teacher's topic spans several of the book's, alfabeta proposes each item's topic from its
+    content, and the family confirms it the same way.
+  - A teacher's topic with no equivalent in the book (review, project, introduction) and any topic
+    of a subject without a book get their own folder `Tema PNN - <teacher's title>`, where `NN`
+    is the topic's order in «Trabajo de clase» in the run that first places something from that
+    topic (it is kept in the decisions and not recomputed if the teacher reorders) and the `P` sets
+    it apart from the book topics. In a subject without a book there is nothing to confirm.
+  - While a match is unconfirmed, its items do not move: they are synced
+    in their month's folder and the summary asks for confirmation.
+- **FR-014**: An item without a topic and an announcement MUST go to the folder of the month of its
+  posting date (`YYYY-MM`).
+- **FR-015**: Inside `classroom/`, each item MUST be prefixed with its posting date,
+  `YYYY-MM-DD - <item title>`, and its form MUST depend on its type:
+  - a **material** with a single file, no links and no description is that file; with several
+    files, with links or with a description, it is a folder with its files, a `descripcion` note
+    with its text if it has one and an `enlaces` note if it has links;
+  - an **announcement** is a `.md` note with its text or, if it has attachments, a folder with the
+    note and the attachments; it carries `aviso` after the date (`YYYY-MM-DD - aviso - <summary>`),
+    where `<summary>` is the first words of the announcement, sanitised and cut to 60 characters;
+  - an **assignment** or a **question** (including one that is an exam or a quiz) is always a folder,
+    even with a single attachment, so its submission and its grading can be added without moving
+    anything; its instructions or the question's text go in `enunciado.md`;
+  - a **material** with no files or links, only text, is a note `YYYY-MM-DD - <title>.md`
+    (this rule wins over the one for a material with a description).
+- **FR-015a**: Inside an assignment's folder, each file MUST be prefixed with its role, with
+  fixed names without accents: `enunciado - <name>` (what the teacher attaches), `entrega - <name>`
+  (what the student turned in), `correccion` (grade, teacher's comment and return date) and
+  `enlaces` (videos, links and forms, with title and link).
+- **FR-015b**: A superseded version (an attachment the teacher edited, a repeated submission) MUST
+  be kept next to the current one as `<name> (anterior YYYY-MM-DD)`.
+- **FR-015c**: Names MUST be valid in the file system and in Drive, at most 255 UTF-8 bytes,
+  and unique in their folder without losing any item; the teacher's titles keep
+  their accents.
 
-Ejemplo de la estructura resultante (nombres inventados):
+Example of the resulting structure (invented names):
 
 ```text
 2026-2027/
 ├── agenda.md   agenda.json
-└── <asignatura>/
-    ├── Tema 02 - <título del libro>/
+└── <subject>/
+    ├── Tema 02 - <book title>/
     │   ├── sciencebits/
     │   └── classroom/
     │       ├── 2026-10-14 - Ficha de gases.pdf
@@ -408,237 +413,238 @@ Ejemplo de la estructura resultante (nombres inventados):
             └── 2026-11-03 - aviso - Cambio de fecha del examen.md
 ```
 
-**Réplica de lo que publica el profesor y de lo que entrega el alumno**
+**Replica of what the teacher posts and of what the student turns in**
 
-- **FR-016**: Un adjunto que es un fichero (PDF, documento de Office, imagen) MUST replicarse tal cual;
-  un documento, una presentación o una hoja de cálculo de Google MUST replicarse como PDF.
-- **FR-016a**: alfabeta MUST replicar los ficheros que el alumno entregó en cada tarea, descargándolos
-  como cualquier otro adjunto y sin tocar la entrega en Classroom.
-- **FR-017**: Un vídeo, un enlace web o un formulario MUST anotarse en la nota `enlaces` del elemento
-  con título, fecha y enlace, sin descargarse.
-- **FR-018**: Una réplica solo MUST darse por guardada cuando el fichero completo está en su carpeta.
-  alfabeta recoge de la carpeta de descargas del Mac solo los ficheros que ha pedido.
-- **FR-019**: Un adjunto que no se puede traer MUST anotarse con su enlace y el motivo en la nota
-  `enlaces` de su elemento (y en el registro), sin detener la sincronización.
+- **FR-016**: An attachment that is a file (PDF, Office document, image) MUST be replicated as is;
+  a Google document, presentation or spreadsheet MUST be replicated as a PDF.
+- **FR-016a**: alfabeta MUST replicate the files the student turned in for each assignment,
+  downloading them like any other attachment and without touching the submission in Classroom.
+- **FR-017**: A video, a web link or a form MUST be noted in the item's `enlaces` note
+  with title, date and link, without being downloaded.
+- **FR-018**: A replica MUST be taken as saved only when the complete file is in its folder.
+  alfabeta collects from the Mac's downloads folder only the files it requested.
+- **FR-019**: An attachment that cannot be fetched MUST be noted with its link and the reason in its
+  item's `enlaces` note (and in the log), without stopping the sync.
 
 **Agenda**
 
-- **FR-020**: Cada sincronización MUST actualizar, en la carpeta del curso, una agenda legible y otra
-  para herramientas con todo elemento con fecha de las asignaturas configuradas: asignatura,
-  categoría, título, fecha (de entrega, de examen o de publicación) o «sin fecha», estado si es algo
-  pendiente (pendiente, entregada, devuelta, vencida sin entregar, falta según el profesor), enlace a
-  Classroom y a la carpeta donde está su réplica. El contenido de la agenda MUST depender solo de lo
-  sincronizado y de las decisiones de la familia, nunca del día en que se genera, y los ficheros de la
-  agenda MUST reescribirse solo si su contenido cambia (FR-025).
-- **FR-020a**: Cada elemento de la agenda MUST tener exactamente una categoría de esta lista cerrada:
-  - **examen**: una prueba, sea una tarea de Classroom o algo que el profesor anuncia en el tablón o
-    en un material;
-  - **entrega**: una tarea a entregar que no es examen;
-  - **cuestionario**: una pregunta de Classroom, o una tarea cuyo único adjunto es un formulario
-    (`clase_adjunto` = `formulario`). Su página de detalle de
-    Classroom solo se lee (FR-007); nunca se responde ni se sigue el formulario o cuestionario
-    enlazado (constitución IV: eso es abrir un cuestionario);
-  - **material**: lo publicado sin entrega (apuntes, ejercicios de práctica), en su fecha de
-    publicación;
-  - **aviso**: un anuncio del tablón que no es examen.
+- **FR-020**: Every sync MUST update, in the school-year folder, a readable agenda and another
+  one for tools with every dated item of the configured subjects: subject,
+  category, title, date (due, exam or posting date) or «sin fecha» ("no date"), status if it is
+  something pending (pending, turned in, returned, overdue and not turned in, missing per the
+  teacher), link to Classroom and to the folder holding its replica. The agenda's content MUST depend
+  only on what was synced and on the family's decisions, never on the day it is generated, and the
+  agenda files MUST be rewritten only if their content changes (FR-025).
+- **FR-020a**: Each agenda item MUST have exactly one category from this closed list:
+  - **exam**: a test, whether a Classroom assignment or something the teacher announces on the
+    stream or in a material;
+  - **assignment**: an assignment to turn in that is not an exam;
+  - **quiz**: a Classroom question, or an assignment whose only attachment is a form
+    (`kind` = `form`). Its Classroom detail page
+    is only read (FR-007); the linked form or quiz is never answered or followed
+    (constitution IV: that is opening a quiz);
+  - **material**: what is posted with nothing to turn in (notes, practice exercises), on its
+    posting date;
+  - **announcement**: a stream announcement that is not an exam.
 
-  Si un elemento encaja en varias, gana la primera de este orden: examen, cuestionario, entrega,
-  material, aviso (una pregunta o una tarea que es un examen es `examen`).
-- **FR-020b**: Un examen que alfabeta deduce de un texto (anuncio, título o descripción de un
-  material, en cualquiera de los idiomas del alumno) MUST marcarse como «detectado», con su fecha
-  resuelta respecto a la de publicación y el enlace al elemento del que sale. Aparece en la agenda en
-  cuanto Claude lo propone, sin esperar confirmación. Es una entrada propia de la agenda (un elemento
-  que anuncia varios exámenes da una entrada por examen): el elemento de origen conserva su propia
-  entrada y su categoría. Descartarlo es una corrección de la familia. Si no puede resolver
-  la fecha, aparece sin fecha. La familia MAY corregir un examen detectado (fecha, categoría o
-  descartarlo), y la corrección MUST conservarse en las sincronizaciones siguientes.
-- **FR-020c**: El estado de lo pendiente MUST ser el que muestra Classroom en cada sincronización, de
-  modo que lo publicado antes de la primera sincronización y ya entregado aparezca como hecho. La
-  agenda legible MUST abrir con una lista de comprobación «Pendiente», ordenada por fecha empezando por
-  la más próxima y con lo «sin fecha» al final, y seguir con «Hecho», con lo entregado marcado,
-  ordenado por fecha de entrega o de examen de la más reciente a la más antigua, con lo sin fecha al
-  final:
+  If an item fits several, the first in this order wins: exam, quiz, assignment,
+  material, announcement (a question or an assignment that is an exam is `exam`).
+- **FR-020b**: An exam that alfabeta infers from a text (announcement, title or description of a
+  material, in any of the student's languages) MUST be marked «detectado», with its date
+  resolved relative to the posting date and the link to the item it comes from. It appears in the
+  agenda as soon as Claude proposes it, without waiting for confirmation. It is an agenda entry of its
+  own (an item announcing several exams gives one entry per exam): the source item keeps its own
+  entry and its category. Dismissing it is a correction by the family. If it cannot resolve
+  the date, it appears without a date. The family MAY correct a detected exam (date, category or
+  dismissing it), and the correction MUST be kept in the following syncs.
+- **FR-020c**: The status of pending items MUST be the one Classroom shows in each sync, so
+  that what was posted before the first sync and already turned in appears as done. The
+  readable agenda MUST open with a «Pendiente» checklist, sorted by date nearest
+  first and with the «sin fecha» items last, and continue with «Hecho», with what was turned in
+  checked off, sorted by due or exam date from most recent to oldest, with the undated ones
+  last:
 
-  | Estado o caso | Lista |
+  | Status or case | List |
   |---|---|
-  | `pendiente`, `vencida`, `falta_segun_profesor` | Pendiente |
-  | `entregada`, `devuelta` | Hecho |
-  | entrega, cuestionario o examen sin `estado` (texto de estado desconocido, o sin entrega en Classroom) | Pendiente |
-  | examen detectado, mientras no exista una captura de su clase posterior a su fecha | Pendiente |
-  | examen detectado sin fecha, hasta que la familia lo corrija o lo descarte | Pendiente |
-  | examen detectado con una captura de su clase posterior a su fecha | Hecho |
-  | examen detectado que la familia descarta | ninguna |
-  | examen que es una tarea o una pregunta de Classroom, en `pendiente`, `vencida` o sin `estado`, con una captura de su clase posterior a su fecha (gana a las filas anteriores; `falta_segun_profesor` sigue en Pendiente) | Hecho |
-  | `material`, `aviso` | Publicado (apartado informativo por fecha de publicación, de la más reciente a la más antigua, tras «Hecho») |
+  | `pending`, `overdue`, `missing_per_teacher` | Pendiente |
+  | `turned_in`, `returned` | Hecho |
+  | assignment, quiz or exam without `status` (unknown status text, or nothing to turn in on Classroom) | Pendiente |
+  | detected exam, while no capture of its class later than its date exists | Pendiente |
+  | detected exam without a date, until the family corrects or dismisses it | Pendiente |
+  | detected exam with a capture of its class later than its date | Hecho |
+  | detected exam the family dismisses | none |
+  | exam that is a Classroom assignment or question, in `pending`, `overdue` or without `status`, with a capture of its class later than its date (wins over the rows above; `missing_per_teacher` stays in Pendiente) | Hecho |
+  | `material`, `announcement` | Publicado (informational section by posting date, from most recent to oldest, after «Hecho») |
 
-  «Posterior a su fecha» compara con el instante del examen o, si solo tiene fecha, con el final de ese
-  día en `Europe/Madrid`. Ninguna regla usa el día en que se genera la agenda: todas dependen de las capturas y de las
-  decisiones (FR-020).
-- **FR-021**: Las fechas MUST mostrarse como las muestra Classroom, en hora de `Europe/Madrid`.
-  Classroom no muestra el año y usa fechas relativas («Mañana, 8:00»): el año se deduce del curso
-  escolar (septiembre a diciembre, el primer año; enero a agosto, el segundo; una captura hecha fuera de
-  ese curso escolar detiene la ejecución con `configuracion_invalida`) y las relativas se
-  resuelven respecto al momento en que se capturó la página, no al de la ejecución que la aplica. La
-  fecha de publicación MUST salir de la fecha de creación (tablón o detalle), nunca de la «última
-  modificación» que a veces muestra el listado.
+  "Later than its date" compares against the exam's instant or, if it only has a date, against the
+  end of that day in `Europe/Madrid`. No rule uses the day the agenda is generated: they all depend
+  on the captures and the decisions (FR-020).
+- **FR-021**: Dates MUST be shown as Classroom shows them, in `Europe/Madrid` time.
+  Classroom does not show the year and uses relative dates («Mañana, 8:00» (Tomorrow, 8:00)): the
+  year is inferred from the school year (September to December, the first year; January to August,
+  the second; a capture taken outside that school year stops the run with `invalid_config`)
+  and relative dates are resolved against the moment the page was captured, not that of the run that
+  applies it. The posting date MUST come from the creation date (stream or detail), never from the
+  «última modificación» (last modified) the listing sometimes shows.
 
-**Repetible y programable**
+**Repeatable and schedulable**
 
-- **FR-021a**: La sincronización completa de un alumno MUST lanzarse con una sola petición a Claude que
-  invoca la skill `classroom-sync` (p. ej. «sincroniza alfabeta para <alumno>») y MUST poder
-  programarse (p. ej. a diario) en el Mac de la familia. Una ejecución programada que encuentra la
-  sesión del alumno caducada, un desafío anti-robot o el Drive sin montar deja de navegar y avisa a la
-  familia, con la misma regla que una interactiva: antes de capturar ninguna clase (o con el Drive sin
-  montar), sin escribir en la carpeta del alumno; a mitad, aplica las clases ya capturadas como
-  `parcial`. El aviso es el resultado de la tarea programada en la app
-  de escritorio de Claude, más una línea en el registro. Si una tarea programada no puede usar el
-  navegador o descargar ficheros sin aprobación (spike S2), la ejecución programada se limita a ese
-  aviso («toca sincronizar») y la familia lanza la sincronización con la orden única; ese modo
-  reducido también cumple este requisito.
-- **FR-021b**: Lo que no requiere juicio (estado, identificadores, nombres, estructura, agenda,
-  recogida de descargas) MUST dar el mismo resultado en cada repetición. Lo que sí lo requiere
-  (proponer emparejamientos de temas, detectar exámenes en un texto) MUST quedar registrado con su
-  motivo, y una vez confirmado por la familia no se vuelve a decidir. Un candidato a examen que Claude
-  juzga que no anuncia ninguno también queda registrado (`candidato_descartado`) y no se vuelve a juzgar
-  salvo que su texto cambie.
+- **FR-021a**: A student's full sync MUST be launched with a single request to Claude that
+  invokes the `classroom-sync` skill (e.g. «sincroniza alfabeta para <student>», "sync alfabeta for
+  <student>") and MUST be schedulable (e.g. daily) on the family's Mac. A scheduled run that finds
+  the student's session expired, an anti-bot challenge or the Drive not mounted stops navigating and
+  tells the family, with the same rule as an interactive one: before capturing any class (or with the
+  Drive not mounted), without writing to the student's folder; midway, it applies the classes already
+  captured as `partial`. The notice is the result of the scheduled task in the Claude desktop
+  app, plus a line in the log. If a scheduled task cannot use the
+  browser or download files without approval (spike S2), the scheduled run is limited to that
+  notice («toca sincronizar», "time to sync") and the family launches the sync with the single
+  request; that reduced mode also meets this requirement.
+- **FR-021b**: What needs no judgement (state, identifiers, names, structure, agenda,
+  collecting downloads) MUST give the same result on every repetition. What does need it
+  (proposing topic matches, detecting exams in a text) MUST be recorded with its
+  reason, and once confirmed by the family it is not decided again. An exam candidate that Claude
+  judges announces none is also recorded (`dismissed_candidate`) and is not judged again
+  unless its text changes.
 
-**Libros en la misma estructura**
+**Books in the same structure**
 
-- **FR-022**: La skill de Science Bits MUST leer la configuración por alumno y dejar sus ficheros en
-  la subcarpeta `sciencebits` de la carpeta del tema.
-- **FR-023**: alfabeta MUST NOT leer ni escribir en la nube anterior (Dropbox). Lo capturado allí antes
-  de esta épica queda como está; si se quiere en la estructura nueva, se vuelve a capturar.
+- **FR-022**: The Science Bits skill MUST read the per-student configuration and leave its files in
+  the `sciencebits` subfolder of the topic's folder.
+- **FR-023**: alfabeta MUST NOT read from or write to the previous cloud (Dropbox). What was captured
+  there before this epic stays as it is; if it is wanted in the new structure, it is captured again.
 
-**Sincronización incremental y registro**
+**Incremental sync and log**
 
-- **FR-024**: Cada elemento y cada adjunto MUST tener un identificador estable derivado de Classroom.
-  Repetir una sincronización MUST NOT duplicar nada.
-- **FR-025**: Una sincronización sin cambios MUST NOT escribir nada en la carpeta del
-  alumno ni en su estado ni en sus decisiones. «Sin cambios» quiere decir que no cambia Classroom y
-  que ninguna fecha de entrega o de examen queda entre la captura anterior y esta: si una queda, la
-  entrada cambia de lista (FR-020c) y eso es un cambio. Solo escribe lo que es el registro propio de esa
-  ejecución: su línea de registro, sus capturas, su plan, su fichero de bloqueo, los adjuntos que
-  recoge en la carpeta de datos (que `aplicar` borra una vez colocados o comprobados idénticos) y el
-  borrado de sus capturas más antiguas que `capturas_conservadas` (nunca en la carpeta del alumno).
-- **FR-026**: alfabeta MUST detectar y aplicar elementos nuevos, adjuntos editados, entregas nuevas o
-  repetidas, devoluciones y fechas movidas. Un adjunto ya replicado se vuelve a descargar solo si
-  Classroom muestra que su elemento se modificó después de la última réplica, si cambia su nombre o
-  su tipo, o en la revisión completa periódica (`revision_completa_dias`; valor de la plantilla: 7). La
-  revisión completa se cuenta desde la última ejecución del registro que la hizo (la primera
-  sincronización lo es); si encuentra los
-  mismos bytes no escribe nada fuera de su registro propio (FR-025). La versión sustituida se conserva
-  según FR-015b.
-- **FR-027**: Un elemento retirado de Classroom MUST conservarse, marcarse como retirado en el registro
-  y mencionarse en el resumen. Solo se marca como retirado si la captura de su clase está completa:
-  una captura cortada (sesión caducada, error) no retira nada. alfabeta MUST NOT borrar nada de la
-  carpeta del alumno.
-- **FR-028**: Cada sincronización MUST dejar un registro con inicio, fin, asignaturas recorridas y
-  elementos añadidos, cambiados, retirados o no traídos, y terminar con un resumen para la familia.
-- **FR-029**: El fallo de una asignatura o de un adjunto MUST NOT abortar el resto. Si se interrumpe,
-  la siguiente sincronización continúa sin duplicar.
-- **FR-030**: Dos sincronizaciones del mismo alumno MUST NOT ejecutarse a la vez: el bloqueo se toma
-  al empezar y se mantiene durante toda la ejecución, también la parte del navegador. Cada paso de la
-  ejecución lo renueva; si pasan `bloqueo_inactividad_minutos` sin renovarlo (la ejecución murió), se
-  libera solo y queda una línea `detenida` en el registro. Como todos los alumnos comparten un
-  navegador y una carpeta de descargas, la parte del navegador y las descargas de dos alumnos, o de
-  dos skills de alfabeta (la de Classroom y la de un libro), tampoco MUST ejecutarse a la vez. Si la carpeta del Drive no está disponible, alfabeta MUST detenerse sin
-  escribir réplicas en ningún otro sitio (solo su línea de registro, FR-021a).
+- **FR-024**: Every item and every attachment MUST have a stable identifier derived from Classroom.
+  Repeating a sync MUST NOT duplicate anything.
+- **FR-025**: A sync without changes MUST NOT write anything to the student's
+  folder, their state or their decisions. "Without changes" means that Classroom does not change and
+  that no due or exam date falls between the previous capture and this one: if one does, the
+  entry changes list (FR-020c) and that is a change. It writes only that run's own
+  records: its log line, its captures, its plan, its lock file, the attachments it
+  collects into the data folder (which `apply` deletes once placed or found identical) and the
+  deletion of its captures older than `kept_captures` (never in the student's folder).
+- **FR-026**: alfabeta MUST detect and apply new items, edited attachments, new or
+  repeated submissions, returns and moved dates. An already replicated attachment is downloaded again
+  only if Classroom shows its item was modified after the last replica, if its name or its type
+  changes, or in the periodic full review (`full_review_days`; template value: 7). The
+  full review counts from the last run in the log that performed one (the first
+  sync is one); if it finds the
+  same bytes it writes nothing outside its own records (FR-025). The superseded version is kept
+  according to FR-015b.
+- **FR-027**: An item withdrawn from Classroom MUST be kept, marked as withdrawn in the log
+  and mentioned in the summary. It is marked as withdrawn only if its class's capture is complete:
+  a cut-short capture (expired session, error) withdraws nothing. alfabeta MUST NOT delete anything
+  from the student's folder.
+- **FR-028**: Every sync MUST leave a log entry with start, end, subjects walked and
+  items added, changed, withdrawn or not fetched, and end with a summary for the family.
+- **FR-029**: The failure of a subject or of an attachment MUST NOT abort the rest. If it is
+  interrupted, the next sync continues without duplicating.
+- **FR-030**: Two syncs of the same student MUST NOT run at once: the lock is taken
+  at the start and held for the whole run, including the browser part. Every step of the
+  run renews it; if `lock_idle_minutes` pass without renewing it (the run died), it is
+  released on its own and a `stopped` line is left in the log. Since all students share one
+  browser and one downloads folder, the browser part and the downloads of two students, or of
+  two alfabeta skills (the Classroom one and a book's), MUST NOT run at once either. If the Drive
+  folder is not available, alfabeta MUST stop without
+  writing replicas anywhere else (only its log line, FR-021a).
 
-**Privacidad**
+**Privacy**
 
-- **FR-031**: El nombre, el correo o cualquier dato que identifique al alumno MUST NOT aparecer en una
-  URL que construya alfabeta, en el registro ni en un mensaje de error. Las rutas se muestran
-  relativas a la carpeta raíz del alumno, y la ruta absoluta de la raíz nunca se muestra, porque la
-  ruta de montaje de Drive para escritorio lleva el correo de la cuenta.
+- **FR-031**: The name, the email or any data identifying the student MUST NOT appear in a
+  URL that alfabeta builds, in the log or in an error message. Paths are shown
+  relative to the student's root folder, and the root's absolute path is never shown, because the
+  Google Drive for desktop mount path carries the account's email.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Alumno**: un *tenant*. Su configuración privada (nombre para mostrar, curso, carpeta raíz en el
-  Drive de la familia, asignaturas, cuenta de Classroom) y su carpeta de datos local (registro, estado
-  de sincronización, decisiones de la familia).
-- **Asignatura**: una materia del alumno, con su nombre de carpeta y la clase de Classroom que le
-  corresponde.
-- **Carpeta de tema o de mes**: el tercer nivel de la estructura. La de tema lleva el emparejamiento
-  con el tema del profesor; la de mes recoge lo que no tiene tema.
-- **Fuente**: el origen de un contenido (`classroom`, `sciencebits`) y su subcarpeta.
-- **Elemento de Classroom**: material, tarea, pregunta o anuncio. Identificador estable, asignatura,
-  tema o mes, título, fechas y adjuntos.
-- **Réplica**: la copia de un adjunto (fichero o PDF), de una entrega del alumno, de una corrección o
-  la nota con sus enlaces, con su papel (`enunciado`, `entrega`, `correccion`, `enlaces`) y su huella
-  para detectar cambios.
-- **Entrada de agenda**: un elemento con fecha (o sin ella) y su categoría (examen, entrega,
-  cuestionario, material, aviso); si es algo pendiente, su estado; si se dedujo de un texto, la marca
-  «detectado», su origen y la corrección de la familia si la hay.
-- **Sincronización**: una ejecución sobre un alumno, con su registro y su resumen.
+- **Student**: a *tenant*. Their private configuration (display name, school year, root folder in
+  the family's Drive, subjects, Classroom account) and their local data folder (log, sync
+  state, the family's decisions).
+- **Subject**: a course of the student, with its folder name and the Classroom class that
+  corresponds to it.
+- **Topic or month folder**: the third level of the structure. A topic folder holds the match
+  with the teacher's topic; a month folder collects what has no topic.
+- **Source**: the origin of a piece of content (`classroom`, `sciencebits`) and its subfolder.
+- **Classroom item**: material, assignment, question or announcement. Stable identifier, subject,
+  topic or month, title, dates and attachments.
+- **Replica**: the copy of an attachment (file or PDF), of a student's submission, of a grading or
+  the note with its links, with its role (`statement`, `submission`, `grading`, `links`) and its hash
+  to detect changes.
+- **Agenda entry**: a dated item (or undated) and its category (exam, assignment,
+  quiz, material, announcement); if it is something pending, its status; if it was inferred from a
+  text, the detected mark, its origin and the family's correction if there is one.
+- **Sync**: a run for one student, with its log and its summary.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Tras la primera sincronización de una asignatura, el 100 % de los elementos de su
-  «Trabajo de clase» está replicado en su carpeta o anotado con enlace y motivo, comprobado elemento a
-  elemento contra lo que ve el alumno en Classroom.
-- **SC-002**: Una segunda sincronización sin cambios (FR-025) modifica cero ficheros de la carpeta del alumno.
-- **SC-003**: Una fecha de entrega movida, un material nuevo o un adjunto de un elemento que Classroom
-  muestra modificado aparecen en la carpeta y en el resumen en la primera sincronización posterior al
-  cambio; un adjunto editado solo en Drive, o de un elemento que no muestra marca de modificación (una
-  tarea con fecha de entrega), como tarde en la revisión completa periódica.
-- **SC-004**: La familia ve todos los exámenes y entregas de todas las asignaturas en una única agenda
-  ordenada por fecha, cada uno con su categoría, sin abrir Classroom.
-- **SC-004a**: En el conjunto de prueba, el 100 % de los exámenes anunciados solo en el tablón o en un
-  material aparece en la agenda como examen detectado, con enlace a su origen.
-- **SC-005**: Para cualquier tema con material de Classroom y del libro, las dos fuentes están en la
-  misma carpeta de tema.
-- **SC-006**: Dar de alta un segundo alumno deja el repositorio sin ningún cambio.
-- **SC-007**: El guardarraíl rechaza el 100 % de los casos de prueba con datos reales plantados (nombre,
-  correo, ruta, identificador) y acepta la plantilla.
-- **SC-008**: Cero cambios de estado en Classroom durante cualquier sincronización: ninguna entrega,
-  comentario, tarea marcada ni cuestionario abierto.
-- **SC-008a**: En el conjunto de prueba, en el 100 % de las carpetas de tarea se distingue por el
-  nombre qué es del profesor, qué entregó el alumno y qué es la corrección.
-- **SC-009**: Buscar el nombre y el correo del alumno en el registro y en los mensajes de una
-  sincronización completa da cero coincidencias. La orden nunca imprime `nombre_visible`: solo Claude
-  lo usa al hablar con la familia en el chat.
+- **SC-001**: After a subject's first sync, 100 % of the items in its
+  «Trabajo de clase» are replicated in its folder or noted with link and reason, checked item by
+  item against what the student sees in Classroom.
+- **SC-002**: A second sync without changes (FR-025) modifies zero files in the student's folder.
+- **SC-003**: A moved due date, a new material or an attachment of an item that Classroom
+  shows as modified appear in the folder and in the summary in the first sync after the
+  change; an attachment edited only in Drive, or of an item that shows no modification mark (an
+  assignment with a due date), at the latest in the periodic full review.
+- **SC-004**: The family sees every exam and assignment of every subject in a single agenda
+  sorted by date, each with its category, without opening Classroom.
+- **SC-004a**: In the test set, 100 % of the exams announced only on the stream or in a
+  material appear in the agenda as a detected exam, with a link to their origin.
+- **SC-005**: For any topic with material from Classroom and from the book, both sources are in the
+  same topic folder.
+- **SC-006**: Registering a second student leaves the repository without any change.
+- **SC-007**: The guardrail rejects 100 % of the test cases with planted real data (name,
+  email, path, identifier) and accepts the template.
+- **SC-008**: Zero status changes in Classroom during any sync: no submission,
+  comment, marked assignment or opened quiz.
+- **SC-008a**: In the test set, in 100 % of the assignment folders the name tells apart
+  what is the teacher's, what the student turned in and what is the grading.
+- **SC-009**: Searching the student's name and email in the log and in the messages of a
+  full sync gives zero matches. The command never prints `display_name`: only Claude
+  uses it when talking with the family in the chat.
 
 ## Assumptions
 
-- La sincronización corre en el Mac de la familia desde la app de escritorio de Claude, a demanda o
-  programada (FR-021a), con la sesión de Classroom que el alumno inicia en el navegador. Una
-  sincronización sin la app de Claude es la épica del MCP local (issue #2).
-- Observado el 2026-10-25 en el Classroom del alumno, en solo lectura: los temas del profesor no
-  coinciden con los del libro (un tema del profesor agrupa material de varios temas del libro y otro
-  no existe en el libro), hay asignaturas con temas numerados y una carpeta de exámenes guardados,
-  los exámenes se anuncian en el tablón en el idioma de la clase, hay clases ocultas, y el Drive
-  personal del alumno ya tiene carpetas propias.
-- El Drive familiar está montado en el Mac con Drive para escritorio. Qué cuenta personal de Google
-  es (la familia confirma cuál al montarlo en el plan), y en qué carpeta vive la raíz de cada alumno,
-  es configuración.
-- Si el alumno no es el dueño de esa cuenta, la familia comparte una vez, desde Drive, su carpeta raíz
-  con la cuenta personal de Gmail del alumno. alfabeta no gestiona permisos de Drive.
-- La API de Classroom no está disponible para la cuenta escolar del alumno
-  (`docs/classroom-investigacion.md`); todo se lee de lo que el alumno ve.
-- Los títulos de temas y elementos se conservan en el idioma en que los escribe el profesor.
-- Qué va al cuaderno de cada tema lo decide la épica 3; la propuesta es el material del profesor y
-  los libros, sin las entregas ni las correcciones del alumno.
-- El «Trabajo de clase» de dos asignaturas se observó en solo lectura (research del plan); el del
-  resto de clases se recorre en la primera sincronización y FR-013 se contrasta con lo que haya.
-- La interfaz de Classroom de la cuenta del alumno está en castellano; los textos de fechas y estados
-  se interpretan en ese idioma. Otro idioma de interfaz detiene la sincronización (FR-007) hasta que
-  se añada.
-- La ubicación exacta de la configuración privada y de la carpeta de datos local la fija el plan,
-  siempre fuera del repositorio y fuera de la carpeta compartida.
-- La cuenta del alumno para el calendario y los avisos se decide en la épica de recordatorios. Allí
-  se fija también el color de cada categoría; la propuesta es examen rojo, entrega naranja,
-  cuestionario morado, material azul y aviso verde, con la asignatura en el título del evento, porque
-  un evento de calendario admite un solo color. También se valora allí Google Tasks para las entregas
-  (el alumno las marca como hechas y aparecen en el calendario), comprobando en qué cuenta viven, si
-  admiten color y si la familia puede verlas. Esa épica es también la que muestra «hoy» y «esta
-  semana», que dependen del día.
+- The sync runs on the family's Mac from the Claude desktop app, on demand or
+  scheduled (FR-021a), with the Classroom session the student starts in the browser. A
+  sync without the Claude app is the local MCP epic (issue #2).
+- Observed on 2026-10-25 in the student's Classroom, read-only: the teacher's topics do not
+  match the book's (one teacher's topic groups material from several book topics and another
+  does not exist in the book), some subjects have numbered topics and a folder of saved exams,
+  exams are announced on the stream in the class's language, there are hidden classes, and the
+  student's personal Drive already has folders of their own.
+- The family Drive is mounted on the Mac with Google Drive for desktop. Which personal Google account
+  it is (the family confirms which when mounting it in the plan), and which folder each student's
+  root lives in, is configuration.
+- If the student does not own that account, the family shares once, from Drive, the student's root
+  folder with the student's personal Gmail account. alfabeta does not manage Drive permissions.
+- The Classroom API is not available for the student's school account
+  (`docs/classroom-investigacion.md`); everything is read from what the student sees.
+- Topic and item titles are kept in the language the teacher writes them in.
+- What goes into each topic's notebook is decided by epic 3; the proposal is the teacher's material
+  and the books, without the student's submissions or gradings.
+- The «Trabajo de clase» of two subjects was observed read-only (the plan's research); that of the
+  other classes is walked in the first sync and FR-013 is checked against what is there.
+- The Classroom interface of the student's account is in Spanish; date and status texts
+  are interpreted in that language. Another interface language stops the sync (FR-007) until
+  it is added.
+- The plan sets the exact location of the private configuration and of the local data folder,
+  always outside the repository and outside the shared folder.
+- The student's account for the calendar and the alerts is decided in the reminders epic. That
+  epic also sets each category's colour; the proposal is exam red, assignment orange,
+  quiz purple, material blue and announcement green, with the subject in the event title, because
+  a calendar event takes a single colour. That epic also evaluates Google Tasks for assignments
+  (the student marks them as done and they show in the calendar), checking which account they live
+  in, whether they take a colour and whether the family can see them. That epic is also the one that
+  shows "today" and "this week", which depend on the day.
 
 ## Dependencies
 
-- La app de escritorio de Claude con acceso a los ficheros del Mac.
-- Chrome con la extensión de Claude y la sesión de Classroom del alumno en él.
-- Drive para escritorio con la cuenta de la familia, ya instalado en el Mac.
-- La skill `sciencebits-a-notebooklm`, que pasa a leer la configuración por alumno y a escribir en la
-  estructura común (FR-022).
+- The Claude desktop app with access to the Mac's files.
+- Chrome with the Claude extension and the student's Classroom session in it.
+- Google Drive for desktop with the family's account, already installed on the Mac.
+- The `sciencebits-a-notebooklm` skill, which moves to reading the per-student configuration and
+  writing to the common structure (FR-022).

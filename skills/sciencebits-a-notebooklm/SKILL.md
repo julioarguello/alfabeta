@@ -1,83 +1,83 @@
 ---
 name: sciencebits-a-notebooklm
-description: Convierte un tema de un libro digital de Science Bits (learning-bits.com) en PDFs navegables + Markdown (ES/EU/EN), los guarda en la nube del usuario y crea su cuaderno en Gemini Notebook (NotebookLM). Usar con "el siguiente tema" o "hazme el tema N de física/bio".
+description: Turns a topic of a Science Bits digital textbook (learning-bits.com) into navigable PDFs + Markdown (ES/EU/EN), saves them to the user's cloud storage and creates its notebook in Gemini Notebook (NotebookLM). Use with "el siguiente tema" (the next topic) or "hazme el tema N de física/bio" (do topic N of physics/bio for me).
 ---
 
-# Science Bits → PDF + Markdown → nube → Gemini Notebook
+# Science Bits → PDF + Markdown → cloud storage → Gemini Notebook
 
-Parte del proyecto [alfabeta](https://github.com/julioarguello/alfabeta).
+Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project.
 
-## Configuración
-Lee `~/.alfabeta/config.json` (ver `config.example.json` del repo) con Desktop Commander. De ahí salen:
+## Configuration
+Read `~/.alfabeta/config.json` (see the repo's `config.example.json`) with Desktop Commander. It provides:
 `student.name`, `student.grade`, `storage.base_dir`, `storage.tools_dir` (`$H`), `storage.topic_folder_pattern`,
-`subjects` (clase de Science Bits → nombre corto), `languages`, `notebook.enabled`, `notebook.title_pattern`.
-Si no existe, pregunta esos datos una vez y créalo. Nunca escribas datos personales fuera de ese fichero.
+`subjects` (Science Bits class → short name), `languages`, `notebook.enabled`, `notebook.title_pattern`.
+If it does not exist, ask for that data once and create it. Never write personal data outside that file.
 
-Resultado por tema:
-- `TemaNN_<LANG>.pdf` y `.md` en `base_dir/<topic_folder_pattern>`. Cada PDF: portada, índice clicable
-  (lecciones y apartados), marcadores, una captura por pantalla (y por cada botón que cambia el contenido) y
-  debajo el texto seleccionable. El `.md` lleva el mismo texto estructurado (lección → apartado → pantalla).
-- Si `notebook.enabled`: un cuaderno de Gemini Notebook con esos archivos como fuentes.
+Result per topic:
+- `TemaNN_<LANG>.pdf` and `.md` in `base_dir/<topic_folder_pattern>`. Each PDF: cover, clickable table of contents
+  (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content) and
+  the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
+- If `notebook.enabled`: a Gemini Notebook notebook with those files as sources.
 
-Trabaja de principio a fin sin pedir confirmación en cada paso. Solo pregunta si el tema es ambiguo o hay que
-iniciar sesión (Science Bits o Google).
+Work from start to finish without asking for confirmation at each step. Only ask if the topic is ambiguous or
+someone has to sign in (Science Bits or Google).
 
-## Herramientas (en `$H`, copiadas de `scripts/`)
-- `discover_lessons.js` — en la página de la unidad: `sem`, `rest` y `lessonId` de cada lección.
-- `orchestrator.js` — captura en segundo plano una cola de lecciones/idiomas; descarga un zip por lección.
-- `watch.py` — en el Mac, copia cada zip descargado a `raw/` (las descargas del navegador integrado a veces
-  quedan como temporales ocultos `.…claudefordesktop.…` que la app borra en minutos).
-- `build.py` — genera PDF + `.md` por idioma desde `raw/`.
+## Tools (in `$H`, copied from `scripts/`)
+- `discover_lessons.js` — on the unit page: `sem`, `rest` and `lessonId` of each lesson.
+- `orchestrator.js` — captures a queue of lessons/languages in the background; downloads one zip per lesson.
+- `watch.py` — on the Mac, copies each downloaded zip to `raw/` (the built-in browser's downloads sometimes
+  stay as hidden temporary files `.…claudefordesktop.…` that the app deletes within minutes).
+- `build.py` — generates PDF + `.md` per language from `raw/`.
 
-Entornos: navegador integrado (`…Claude_Browser__*`; carga antes la skill `built-in-browser`); Desktop
-Commander para comandos en el Mac; `device_bash` (VM con python3, reportlab, bs4, pypdf, fuentes DejaVu) con
-`~/Downloads` conectado, donde se ejecuta `build.py`; CLI `nlm` (`notebooklm-mcp-cli`) para el cuaderno.
+Environments: built-in browser (`…Claude_Browser__*`; load the `built-in-browser` skill first); Desktop
+Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs4, pypdf, DejaVu fonts) with
+`~/Downloads` connected, where `build.py` runs; the `nlm` CLI (`notebooklm-mcp-cli`) for the notebook.
 
-## Nombres
-- Curso escolar desde `school_year_starts_month` → p. ej. `2026-2027`.
-- Asignatura: `subjects[<clase en Science Bits>]`; si falta, pregunta el nombre corto una vez y guárdalo en la config.
-- "El siguiente tema" = el siguiente al mayor `Tema NN` existente en esa asignatura (y el orden de unidades en
-  la clase de Science Bits).
+## Names
+- School year from `school_year_starts_month` → e.g. `2026-2027`.
+- Subject: `subjects[<class in Science Bits>]`; if missing, ask for the short name once and save it in the config.
+- "The next topic" = the one after the highest existing `Tema NN` in that subject (and the order of units in
+  the Science Bits class).
 
-## Pasos
+## Steps
 
-1. **Preparar.** `WORK=~/Downloads/alfabeta_work/<Asig>_TemaNN` con `raw/`, `out/`, `tools/`. Copia `$H/*` a
-   `$WORK/tools`. Arranca el recolector y déjalo corriendo:
+1. **Prepare.** `WORK=~/Downloads/alfabeta_work/<Subject>_TemaNN` with `raw/`, `out/`, `tools/`. Copy `$H/*` to
+   `$WORK/tools`. Start the collector and leave it running:
    `start_process("python3 -u $WORK/tools/watch.py $WORK/raw", timeout_ms=3000)`.
-2. **Abrir Science Bits.** `preview_start(sciencebits.url)` (si pide permiso: `request_access` scope "site").
-   Si sale el login o "Your session has expired": pide al usuario que inicie sesión en el panel del navegador
-   marcando "Remember me on this device" y espera su "listo". Nunca escribas credenciales.
-3. **Localizar el tema.** `get_page_text` lista clases y unidades. Con `find` localiza "Acceder a la unidad" y
-   navega a esa URL. Anota el título en cada idioma (misma URL con `/intranet/eu/` y `/intranet/en/`).
-4. **Descubrir lecciones.** En la página de la unidad ejecuta `discover_lessons.js` con `javascript_tool`.
-   Hazlo antes de capturar: no navegues mientras corre la captura (`preview_start` puede reutilizar la pestaña).
-5. **Capturar.** Vuelve a la página de clases y aplica `resize_window(width=1280, height=800)`. Cola: idiomas en
-   orden, ids `L1…Ln`, sin lecciones de evaluación. Ejecuta en una sola llamada
-   `window.__SB={sem, rest, queue:[{lang, id, lessonId},…]};` + el contenido de `orchestrator.js`.
-   Sondea `window.__orch` con llamadas cortas (<40 s): `results`, `current`, `stopped`,
-   `document.getElementById('__fr')?.contentWindow.__job?.n`; entre sondeos, `device_bash "sleep 170; ls …/raw"`.
-   ~3–5 min por lección. Avisa de la duración y de que nadie abra Science Bits en otro dispositivo.
-   - `SESSION_EXPIRED` → pide volver a entrar y relanza lo que falta.
-   - `NOT_AVAILABLE` → ese idioma no existe para la unidad (unidades editadas por el docente); se salta.
-   - **Evaluaciones**: nunca las abras ni inicies; quedan fuera.
-   - Otros `n:0`/errores → relánzalos al final. Comprueba un zip con `items` por lección e idioma.
-6. **Construir.** `$WORK/unit.json`:
+2. **Open Science Bits.** `preview_start(sciencebits.url)` (if it asks for permission: `request_access` scope "site").
+   If the login page or "Your session has expired" shows up: ask the user to sign in in the browser pane,
+   ticking "Remember me on this device", and wait for their "ready". Never type credentials.
+3. **Find the topic.** `get_page_text` lists classes and units. With `find`, locate "Acceder a la unidad" (Go to the
+   unit) and navigate to that URL. Note the title in each language (same URL with `/intranet/eu/` and `/intranet/en/`).
+4. **Discover lessons.** On the unit page run `discover_lessons.js` with `javascript_tool`.
+   Do it before capturing: do not navigate while the capture is running (`preview_start` may reuse the tab).
+5. **Capture.** Go back to the classes page and apply `resize_window(width=1280, height=800)`. Queue: languages in
+   order, ids `L1…Ln`, no assessment lessons. Run in a single call
+   `window.__SB={sem, rest, queue:[{lang, id, lessonId},…]};` + the contents of `orchestrator.js`.
+   Poll `window.__orch` with short calls (<40 s): `results`, `current`, `stopped`,
+   `document.getElementById('__fr')?.contentWindow.__job?.n`; between polls, `device_bash "sleep 170; ls …/raw"`.
+   ~3–5 min per lesson. Tell the user how long it will take and that nobody should open Science Bits on another device.
+   - `SESSION_EXPIRED` → ask them to sign in again and relaunch what is missing.
+   - `NOT_AVAILABLE` → that language does not exist for the unit (units edited by the teacher); skip it.
+   - **Assessments**: never open or start them; they are left out.
+   - Other `n:0`/errors → relaunch them at the end. Check one zip with `items` per lesson and language.
+6. **Build.** `$WORK/unit.json`:
    `{"prefix":"TemaNN","langs":{"es":{"unit":"Tema N · …","course":"Física y Química · <grade>"},"eu":{…},"en":{…}}}`.
-   En `device_bash`: `python3 tools/build.py raw out --config unit.json <idiomas capturados>`.
-7. **Verificar.** pypdf: páginas, marcadores, enlaces del índice, texto extraíble. Revisa el `.md`. Si una lección
-   tiene pocas pantallas frente a su índice (`menu` en meta.json), recaptúrala.
-8. **Guardar.** `mkdir -p` de la carpeta del tema y copia `out/*`.
-9. **Gemini Notebook** (si `notebook.enabled`):
-   - `nlm login --check`; si falla, `nlm login --storage protected` en segundo plano (Chrome aparte, sin perfil:
-     es normal). Pide al usuario iniciar sesión, confirmar la verificación en dos pasos y **no cerrar la ventana**.
-   - `nlm notebook list`; reutiliza el cuaderno del tema o créalo con `title_pattern` (`--json`).
-   - `nlm source add <id> --file "<archivo>" --wait --wait-timeout 300` para cada PDF y `.md`.
-   - Prueba: `nlm notebook query <id> "<pregunta corta>"`.
-   - Si `nlm` falla: `uv tool upgrade notebooklm-mcp-cli` una vez; si sigue, deja los archivos y avisa.
-10. **Cerrar.** Detén el recolector, `resize_window preset desktop`, y resume: carpeta, enlace del cuaderno,
-    pantallas por idioma y lo que quedó fuera.
+   In `device_bash`: `python3 tools/build.py raw out --config unit.json <captured languages>`.
+7. **Verify.** pypdf: pages, bookmarks, table-of-contents links, extractable text. Review the `.md`. If a lesson
+   has few screens compared with its index (`menu` in meta.json), capture it again.
+8. **Save.** `mkdir -p` the topic folder and copy `out/*`.
+9. **Gemini Notebook** (if `notebook.enabled`):
+   - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
+     profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**.
+   - `nlm notebook list`; reuse the topic's notebook or create it with `title_pattern` (`--json`).
+   - `nlm source add <id> --file "<file>" --wait --wait-timeout 300` for each PDF and `.md`.
+   - Test: `nlm notebook query <id> "<short question>"`.
+   - If `nlm` fails: `uv tool upgrade notebooklm-mcp-cli` once; if it still fails, leave the files and tell the user.
+10. **Close.** Stop the collector, `resize_window preset desktop`, and summarise: folder, notebook link,
+    screens per language and what was left out.
 
-## Límites
-- No descifres los XML de `/seculogged/` ni fuerces la "Versión PDF" desactivada: se captura lo que ve el alumno.
-- Los vídeos no se capturan (quedan como "[Vídeo (ver en la plataforma)]").
-- Uso personal y educativo; no redistribuyas el material.
+## Limits
+- Do not decrypt the `/seculogged/` XML files or force the disabled "Versión PDF" (PDF version): capture what the student sees.
+- Videos are not captured (they remain as "[Vídeo (ver en la plataforma)]").
+- Personal and educational use; do not redistribute the material.

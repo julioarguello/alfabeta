@@ -1,32 +1,32 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "alfabeta/agenda.schema.json",
-  "title": "agenda.json de un curso escolar (entrada de la épica de recordatorios)",
-  "description": "Su contenido depende solo de lo sincronizado y de las decisiones de la familia, nunca del día en que se genera; por eso no lleva marca de tiempo (la lleva el registro).",
+  "title": "agenda.json for one school year (input to the reminders epic)",
+  "description": "Its content depends only on what was synced and on the family's decisions, never on the day it is generated; that is why it carries no timestamp (the log does).",
   "type": "object",
-  "required": ["version", "curso_escolar", "entradas"],
+  "required": ["version", "school_year", "entries"],
   "properties": {
     "version": { "const": 1 },
-    "curso_escolar": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{4}$" },
-    "entradas": {
+    "school_year": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{4}$" },
+    "entries": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["elemento", "asignatura", "categoria", "titulo", "fecha", "solo_fecha", "estado", "lista", "detectado", "origen", "corregido", "enlace_classroom", "carpeta"],
+        "required": ["item", "subject", "category", "title", "date", "date_only", "status", "list", "detected", "origin", "corrected", "classroom_link", "folder"],
         "properties": {
-          "elemento": { "type": "string", "description": "Id del elemento; un examen detectado es «<elemento>#examen-<k>»" },
-          "lista": { "enum": ["pendiente", "hecho", "publicado"], "description": "Apartados «Pendiente», «Hecho» y «Publicado» según FR-020c" },
-          "asignatura": { "type": "string" },
-          "categoria": { "enum": ["examen", "entrega", "cuestionario", "material", "aviso"] },
-          "titulo": { "type": "string" },
-          "fecha": { "type": ["string", "null"], "description": "ISO 8601 en Europe/Madrid; null = sin fecha" },
-          "solo_fecha": { "type": "boolean", "description": "true si Classroom no da hora" },
-          "estado": { "enum": ["pendiente", "entregada", "devuelta", "vencida", "falta_segun_profesor", null] },
-          "detectado": { "type": "boolean" },
-          "origen": { "type": ["string", "null"] },
-          "corregido": { "type": "boolean" },
-          "enlace_classroom": { "type": "string", "description": "URL de Classroom sin /u/<n> ni datos del alumno; la agenda legible indica abrirla con la cuenta escolar" },
-          "carpeta": { "type": ["string", "null"], "description": "Ruta relativa a la raíz del alumno; null si el elemento no tiene réplica" }
+          "item": { "type": "string", "description": "Id of the item; a detected exam is «<item>#exam-<k>»" },
+          "list": { "enum": ["pending", "done", "posted"], "description": "Sections «Pendiente», «Hecho» and «Publicado» of agenda.md, per FR-020c" },
+          "subject": { "type": "string" },
+          "category": { "enum": ["exam", "assignment", "quiz", "material", "announcement"] },
+          "title": { "type": "string" },
+          "date": { "type": ["string", "null"], "description": "ISO 8601 in Europe/Madrid; null = no date" },
+          "date_only": { "type": "boolean", "description": "true if Classroom gives no time" },
+          "status": { "enum": ["pending", "turned_in", "returned", "overdue", "missing_per_teacher", null] },
+          "detected": { "type": "boolean" },
+          "origin": { "type": ["string", "null"] },
+          "corrected": { "type": "boolean" },
+          "classroom_link": { "type": "string", "description": "Classroom URL without /u/<n> or any student data; the readable agenda says to open it with the school account" },
+          "folder": { "type": ["string", "null"], "description": "Path relative to the student's root; null if the item has no replica" }
         }
       }
     }

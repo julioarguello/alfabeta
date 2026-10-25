@@ -1,30 +1,30 @@
 # Roadmap
 
-## classroom-sync (prueba de concepto)
+## classroom-sync (proof of concept)
 
-Objetivo: que Classroom alimente sola la carpeta y el cuaderno de cada tema, y que las fechas lleguen al calendario.
+Goal: Classroom feeds each topic's folder and notebook on its own, and due dates reach the calendar.
 
-Vías, de más a menos oficial:
+Routes, from most to least official:
 
-1. **API de Google Classroom** (OAuth). Lo ideal (tareas, fechas, materiales, anuncios), pero en cuentas de
-   Google Workspace for Education de **menores de 18** las apps de terceros están bloqueadas salvo que el
-   administrador del centro las autorice. Hay que probarlo por centro.
-2. **Resúmenes por email para tutores legales** (oficial, sin riesgos): tareas pendientes, próximas entregas
-   y anuncios, diarios o semanales, al Gmail del padre/madre. El centro o el profesorado debe invitar al tutor.
-   No incluye adjuntos.
-3. **Navegador integrado con la cuenta del alumno** (solo lectura): recorrer las clases, leer la pestaña
-   *Trabajo de clase* y descargar los materiales a la carpeta del tema.
+1. **Google Classroom API** (OAuth). The ideal option (assignments, due dates, materials, announcements), but on
+   Google Workspace for Education accounts of **under-18s** third-party apps are blocked unless the
+   school's administrator authorises them. It has to be tested school by school.
+2. **Email summaries for guardians** (official, no risk): pending assignments, upcoming due dates
+   and announcements, daily or weekly, to the parent's Gmail. The school or the teachers must invite the guardian.
+   Attachments are not included.
+3. **Built-in browser with the student's account** (read-only): go through the classes, read the
+   *Trabajo de clase* (Classwork) tab and download the materials to the topic folder.
 
-Resultado de la prueba: la API está bloqueada para alumnos menores (ver [classroom-investigacion.md](classroom-investigacion.md)); se construye sobre la vía 3 + la 2.
+Result of the test: the API is blocked for under-age students (see [classroom-investigacion.md](classroom-investigacion.md)); the build is based on route 3 + route 2.
 
 ## plan-de-estudio
 
-- Fuente: entregas y exámenes de `classroom-sync`.
-- Salida: eventos en Google Calendar (entrega/examen) y bloques de repaso espaciado antes de cada examen,
-  enlazando al cuaderno del tema.
+- Source: assignments and exams from `classroom-sync`.
+- Output: Google Calendar events (assignment/exam) and spaced review blocks before each exam,
+  linking to the topic's notebook.
 
-## Otras ideas
+## Other ideas
 
-- Generar automáticamente en el cuaderno: resumen en audio, tarjetas y cuestionario por tema.
-- Más plataformas de libro digital (Santillana, Anaya, Edelvives, Vicens Vives…).
-- Versión en inglés de los temas que la plataforma no ofrece, traduciendo el Markdown.
+- Automatically generate in the notebook: audio overview, flashcards and quiz per topic.
+- More digital textbook platforms (Santillana, Anaya, Edelvives, Vicens Vives…).
+- An English version of the topics the platform does not offer, by translating the Markdown.

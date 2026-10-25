@@ -1,58 +1,59 @@
 # alfabeta
 
-**Skills de Claude para que la generación Alfa estudie con IA, y para que sus familias les ayuden sin perder la tarde.**
+**Claude skills so Generation Alpha can study with AI, and so their families can help them without losing the afternoon.**
 
-Convierte los libros digitales del cole en material de estudio de verdad (PDF navegables + Markdown en
-castellano, euskera e inglés), lo ordena en tu nube por curso, asignatura y tema, y crea un cuaderno de
-[Gemini Notebook](https://notebook.google.com) (antes NotebookLM) por tema para preguntarle, generar
-resúmenes en audio, tarjetas o cuestionarios. Próximamente: sincronización con Google Classroom y un plan de
-estudio en el calendario.
+It turns the school's digital textbooks into real study material (navigable PDFs + Markdown in
+Spanish, Basque and English), files it in your cloud storage by school year, subject and topic, and creates a
+[Gemini Notebook](https://notebook.google.com) (formerly NotebookLM) notebook per topic to ask questions, generate
+audio overviews, flashcards or quizzes. Coming soon: sync with Google Classroom and a study plan in the
+calendar.
 
-## ¿Por qué «alfabeta»?
+## Why «alfabeta»?
 
-Es un juego de palabras con cuatro capas:
+It is a pun with four layers:
 
 | | |
 |---|---|
-| **alfabeto** | Va de aprender. Lo primero que se aprende es el alfabeto; esto es el alfabeto del estudio con IA. |
-| **generación Alfa** | Para quien se hace: los nacidos desde 2010, la primera generación que estudia con IA desde el instituto. |
-| **beta** | Siempre en pruebas. Es un proyecto vivo que se rehace con cada tema, cada asignatura y cada curso. |
-| **poda alfa-beta** | Un guiño friki: el algoritmo clásico de IA con el que las máquinas aprendieron a jugar al ajedrez descartando lo que no merece la pena mirar. Justo lo que queremos: estudiar lo que importa. |
+| **alfabeto** (alphabet) | It is about learning. The first thing you learn is the alphabet; this is the alphabet of studying with AI. |
+| **generación Alfa** (Generation Alpha) | Who it is made for: those born since 2010, the first generation to study with AI from secondary school onwards. |
+| **beta** | Always in testing. It is a living project, remade with every topic, every subject and every school year. |
+| **poda alfa-beta** (alpha-beta pruning) | A geeky nod: the classic AI algorithm with which machines learned to play chess by discarding what is not worth looking at. Exactly what we want: study what matters. |
 
-## Qué hay
+## What is here
 
-| Skill | Estado | Qué hace |
+| Skill | Status | What it does |
 |---|---|---|
-| [`sciencebits-a-notebooklm`](skills/sciencebits-a-notebooklm/SKILL.md) | ✅ funciona | Captura un tema de Science Bits (cada pantalla y cada botón), genera PDF con índice clicable + Markdown por idioma, lo guarda en tu nube y crea el cuaderno de Gemini Notebook. |
-| `classroom-sync` | 🧪 prueba de concepto | Tareas, fechas y materiales de Google Classroom → carpeta del tema + cuaderno. Ver [roadmap](docs/roadmap.md). |
-| `plan-de-estudio` | 💡 idea | Entregas y exámenes → Google Calendar con sesiones de repaso. |
+| [`sciencebits-a-notebooklm`](skills/sciencebits-a-notebooklm/SKILL.md) | ✅ works | Captures a Science Bits topic (every screen and every button), generates a PDF with a clickable table of contents + Markdown per language, saves it to your cloud storage and creates the Gemini Notebook notebook. |
+| `classroom-sync` | 🧪 proof of concept | Google Classroom assignments, due dates and materials → topic folder + notebook. See the [roadmap](docs/roadmap.md). |
+| `plan-de-estudio` | 💡 idea | Assignments and exams → Google Calendar with review sessions. |
 
-## Requisitos
+## Requirements
 
-- [Claude](https://claude.ai) con la **app de escritorio** (navegador integrado y acceso a tu Mac).
-- Conector **Desktop Commander** (comandos en el Mac).
-- Para Gemini Notebook: [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli)
-  (`uv tool install notebooklm-mcp-cli` y `nlm login`).
-- Python 3 con `reportlab`, `beautifulsoup4` y `pypdf` (la VM de Claude ya los trae).
+- [Claude](https://claude.ai) with the **desktop app** (built-in browser and access to your Mac).
+- **Desktop Commander** connector (commands on the Mac).
+- For Gemini Notebook: [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli)
+  (`uv tool install notebooklm-mcp-cli` and `nlm login`).
+- Python 3 with `reportlab`, `beautifulsoup4` and `pypdf` (Claude's VM already ships them).
 
-## Instalación
+## Installation
 
-1. Copia `config.example.json` a `~/.alfabeta/config.json` y rellénalo (nombre, curso, carpetas, asignaturas).
-2. Copia la carpeta `skills/sciencebits-a-notebooklm/scripts/` a la ruta `storage.tools_dir` de tu config.
-3. En Claude, añade la skill subiendo `skills/sciencebits-a-notebooklm/` (o pídele a Claude «instala la skill
-   sciencebits-a-notebooklm de github.com/julioarguello/alfabeta»).
-4. Pídele: **«hazme el siguiente tema de física»**.
+1. Copy `config.example.json` to `~/.alfabeta/config.json` and fill it in (name, school year, folders, subjects).
+2. Copy the `skills/sciencebits-a-notebooklm/scripts/` folder to the `storage.tools_dir` path in your config.
+3. In Claude, add the skill by uploading `skills/sciencebits-a-notebooklm/` (or ask Claude «instala la skill
+   sciencebits-a-notebooklm de github.com/julioarguello/alfabeta» — "install the sciencebits-a-notebooklm skill
+   from github.com/julioarguello/alfabeta").
+4. Ask it: **«hazme el siguiente tema de física»** ("do the next physics topic for me").
 
-## Avisos importantes
+## Important notices
 
-- **Uso personal y educativo.** Captura solo lo que la plataforma ya muestra al alumno con su propia
-  cuenta, para que estudie. No redistribuyas el material: es de sus autores (Science Bits, el profesorado…).
-- **No toca exámenes.** Las lecciones de evaluación nunca se abren, para no gastar intentos ni alterar notas.
-- **Gemini Notebook no tiene API pública.** `notebooklm-mcp-cli` usa APIs internas y las cookies de tu cuenta
-  de Google; puede romperse y su uso puede no encajar con los términos de Google. Úsalo bajo tu
-  responsabilidad (o desactívalo con `notebook.enabled: false` y añade los archivos a mano).
-- **Privacidad.** Ningún dato del alumno va al repo: todo lo personal vive en `~/.alfabeta/config.json`.
+- **Personal and educational use.** It captures only what the platform already shows the student with their own
+  account, so they can study. Do not redistribute the material: it belongs to its authors (Science Bits, the teachers…).
+- **It does not touch exams.** Assessment lessons are never opened, so no attempts are spent and no grades are changed.
+- **Gemini Notebook has no public API.** `notebooklm-mcp-cli` uses internal APIs and your Google account's
+  cookies; it may break and its use may not fit Google's terms. Use it at your own
+  risk (or turn it off with `notebook.enabled: false` and add the files by hand).
+- **Privacy.** No student data goes into the repo: everything personal lives in `~/.alfabeta/config.json`.
 
-## Licencia
+## License
 
 [MIT](LICENSE).

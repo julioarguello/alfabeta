@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Los contenidos de cada asignatura, de Classroom al Drive de la familia
+# Specification Quality Checklist: Each subject's content, from Classroom to the family's Drive
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-25
@@ -31,23 +31,23 @@
 
 ## Notes
 
-- Iteración 1 (2026-10-25): tres marcas (carpeta base, organización, Drive del alumno). El operador
-  cambió el enfoque: Classroom es la fuente, el Drive de la familia el destino, y la estructura
-  `<curso>/<asignatura>/<tema | mes>/<fuente>/` es común a Classroom y a los libros.
-- Iteración 2 (2026-10-25): spec reescrita con ese enfoque. Quedan tres marcas [NEEDS CLARIFICATION]:
-  FR-012 (qué es «curso»), FR-013 (nombre de la carpeta de tema) y la historia 6 (guardar notas y
-  comentarios del profesor). Constitución enmendada a 1.0.1 para el mismo cambio.
-- La spec nombra algunas claves de configuración y la skill (`revision_completa_dias`,
-  `bloqueo_inactividad_minutos`, `classroom-sync`) porque son el contrato que ve la familia, no
-  decisiones de implementación.
-- Iteración 3 (2026-10-25): resueltas. Curso = curso escolar; notas y comentarios del profesor sí,
-  junto a la réplica; carpeta de tema = tema del libro, con emparejamiento propuesto por alfabeta y
-  confirmado por la familia (FR-013). La observación del Classroom real queda como primera tarea del
-  plan (la sesión del alumno había caducado).
-- Los nombres de producto que aparecen (Classroom, Drive, Dropbox, Science Bits, PDF, la app de
-  escritorio) son el dominio y las restricciones que fija el operador, no decisiones de
-  implementación. Lenguaje, formato de la configuración y mecanismo de descarga quedan para el plan.
-- La cuenta del alumno para el calendario se aplaza a la épica del calendario (fuera de alcance).
-- Pasada 5 de `/speckit-analyze` (2026-10-25): la observación del Classroom real que pedía esta lista ya se hizo (research, tabla de hechos); corregidos los hallazgos medios de esa pasada.
-- Pasadas 6 y 7 de `/speckit-analyze` (2026-10-25): corregidos sus hallazgos altos (flujo de prueba, identificador de ejecución, «sin cambios» con fechas que pasan, `nombre_visible`, capturas de otra ejecución). Desde la pasada 8 solo se corrigen críticos y altos; los medios y bajos que queden se listan en el PR de la spec como abiertos.
-- Pasadas 8–11 de `/speckit-analyze` (2026-10-25): la 11 termina sin hallazgos críticos ni altos. Los medios y bajos abiertos van en la descripción del PR de la spec.
+- Iteration 1 (2026-10-25): three markers (base folder, organization, the student's Drive). The operator
+  changed the approach: Classroom is the source, the family's Drive the target, and the structure
+  `<school-year>/<subject>/<topic | month>/<source>/` is common to Classroom and to the books.
+- Iteration 2 (2026-10-25): spec rewritten with that approach. Three [NEEDS CLARIFICATION] markers remain:
+  FR-012 (what «curso» means: course or school year), FR-013 (name of the topic folder) and story 6 (saving
+  the teacher's grades and comments). Constitution amended to 1.0.1 for the same change.
+- The spec names some configuration keys and the skill (`full_review_days`,
+  `lock_idle_minutes`, `classroom-sync`) because they are the contract the family sees, not
+  implementation decisions.
+- Iteration 3 (2026-10-25): resolved. «Curso» = school year; the teacher's grades and comments yes,
+  next to the replica; topic folder = book topic, with a match proposed by alfabeta and
+  confirmed by the family (FR-013). Observing the real Classroom stays as the first task of the
+  plan (the student's session had expired).
+- The product names that appear (Classroom, Drive, Dropbox, Science Bits, PDF, the desktop
+  app) are the domain and the constraints the operator sets, not implementation
+  decisions. Language, configuration format and download mechanism are left to the plan.
+- The student's account for the calendar is deferred to the calendar epic (out of scope).
+- `/speckit-analyze` pass 5 (2026-10-25): the observation of the real Classroom this list asked for is done (research, facts table); that pass's medium findings fixed.
+- `/speckit-analyze` passes 6 and 7 (2026-10-25): their high findings fixed (sandbox flow, run identifier, «unchanged» with dates going by, `display_name`, captures from another run). From pass 8 on only critical and high findings are fixed; the medium and low ones left are listed in the spec PR as open.
+- `/speckit-analyze` passes 8–11 (2026-10-25): pass 11 ends with no critical or high findings. The open medium and low ones go in the spec PR description.
