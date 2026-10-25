@@ -1,249 +1,250 @@
-# Research: Classroom → Drive familiar (spec 001)
+# Research: Classroom → family Drive (spec 001)
 
-Fase 0 del plan. Cada decisión lleva su motivo y las alternativas descartadas. Los hechos observados
-citan de dónde salen; nada de lo que sigue nombra al alumno, al profesorado ni identificadores reales.
+Phase 0 of the plan. Each decision carries its reason and the alternatives rejected. The observed
+facts cite where they come from; nothing below names the student, the teachers or real identifiers.
 
-## Hechos observados
+## Observed facts
 
-Observado el 2026-10-25 en el Classroom del alumno, en Chrome (extensión de Claude), en solo lectura:
-listado de clases, «Trabajo de clase» de dos asignaturas, una página de detalle de tarea, el tablón
-de una clase, «Tareas pendientes» y la raíz del Drive personal del alumno.
+Observed on 2026-10-25 in the student's Classroom, in Chrome (Claude extension), read-only: the class
+list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, the stream of one class,
+«Tareas pendientes» (To-do) and the root of the student's personal Drive.
 
-| Hecho | Observado en |
+| Fact | Observed in |
 |---|---|
-| Una docena de clases visibles y varias ocultas; títulos en varios idiomas que incluyen el curso y el grupo, con formatos distintos según el profesor | Página de inicio de Classroom |
-| Una asignatura con libro en Science Bits no aparece entre las clases visibles | Página de inicio; queda como pregunta para la configuración (¿clase oculta?) |
-| Los temas del profesor no coinciden con los del libro: un tema del profesor, con otro número y en otro idioma, reúne material de un tema del libro y de otro contenido; otro tema del profesor (introductorio) no existe en el libro | «Trabajo de clase» de una asignatura con libro |
-| Otra asignatura numera temas y tareas («N. título», «N.M título») y tiene temas que no son unidades (preparación de una prueba inicial, exámenes guardados, «Sin tema») | «Trabajo de clase» de una asignatura sin libro |
-| Tipos: «Tarea», «Material» y «Pregunta» | Ambos «Trabajo de clase» |
-| El listado muestra una sola fecha por elemento: «Fecha de entrega: 13 oct», «Sin fecha de entrega», «Publicado: 22 oct» o «Última modificación: 1 oct»; nunca el año; a veces relativa («Mañana, 8:00») | Ambos «Trabajo de clase» |
-| El listado marca «Completada» una tarea cuyo detalle dice «Calificado» y «El profesor ha indicado que falta esto» | Listado y detalle de la misma tarea |
-| El detalle de una tarea muestra autor, fecha de publicación, puntos, fecha de entrega, instrucciones y el panel «Tu trabajo» con su estado y los botones «Añadir o crear» y «Volver a entregar»; no se vio una nota numérica | Página de detalle de una tarea calificada |
-| La URL del detalle lleva identificadores estables de clase y de elemento: `/u/<n>/c/<clase>/a/<elemento>/details` | Barra de direcciones |
-| Al desplegar un material se ven su descripción y sus adjuntos; un PDF adjunto enlaza a `drive.google.com` | «Trabajo de clase», material desplegado |
-| El tablón muestra cada publicación con «Fecha de creación» exacta y anuncios de texto libre; uno anuncia, en otro idioma de la clase, un examen con su día de la semana y su fecha, y la lista de contenidos que entran | Tablón de una asignatura con libro |
-| «Tareas pendientes» tiene pestañas «Asignado», «Sin entregar» y «Hecho», y secciones plegadas (sin fecha, esta semana, próxima semana, más tarde) | Página de tareas pendientes |
-| En el mismo Chrome hay varias cuentas de Google; el índice `/u/<n>` de la cuenta escolar no es fijo | Botón de cuenta en `/u/1` a `/u/5` |
-| El Drive personal del alumno ya tiene carpetas propias en la raíz de «Mi unidad» | Raíz de «Mi unidad» |
-| Drive para escritorio está instalado, pero la cuenta personal del alumno no está montada | `~/Library/CloudStorage/` |
+| About a dozen visible classes and several hidden ones; titles in several languages that include the grade level and the group, with formats that vary by teacher | Classroom home page |
+| A subject with a Science Bits book does not appear among the visible classes | Home page; left as a question for the configuration (a hidden class?) |
+| The teacher's topics do not match the book's: one teacher's topic, with another number and in another language, gathers material from one book topic and from other content; another teacher's topic (an introductory one) does not exist in the book | «Trabajo de clase» of a subject with a book |
+| Another subject numbers topics and tasks («N. título», «N.M título» — "N. title", "N.M title") and has topics that are not units (preparation for an initial test, saved exams, «Sin tema» (No topic)) | «Trabajo de clase» of a subject without a book |
+| Types: «Tarea» (Assignment), «Material» (Material) and «Pregunta» (Question) | Both «Trabajo de clase» pages |
+| The listing shows a single date per item: «Fecha de entrega: 13 oct» (Due: 13 Oct), «Sin fecha de entrega» (No due date), «Publicado: 22 oct» (Posted: 22 Oct) or «Última modificación: 1 oct» (Last modified: 1 Oct); never the year; sometimes relative («Mañana, 8:00» — Tomorrow, 8:00) | Both «Trabajo de clase» pages |
+| The listing marks as «Completada» (Completed) a task whose detail says «Calificado» (Graded) and «El profesor ha indicado que falta esto» (The teacher has marked this as missing) | Listing and detail of the same task |
+| A task's detail shows author, posting date, points, due date, instructions and the «Tu trabajo» (Your work) panel with its status and the «Añadir o crear» (Add or create) and «Volver a entregar» (Resubmit) buttons; no numeric grade was seen | Detail page of a graded task |
+| The detail URL carries stable class and item identifiers: `/u/<n>/c/<class>/a/<item>/details` | Address bar |
+| Expanding a material shows its description and its attachments; an attached PDF links to `drive.google.com` | «Trabajo de clase», expanded material |
+| The stream shows each post with its exact «Fecha de creación» (Creation date) and free-text announcements; one announces, in another of the class's languages, an exam with its weekday and date, and the list of contents it covers | Stream of a subject with a book |
+| «Tareas pendientes» has the tabs «Asignado» (Assigned), «Sin entregar» (Missing) and «Hecho» (Done), and collapsed sections (no date, this week, next week, later) | To-do page |
+| The same Chrome holds several Google accounts; the `/u/<n>` index of the school account is not fixed | Account button at `/u/1` to `/u/5` |
+| The student's personal Drive already has folders of their own in the root of «Mi unidad» (My Drive) | Root of «Mi unidad» |
+| Google Drive for desktop is installed, but the student's personal account is not mounted | `~/Library/CloudStorage/` |
 
-## Decisiones
+## Decisions
 
-### R1. Cómo se repite: skill + scripts deterministas + tarea programada
+### R1. How it repeats: skill + deterministic scripts + scheduled task
 
-- **Decisión**: una skill `classroom-sync` que Claude sigue (como la de Science Bits) y que orquesta
-  scripts de Python deterministas. La programación diaria usa las tareas programadas de la app de
-  escritorio de Claude, con un prompt autocontenido que invoca la skill.
-- **Motivo**: lo mecánico (estado, identificadores, nombres, estructura, agenda, recogida de
-  descargas) da el mismo resultado en cada repetición si lo hacen scripts (FR-021b). Lo que pide
-  juicio (emparejar temas, detectar un examen en un anuncio en otro idioma) lo hace Claude dentro de la
-  misma ejecución, sin claves de API ni coste aparte, y queda registrado para no repetirse.
-- **Alternativas**: (a) solo un prompt a Claude, sin scripts: no es repetible, cada ejecución decide
-  distinto; (b) un script autónomo con Playwright y perfil propio: corre sin Claude pero pierde el
-  juicio y obliga a custodiar la sesión de un menor; es la épica del MCP local (issue #2).
-- **Riesgo a medir primero (spike S2)**: que una tarea programada pueda usar el navegador con la
-  sesión del alumno y descargar ficheros (capturas y adjuntos) sin que nadie apruebe cada descarga en
-  ese momento. La documentación de la herramienta dice que la tarea corre mientras la app está abierta
-  y con un prompt autocontenido; no dice nada del navegador ni de las descargas. Si no puede, la
-  ejecución programada se limita a avisar y la familia la lanza con una orden.
+- **Decision**: a `classroom-sync` skill that Claude follows (like the Science Bits one) and that
+  orchestrates deterministic Python scripts. The daily schedule uses the scheduled tasks of the
+  Claude desktop app, with a self-contained prompt that invokes the skill.
+- **Reason**: the mechanical part (state, identifiers, names, structure, agenda, collecting
+  downloads) gives the same result on every repetition if scripts do it (FR-021b). What needs
+  judgement (matching topics, detecting an exam in an announcement in another language) Claude does
+  within the same run, with no API keys or separate cost, and it is recorded so it is not repeated.
+- **Alternatives**: (a) only a prompt to Claude, no scripts: not repeatable, each run decides
+  differently; (b) a standalone script with Playwright and its own profile: it runs without Claude
+  but loses the judgement and forces us to hold a minor's session; that is the local MCP epic
+  (issue #2).
+- **Risk to measure first (spike S2)**: whether a scheduled task can use the browser with the
+  student's session and download files (captures and attachments) without anyone approving each
+  download at that moment. The tool's documentation says the task runs while the app is open and with
+  a self-contained prompt; it says nothing about the browser or downloads. If it cannot, the
+  scheduled run is limited to a notice and the family launches it with a command.
 
-### R2. Navegador: Chrome con la extensión de Claude
+### R2. Browser: Chrome with the Claude extension
 
-- **Decisión**: Chrome con la extensión de Claude, que es lo que el operador prefiere y donde ya
-  están las sesiones de la familia.
-- **Selección de cuenta**: la cuenta escolar se localiza recorriendo `/u/0…/u/9` y comparando el
-  correo del botón de cuenta con el de la configuración, en local. Nunca `authuser=<correo>` en una
-  URL (FR-031). El índice encontrado se guarda en el registro de la ejecución, no en la configuración ni en el estado.
-- **Alternativa**: el navegador integrado de la app. El extractor sería el mismo JavaScript, pero la
-  descarga directa ya falló en él (issue #1); queda para una épica posterior que la pruebe.
+- **Decision**: Chrome with the Claude extension, which is what the operator prefers and where the
+  family's sessions already are.
+- **Account selection**: the school account is located by walking `/u/0…/u/9` and comparing the
+  email on the account button with the one in the configuration, locally. Never
+  `authuser=<email>` in a URL (FR-031). The index found is stored in the run's log, not in the
+  configuration or the state.
+- **Alternative**: the app's built-in browser. The extractor would be the same JavaScript, but the
+  direct download already failed in it (issue #1); it is left for a later epic that tests it.
 
-### R3. Extracción: un extractor JavaScript sobre las páginas de consulta
+### R3. Extraction: a JavaScript extractor over the viewing pages
 
-- **Decisión**: `extract.js` se inyecta con la herramienta de JavaScript del navegador y devuelve
-  JSON: lista de clases (visibles, ocultas, archivadas), temas y elementos de «Trabajo de clase»,
-  detalle de cada elemento (estado, fechas, marca de modificación, adjuntos, entrega del alumno,
-  corrección) y publicaciones del tablón. Solo navega a la página de inicio, «Trabajo de clase», el
-  tablón y la página de detalle de tareas, materiales y preguntas; nunca sigue un enlace a un
-  formulario o cuestionario ni pulsa el panel «Tu trabajo». Espera al menos 2 s (con variación) entre
-  páginas. Cómo recorre las páginas sin perder el script inyectado (iframe oculto, `fetch` de las páginas
-  de detalle o reinyección por Claude en cada página) se decide con S3 y se anota aquí antes de T032.
-- **Captura completa o no**: cada captura dice si llegó al final de la clase (`completa`). Una captura
-  cortada no retira elementos (FR-027).
-- **Paradas**: si encuentra un desafío anti-robot (CAPTCHA, página de verificación, «demasiadas
-  peticiones») o no encuentra las etiquetas de interfaz esperadas en castellano, devuelve una marca de
-  parada en vez de datos y la skill termina la ejecución con motivo.
-- **Motivo**: el estado fiable está en el detalle (hecho observado); el listado solo sirve para
-  descubrir elementos y su marca de «Última modificación». La extensión oculta en su salida valores con
-  aspecto de base64, así que el extractor devuelve los identificadores ya separados de la URL.
-- **Alternativas**: leer las llamadas internas de la web de Classroom (más estable, sin documentar):
-  se deja para el MCP local.
+- **Decision**: `extract.js` is injected with the browser's JavaScript tool and returns JSON: the
+  class list (visible, hidden, archived), topics and items from «Trabajo de clase», each item's
+  detail (status, dates, modification mark, attachments, student submission, grading) and the
+  stream's posts. It navigates only to the home page, «Trabajo de clase», the stream and the detail
+  page of assignments, materials and questions; it never follows a link to a form or quiz and never
+  clicks the «Tu trabajo» panel. It waits at least 2 s (with jitter) between pages. How it walks the
+  pages without losing the injected script (hidden iframe, `fetch` of the detail pages, or
+  re-injection by Claude on each page) is decided with S3 and recorded here before T032.
+- **Complete capture or not**: each capture says whether it reached the end of the class
+  (`complete`). A truncated capture withdraws no items (FR-027).
+- **Stops**: if it finds an anti-bot challenge (CAPTCHA, verification page, «demasiadas peticiones»
+  — too many requests) or does not find the expected Spanish UI labels, it returns a stop mark
+  instead of data and the skill ends the run with a reason.
+- **Reason**: the reliable status is on the detail page (observed fact); the listing serves only to
+  discover items and their «Última modificación» mark. The extension hides base64-looking values in
+  its output, so the extractor returns the identifiers already split out of the URL.
+- **Alternatives**: reading the Classroom web app's internal calls (more stable, undocumented): left
+  for the local MCP.
 
-### R4. Descarga de adjuntos de Drive (spike S1, primer riesgo técnico)
+### R4. Downloading Drive attachments (spike S1, first technical risk)
 
-- **Problema**: la descarga directa `drive.google.com/uc?export=download` falló en el navegador
-  integrado (issue #1). Los adjuntos enlazan a `drive.google.com`.
-- **Decisión**: probar en este orden, con la sesión de la cuenta escolar y un adjunto real, y quedarse
-  con el primero que deje el fichero completo en la carpeta de descargas:
+- **Problem**: the direct download `drive.google.com/uc?export=download` failed in the built-in
+  browser (issue #1). Attachments link to `drive.google.com`.
+- **Decision**: try in this order, with the school account's session and a real attachment, and keep
+  the first one that leaves the complete file in the downloads folder:
   1. `drive.usercontent.google.com/download?id=<id>&export=download&authuser=<n>`;
-  2. para Documentos, Presentaciones y Hojas de Google, `docs.google.com/<tipo>/d/<id>/export?format=pdf&authuser=<n>`;
-  3. el botón de descarga del visor de Drive.
-- **Cuándo se descarga** (ids de elemento y de adjunto con reglas propias, según los patrones de URL
-  anotados en S3): la primera vez, y después solo si el elemento muestra una modificación
-  posterior a la última réplica, si cambia el nombre o el tipo del adjunto, o en la revisión completa
-  periódica (`[sincronizacion] revision_completa_dias`; valor de la plantilla: 7). La fecha de la
-  última revisión completa es la de la última línea del registro con `revision_completa: true`, no un
-  campo del estado: una revisión que encuentra los mismos bytes no reescribe el estado. Así no hay
-  cientos de descargas diarias (FR-010, FR-026) y se cumple el principio V.
-- **Recogida**: `descargas recoger` (sobre la carpeta de `[descargas] carpeta`) mueve cada fichero
-  esperado e ignora los `.crdownload` de Chrome a medio descargar, comprueba que está completo y lo deja
-  listo para colocar (FR-018). Solo recoge lo que ha pedido.
+  2. for Google Docs, Slides and Sheets, `docs.google.com/<type>/d/<id>/export?format=pdf&authuser=<n>`;
+  3. the Drive viewer's download button.
+- **When to download** (item and attachment ids with their own rules, per the URL patterns recorded
+  in S3): the first time, and afterwards only if the item shows a modification later than the last
+  replica, if the attachment's name or type changes, or in the periodic full review
+  (`[sync] full_review_days`; template value: 7). The date of the last full review is that of the
+  last log line with `full_review: true`, not a state field: a review that finds the same bytes does
+  not rewrite the state. That avoids hundreds of downloads a day (FR-010, FR-026) and meets
+  principle V.
+- **Collection**: `downloads collect` (over the `[downloads] folder` folder) moves each expected file
+  and ignores Chrome's half-downloaded `.crdownload` files, checks that it is complete and leaves it
+  ready to place (FR-018). It collects only what it requested.
 
-### R5. Fechas sin año y relativas
+### R5. Dates without a year, and relative dates
 
-- **Decisión**: un único resolvedor de fechas: año deducido del curso escolar (septiembre a diciembre,
-  primer año; enero a agosto, segundo), relativas («Hoy», «Mañana», días de la semana) respecto al
-  momento de la captura (`capturado`), no al de la ejecución que la aplica, todo en `Europe/Madrid` con
-  `zoneinfo`. La fecha de publicación sale de la «Fecha de creación» del tablón o del detalle, nunca de
-  «Última modificación».
-- **Pruebas**: tabla de casos, incluidos el cambio de año (diciembre/enero), los cambios de hora y una
-  captura aplicada al día siguiente.
+- **Decision**: a single date resolver: the year inferred from the school year (September to
+  December, first year; January to August, second), relative dates («Hoy» — Today, «Mañana» —
+  Tomorrow, weekdays) against the capture time (`captured_at`), not that of the run that applies it,
+  all in `Europe/Madrid` with `zoneinfo`. The posting date comes from the «Fecha de creación» of the
+  stream or the detail page, never from «Última modificación».
+- **Tests**: a table of cases, including the year change (December/January), clock changes and a
+  capture applied the next day.
 
-### R6. Estado, bloqueo e idempotencia
+### R6. State, lock and idempotency
 
-- **Si el vigilante no sobrevive a la llamada de herramienta (S2)**: el bloqueo pasa a ser un fichero de
-  concesión con la hora de su última renovación; cada subcomando toma el `flock` solo mientras corre,
-  comprueba que la concesión es de su ejecución y la renueva; una concesión sin renovar durante
-  `bloqueo_inactividad_minutos` se puede tomar, y quien la toma escribe la línea `detenida` con motivo
-  `inactividad` de la anterior. Los subcomandos de `contracts/cli.md` y sus salidas no cambian; solo desaparece el vigilante.
-- **Decisión**: un fichero de estado JSON por alumno en su carpeta de datos local, escrito de forma
-  atómica (fichero temporal y renombrado) y solo si cambia, con un registro por elemento y por réplica:
-  identificador de Classroom, papel, ruta relativa, huella (SHA-256), versión y marca de modificación
-  vista. El registro de cada ejecución va en JSON Lines en la misma carpeta, junto con el índice
-  `/u/<n>` usado, que no va al estado.
-- **Bloqueo**: `bloqueo tomar` abre con `fcntl.flock` `datos/bloqueo` (del alumno) y
-  `<inicio>/.navegador.lock` (del Mac: todos los alumnos comparten Chrome y la carpeta de descargas),
-  y los mantiene un proceso vigilante durante toda la ejecución. Cada subcomando renueva el bloqueo, y
-  `bloqueo renovar` lo renueva en los tramos largos del navegador (entre clases, entre tandas de
-  descargas, en cada sondeo de una captura de Science Bits);
-  si pasan `bloqueo_inactividad_minutos` sin renovarlo, el vigilante entiende que la ejecución murió,
-  suelta los dos y escribe una línea `detenida` con motivo `inactividad`. Si el vigilante muere, el
-  sistema libera los `flock`. Un bloqueo ocupado detiene la ejecución con su propio motivo (FR-030).
-- **Paradas antes de aplicar**: `registro detener --motivo <m>` escribe la línea `detenida` de una
-  ejecución que se para en el navegador (sesión caducada, desafío, interfaz inesperada) o antes
-  (Drive sin montar). Un bloqueo ocupado lo registra el propio `bloqueo tomar`, y una parada de `plan` o
-  `aplicar`, ellos mismos.
-- **Motivo**: biblioteca estándar, legible por una persona, suficiente para cientos de elementos por
-  curso. Una segunda ejecución sin cambios compara huellas y no escribe (FR-025).
-- **Alternativa**: SQLite. Más robusto con mucho volumen; innecesario aquí (constitución IX).
+- **If the watcher does not survive the tool call (S2)**: the lock becomes a lease file holding the
+  time of its last renewal; each subcommand takes the `flock` only while it runs, checks that the
+  lease belongs to its run and renews it; a lease left unrenewed for `lock_idle_minutes` can be taken,
+  and whoever takes it writes the previous run's `stopped` line with reason `idle`. The subcommands in
+  `contracts/cli.md` and their outputs do not change; only the watcher disappears.
+- **Decision**: one JSON state file per student in their local data folder, written atomically
+  (temporary file and rename) and only if it changes, with one record per item and per replica:
+  Classroom identifier, role, relative path, hash (SHA-256), version and modification mark seen. Each
+  run's log goes in JSON Lines in the same folder, together with the `/u/<n>` index used, which does
+  not go to the state.
+- **Lock**: `lock take` opens with `fcntl.flock` `data/lock` (the student's) and
+  `<home>/.browser.lock` (the Mac's: all students share Chrome and the downloads folder), and a
+  watcher process holds them for the whole run. Every subcommand renews the lock, and `lock renew`
+  renews it during the browser's long stretches (between classes, between batches of downloads, at
+  each poll of a Science Bits capture); if `lock_idle_minutes` pass without a renewal, the watcher
+  assumes the run died, releases both and writes a `stopped` line with reason `idle`. If the watcher
+  dies, the system releases the `flock`s. A busy lock stops the run with its own reason (FR-030).
+- **Stops before apply**: `log stop --reason <r>` writes the `stopped` line of a run that stops in
+  the browser (expired session, challenge, unexpected UI) or before it (Drive not mounted). A busy
+  lock is logged by `lock take` itself, and a stop in `plan` or `apply` by those commands themselves.
+- **Reason**: standard library, human-readable, enough for hundreds of items per school year. A
+  second run with no changes compares hashes and writes nothing (FR-025).
+- **Alternative**: SQLite. More robust at high volume; unnecessary here (constitution IX).
 
-### R7. Juicio de Claude: asociaciones, emparejamientos y exámenes detectados
+### R7. Claude's judgement: class links, matches and detected exams
 
-- **Decisión**: los scripts preparan la lista de lo que necesita decisión (clases sin asociar, temas sin
-  emparejar, publicaciones con indicios de examen) y Claude propone, con motivo y seguridad (alta,
-  media, baja), siguiendo la skill. La familia confirma, rechaza, corrige (fecha, categoría o
-  descartar un examen) o cambia (un emparejamiento ya confirmado). Las decisiones van a
-  `datos/decisiones.json`, ligadas al identificador de Classroom. Una decisión confirmada no se vuelve
-  a proponer (FR-021b); cambiarla la pasa a `sustituida` y crea la nueva.
-- **Sin confirmar**: los elementos de un tema sin emparejar van a su carpeta de mes; un examen
-  detectado entra en la agenda marcado «detectado» hasta que la familia lo confirme o lo corrija.
+- **Decision**: the scripts prepare the list of what needs a decision (unlinked classes, unmatched
+  topics, posts with exam cues) and Claude proposes, with reason and confidence (high, medium, low),
+  following the skill. The family confirms, rejects, corrects (date, category, or dismissing an exam)
+  or changes (an already confirmed match). Decisions go to `data/decisions.json`, tied to the
+  Classroom identifier. A confirmed decision is not proposed again (FR-021b); changing it moves it to
+  `superseded` and creates the new one.
+- **Unconfirmed**: the items of an unmatched topic go to their month folder; a detected exam enters
+  the agenda marked `detected` until the family confirms or corrects it.
 
-### R8. Pruebas contra páginas sintéticas
+### R8. Tests against synthetic pages
 
-- **Decisión**: las páginas reales se guardan solo fuera del repositorio (`datos/capturas-crudas/`).
-  Lo que entra en `tests/fixtures/classroom/` son páginas **sintéticas**: `anonimizar` conserva la
-  estructura (etiquetas, clases CSS, jerarquía) y las etiquetas de interfaz de una lista permitida
-  («Trabajo de clase», «Fecha de entrega», «Tu trabajo»…), e inventa todo texto y atributo restante:
-  títulos, descripciones, fechas, nombres de fichero, ids y textos accesibles. Se niega a escribir si
-  sobrevive cualquier texto de la entrada fuera de esa lista.
-- **Motivo**: el material es de sus autores y no se redistribuye (constitución IV), y ningún fixture
-  contiene material ni datos de un alumno real (III). La estructura es lo único que necesitan las
-  pruebas del extractor.
-- **Comprobación**: el guardarraíl de datos personales (FR-005) también pasa por las páginas
-  sintéticas. Ninguna prueba ni el CI llama a Classroom (constitución VI).
+- **Decision**: real pages are saved only outside the repository (`data/raw-captures/`). What enters
+  `tests/fixtures/classroom/` is **synthetic** pages: `anonymize` keeps the structure (tags, CSS
+  classes, hierarchy) and the UI labels on an allowlist («Trabajo de clase», «Fecha de entrega»,
+  «Tu trabajo»…), and invents every remaining text and attribute: titles, descriptions, dates, file
+  names, ids and accessible text. It refuses to write if any input text outside that list survives.
+- **Reason**: the material belongs to its authors and is not redistributed (constitution IV), and no
+  fixture holds material or data of a real student (III). The structure is all the extractor's tests
+  need.
+- **Check**: the personal-data guardrail (FR-005) also runs over the synthetic pages. No test and no
+  CI job calls Classroom (constitution VI).
 
-### R9. Configuración por alumno: TOML con plantilla espejo, fuera del repo
+### R9. Per-student configuration: TOML with a mirror template, outside the repo
 
-- **Decisión**: la plantilla es `config/template.toml` en el repositorio, con todas las claves, valores
-  `changeme` y un comentario por clave. La configuración real de cada alumno es
-  `~/.alfabeta/<alumno>/config.toml`, copia de la plantilla con los valores rellenos. Lo que escribe
-  alfabeta (decisiones, estado, registro, bloqueo, plan, capturas) va en `~/.alfabeta/<alumno>/datos/`.
-- **Localización**: `~/.alfabeta/` es la ubicación declarada, no un valor por defecto silencioso: si no
-  existe, alfabeta se detiene y lo dice. La opción global `--inicio` la sustituye (pruebas). El alumno
-  se elige con `--alumno <id>`, que se resuelve una sola vez en la entrada de la orden.
-- **Validación**: el conjunto de claves (con su tipo) de la configuración real debe ser igual al de la
-  plantilla; una clave que falta, sobra, cambia de tipo o contiene `changeme` detiene la ejecución
-  nombrando la clave (FR-003). Una prueba comprueba además que toda clave que lee el código está en la
-  plantilla.
-- **Por qué TOML**: admite comentarios (la plantilla documenta cada clave) y se lee con la biblioteca
-  estándar (`tomllib`). Lo que escribe alfabeta va en JSON, que también es estándar.
-- **Alternativas**: un `.env` por alumno (no expresa listas ni el mapa de asignaturas); JSON también
-  para la configuración (sin comentarios); YAML (dependencia nueva). El fichero `config.example.json`
-  actual desaparece.
+- **Decision**: the template is `config/template.toml` in the repository, with every key, `changeme`
+  values and one comment per key. Each student's real configuration is
+  `~/.alfabeta/<student>/config.toml`, a copy of the template with the values filled in. What
+  alfabeta writes (decisions, state, log, lock, plan, captures) goes in
+  `~/.alfabeta/<student>/data/`.
+- **Location**: `~/.alfabeta/` is the declared location, not a silent default: if it does not exist,
+  alfabeta stops and says so. The global `--home` option replaces it (tests). The student is chosen
+  with `--student <id>`, resolved only once at the command's entry point.
+- **Validation**: the set of keys (with their types) of the real configuration must equal the
+  template's; a key that is missing, extra, of another type or containing `changeme` stops the run
+  and names the key (FR-003). A test also checks that every key the code reads is in the template.
+- **Why TOML**: it allows comments (the template documents each key) and is read with the standard
+  library (`tomllib`). What alfabeta writes goes in JSON, also standard.
+- **Alternatives**: a `.env` per student (cannot express lists or the subject map); JSON for the
+  configuration too (no comments); YAML (a new dependency). The existing `config.example.json` file
+  goes away.
 
-### R10. Código: un paquete con una orden y skills finas
+### R10. Code: one package with one command, and thin skills
 
-- **Decisión**: un paquete Python `alfabeta` en `src/alfabeta/` con una sola orden
-  (`python -m alfabeta <subcomando>`, argparse de la biblioteca estándar) que agrupa lo determinista.
-  Las skills (`skills/classroom-sync/`, `skills/sciencebits-a-notebooklm/`) contienen el `SKILL.md`
-  que sigue Claude y el JavaScript que corre en el navegador, y llaman a esa orden.
-- **Fuentes**: un Protocol `Fuente` con `FuenteClassroom` y `FuenteLibro`; la subcarpeta de cada
-  réplica es el nombre de su fuente (`classroom`, o el valor de `libro` de la asignatura).
-- **Validación en ejecución**: `captura.py` comprueba a mano las claves imprescindibles de cada captura
-  (biblioteca estándar); los esquemas completos se comprueban en las pruebas con `jsonschema`
-  (dependencia de desarrollo). Los esquemas viven en `src/alfabeta/esquemas/`, copia de `contracts/`.
-- **Motivo**: un solo sitio para las reglas de nombres, estructura y estado que comparten Classroom y
-  los libros; `src/` y `tests/` son las dos raíces que esperan el comprobador de tipos y el linter.
-- **Dependencias**: ninguna en tiempo de ejecución. Desarrollo: `ruff`, `pyright` (modo estricto, con
-  las reglas de anotaciones de ruff), `pytest` y `jsonschema`, gestionados con `uv` (`pyproject.toml`,
-  `uv.lock`, `.python-version` = 3.12). Una puerta única `make ci` igual en local y en CI.
+- **Decision**: a Python package `alfabeta` in `src/alfabeta/` with a single command
+  (`python -m alfabeta <subcommand>`, the standard library's argparse) that groups the deterministic
+  logic. The skills (`skills/classroom-sync/`, `skills/sciencebits-a-notebooklm/`) contain the
+  `SKILL.md` Claude follows and the JavaScript that runs in the browser, and call that command.
+- **Sources**: a `Source` Protocol with `ClassroomSource` and `BookSource`; each replica's subfolder
+  is the name of its source (`classroom`, or the subject's `book` value).
+- **Runtime validation**: `capture.py` checks each capture's essential keys by hand (standard
+  library); the full schemas are checked in tests with `jsonschema` (a development dependency). The
+  schemas live in `src/alfabeta/schemas/`, a copy of `contracts/`.
+- **Reason**: a single place for the naming, structure and state rules that Classroom and the books
+  share; `src/` and `tests/` are the two roots the type checker and the linter expect.
+- **Dependencies**: none at runtime. Development: `ruff`, `pyright` (strict mode, with ruff's
+  annotation rules), `pytest` and `jsonschema`, managed with `uv` (`pyproject.toml`, `uv.lock`,
+  `.python-version` = 3.12). A single gate, `make ci`, identical locally and in CI.
 
-### R11. Pruebas del extractor JavaScript
+### R11. Tests of the JavaScript extractor
 
-- **Decisión**: `extract.js` se prueba con `node --test` y `jsdom` contra las páginas sintéticas (R8).
-  Es la única dependencia de desarrollo de Node, declarada en `package.json`, y la puerta `make ci` la
-  ejecuta. Las pruebas comprueban a mano las claves de la salida; el esquema completo se comprueba en
-  Python sobre las capturas JSON de prueba.
-- **Solo lectura comprobable**: una prueba instala escuchas de clic, envío de formularios y navegación
-  en la página sintética y comprueba que el extractor no pulsa ningún botón del panel «Tu trabajo», no
-  envía nada y no navega a formularios ni cuestionarios.
-- **Diseño**: el extractor solo lee el DOM y devuelve los textos tal como se muestran («Fecha de
-  entrega: 13 oct»); toda la interpretación (fechas, estados, categorías) está en Python y se prueba
-  allí.
+- **Decision**: `extract.js` is tested with `node --test` and `jsdom` against the synthetic pages
+  (R8). It is the only Node development dependency, declared in `package.json`, and the `make ci`
+  gate runs it. The tests check the output's keys by hand; the full schema is checked in Python over
+  the test JSON captures.
+- **Checkable read-only behaviour**: a test installs click, form-submit and navigation listeners on
+  the synthetic page and checks that the extractor clicks no button in the «Tu trabajo» panel,
+  submits nothing and navigates to no form or quiz.
+- **Design**: the extractor only reads the DOM and returns the texts as displayed («Fecha de
+  entrega: 13 oct»); all interpretation (dates, statuses, categories) lives in Python and is tested
+  there.
 
-### R12. Del navegador al disco
+### R12. From the browser to disk
 
-- **Decisión**: el extractor no devuelve el JSON a la conversación: lo descarga como fichero
-  (`alfabeta-captura-<ejecucion>-<clase>-<marca>.json`, con el `ejecucion` que Claude le pasa al inyectarlo) a la carpeta de descargas, igual que la captura de Science
-  Bits descarga sus zips, y `python -m alfabeta descargas recoger` lo mueve a `datos/capturas/`.
-- **Motivo**: cientos de elementos por clase no deben pasar por el contexto de Claude; un fichero se
-  puede guardar, comparar y usar como prueba.
+- **Decision**: the extractor does not return the JSON to the conversation: it downloads it as a file
+  (`alfabeta-capture-<run>-<class>-<stamp>.json`, with the `run` Claude passes it when injecting it)
+  to the downloads folder, just as the Science Bits capture downloads its zips, and
+  `python -m alfabeta downloads collect` moves it to `data/captures/`.
+- **Reason**: hundreds of items per class must not pass through Claude's context; a file can be
+  saved, compared and used as a test.
 
-### R13. Guardarraíl de datos personales
+### R13. Personal-data guardrail
 
-- **Decisión**: `python -m alfabeta guardarrail` revisa los ficheros del cambio (gancho de pre-commit) o
-  todo el repositorio (CI). Detectores genéricos: correos (salvo `example.org` y `example.com`), rutas
-  de usuario e identificadores con forma de Classroom, de Drive o de cuaderno (UUID) (excluidos los ficheros de bloqueo de
-  dependencias, `uv.lock` y `package-lock.json`). Los marcadores entre `<…>` y los ids sintéticos
-  `sint-<n>` de las páginas de prueba no cuentan. Detectores nominales: los valores identificativos de
-  las configuraciones reales presentes en el Mac (el `id` del alumno, `nombre_visible`, `cuenta`,
-  `raiz`, `clase_classroom`) y los ids de Classroom y Drive que guardan sus `datos/decisiones.json` y
-  `datos/estado.json`, sin mostrarlos nunca; los títulos de temas del libro no son datos
-  personales y no se buscan. Como el repositorio es público, lo que está en un commit ya está
-  publicado: además del árbol, T000 (a mano, antes de que exista) y T059 (`guardarrail --historia`) pasan los detectores sobre la
-  historia (`git log --all -p`).
-- **Formas de los ids**: las exactas de Classroom y Drive salen de los patrones de URL que anota S3;
-  un identificador de código largo (`snake_case`, `camelCase`, nombres de fichero de prueba) no cuenta.
-- **Salidas**: 0 limpio; 1 hallazgo (fichero y línea, sin repetir el dato); 2 los detectores genéricos
-  no revisaron ningún fichero; 3 un detector no encuentra el defecto que el propio guardarraíl planta
-  en memoria en cada ejecución. Sin configuraciones reales en la máquina (CI, otro colaborador) los
-  detectores nominales no corren: se dice en stderr y no cambia la salida.
-- **Pruebas**: casos que deben saltar y casos que no, con datos inventados, incluidos un `uv.lock`, rutas con marcador
-  `/Users/<alguien>/`, ids `sint-<n>` y claves no identificativas de una configuración
-  (`curso_escolar`, `idiomas`).
+- **Decision**: `python -m alfabeta guardrail` checks the files in the change (pre-commit hook) or
+  the whole repository (CI). Generic detectors: emails (except `example.org` and `example.com`),
+  user paths, and identifiers shaped like Classroom, Drive or notebook ids (UUID) (dependency lock
+  files excluded: `uv.lock` and `package-lock.json`). Placeholders between `<…>` and the synthetic
+  `synth-<n>` ids of the test pages do not count. Named detectors: the identifying values of the real
+  configurations present on the Mac (the student's `id`, `display_name`, `account`, `root`,
+  `classroom_class`) and the Classroom and Drive ids stored in their `data/decisions.json` and
+  `data/state.json`, never displaying them; book topic titles are not personal data and are not
+  searched for. Because the repository is public, whatever is in a commit is already published: on
+  top of the tree, T000 (by hand, before the guardrail exists) and T059 (`guardrail --history`) run
+  the detectors over the history (`git log --all -p`).
+- **Id shapes**: the exact Classroom and Drive shapes come from the URL patterns S3 records; a long
+  code identifier (`snake_case`, `camelCase`, test file names) does not count.
+- **Exit codes**: 0 clean; 1 finding (file and line, without repeating the data); 2 the generic
+  detectors checked no file; 3 a detector misses the defect the guardrail itself plants in memory on
+  every run. With no real configurations on the machine (CI, another contributor) the named
+  detectors do not run: this is said on stderr and does not change the exit code.
+- **Tests**: cases that must fire and cases that must not, with invented data, including a `uv.lock`,
+  placeholder paths `/Users/<someone>/`, `synth-<n>` ids and non-identifying configuration keys
+  (`school_year`, `languages`).
 
-### R14. Lo que no hace falta en esta épica
+### R14. What this epic does not need
 
-- **Llavero**: ningún secreto propio. La sesión de Classroom vive en Chrome y la de Gemini Notebook en
-  `nlm`; alfabeta no guarda cookies ni tokens. La capa de secretos queda prevista y vacía.
-- **Nota numérica**: no se vio en el detalle de una tarea calificada; `correccion` guarda el estado de
-  calificación, la nota si Classroom la muestra al alumno y el comentario (spec, historia 6).
+- **Keychain**: no secret of its own. The Classroom session lives in Chrome and the Gemini Notebook
+  session in `nlm`; alfabeta stores no cookies or tokens. The secrets layer is planned for and left
+  empty.
+- **Numeric grade**: not seen in a graded task's detail; `grading` stores the grading state, the
+  grade if Classroom shows it to the student, and the comment (spec, story 6).

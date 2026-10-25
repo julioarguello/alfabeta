@@ -1,68 +1,68 @@
-# Contrato de config/template.toml (la plantilla del repositorio).
-# Cada alumno copia este fichero a ~/.alfabeta/<alumno>/config.toml y cambia los valores changeme.
-# Una clave que falta, sobra, cambia de tipo o contiene changeme detiene alfabeta (FR-003).
+# Contract for config/template.toml (the repository's template).
+# Each student copies this file to ~/.alfabeta/<student>/config.toml and changes the changeme values.
+# A key that is missing, extra, changes type or contains changeme stops alfabeta (FR-003).
 
-[alumno]
-# Nombre con que Claude se dirige a la familia en el chat. La orden nunca lo imprime (ni registro, URL ni Drive).
-nombre_visible = "changeme"
-# Curso escolar, primer nivel de la estructura de carpetas.
-curso_escolar = "changeme"          # p. ej. "2026-2027"
-# Nivel, para los nombres de los cuadernos.
-nivel = "changeme"                  # p. ej. "1º ESO"
-# Idiomas en que pueden venir títulos y anuncios.
-idiomas = ["changeme"]              # p. ej. ["es", "en"]
+[student]
+# Name Claude uses to address the family in the chat. The command never prints it (nor log, URL or Drive).
+display_name = "changeme"
+# School year, first level of the folder structure.
+school_year = "changeme"            # e.g. "2026-2027"
+# Grade level, for the notebook names.
+grade_level = "changeme"            # e.g. "1º ESO"
+# Languages that titles and announcements may come in.
+languages = ["changeme"]            # e.g. ["es", "en"]
 
 [classroom]
-# Correo de la cuenta escolar. Se compara en local con el botón de cuenta; nunca va en una URL.
-cuenta = "changeme@example.org"
+# Email address of the school account. Compared locally with the account button; never goes in a URL.
+account = "changeme@example.org"
 
 [drive]
-# Carpeta propia de alfabeta dentro del Drive montado por Drive para escritorio.
-# Nunca la raíz de «Mi unidad». Nunca se muestra en mensajes.
-raiz = "changeme"                   # p. ej. "~/Library/CloudStorage/GoogleDrive-<cuenta>/Mi unidad/alfabeta"
+# alfabeta's own folder inside the Drive mounted by Google Drive for desktop.
+# Never the root of «Mi unidad» (My Drive). Never shown in messages.
+root = "changeme"                   # e.g. "~/Library/CloudStorage/GoogleDrive-<account>/Mi unidad/alfabeta"
 
-[descargas]
-# Carpeta donde el navegador deja las descargas.
-carpeta = "changeme"                # p. ej. "~/Downloads"
+[downloads]
+# Folder where the browser leaves its downloads.
+folder = "changeme"                 # e.g. "~/Downloads"
 
-[sincronizacion]
-# Cada cuántos días se vuelven a descargar todos los adjuntos para comprobar su huella.
-revision_completa_dias = 7
-# Minutos sin actividad tras los que el bloqueo de una ejecución muerta se libera solo.
-bloqueo_inactividad_minutos = 30
-# Cuántas capturas se conservan por clase en la carpeta de datos.
-capturas_conservadas = 10
+[sync]
+# Every how many days all attachments are downloaded again to check their hash.
+full_review_days = 7
+# Minutes without activity after which the lock of a dead run is released on its own.
+lock_idle_minutes = 30
+# How many captures are kept per class in the data folder.
+kept_captures = 10
 
-[herramientas]
-# Carpeta local donde las skills copian sus scripts de trabajo. Fuera de Dropbox y de la carpeta compartida.
-carpeta = "changeme"                # p. ej. "~/.alfabeta/herramientas"
-# Clon del repositorio alfabeta; las skills ejecutan `uv run --project <repositorio> python -m alfabeta`
-# en el Mac (nunca en la máquina virtual de la app).
-repositorio = "changeme"            # p. ej. "~/opt/alfabeta"
+[tools]
+# Local folder where the skills copy their working scripts. Outside Dropbox and the shared folder.
+folder = "changeme"                 # e.g. "~/.alfabeta/tools"
+# Clone of the alfabeta repository; the skills run `uv run --project <repository> python -m alfabeta`
+# on the Mac (never in the app's virtual machine).
+repository = "changeme"             # e.g. "~/opt/alfabeta"
 
 [sciencebits]
-# Si ninguna asignatura tiene libro = "sciencebits", url = "" e idiomas = [] son válidos.
-# Página de clases de Science Bits.
-url = "changeme"                    # p. ej. "https://learning-bits.com/intranet/es/myclasses/index"
-# Idiomas en que se captura cada tema; el primero da el título de la carpeta del tema.
-idiomas = ["changeme"]              # p. ej. ["es", "en"]
+# If no subject has book = "sciencebits", url = "" and languages = [] are valid.
+# Science Bits class page.
+url = "changeme"                    # e.g. "https://learning-bits.com/intranet/es/myclasses/index"
+# Languages each topic is captured in; the first one gives the topic folder's title.
+languages = ["changeme"]            # e.g. ["es", "en"]
 
-[cuaderno]
-# Si se crea el cuaderno de Gemini Notebook de cada tema (épica 3; la skill de Science Bits ya lo hace).
-activado = false
-# El nombre lo fija la constitución: «<nivel>. <asignatura>. Tema NN - <título>».
+[notebook]
+# Whether the Gemini Notebook notebook of each topic is created (epic 3; the Science Bits skill already does it).
+enabled = false
+# The constitution sets the name: «<grade level>. <Subject>. Tema NN - <title>».
 
-[[asignaturas]]
-# Nombre de la carpeta de la asignatura.
-carpeta = "changeme"                # p. ej. "Mates"
-# Título de la clase en Classroom; sirve para proponer la asociación, que luego va por id.
-clase_classroom = "changeme"
-# Proveedor de libro, o "" si no tiene. Es también el nombre de su subcarpeta.
-# Los temas del libro no se configuran: son las carpetas «Tema NN - <título>» que ya tienen esa subcarpeta.
-libro = "changeme"                  # p. ej. "sciencebits"
-# Nombre de la clase en la plataforma del libro, o "" si no tiene libro.
-clase_libro = "changeme"            # p. ej. "Matemáticas - 1º ESO"
+[[subjects]]
+# Name of the subject's folder.
+folder = "changeme"                 # e.g. "Mates"
+# Title of the class in Classroom; used to propose the link, which then goes by id.
+classroom_class = "changeme"
+# Book provider, or "" if none. It is also the name of its subfolder.
+# Book topics are not configured: they are the «Tema NN - <title>» folders that already hold that subfolder.
+book = "changeme"                   # e.g. "sciencebits"
+# Name of the class on the book's platform, or "" if there is no book.
+book_class = "changeme"             # e.g. "Matemáticas - 1º ESO"
 
-[programacion]
-# Hora de la sincronización diaria (hora local), o "" para solo a demanda.
-diaria = "changeme"                 # p. ej. "17:30"
+[schedule]
+# Time of the daily sync (local time), or "" for on demand only.
+daily = "changeme"                  # e.g. "17:30"

@@ -1,110 +1,110 @@
-# Quickstart: validar la spec 001
+# Quickstart: validating spec 001
 
-Escenarios que demuestran que la épica funciona, de lo que no necesita Classroom a lo que sí. Los
-contratos están en [contracts/](contracts/) y las entidades en [data-model.md](data-model.md).
+Scenarios that show the epic works, from what does not need Classroom to what does. The
+contracts are in [contracts/](contracts/) and the entities in [data-model.md](data-model.md).
 
-## Requisitos previos
+## Prerequisites
 
-- macOS con `uv`, Node y Git.
-- Para los escenarios 6 a 9: la app de escritorio de Claude, Chrome con la extensión de Claude con la
-  cuenta escolar del alumno iniciada, y Drive para escritorio con la cuenta del Drive familiar montada.
+- macOS with `uv`, Node and Git.
+- For scenarios 6 to 9: the Claude desktop app, Chrome with the Claude extension signed in to the
+  student's school account, and Google Drive for desktop with the family Drive account mounted.
 
-## 1. Puertas de calidad (sin Classroom)
+## 1. Quality gates (no Classroom)
 
 ```bash
 make setup-python setup-node
 make ci
 ```
 
-Esperado: ruff, Pyright, `pytest` (con más de cero pruebas recogidas), `node --test` del extractor y el
-guardarraíl en verde, cada uno nombrado en la salida.
+Expected: ruff, Pyright, `pytest` (with more than zero tests collected), the extractor's `node --test` and the
+guardrail green, each one named in the output.
 
-## 2. US1 con un alumno inventado (sin Classroom)
+## 2. US1 with an invented student (no Classroom)
 
 ```bash
-export ALFABETA_PRUEBA=$(mktemp -d)
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" prueba preparar
-export ALFABETA_EJECUCION=$(uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" bloqueo tomar --alumno prueba --modo interactiva | python3 -c 'import json,sys;print(json.load(sys.stdin)["ejecucion"])')
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" prueba descargar --alumno prueba --capturas
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" descargas recoger --alumno prueba
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" plan --alumno prueba
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" prueba descargar --alumno prueba
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" descargas recoger --alumno prueba
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" aplicar --alumno prueba
-uv run python -m alfabeta --inicio "$ALFABETA_PRUEBA" bloqueo soltar --alumno prueba
+export ALFABETA_SANDBOX=$(mktemp -d)
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox prepare
+export ALFABETA_RUN=$(uv run python -m alfabeta --home "$ALFABETA_SANDBOX" lock take --student sample --mode interactive | python3 -c 'import json,sys;print(json.load(sys.stdin)["run"])')
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox download --student sample --captures
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" downloads collect --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" plan --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox download --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" downloads collect --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" apply --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" lock release --student sample
 ```
 
-`prueba preparar` deja las capturas inventadas en `capturas-prueba/` y los adjuntos en `adjuntos-prueba/`,
-los dos fuera de las descargas. `bloqueo tomar` devuelve el `ejecucion` que exportamos;
-`prueba descargar --capturas` deja las capturas en las descargas con ese `ejecucion` (lo que en una
-ejecución real deja el extractor) y el primer `descargas recoger` las toma y fija el alcance; `prueba descargar` copia a las descargas, después del
-plan, los adjuntos que pide (lo que hace Claude), y el segundo `descargas recoger` los recoge. Si el plan
-reparte descargas en tandas, `prueba descargar --tanda N` y `descargas recoger` por cada tanda. Esperado: `2026-2027/<asignatura>/<Tema NN - título | Tema PNN - título | AAAA-MM>/classroom/` con
-materiales `AAAA-MM-DD - <título>`, carpetas de tarea con `enunciado - <nombre>` y notas `enlaces.md`;
-cada elemento de la captura en su sitio o anotado con enlace y motivo (SC-001).
+`sandbox prepare` leaves the invented captures in `sandbox-captures/` and the attachments in `sandbox-attachments/`,
+both outside the downloads. `lock take` returns the `run` we export;
+`sandbox download --captures` leaves the captures in the downloads with that `run` (what the extractor leaves in a
+real run) and the first `downloads collect` takes them and fixes the scope; `sandbox download` copies to the downloads, after the
+plan, the attachments it requests (what Claude does), and the second `downloads collect` collects them. If the plan
+spreads downloads over batches, `sandbox download --batch N` and `downloads collect` for each batch. Expected: `2026-2027/<subject>/<Tema NN - title | Tema PNN - title | YYYY-MM>/classroom/` with
+materials `YYYY-MM-DD - <title>`, assignment folders with `enunciado - <name>` and `enlaces.md` notes;
+every item of the capture in its place or noted with link and reason (SC-001).
 
-## 3. US2: la agenda (sin Classroom)
+## 3. US2: the agenda (no Classroom)
 
-Tras el escenario 2: `2026-2027/agenda.md` abre con «Pendiente» (más próximo primero, sin fecha al
-final), sigue con «Hecho» y termina con «Publicado» (material y avisos); el examen anunciado en el tablón de prueba, cuya propuesta siembra `prueba preparar`, aparece como
-«detectado» con enlace (SC-004a); `agenda.json` es válido según `contracts/agenda.schema.json`. Con `bloqueo tomar --modo interactiva` (exportando su `ejecucion` como en el escenario 2) /
-`bloqueo soltar` alrededor, corregir el examen con `decisiones corregir … --fecha <otra>` y volver a
-aplicar: la agenda conserva la corrección.
+After scenario 2: `2026-2027/agenda.md` opens with «Pendiente» (nearest first, undated at the
+end), continues with «Hecho» and ends with «Publicado» (material and announcements); the exam announced in the sample stream, whose proposal `sandbox prepare` seeds, appears as
+detected with a link (SC-004a); `agenda.json` is valid against `contracts/agenda.schema.json`. With `lock take --mode interactive` (exporting its `run` as in scenario 2) /
+`lock release` around it, correct the exam with `decisions correct … --date <other>` and apply
+again: the agenda keeps the correction.
 
-## 4. US3: repetir sin cambios y con cambios (sin Classroom)
+## 4. US3: repeating with no changes and with changes (no Classroom)
 
-- Repetir sobre el mismo `$ALFABETA_PRUEBA` las órdenes del escenario 2 desde `bloqueo tomar` hasta
-  `bloqueo soltar` (`prueba descargar --capturas` vuelve a dejar las capturas con el `ejecucion` nuevo): «sin cambios», el JSON de `aplicar` cuenta
-  las clases de prueba (no cero), y `find "$ALFABETA_PRUEBA/drive" -newer <marca>` vacío (SC-002). Las capturas repetidas llevan el
-  mismo `capturado`; el caso de otro `capturado` sin fechas entre medias lo prueba T051. Que
-  la agenda no dependa del día lo prueba T045 con un «hoy» simulado, sin cambiar el reloj del sistema.
-- En la captura de `capturas-prueba/`, mover una fecha de entrega y poner una «Última modificación» posterior en un
-  material; sustituir su adjunto en `adjuntos-prueba/` por otro contenido; repetir el escenario 2: la
-  agenda muestra la fecha nueva y queda `<nombre> (anterior AAAA-MM-DD)` (SC-003).
-- Quitar un elemento de una captura marcada `completa: false`: no se retira nada; con `completa: true`
-  se marca retirado y la réplica sigue ahí.
+- Repeat on the same `$ALFABETA_SANDBOX` the commands of scenario 2 from `lock take` to
+  `lock release` (`sandbox download --captures` leaves the captures again with the new `run`): the summary says «sin cambios», `apply`'s JSON counts
+  the sample classes (not zero), and `find "$ALFABETA_SANDBOX/drive" -newer <marker>` is empty (SC-002). The repeated captures carry the
+  same `captured_at`; the case of another `captured_at` with no dates in between is tested by T051. That
+  the agenda does not depend on the day is tested by T045 with a simulated "today", without changing the system clock.
+- In the capture in `sandbox-captures/`, move a due date and set a later «Última modificación» (Last modified) on a
+  material; replace its attachment in `sandbox-attachments/` with other content; repeat scenario 2: the
+  agenda shows the new date and `<name> (anterior YYYY-MM-DD)` remains (SC-003).
+- Remove an item from a capture marked `complete: false`: nothing is withdrawn; with `complete: true`
+  it is marked withdrawn and the replica stays.
 
-## 5. US5: configuración y guardarraíl (sin Classroom)
+## 5. US5: configuration and guardrail (no Classroom)
 
-- Quitar una clave del `config.toml` de prueba → `config comprobar` sale con 1 y nombra la clave, no su
-  valor.
-- Crear un segundo alumno inventado con `prueba preparar --alumno prueba2` y sincronizarlo con las órdenes del
-  escenario 2 → `git status` sin cambios
-  (SC-006) y carpetas separadas.
-- Añadir a un fichero preparado un correo y una ruta de usuario de macOS, ambos inventados →
-  `uv run python -m alfabeta guardarrail --cambios` sale con 1 y nombra fichero y línea sin repetir el
-  dato (SC-007). En un clon sin configuraciones locales el guardarraíl avisa en stderr y sigue con los
-  detectores genéricos.
+- Remove a key from the sample `config.toml` → `config check` exits with 1 and names the key, not its
+  value.
+- Create a second invented student with `sandbox prepare --student sample2` and sync it with the commands of
+  scenario 2 → `git status` unchanged
+  (SC-006) and separate folders.
+- Add to a staged file an email and a macOS user path, both invented →
+  `uv run python -m alfabeta guardrail --staged` exits with 1 and names file and line without repeating the
+  value (SC-007). In a clone with no local configurations the guardrail warns on stderr and goes on with the
+  generic detectors.
 
-## 6. Spike S1: descarga de un adjunto de Drive
+## 6. Spike S1: downloading a Drive attachment
 
-Con un material real del alumno, probar los métodos de research R4 en orden y anotar el primero que
-deja el fichero completo en la carpeta de descargas. `descargas recoger` debe moverlo y verificarlo.
+With a real material of the student, try the methods of research R4 in order and record the first one that
+leaves the complete file in the downloads folder. `downloads collect` must move it and verify it.
 
-## 7. Spike S2: tarea programada con navegador
+## 7. Spike S2: scheduled task with a browser
 
-Crear una tarea programada de prueba en la app que abra Classroom en Chrome, lea el título de la
-página y descargue una captura y un adjunto. Anotar si puede usar el navegador y si descarga sin que
-nadie apruebe nada. Si no, la ejecución programada queda en el modo reducido de FR-021a.
+Create a test scheduled task in the app that opens Classroom in Chrome, reads the title of the
+page and downloads a capture and an attachment. Record whether it can use the browser and whether it downloads without
+anyone approving anything. If not, the scheduled run stays in the reduced mode of FR-021a.
 
-## 8. Spike S3: estructura real y páginas sintéticas
+## 8. Spike S3: real structure and synthetic pages
 
-Guardar las páginas reales de una clase en `datos/capturas-crudas/`, generar sus versiones sintéticas
-con `anonimizar`, pasar el guardarraíl sobre ellas antes de añadirlas a `tests/fixtures/classroom/`,
-comprobar que leer la página de detalle de una pregunta no cambia nada en «Tu trabajo», y anotar
-cuánto tarda una clase completa.
+Save the real pages of a class in `data/raw-captures/`, generate their synthetic versions
+with `anonymize`, run the guardrail over them before adding them to `tests/fixtures/classroom/`,
+check that reading the detail page of a question changes nothing in «Tu trabajo» (Your work), and record
+how long a full class takes.
 
-## 9. Sincronización real de una asignatura
+## 9. Real sync of one subject
 
-Pedir a Claude «sincroniza alfabeta para <alumno>, solo <asignatura>». Comprobar:
+Ask Claude «sincroniza alfabeta para <student>, solo <subject>» ("sync alfabeta for <student>, only <subject>"). Check:
 
-- Matar la ejecución a mitad: tras `bloqueo_inactividad_minutos` el bloqueo se libera y el registro
-  tiene una línea `detenida` con motivo `inactividad`.
-- Ningún cambio de estado en Classroom (SC-008): el panel «Tu trabajo» de las tareas sigue igual.
-- Cada elemento de «Trabajo de clase» está en su carpeta o anotado con enlace y motivo (SC-001).
-- Los temas del profesor sin emparejar esperan en su carpeta de mes y el resumen pide confirmación.
-- Un examen anunciado en el tablón aparece en la agenda como «detectado» con enlace.
-- `grep` del nombre y el correo del alumno en `~/.alfabeta/<alumno>/datos/registro.jsonl` no encuentra
-  nada (SC-009).
-- Con el libro: `libro colocar` deja el tema de Science Bits en `<tema>/sciencebits/` junto a
+- Kill the run midway: after `lock_idle_minutes` the lock is released and the log
+  has a `stopped` line with reason `idle`.
+- No status change in Classroom (SC-008): the «Tu trabajo» panel of the assignments stays the same.
+- Every item of «Trabajo de clase» (Classwork) is in its folder or noted with link and reason (SC-001).
+- The unmatched teacher's topics wait in their month folder and the summary asks for confirmation.
+- An exam announced in the stream appears in `agenda.md` as «detectado» with a link.
+- `grep` for the student's name and email in `~/.alfabeta/<student>/data/log.jsonl` finds
+  nothing (SC-009).
+- With the book: `book place` leaves the Science Bits topic in `<topic>/sciencebits/` next to
   `classroom/` (SC-005).
