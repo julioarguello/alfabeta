@@ -1,0 +1,68 @@
+# Contrato de config/template.toml (la plantilla del repositorio).
+# Cada alumno copia este fichero a ~/.alfabeta/<alumno>/config.toml y cambia los valores changeme.
+# Una clave que falta, sobra, cambia de tipo o contiene changeme detiene alfabeta (FR-003).
+
+[alumno]
+# Nombre con que Claude se dirige a la familia en el chat. La orden nunca lo imprime (ni registro, URL ni Drive).
+nombre_visible = "changeme"
+# Curso escolar, primer nivel de la estructura de carpetas.
+curso_escolar = "changeme"          # p. ej. "2026-2027"
+# Nivel, para los nombres de los cuadernos.
+nivel = "changeme"                  # p. ej. "1º ESO"
+# Idiomas en que pueden venir títulos y anuncios.
+idiomas = ["changeme"]              # p. ej. ["es", "en"]
+
+[classroom]
+# Correo de la cuenta escolar. Se compara en local con el botón de cuenta; nunca va en una URL.
+cuenta = "changeme@example.org"
+
+[drive]
+# Carpeta propia de alfabeta dentro del Drive montado por Drive para escritorio.
+# Nunca la raíz de «Mi unidad». Nunca se muestra en mensajes.
+raiz = "changeme"                   # p. ej. "~/Library/CloudStorage/GoogleDrive-<cuenta>/Mi unidad/alfabeta"
+
+[descargas]
+# Carpeta donde el navegador deja las descargas.
+carpeta = "changeme"                # p. ej. "~/Downloads"
+
+[sincronizacion]
+# Cada cuántos días se vuelven a descargar todos los adjuntos para comprobar su huella.
+revision_completa_dias = 7
+# Minutos sin actividad tras los que el bloqueo de una ejecución muerta se libera solo.
+bloqueo_inactividad_minutos = 30
+# Cuántas capturas se conservan por clase en la carpeta de datos.
+capturas_conservadas = 10
+
+[herramientas]
+# Carpeta local donde las skills copian sus scripts de trabajo. Fuera de Dropbox y de la carpeta compartida.
+carpeta = "changeme"                # p. ej. "~/.alfabeta/herramientas"
+# Clon del repositorio alfabeta; las skills ejecutan `uv run --project <repositorio> python -m alfabeta`
+# en el Mac (nunca en la máquina virtual de la app).
+repositorio = "changeme"            # p. ej. "~/opt/alfabeta"
+
+[sciencebits]
+# Si ninguna asignatura tiene libro = "sciencebits", url = "" e idiomas = [] son válidos.
+# Página de clases de Science Bits.
+url = "changeme"                    # p. ej. "https://learning-bits.com/intranet/es/myclasses/index"
+# Idiomas en que se captura cada tema; el primero da el título de la carpeta del tema.
+idiomas = ["changeme"]              # p. ej. ["es", "en"]
+
+[cuaderno]
+# Si se crea el cuaderno de Gemini Notebook de cada tema (épica 3; la skill de Science Bits ya lo hace).
+activado = false
+# El nombre lo fija la constitución: «<nivel>. <asignatura>. Tema NN - <título>».
+
+[[asignaturas]]
+# Nombre de la carpeta de la asignatura.
+carpeta = "changeme"                # p. ej. "Mates"
+# Título de la clase en Classroom; sirve para proponer la asociación, que luego va por id.
+clase_classroom = "changeme"
+# Proveedor de libro, o "" si no tiene. Es también el nombre de su subcarpeta.
+# Los temas del libro no se configuran: son las carpetas «Tema NN - <título>» que ya tienen esa subcarpeta.
+libro = "changeme"                  # p. ej. "sciencebits"
+# Nombre de la clase en la plataforma del libro, o "" si no tiene libro.
+clase_libro = "changeme"            # p. ej. "Matemáticas - 1º ESO"
+
+[programacion]
+# Hora de la sincronización diaria (hora local), o "" para solo a demanda.
+diaria = "changeme"                 # p. ej. "17:30"

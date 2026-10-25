@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alfabeta/agenda.schema.json",
+  "title": "agenda.json de un curso escolar (entrada de la épica de recordatorios)",
+  "description": "Su contenido depende solo de lo sincronizado y de las decisiones de la familia, nunca del día en que se genera; por eso no lleva marca de tiempo (la lleva el registro).",
+  "type": "object",
+  "required": ["version", "curso_escolar", "entradas"],
+  "properties": {
+    "version": { "const": 1 },
+    "curso_escolar": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{4}$" },
+    "entradas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["elemento", "asignatura", "categoria", "titulo", "fecha", "solo_fecha", "estado", "lista", "detectado", "origen", "corregido", "enlace_classroom", "carpeta"],
+        "properties": {
+          "elemento": { "type": "string", "description": "Id del elemento; un examen detectado es «<elemento>#examen-<k>»" },
+          "lista": { "enum": ["pendiente", "hecho", "publicado"], "description": "Apartados «Pendiente», «Hecho» y «Publicado» según FR-020c" },
+          "asignatura": { "type": "string" },
+          "categoria": { "enum": ["examen", "entrega", "cuestionario", "material", "aviso"] },
+          "titulo": { "type": "string" },
+          "fecha": { "type": ["string", "null"], "description": "ISO 8601 en Europe/Madrid; null = sin fecha" },
+          "solo_fecha": { "type": "boolean", "description": "true si Classroom no da hora" },
+          "estado": { "enum": ["pendiente", "entregada", "devuelta", "vencida", "falta_segun_profesor", null] },
+          "detectado": { "type": "boolean" },
+          "origen": { "type": ["string", "null"] },
+          "corregido": { "type": "boolean" },
+          "enlace_classroom": { "type": "string", "description": "URL de Classroom sin /u/<n> ni datos del alumno; la agenda legible indica abrirla con la cuenta escolar" },
+          "carpeta": { "type": ["string", "null"], "description": "Ruta relativa a la raíz del alumno; null si el elemento no tiene réplica" }
+        }
+      }
+    }
+  }
+}
