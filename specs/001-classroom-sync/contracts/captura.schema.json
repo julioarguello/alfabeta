@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alfabeta/captura.schema.json",
+  "title": "Captura de Classroom (salida de extract.js)",
+  "description": "Textos tal como se muestran; la interpretación (fechas, estados, categorías) la hace Python. Sin nombres de personas. Una captura es la lista de clases o una clase, o una parada.",
+  "oneOf": [
+    { "$ref": "#/$defs/clases" },
+    { "$ref": "#/$defs/clase" },
+    { "$ref": "#/$defs/parada" }
+  ],
+  "$defs": {
+    "clases": {
+      "type": "object",
+      "required": ["version", "tipo", "ejecucion", "capturado", "indice_cuenta", "clases"],
+      "properties": {
+        "version": { "const": 1 },
+        "tipo": { "const": "clases" },
+        "ejecucion": { "type": "string", "description": "Identificador opaco de la ejecución que hizo la captura (de bloqueo tomar)" },
+        "capturado": { "type": "string", "format": "date-time" },
+        "indice_cuenta": { "type": "integer", "minimum": 0, "description": "El <n> de /u/<n> de la cuenta escolar; va al registro, nunca el correo" },
+        "clases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "titulo", "visibilidad"],
+            "properties": {
+              "id": { "type": "string" },
+              "titulo": { "type": "string" },
+              "visibilidad": { "enum": ["visible", "oculta", "archivada"] }
+            }
+          }
+        }
+      }
+    },
+    "clase": {
+      "type": "object",
+      "required": ["version", "tipo", "ejecucion", "capturado", "completa", "clase", "temas", "elementos", "tablon"],
+      "properties": {
+        "version": { "const": 1 },
+        "tipo": { "const": "clase" },
+        "ejecucion": { "type": "string", "description": "Identificador opaco de la ejecución que hizo la captura (de bloqueo tomar)" },
+        "capturado": { "type": "string", "format": "date-time" },
+        "completa": { "type": "boolean", "description": "false si la captura se cortó; entonces no se retira nada" },
+        "clase": {
+          "type": "object",
+          "required": ["id", "titulo"],
+          "properties": {
+            "id": { "type": "string" },
+            "titulo": { "type": "string" }
+          }
+        },
+        "temas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "titulo", "orden"],
+            "properties": {
+              "id": { "type": ["string", "null"], "description": "null para «Sin tema»" },
+              "titulo": { "type": "string" },
+              "orden": { "type": "integer" }
+            }
+          }
+        },
+        "elementos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "tema", "tipo", "titulo", "texto_fecha_listado"],
+            "properties": {
+              "id": { "type": "string" },
+              "tema": { "type": ["string", "null"] },
+              "tipo": { "enum": ["tarea", "material", "pregunta"] },
+              "titulo": { "type": "string" },
+              "texto_fecha_listado": { "type": "string", "description": "p. ej. «Fecha de entrega: 13 oct», «Publicado: 22 oct», «Última modificación: 1 oct»" },
+              "detalle": {
+                "type": ["object", "null"],
+                "properties": {
+                  "texto_publicado": { "type": "string" },
+                  "texto_modificacion": { "type": ["string", "null"], "description": "Marca de edición si la muestra el detalle o el listado" },
+                  "texto_entrega": { "type": ["string", "null"] },
+                  "puntos": { "type": ["string", "null"] },
+                  "descripcion": { "type": "string" },
+                  "texto_estado": { "type": ["string", "null"], "description": "Del panel «Tu trabajo», p. ej. «Asignado», «Entregado», «Calificado»" },
+                  "texto_aviso_estado": { "type": ["string", "null"], "description": "p. ej. «El profesor ha indicado que falta esto»" },
+                  "texto_nota": { "type": ["string", "null"] },
+                  "texto_devolucion": { "type": ["string", "null"], "description": "Fecha en que se devolvió la tarea, si la muestra" },
+                  "comentario_profesor": { "type": ["string", "null"] },
+                  "adjuntos": { "$ref": "#/$defs/adjuntos" },
+                  "entrega_alumno": { "$ref": "#/$defs/adjuntos" }
+                }
+              }
+            }
+          }
+        },
+        "tablon": {
+          "type": "array",
+          "description": "Solo anuncios; las notificaciones de elementos nuevos del tablón se ignoran (ya están en «Trabajo de clase»)",
+          "items": {
+            "type": "object",
+            "required": ["id", "texto_creacion", "texto"],
+            "properties": {
+              "id": { "type": "string" },
+              "texto_creacion": { "type": "string", "description": "«Fecha de creación: 22 sept»" },
+              "texto": { "type": "string" },
+              "adjuntos": { "$ref": "#/$defs/adjuntos" }
+            }
+          }
+        }
+      }
+    },
+    "parada": {
+      "type": "object",
+      "required": ["version", "tipo", "ejecucion", "capturado", "motivo"],
+      "properties": {
+        "version": { "const": 1 },
+        "tipo": { "const": "parada" },
+        "ejecucion": { "type": "string", "description": "Identificador opaco de la ejecución que hizo la captura (de bloqueo tomar)" },
+        "capturado": { "type": "string", "format": "date-time" },
+        "motivo": { "enum": ["sesion_caducada", "desafio", "interfaz_inesperada"] },
+        "clase": { "type": "string", "description": "Id de la clase cuya captura se cortó; ausente si la parada fue antes de entrar en una clase" }
+      }
+    },
+    "adjuntos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "clase_adjunto", "nombre"],
+        "properties": {
+          "id": { "type": "string" },
+          "clase_adjunto": { "enum": ["fichero", "documento_google", "video", "enlace", "formulario"] },
+          "tipo_google": { "enum": ["document", "presentation", "spreadsheet", null] },
+          "nombre": { "type": "string" }
+        }
+      }
+    }
+  }
+}
