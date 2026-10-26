@@ -47,13 +47,25 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   download at that moment. The tool's documentation says the task runs while the app is open and with
   a self-contained prompt; it says nothing about the browser or downloads. If it cannot, the
   scheduled run is limited to a notice and the family launches it with a command.
+  Measured 2026-10-26 with a one-off scheduled task of the desktop app (saved in Auto permission
+  mode, fired at 11:20, nobody at the keyboard; evidence outside the repo):
+  - the Claude in Chrome tools were available, Classroom loaded with the school session (12
+    classes, interface in Spanish) and no tool-permission prompt reached the run;
+  - a detached process started from one tool call was still alive in a later call, adopted by
+    the system (parent PID 1) and beating every 2 s, so the watcher of R6 survives a scheduled run
+    as well as an interactive one (measured interactively on 2026-10-25);
+  - a `blob:` download from Classroom arrived, but its final name appeared about 42 s after the
+    click; the cause was not observed, and whether a dialog showed in that window was not recorded.
+
+  The test task was deleted afterwards. Still open: the download dialog of R12.
 - **Second risk, measured during S3: the school session does not last.** On 2026-10-25 and
   2026-10-26 the school account at `/u/<n>` was sent three times to Google's «confirm your
   identity» page (`accounts.google.com/…/confirmidentifier`). The last time, the operator had signed in
   shortly before 09:15 and the session was gone by 10:35. With the session gone, the hidden iframe of R3 loads
   the sign-in page, so its document becomes cross-origin: the extractor must treat a cross-origin
   iframe as «session expired» and stop with that reason. Whether this is a school policy, and how
-  long a session lasts, was not measured; a daily unattended run depends on it.
+  long a session lasts, was not measured; a daily unattended run depends on it. The next session,
+  opened at 10:38 the same day, was still alive at 13:25, so the lifetime varies.
 
 ### R2. Browser: Chrome with the Claude extension
 
@@ -112,6 +124,13 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   1. `drive.usercontent.google.com/download?id=<id>&export=download&authuser=<n>`;
   2. for Google Docs, Slides and Sheets, `docs.google.com/<type>/d/<id>/export?format=pdf&authuser=<n>`;
   3. the Drive viewer's download button.
+
+  Measured 2026-10-26 against four real attachments of one class (two PDFs, one PNG, one uploaded
+  `.pptx`, all Drive files of type `file`), with the operator present: method 1, loaded in a
+  hidden `iframe` from a Classroom page with the school account's `authuser`, left all four complete
+  in the downloads folder within 2 s, under their original names; a name already present got
+  « (1)» before the extension. Not covered: Google Docs, Slides and Sheets (method 2), since the
+  class had none, and whether Chrome showed the dialog of R12 (the operator reported none).
 - **When to download** (item and attachment ids with their own rules, per the URL patterns recorded
   in S3): the first time, and afterwards only if the item shows a modification later than the last
   replica, if the attachment's name or type changes, or in the periodic full review
