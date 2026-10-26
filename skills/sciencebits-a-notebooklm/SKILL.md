@@ -14,7 +14,7 @@ Read `~/.alfabeta/config.json` (see the repo's `config.example.json`) with Deskt
 If it does not exist, ask for that data once and create it. Never write personal data outside that file.
 
 Result per topic:
-- `TemaNN_<LANG>.pdf` and `.md` in `base_dir/<topic_folder_pattern>`. Each PDF: cover, clickable table of contents
+- `TemaNN_<LANG>.pdf` and `.md` in the topic folder (see Names). Each PDF: cover, clickable table of contents
   (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content) and
   the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
 - If `notebook.enabled`: a Gemini Notebook notebook with those files as sources.
@@ -36,8 +36,15 @@ Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs
 ## Names
 - School year from `school_year_starts_month` → e.g. `2026-2027`.
 - Subject: `subjects[<class in Science Bits>]`; if missing, ask for the short name once and save it in the config.
-- "The next topic" = the one after the highest existing `Tema NN` in that subject (and the order of units in
-  the Science Bits class).
+- Topic folder: `base_dir/<topic_folder_pattern>`, e.g. `2026-2027/FiQui/20261001 - Tema 01 - Sustancias puras y
+  mezclas`. Every topic folder starts with a `YYYYMMDD - ` date (the posting date of the topic's first Classroom
+  material), and that date is never changed. To find the folder of topic NN, look in `<year>/<subject>/` for a
+  folder matching `*Tema NN - *` (two-digit `NN`), whatever its date, and reuse it. Only if none matches, create
+  one with `{date}` = today as `YYYYMMDD`. Never create a second folder for a topic that already has one: an
+  undated or re-dated duplicate splits the topic in two.
+- Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - Sin tema`) are Classroom's; leave them alone.
+- "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *`, ignoring
+  the date prefix (and the order of units in the Science Bits class).
 
 ## Steps
 
@@ -66,7 +73,8 @@ Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs
    In `device_bash`: `python3 tools/build.py raw out --config unit.json <captured languages>`.
 7. **Verify.** pypdf: pages, bookmarks, table-of-contents links, extractable text. Review the `.md`. If a lesson
    has few screens compared with its index (`menu` in meta.json), capture it again.
-8. **Save.** `mkdir -p` the topic folder and copy `out/*`.
+8. **Save.** Find the topic folder by `*Tema NN - *` (see Names); only if there is none, `mkdir -p` it with
+   today's date. Copy `out/*` into it.
 9. **Gemini Notebook** (if `notebook.enabled`):
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
      profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**.

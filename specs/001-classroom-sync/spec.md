@@ -45,19 +45,43 @@ book providers other than Science Bits.
   (Dropbox)? → A: Only to the family Drive, which is the sync target. Dropbox is out of this
   epic: it is not read, not written, and what is already there is not migrated.
 
+### Session 2026-10-26
+
+- Q: How are topic folders and Classroom items named, now that the operator has seen the
+  `Tema PNN` and `YYYY-MM` folders in the Drive? → A: Every topic folder and every Classroom item
+  starts with a date, so the student places each one in time; a `2026-09` folder under a subject
+  read as a second school year. The operator decided it and the family's Drive was migrated to it
+  by hand on 2026-10-26 (constitution 1.3.0). It replaces the topic, month and item names of the
+  2026-10-25 session (FR-012 to FR-015):
+  - A topic folder is `YYYYMMDD - <name>`, where the date is the posting date of the topic's first
+    Classroom material. `<name>` is `Tema NN - <title>` when the topic matches a book topic
+    (`20261001 - Tema 01 - Sustancias puras y mezclas`) and the teacher's title alone when it does
+    not (`20260910 - 0.- ZIENTZIA ETA NEURKETAK`). `Tema PNN` is dropped, and with it the
+    `teacher_topic_number` decision that fixed its `NN`.
+  - There are no month folders. What Classroom posts with no topic, announcements included, goes in
+    the subject's `YYYYMMDD - Sin tema`, dated by the first item placed there.
+  - Every item inside `classroom/` is `YYYYMMDD - <title>` (it was `YYYY-MM-DD - <title>`).
+  - A folder's date is set when the folder is created and never changes: alfabeta finds an existing
+    folder by the part of its name after the date, whatever the date, and reuses it. A topic folder
+    created by a book provider before any Classroom material takes the date of that day.
+  - Inferred, not stated by the operator: a teacher's topic whose match with a book topic is not yet
+    confirmed waits in its own `YYYYMMDD - <teacher's title>` folder, like a teacher-only topic,
+    and its replicas move when the family confirms the match; `Sin tema` is only for items
+    Classroom leaves without a topic.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures and launches alfabeta), **the student**
 (signs in to Classroom and studies with what ends up in their shared folder) and **the teachers**
 (post in Classroom; never interact with alfabeta).
 
-### User Story 1 - What the teacher posts, replicated in the folder of its topic or its month (Priority: P1)
+### User Story 1 - What the teacher posts, replicated in the folder of its topic (Priority: P1)
 
 The family asks to sync a subject. With the Classroom session the student already started,
 alfabeta walks that class's «Trabajo de clase» and leaves a replica of every material and every
 assignment attachment (the problems and exercises the teacher sets) in the `classroom` subfolder of
-its topic or, if the teacher gave it no topic, of its month. Each file is prefixed with the date it
-was posted. What is not a file (a video, a web link, a quiz) is noted with its link. At the end,
+its topic or, if the teacher gave it no topic, of the subject's `Sin tema` folder. Each file is
+prefixed with the date it was posted. What is not a file (a video, a web link, a quiz) is noted with its link. At the end,
 the family sees a summary of what was saved and what was not, and why.
 
 **Why this priority**: it is what the operator asks for first: the teacher's material in the right
@@ -72,10 +96,10 @@ form), sync the subject and check item by item, against what the student sees in
 
 1. **Given** a configured subject and the student's session started, **When** the family asks to
    sync it, **Then** the materials and assignment attachments of each topic are in
-   `<topic>/classroom/`, each item named `YYYY-MM-DD - <title>` (file or folder according to
+   `<topic>/classroom/`, each item named `YYYYMMDD - <title>` (file or folder according to
    FR-015), where the date is the posting date.
-2. **Given** a material without a topic posted in March, **When** it is synced, **Then** it ends up
-   in its subject's `<YYYY-03>/classroom/`.
+2. **Given** a material without a topic posted on 3 March, **When** it is synced, **Then** it ends
+   up in its subject's `<YYYYMMDD> - Sin tema/classroom/` as `YYYY0303 - <title>`.
 3. **Given** an attachment that is a Google document, presentation or spreadsheet,
    **When** it is synced, **Then** its replica is saved as a PDF.
 4. **Given** an item with a video, a web link or a form, **When** it is synced,
@@ -232,7 +256,7 @@ saved.
 **Acceptance Scenarios**:
 
 1. **Given** announcements on the stream, **When** it is synced, **Then** each one ends up in its
-   month's folder with its date, its text and its attachments, without student comments or names
+   subject's `Sin tema` folder with its date, its text and its attachments, without student comments or names
    of other people.
 2. **Given** an assignment the student turned in with files, **When** it is synced, **Then** its
    folder has those files as `entrega - <name>`, next to the teacher's `enunciado - <name>`.
@@ -248,8 +272,8 @@ saved.
   summary lists it so the family can decide whether to add it.
 - The teacher's topics and the book's do not line up: different numbering, a different language, a
   teacher's topic that joins two of the book's or one that does not exist in the book. alfabeta
-  proposes and the family confirms (FR-013); until then, that topic's items wait in their month's
-  folder.
+  proposes and the family confirms (FR-013); until then, that topic's items wait in a folder named
+  after the teacher's topic.
 - A confirmed match that turns out wrong: the family changes it with the `decisions` command and
   the next sync moves the replicas to their correct folder, without duplicating or
   losing them.
@@ -336,22 +360,26 @@ saved.
   lives in the folder Google Drive for desktop mounts on the Mac; alfabeta only writes to that folder
   on disk and Google Drive for desktop does the sync with the cloud.
 - **FR-012**: Inside the root, the structure MUST be common to every source:
-  `<school-year>/<subject>/<Tema NN - title | Tema PNN - teacher's title | YYYY-MM>/<source>/`, with
-  `classroom` and `sciencebits`
+  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/<source>/`,
+  with `classroom` and `sciencebits`
   as this epic's sources. The first level is the school year (`2026-2027`), as in
-  Science Bits today.
+  Science Bits today. Every topic folder starts with the posting date of its first Classroom
+  material (`YYYYMMDD - `), or with the day it is created if a book provider creates it first. The
+  date is set when the folder is created and MUST NOT change: alfabeta MUST find an existing topic
+  folder by the part of its name after the date, whatever the date, and reuse it.
 - **FR-013**: Only a class linked to a configured subject is synced: alfabeta proposes
   the link from the class title stated in the configuration, the family confirms it once,
   and from then on the class identifier counts, not its title. Topic folders MUST be
-  named after the book topic (`Tema NN - <title>`) when the subject has a book (the book
-  topics are the `Tema NN - <title>` folders that already have their book's subfolder in the Drive),
+  named after the book topic (`<YYYYMMDD> - Tema NN - <title>`) when the subject has a book (the
+  book topics are the folders whose name contains `Tema NN - <title>`, whatever their date, that
+  already have their book's subfolder in the Drive),
   and each teacher's topic MUST be matched to them as follows:
   - alfabeta proposes the match from everything it has: the number, the title in
     any of the student's languages, the content of the items and the order in which they are posted.
     Each proposal says why and with what confidence (high, medium or low).
   - The family confirms or rejects each new match once, and can change a confirmed one.
-    Rejecting a match means that teacher's topic is not in the book: it moves to its
-    own `Tema PNN` folder. A rejected topic is proposed again only if its title changes or a
+    Rejecting a match means that teacher's topic is not in the book: it keeps its
+    own folder named after the teacher's title. A rejected topic is proposed again only if its title changes or a
     new book topic appears in the Drive; the family can also change a rejected
     decision.
     Decisions are kept in the student's data folder, tied to the topic's Classroom identifier,
@@ -360,26 +388,26 @@ saved.
   - If a teacher's topic spans several of the book's, alfabeta proposes each item's topic from its
     content, and the family confirms it the same way.
   - A teacher's topic with no equivalent in the book (review, project, introduction) and any topic
-    of a subject without a book get their own folder `Tema PNN - <teacher's title>`, where `NN`
-    is the topic's order in «Trabajo de clase» in the run that first places something from that
-    topic (it is kept in the decisions and not recomputed if the teacher reorders) and the `P` sets
-    it apart from the book topics. In a subject without a book there is nothing to confirm.
-  - While a match is unconfirmed, its items do not move: they are synced
-    in their month's folder and the summary asks for confirmation.
-- **FR-014**: An item without a topic and an announcement MUST go to the folder of the month of its
-  posting date (`YYYY-MM`).
+    of a subject without a book get their own folder `<YYYYMMDD> - <teacher's title>`, with no
+    `Tema NN`, which sets it apart from the book topics. In a subject without a book there is
+    nothing to confirm.
+  - While a match is unconfirmed, its items do not go to the book topic: they are synced in the
+    teacher's topic's own folder, as if it had no equivalent in the book, and the summary asks for
+    confirmation. Confirming the match moves them to the book topic's folder.
+- **FR-014**: An item without a topic and an announcement MUST go to the subject's
+  `<YYYYMMDD> - Sin tema` folder, dated by the first item placed there. There are no month folders.
 - **FR-015**: Inside `classroom/`, each item MUST be prefixed with its posting date,
-  `YYYY-MM-DD - <item title>`, and its form MUST depend on its type:
+  `YYYYMMDD - <item title>`, and its form MUST depend on its type:
   - a **material** with a single file, no links and no description is that file; with several
     files, with links or with a description, it is a folder with its files, a `descripcion` note
     with its text if it has one and an `enlaces` note if it has links;
   - an **announcement** is a `.md` note with its text or, if it has attachments, a folder with the
-    note and the attachments; it carries `aviso` after the date (`YYYY-MM-DD - aviso - <summary>`),
+    note and the attachments; it carries `aviso` after the date (`YYYYMMDD - aviso - <summary>`),
     where `<summary>` is the first words of the announcement, sanitised and cut to 60 characters;
   - an **assignment** or a **question** (including one that is an exam or a quiz) is always a folder,
     even with a single attachment, so its submission and its grading can be added without moving
     anything; its instructions or the question's text go in `enunciado.md`;
-  - a **material** with no files or links, only text, is a note `YYYY-MM-DD - <title>.md`
+  - a **material** with no files or links, only text, is a note `YYYYMMDD - <title>.md`
     (this rule wins over the one for a material with a description).
 - **FR-015a**: Inside an assignment's folder, each file MUST be prefixed with its role, with
   fixed names without accents: `enunciado - <name>` (what the teacher attaches), `entrega - <name>`
@@ -397,20 +425,23 @@ Example of the resulting structure (invented names):
 2026-2027/
 ├── agenda.md   agenda.json
 └── <subject>/
-    ├── Tema 02 - <book title>/
+    ├── 20261014 - Tema 02 - <book title>/
     │   ├── sciencebits/
     │   └── classroom/
-    │       ├── 2026-10-14 - Ficha de gases.pdf
-    │       ├── 2026-10-16 - Vídeos y apuntes/
+    │       ├── 20261014 - Ficha de gases.pdf
+    │       ├── 20261016 - Vídeos y apuntes/
     │       │   ├── Apuntes.pdf
     │       │   └── enlaces.md
-    │       └── 2026-10-20 - Problemas tema 2/
+    │       └── 20261020 - Problemas tema 2/
     │           ├── enunciado - Problemas.pdf
     │           ├── entrega - Respuestas.pdf
     │           └── correccion.md
-    └── 2026-11/
+    ├── 20261021 - <teacher's title>/
+    │   └── classroom/
+    │       └── 20261021 - Proyecto de laboratorio.pdf
+    └── 20261103 - Sin tema/
         └── classroom/
-            └── 2026-11-03 - aviso - Cambio de fecha del examen.md
+            └── 20261103 - aviso - Cambio de fecha del examen.md
 ```
 
 **Replica of what the teacher posts and of what the student turns in**
@@ -564,11 +595,12 @@ Example of the resulting structure (invented names):
   state, the family's decisions).
 - **Subject**: a course of the student, with its folder name and the Classroom class that
   corresponds to it.
-- **Topic or month folder**: the third level of the structure. A topic folder holds the match
-  with the teacher's topic; a month folder collects what has no topic.
+- **Topic folder**: the third level of the structure, prefixed with its date. A topic folder holds
+  the match with the teacher's topic, or a teacher's topic with no book equivalent; the subject's
+  `Sin tema` folder collects what has no topic.
 - **Source**: the origin of a piece of content (`classroom`, `sciencebits`) and its subfolder.
 - **Classroom item**: material, assignment, question or announcement. Stable identifier, subject,
-  topic or month, title, dates and attachments.
+  topic, title, dates and attachments.
 - **Replica**: the copy of an attachment (file or PDF), of a student's submission, of a grading or
   the note with its links, with its role (`statement`, `submission`, `grading`, `links`) and its hash
   to detect changes.

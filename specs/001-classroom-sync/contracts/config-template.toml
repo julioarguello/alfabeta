@@ -58,7 +58,7 @@ folder = "changeme"                 # e.g. "Mates"
 # Title of the class in Classroom; used to propose the link, which then goes by id.
 classroom_class = "changeme"
 # Book provider, or "" if none. It is also the name of its subfolder.
-# Book topics are not configured: they are the «Tema NN - <title>» folders that already hold that subfolder.
+# Book topics are not configured: they are the «<YYYYMMDD> - Tema NN - <title>» folders (any date) that already hold that subfolder.
 book = "changeme"                   # e.g. "sciencebits"
 # Name of the class on the book's platform, or "" if there is no book.
 book_class = "changeme"             # e.g. "Matemáticas - 1º ESO"

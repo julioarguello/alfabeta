@@ -39,8 +39,8 @@ both outside the downloads. `lock take` returns the `run` we export;
 `sandbox download --captures` leaves the captures in the downloads with that `run` (what the extractor leaves in a
 real run) and the first `downloads collect` takes them and fixes the scope; `sandbox download` copies to the downloads, after the
 plan, the attachments it requests (what Claude does), and the second `downloads collect` collects them. If the plan
-spreads downloads over batches, `sandbox download --batch N` and `downloads collect` for each batch. Expected: `2026-2027/<subject>/<Tema NN - title | Tema PNN - title | YYYY-MM>/classroom/` with
-materials `YYYY-MM-DD - <title>`, assignment folders with `enunciado - <name>` and `enlaces.md` notes;
+spreads downloads over batches, `sandbox download --batch N` and `downloads collect` for each batch. Expected: `2026-2027/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/classroom/` with
+materials `YYYYMMDD - <title>`, assignment folders with `enunciado - <name>` and `enlaces.md` notes;
 every item of the capture in its place or noted with link and reason (SC-001).
 
 ## 3. US2: the agenda (no Classroom)
@@ -102,7 +102,7 @@ Ask Claude «sincroniza alfabeta para <student>, solo <subject>» ("sync alfabet
   has a `stopped` line with reason `idle`.
 - No status change in Classroom (SC-008): the «Tu trabajo» panel of the assignments stays the same.
 - Every item of «Trabajo de clase» (Classwork) is in its folder or noted with link and reason (SC-001).
-- The unmatched teacher's topics wait in their month folder and the summary asks for confirmation.
+- The unmatched teacher's topics wait in their own `<YYYYMMDD> - <teacher's title>` folder and the summary asks for confirmation.
 - An exam announced in the stream appears in `agenda.md` as «detectado» with a link.
 - `grep` for the student's name and email in `~/.alfabeta/<student>/data/log.jsonl` finds
   nothing (SC-009).
