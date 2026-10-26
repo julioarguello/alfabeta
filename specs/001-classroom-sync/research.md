@@ -129,8 +129,11 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   `.pptx`, all Drive files of type `file`), with the operator present: method 1, loaded in a
   hidden `iframe` from a Classroom page with the school account's `authuser`, left all four complete
   in the downloads folder within 2 s, under their original names; a name already present got
-  « (1)» before the extension. Not covered: Google Docs, Slides and Sheets (method 2), since the
-  class had none, and whether Chrome showed the dialog of R12 (the operator reported none).
+  « (1)» before the extension. Method 2 measured 2026-10-26 in the
+  manual import of every class: 14 of 14 Google files (8 Docs, 6 Slides) exported with
+  `docs.google.com/<type>/d/<id>/export` (`/export/pdf` for Slides) arrived as valid PDFs
+  (`%PDF-` header). Not covered: Sheets, since no class had one. Large videos are the open case
+  of R12. The dialog the operator saw was Chrome's «Guardar como» (R12).
 - **When to download** (item and attachment ids with their own rules, per the URL patterns recorded
   in S3): the first time, and afterwards only if the item shows a modification later than the last
   replica, if the attachment's name or type changes, or in the periodic full review
