@@ -12,19 +12,27 @@ Routes, from most to least official:
 2. **Email summaries for guardians** (official, no risk): pending assignments, upcoming due dates
    and announcements, daily or weekly, to the parent's Gmail. The school or the teachers must invite the guardian.
    Attachments are not included.
-3. **Built-in browser with the student's account** (read-only): go through the classes, read the
+3. **Chrome with the Claude extension and the student's account** (read-only): go through the classes, read the
    *Trabajo de clase* (Classwork) tab and download the materials to the topic folder.
 
 Result of the test: the API is blocked for under-age students (see [classroom-investigacion.md](classroom-investigacion.md)); the build is based on route 3 + route 2.
 
-## plan-de-estudio
+## Calendar
 
-- Source: assignments and exams from `classroom-sync`.
-- Output: Google Calendar events (assignment/exam) and spaced review blocks before each exam,
-  linking to the topic's notebook.
+- Source: assignments, exams and posted material from `classroom-sync`.
+- Output: events in one calendar per student, owned by a parent and shared with the student. Only
+  objective facts from Classroom; study time is planned by hand.
+
+## Study pack
+
+- Source: the topic folder (class notes, Classroom material, the textbook).
+- Output: a few pieces per topic in its notebook — explainer videos, a glossary, practice in the
+  exam's language — and a guide for the parent in the Drive.
+- Design and evidence: [About preparing study material in advance](explanation/study-material.md).
 
 ## Other ideas
 
-- Automatically generate in the notebook: audio overview, flashcards and quiz per topic.
+- Audio overviews per block of notes, optional; Basque audio quality is poor (see the
+  [study-material page](explanation/study-material.md#what-other-people-do)).
 - More digital textbook platforms (Santillana, Anaya, Edelvives, Vicens Vives…).
 - An English version of the topics the platform does not offer, by translating the Markdown.
