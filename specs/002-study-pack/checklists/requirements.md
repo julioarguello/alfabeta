@@ -40,6 +40,10 @@
   verification holds at the end of a run, not during it, because a viewer sees every piece as soon
   as it exists; titles in Spanish per the constitution; class notes become a source only as a
   checked transcription; the parent's answer key is part of the parent's guide; SC-007 bounded.
+- Iteration 3 (2026-10-26): FR-022 answered (two links in the exam event: folder and notebook). FR-020
+  reopened with the operator's constraints: day-by-day study as content arrives, no reliance on
+  detecting a topic's end, more when an exam is announced and early enough, nothing labelled
+  optional. One marker remains, on FR-020; Story 5 waits for it.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The

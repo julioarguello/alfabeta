@@ -30,7 +30,7 @@ without someone watching; the measurements behind each requirement are in
 skill's own table of measured behaviour.
 
 Out of this spec: writing to Classroom or to the textbook platform, the calendar beyond the facts
-spec 001 already puts there, audio overviews, and recognising handwriting in the class-note
+spec 001 puts there and the two links of FR-022, audio overviews, and recognising handwriting in the class-note
 photos (it is a dependency, not a requirement here).
 
 ## Clarifications
@@ -39,8 +39,12 @@ photos (it is a dependency, not a requirement here).
 
 - Q: When are the videos made? → A: When Classroom shows material in a new topic, judged by
   Classroom's posting dates; the previous topic is then finished. An announced exam makes the pack
-  at once, whatever the dates say. Whether practice, quiz and flashcards wait for the exam
-  announcement, as the design page proposes, is open (FR-020).
+  at once, whatever the dates say. Revised by the operator the same day: the goal is study day by
+  day, so material is made as the teacher's content arrives, not only when a topic ends; detecting
+  the end of a topic is not deterministic, so err on making too much rather than too little; an
+  announced exam is a clear trigger to make more, early enough to be used; and nothing for the
+  student is labelled optional, because what is optional does not get done. How that maps to
+  moments and names is open (FR-020).
 - Q: Which source wins when they disagree about what the exam asks? → A: The student's class notes,
   then Classroom, then the textbook. The teacher's material prioritises scope; it does not limit it.
 - Q: In which language is each piece? → A: Explanations, videos and the study guide in Spanish, with
@@ -60,8 +64,10 @@ photos (it is a dependency, not a requirement here).
 - Q: Can it all be printed? → A: Yes: one A4 PDF per topic in the topic's Drive folder, with every
   piece except the videos, the mind map included; and each of the parent's documents as its own PDF.
 - Q: Does any of this go in the calendar? → A: No study blocks and no reminders: the calendar holds
-  only facts read from Classroom. Whether the exam's event may carry a link to the topic's folder is
-  open (FR-022).
+  only facts read from Classroom.
+- Q: May an exam's calendar event point to the topic's material? → A: Yes: the description of the
+  exam event that is already there carries two links, to the topic's Drive folder and to its
+  notebook. No new event is created for it.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -178,6 +184,11 @@ exam was announced, and makes the previous topic's pack without being asked; the
 confirms the blocks.
 
 **Why this priority**: the manual run works without it; this removes the need to remember it.
+
+> [!NOTE]
+> These scenarios follow the first design, one pack when a topic ends. The operator revised it the
+> same day toward material made as content arrives (FR-020); they will be rewritten once FR-020 is
+> settled.
 
 **Independent Test**: feed the agenda of spec 001 with a material in a new topic and check that
 the previous topic's pack is proposed once, not on every later sync.
@@ -300,21 +311,22 @@ check that the proposed blocks include it.
 
 **Trigger and record**
 
-- **FR-020**: After a Classroom sync, a subject whose newest material belongs to a new topic, or
-  an exam announced for a topic without a pack, MUST lead to that topic's pack being proposed once.
-  [NEEDS CLARIFICATION: one pack when the topic ends, as run on 2026-10-26, or two moments as the
-  design page proposes — videos and glossary when the topic ends; practice, quiz, flashcards and a
-  plan of short sessions when the exam is announced?]
+- **FR-020**: Generation MUST follow the arrival of the teacher's content so the student can study
+  day by day, MUST NOT depend on detecting the end of a topic, and MUST make more when an exam is
+  announced, early enough for that material to be used before the exam. Nothing for the student
+  may be presented as optional.
+  [NEEDS CLARIFICATION: which pieces are made at each moment — on each new material, on a fixed
+  period, on an exam announcement — and how their names tell the student what to do today]
 - **FR-021**: alfabeta MUST keep, per topic, a record of the pack: blocks, each piece with its
   notebook id, title, language, verification result and date, and the corrections found. A later
   run reads it to avoid regenerating what exists.
 
 **Boundaries**
 
-- **FR-022**: alfabeta MUST NOT write study blocks or reminders into the calendar. A link to the
-  topic's folder in the description of an exam event that is already there is
-  [NEEDS CLARIFICATION: allowed or not — it is a pointer, not a study block, but the calendar's rule
-  is "only what Classroom shows"].
+- **FR-022**: alfabeta MUST NOT write study blocks or reminders into the calendar, and MUST NOT
+  create events for the material. When a topic has an exam event, its description MUST carry a link
+  to the topic's Drive folder and one to its notebook, written once and not duplicated by later
+  runs.
 - **FR-023**: Nothing about the student MAY enter the repository: prompts, names, ids and paths
   come from the private configuration.
 - **FR-024**: alfabeta MUST NOT type a password; the family signs in.
