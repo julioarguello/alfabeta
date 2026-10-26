@@ -47,6 +47,25 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   download at that moment. The tool's documentation says the task runs while the app is open and with
   a self-contained prompt; it says nothing about the browser or downloads. If it cannot, the
   scheduled run is limited to a notice and the family launches it with a command.
+  Measured 2026-10-26 with a one-off scheduled task of the desktop app (saved in Auto permission
+  mode, fired at 11:20, nobody at the keyboard; evidence outside the repo):
+  - the Claude in Chrome tools were available, Classroom loaded with the school session (12
+    classes, interface in Spanish) and no tool-permission prompt reached the run;
+  - a detached process started from one tool call was still alive in a later call, adopted by
+    the system (parent PID 1) and beating every 2 s, so the watcher of R6 survives a scheduled run
+    as well as an interactive one (measured interactively on 2026-10-25);
+  - a `blob:` download from Classroom arrived, but its final name appeared about 42 s after the
+    click; the cause was not observed, and whether a dialog showed in that window was not recorded.
+
+  The test task was deleted afterwards. Still open: the download dialog of R12.
+- **Second risk, measured during S3: the school session does not last.** On 2026-10-25 and
+  2026-10-26 the school account at `/u/<n>` was sent three times to Google's «confirm your
+  identity» page (`accounts.google.com/…/confirmidentifier`). The last time, the operator had signed in
+  shortly before 09:15 and the session was gone by 10:35. With the session gone, the hidden iframe of R3 loads
+  the sign-in page, so its document becomes cross-origin: the extractor must treat a cross-origin
+  iframe as «session expired» and stop with that reason. Whether this is a school policy, and how
+  long a session lasts, was not measured; a daily unattended run depends on it. The next session,
+  opened at 10:38 the same day, was still alive at 13:25, so the lifetime varies.
 
 ### R2. Browser: Chrome with the Claude extension
 
@@ -66,9 +85,14 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   detail (status, dates, modification mark, attachments, student submission, grading) and the
   stream's posts. It navigates only to the home page, «Trabajo de clase», the stream and the detail
   page of assignments, materials and questions; it never follows a link to a form or quiz and never
-  clicks the «Tu trabajo» panel. It waits at least 2 s (with jitter) between pages. How it walks the
-  pages without losing the injected script (hidden iframe, `fetch` of the detail pages, or
-  re-injection by Claude on each page) is decided with S3 and recorded here before T032.
+  clicks the «Tu trabajo» panel. It waits at least 2 s (with jitter) between pages.
+- **How it walks the pages (decided with S3)**: the script stays injected in the tab on the home
+  page and loads each page it reads in a **hidden same-origin iframe** (off screen, 1200×800),
+  waiting until the iframe's document shows the expected labels, with a timeout and one retry. It
+  never navigates the tab itself, so the injected script is not lost. Rejected: a `fetch` of the
+  detail page returns HTTP 200 and about 0.8 MB of HTML that holds none of the content (no status,
+  no «Tu trabajo», no modification mark), because Classroom renders it with JavaScript; and
+  re-injection by Claude on each page costs one tool call per item.
 - **Complete capture or not**: each capture says whether it reached the end of the class
   (`complete`). A truncated capture withdraws no items (FR-027).
 - **Stops**: if it finds an anti-bot challenge (CAPTCHA, verification page, «demasiadas peticiones»
@@ -80,7 +104,18 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
 - **Alternatives**: reading the Classroom web app's internal calls (more stable, undocumented): left
   for the local MCP.
 
-### R4. Downloading Drive attachments (spike S1, first technical risk)
+Measured 2026-10-25 against the student's Classroom in Chrome (Claude extension, school account,
+interface in Spanish), read-only, with no title, name or identifier printed (spike S3):
+
+| Fact | How it was read |
+|---|---|
+| Classwork: `/u/<n>/w/<class>/t/all`; assignment `/u/<n>/c/<class>/a/<item>/details`; material `/u/<n>/c/<class>/m/<item>/details`; question `/u/<n>/c/<class>/mc/<item>/details` (an `/a/` link to a question is served at `/mc/`); student's work `/u/<n>/c/<class>/sp/<student>/all/default` | `href` patterns on the home and classwork pages, and the iframe's `location.pathname` |
+| The identifier in the URL is the item's numeric id encoded in base64; the classwork rows carry the numeric id in `data-stream-item-id` and the type in `data-stream-item-type` (`1` assignment, `5` material, `2` question) | Decoding one URL id against its row's `data-stream-item-id`; types counted per class |
+| Attachments to Google files link to `docs.google.com/<type>/d/<id>/edit` | Links on one material's detail page |
+| The assignment detail page shows a modification mark with the shape «(Última modificación: N oct)» | Text of one assignment's detail page |
+| Reading a question's detail page does not change «Tu trabajo»: the student's work page gave the same text hash before and after | Hash of `/sp/<student>/all/default` around one question's detail load |
+| A page in the hidden iframe was ready in 1.0–1.2 s (classwork, material, question, stream); one question load timed out at 25 s and succeeded on the retry | `performance.now()` around each iframe load |
+| 12 classes and 93 items in total; the largest class has 21 items | Classwork of every class, through the iframe | Downloading Drive attachments (spike S1, first technical risk)
 
 - **Problem**: the direct download `drive.google.com/uc?export=download` failed in the built-in
   browser (issue #1). Attachments link to `drive.google.com`.
@@ -89,6 +124,16 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   1. `drive.usercontent.google.com/download?id=<id>&export=download&authuser=<n>`;
   2. for Google Docs, Slides and Sheets, `docs.google.com/<type>/d/<id>/export?format=pdf&authuser=<n>`;
   3. the Drive viewer's download button.
+
+  Measured 2026-10-26 against four real attachments of one class (two PDFs, one PNG, one uploaded
+  `.pptx`, all Drive files of type `file`), with the operator present: method 1, loaded in a
+  hidden `iframe` from a Classroom page with the school account's `authuser`, left all four complete
+  in the downloads folder within 2 s, under their original names; a name already present got
+  « (1)» before the extension. Method 2 measured 2026-10-26 in the
+  manual import of every class: 14 of 14 Google files (8 Docs, 6 Slides) exported with
+  `docs.google.com/<type>/d/<id>/export` (`/export/pdf` for Slides) arrived as valid PDFs
+  (`%PDF-` header). Not covered: Sheets, since no class had one. Large videos are the open case
+  of R12. The dialog the operator saw was Chrome's «Guardar como» (R12).
 - **When to download** (item and attachment ids with their own rules, per the URL patterns recorded
   in S3): the first time, and afterwards only if the item shows a modification later than the last
   replica, if the attachment's name or type changes, or in the periodic full review
@@ -159,6 +204,26 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   need.
 - **Check**: the personal-data guardrail (FR-005) also runs over the synthetic pages. No test and no
   CI job calls Classroom (constitution VI).
+- **Label allowlist (from S3)**: the UI labels seen on 2026-10-25 on the pages the extractor reads
+  (page text and `aria-label`s, compared against a candidate list; the interface in Spanish):
+  - navigation: «Trabajo de clase», «Tablón», «Personas», «Ver tu trabajo»;
+  - classwork listing: «Tarea», «Material», «Pregunta», «Sin tema», «Fecha de entrega»,
+    «Sin fecha de entrega», «Publicado», «Última modificación»;
+  - detail pages: «Tu trabajo», «Asignado», «Entregado», «Sin entregar», «Añadir o crear»,
+    «Marcar como completado», «Entregar», «Tu respuesta», «puntos», «Comentarios de la clase»,
+    «Comentarios privados»;
+  - stream: «Próximas entregas», «Ver todo», «ha publicado», «publicado una nueva tarea»;
+  - date shapes: «N oct», «N sept», «Hoy».
+- **Open question for the data model**: «Sin entregar» appeared as the status of a question's
+  «Tu trabajo» panel and on the student's work page. The status table in `data-model.md` maps
+  «Asignado» and «Falta» but not «Sin entregar»; whether it maps like «Falta» is not measured.
+- **How long a class takes (from S3)**: about 4 s per item (1.0–1.2 s for the iframe, the 2 s minimum
+  wait with jitter, and the time to read the panel), so about 2 minutes for the largest class
+  measured on 2026-10-25 (21 items) and under 7 minutes for every class of that day (93 items).
+- **`lock_idle_minutes` stays at 30**: the longest stretch without a renewal is in the Science Bits
+  skill, whose `nlm source add … --wait --wait-timeout 300` blocks up to 5 minutes per file; in the
+  Classroom skill it is one class (about 2 minutes), renewing between classes. T017 copies the
+  contract's value to `config/template.toml`.
 
 ### R9. Per-student configuration: TOML with a mirror template, outside the repo
 
@@ -217,6 +282,38 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   `python -m alfabeta downloads collect` moves it to `data/captures/`.
 - **Reason**: hundreds of items per class must not pass through Claude's context; a file can be
   saved, compared and used as a test.
+- **Open risk, against the unattended requirement**: a run must not wait for anyone to approve
+  anything in the browser. Measured 2026-10-26 in the operator's Chrome (Claude extension, school
+  account), downloads of a `blob:` file created by a script:
+  - from `example.com`, the file arrived with no dialog;
+  - from `classroom.google.com`, Chrome showed the «descargar varios archivos» (download multiple
+    files) dialog and held the download until the operator accepted it, although the operator saw
+    `classroom.google.com` under «Se permite» (Allowed) in «Descargas automáticas» (Automatic
+    downloads). Whether that setting belongs to the same Chrome profile as the extension was not
+    measured;
+  - one probe arrived within the same minute while a dialog was showing, and two earlier probes never
+    arrived; which download each dialog belonged to was not recorded.
+
+  Measured 2026-10-26 in a manual import of every class (85 attachment downloads, one hidden `iframe`
+  every 3 s pointing at `drive.usercontent.google.com/download` or a `docs.google.com/…/export`):
+  84 files arrived complete, but the operator had to answer a dialog for them. One video of a few
+  hundred MB never arrived; Drive answers large files with a confirmation page instead of the file.
+
+  **Cause, identified the same day**: the dialog was Chrome's «Guardar como» (Save as), shown because
+  «Preguntar dónde guardar cada archivo antes de descargarlo» was on in the extension's Chrome
+  profile. It was not the automatic-downloads prompt: the description of it above came from wording
+  offered to the operator, not from what they saw. Allowing `drive.usercontent.google.com` and
+  `docs.google.com` in «Descargas automáticas» did not remove it; switching that setting off did.
+  After the change, two downloads fired 1.5 s apart from a Classroom page arrived within 5 s and the
+  operator confirmed no window appeared. Arrival time alone proves nothing: with the setting on, a
+  quickly answered dialog arrives just as fast.
+
+  **Installation requirement** (the extension's Chrome profile): «Preguntar dónde guardar cada
+  archivo» off, and the download location set to the folder in `[downloads] folder`. With that, a
+  download from Classroom is an unattended transport, in one file per run or one per attachment.
+  Rejected: downloading with `curl` outside the browser, because it needs the school session's
+  cookies, a secret no tool may handle (constitution, minors' data). Still open: large Drive files
+  (the confirmation page).
 
 ### R13. Personal-data guardrail
 
