@@ -129,7 +129,7 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 
 | Rule | Support |
 |---|---|
-| One notebook per topic, owned by an adult account and shared with the student as a viewer | Sharing outside a company domain depends on its admin ([admin help](https://knowledge.workspace.google.com/admin/generative-ai/gemini-notebook/manage-gemini-notebook-sharing-settings)); an adult owner avoids the 18+ limit on cinematic video |
+| One notebook per topic, owned by an adult account and shared as a viewer with every account in `notebook.share_with` (the student's personal and school accounts) | Sharing outside a company domain depends on its admin ([admin help](https://knowledge.workspace.google.com/admin/generative-ai/gemini-notebook/manage-gemini-notebook-sharing-settings)); measured 2026-10-26, the student's school domain allowed a notebook owned by a personal Gmail account to be shared with the school account as viewer, and it opened there. An adult owner avoids the 18+ limit on cinematic video |
 | Notes > Classroom > textbook for scope | The worked case above; Profesor Productivo for the notes |
 | Every source carries its kind and date in its name (`APUNTES · 2026-10-14 · p2`, `CLASSROOM · …`, `LIBRO · …`), and the tutor is told the order of trust | Roca for names; the tutor instruction is a **hypothesis** |
 | Notes are transcribed literally and checked before they become a source; the student checks their own handwriting | Profesor Productivo; the student as checker is a **hypothesis** (the parent may not read the language of the notes) |

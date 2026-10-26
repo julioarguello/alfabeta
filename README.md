@@ -44,10 +44,11 @@ straight into the topic folder.
 
 ```
 class notes (photos) ─┐
-Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► the student
+Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► each listed account
 Science Bits ─────────┘     {apuntes, classroom, sciencebits}                            (shared as viewer)
                                               │
-                                              └──► calendar: assignments, exams, posted material
+                                              ├──► one-way mirrors in the student's other accounts' Drives
+                                              └──► calendar: assignments, exams, posted material ──► each listed account
 ```
 
 Every topic folder starts with the date the teacher posted its first material, so the student sees
@@ -60,9 +61,13 @@ over Classroom, and Classroom over the textbook. The textbook still explains bes
 worst guide to the exam. The reasons, and the evidence behind them, are in
 [the explanation page](docs/explanation/study-material.md#three-sources-one-order-of-trust).
 
-In the design, the notebooks belong to a parent's personal Google account and are shared with the
-student, so the family can share them freely and the adult account avoids the platform's 18+ limit
-on cinematic video.
+In the design, the notebooks belong to a parent's personal Google account and are shared as viewer
+with every account the configuration lists (`notebook.share_with`), so the family can share them
+freely and the adult account avoids the platform's 18+ limit on cinematic video. The calendar is
+shared the same way (`calendar.shared_with`), and the topic folders reach the student's other
+accounts as one-way mirrors of the master folder (`storage.mirrors`). Measured 2026-10-26: a school
+Google Workspace for Education domain allowed a notebook and a calendar owned by a personal Gmail
+account to be shared with the school account and opened there.
 
 ## Get started
 
@@ -86,7 +91,7 @@ on cinematic video.
 | The [Claude desktop app](https://claude.ai/download) | The skill drives the app's built-in browser |
 | The [Desktop Commander](https://github.com/wonderwhy-er/DesktopCommanderMCP) connector in Claude | The skill reads your configuration and runs commands on your Mac through it |
 | [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
-| A folder synced to your cloud storage | The skill writes each topic under `storage.base_dir`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
+| A folder synced to your cloud storage | The skill writes each topic under `storage.base_dir` and copies it to each folder in `storage.mirrors`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
 Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships `reportlab`,
 `beautifulsoup4` and `pypdf`.
@@ -94,8 +99,8 @@ Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships 
 ### Set up
 
 1. Copy `config.example.json` to `~/.alfabeta/config.json` and fill in `student` (name, grade, month
-   the school year starts), `storage` (`base_dir`, `tools_dir`), `subjects` and
-   `notebook.title_pattern`. It stays outside the repository.
+   the school year starts), `storage` (`base_dir`, `mirrors`, `tools_dir`), `subjects`,
+   `calendar.shared_with`, `notebook.title_pattern` and `notebook.share_with`. It stays outside the repository.
 2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks — the skill uses
    `nlm`'s default profile.
 3. Copy `skills/sciencebits-a-notebooklm/scripts/` to the `storage.tools_dir` folder of your

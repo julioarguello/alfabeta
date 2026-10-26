@@ -51,7 +51,9 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `student.grade_level` | text | For notebook names (epic 3): it is the `<grade level>` of «`<grade level>. <Subject>. Tema NN - <title>`» |
 | `student.languages` | list | Languages that titles and announcements may come in |
 | `classroom.account` | email address | Compared locally with the account button; never goes in a URL |
-| `drive.root` | path | alfabeta's own folder inside the mounted Drive; must exist and must not be the root of «Mi unidad» (My Drive); never shown |
+| `drive.root` | path | alfabeta's own folder inside the mounted Drive, the master; must exist and must not be the root of «Mi unidad» (My Drive); never shown |
+| `drive.mirrors` | list of paths | One-way mirrors of the root in the student's other accounts' mounted Drives (FR-011a); may be empty; none may be inside the root, contain it, or be the root of «Mi unidad»; never shown |
+| `calendar.shared_with` | list of email addresses | Accounts the calendar is shared with, each with permission to see all event details (FR-011b); may be empty; never goes in a URL or the log |
 | `downloads.folder` | path | Where Chrome leaves its downloads |
 | `sync.full_review_days` | integer ≥ 1 | Every how many days all attachments are downloaded again |
 | `sync.lock_idle_minutes` | integer ≥ 1 | After how many minutes without renewal the lock of a dead run is released |
@@ -61,6 +63,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `sciencebits.url` | URL | Science Bits class page |
 | `sciencebits.languages` | list | Languages each topic is captured in; the first one gives the folder's title |
 | `notebook.enabled` | boolean | Whether each topic's notebook is created |
+| `notebook.share_with` | list of email addresses | Accounts each topic notebook is shared with as viewer (FR-011b); may be empty; never goes in a URL or the log |
 | `subjects` | list of `Subject` | At least one |
 | `schedule.daily` | time `HH:MM` or empty | Time of the scheduled task; empty = on demand only |
 
@@ -196,10 +199,14 @@ item, without student data), `unknown_statuses`, `pending_decisions`, `full_revi
 (boolean: the next full review is counted from the last line that has it), `result` (`ok` ·
 `partial` · `stopped`) and `reason` (of the stop or of a `partial` one. A stop in the browser —session expired, challenge or unexpected interface— before capturing any class leaves the run `stopped` without writing to the student's folder; after capturing at least one, `apply` applies those already captured, leaves the class of the `stop` capture unapplied and the result is `partial` with that reason. The same in both modes. Drive not mounted, lock busy or invalid configuration always stop before writing) (`session_expired`, `challenge`,
 `unexpected_ui`, `drive_not_mounted`, `lock_busy`, `lock_not_held`,
-`invalid_config`, `idle`). Each line carries the `run` of its lock. `book place` writes a shorter
-line: `type: book`, `at`, `run`, `source`, `topic` and `result` (`placed` · `unchanged`).
+`invalid_config`, `idle`). Each line carries the `run` of its lock. The `apply` line also carries
+`mirrors`: `{up_to_date, failed}`, counts of the configured mirrors (FR-011a), never their paths.
+`book place` writes a shorter
+line: `type: book`, `at`, `run`, `source`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`.
 `log notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
-`unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data). `unchanged`: the notebook already existed and
+`unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data), and
+`shares`: `{invited, already, failed}`, counts of the accounts in `notebook.share_with` (FR-011b),
+never their addresses. `unchanged`: the notebook already existed and
 no source was missing.
 
 ## Transitions

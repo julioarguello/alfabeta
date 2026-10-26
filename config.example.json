@@ -6,7 +6,9 @@
     "school_year_starts_month": 9
   },
   "storage": {
+    "_comment": "mirrors: folders in the other accounts' Drives, mounted by Google Drive for desktop, brought up to date one-way from base_dir (the master) after every sync; [] for none.",
     "base_dir": "~/Library/CloudStorage/Dropbox/Documents/Ane",
+    "mirrors": ["changeme"],
     "tools_dir": "~/Library/CloudStorage/Dropbox/Documents/Ane/_herramientas/alfabeta",
     "topic_folder_pattern": "{year}/{subject}/{date} - Tema {nn} - {title}"
   },
@@ -15,9 +17,15 @@
     "Biologia eta Geologia": "Bio"
   },
   "languages": ["es", "eu", "en"],
+  "calendar": {
+    "_comment": "shared_with: accounts the one calendar is shared with, each with \"see all event details\"; [] for none.",
+    "shared_with": ["changeme@example.org"]
+  },
   "notebook": {
+    "_comment": "share_with: accounts invited as viewers to every topic notebook; [] for none.",
     "enabled": true,
-    "title_pattern": "{grade}. {subject}. Tema {nn} - {title}"
+    "title_pattern": "{grade}. {subject}. Tema {nn} - {title}",
+    "share_with": ["changeme@example.org"]
   },
   "sciencebits": {
     "url": "https://learning-bits.com/intranet/es/myclasses/index"
