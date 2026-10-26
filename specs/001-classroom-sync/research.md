@@ -293,20 +293,24 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 
   Measured 2026-10-26 in a manual import of every class (85 attachment downloads, one hidden `iframe`
   every 3 s pointing at `drive.usercontent.google.com/download` or a `docs.google.com/…/export`):
-  84 files arrived complete, but the operator had to confirm Chrome's dialog, so these origins hold
-  the download, not Classroom. One video of a few hundred MB never arrived; Drive answers large files
-  with a confirmation page instead of the file. Tried: list `drive.usercontent.google.com` and `docs.google.com` under «Descargas automáticas» →
-  «Se permite» as part of the installation, but it did not work: on 2026-10-26, right after the
-  operator added both origins, two downloads fired 1.5 s apart from a Classroom page arrived within
-  2 s and the operator still saw the dialog. Arrival time therefore does not show the absence of
-  the dialog. Whether the setting was made in the same Chrome profile as the extension is not known. Rejected: downloading with `curl` outside the browser, because it
-  needs the school session's cookies, a secret no tool may handle (constitution, minors' data).
+  84 files arrived complete, but the operator had to answer a dialog for them. One video of a few
+  hundred MB never arrived; Drive answers large files with a confirmation page instead of the file.
 
-  Putting every page of a run in **one** file (S3 saved six pages as one 6.8 MB JSON) leaves at most
-  one download per run, but on 2026-10-26 even that single download needed the dialog. Until the
-  dialog is explained and removed, a download from Classroom is not an unattended transport; S2
-  (T011) answers it for scheduled runs, and the alternatives are a receiver on `127.0.0.1` or
-  returning the JSON in parts through the browser tool.
+  **Cause, identified the same day**: the dialog was Chrome's «Guardar como» (Save as), shown because
+  «Preguntar dónde guardar cada archivo antes de descargarlo» was on in the extension's Chrome
+  profile. It was not the automatic-downloads prompt: the description of it above came from wording
+  offered to the operator, not from what they saw. Allowing `drive.usercontent.google.com` and
+  `docs.google.com` in «Descargas automáticas» did not remove it; switching that setting off did.
+  After the change, two downloads fired 1.5 s apart from a Classroom page arrived within 5 s and the
+  operator confirmed no window appeared. Arrival time alone proves nothing: with the setting on, a
+  quickly answered dialog arrives just as fast.
+
+  **Installation requirement** (the extension's Chrome profile): «Preguntar dónde guardar cada
+  archivo» off, and the download location set to the folder in `[downloads] folder`. With that, a
+  download from Classroom is an unattended transport, in one file per run or one per attachment.
+  Rejected: downloading with `curl` outside the browser, because it needs the school session's
+  cookies, a secret no tool may handle (constitution, minors' data). Still open: large Drive files
+  (the confirmation page).
 
 ### R13. Personal-data guardrail
 
