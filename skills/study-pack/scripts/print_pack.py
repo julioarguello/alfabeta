@@ -233,7 +233,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
     for a in arts:
         name, kind = a.get("title") or a["type"], a["type"]
         if kind == "video":
-            index.append(f"| ▶ | {name} | en el cuaderno |")
+            index.append(f"| ▶ | {name} | en la carpeta del tema (Drive) |")
             continue
         index.append(f"| ✎ | {name} | en este documento |")
         body += ['<div class="newpage"></div>', "", f"## {name}", ""]

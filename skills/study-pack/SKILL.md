@@ -81,8 +81,11 @@ Never write a name, an email or an id into the repository.
    Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
-9. **Add the start note** `0 · Empieza aquí` last, so it sits on top (`nlm note create`, or
-   `nlm note update` if it exists), naming the pieces by number, and **configure the tutor chat**
+9. **Copy every video to the topic folder** (`nlm download video <nb> --id <id> -o "<topic
+   folder>/<title>.mp4"`), then refresh the mirrors: a viewer may not see the videos in the
+   notebook (table below). **Add the start note** `0 · Empieza aquí` last, so it sits on top
+   (`nlm note create`, or `nlm note update` if it exists), naming the pieces by number and linking
+   the topic folder in each of the student's Drives, and **configure the tutor chat**
    (both in [`prompts.md`](prompts.md)).
 10. **Print the topic** for paper: `scripts/print_pack.py topic <nb> "<topic folder>/Tema NN para
     imprimir · <title>.pdf"`. One PDF: an index of every piece (videos marked as "in the
@@ -109,7 +112,7 @@ plan (`nlm` reports the tier as `PRO_CONSUMER`).
 |---|---|
 | `nlm` asks for English by default; reports and videos take `--language`, quiz and flashcards do not | the account-wide switch above |
 | Studio is ordered by last modification; a rename keeps the title verbatim and moves the item to the top | rename in reverse order |
-| Viewers are read-only and see every Studio artifact | material for the parent leaves Studio |
+| Viewers are read-only and see every Studio artifact except videos: of five video overviews in one notebook, both viewer accounts saw only the oldest, in the list and by direct link; regenerating the hidden ones did not help | material for the parent leaves Studio; every video is also downloaded to the topic folder, and the start note links that folder |
 | 3 videos and 3 reports took about 79 % of a 5-hour usage window and about 4 % of the weekly one (`nlm usage`) | one topic per window; videos last |
 | The tutor prompt worked as hints-before-answers, and in one sample attributed a note to the teacher | the prompt forbids attributing authorship |
 | Videos asked for 3–4 minutes lasted 4–5; a quiz asked for 10 questions had 12 | name the real count and duration, from the download |
