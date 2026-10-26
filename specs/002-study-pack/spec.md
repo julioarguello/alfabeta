@@ -39,7 +39,8 @@ photos (it is a dependency, not a requirement here).
 
 - Q: When are the videos made? → A: When Classroom shows material in a new topic, judged by
   Classroom's posting dates; the previous topic is then finished. An announced exam makes the pack
-  at once, whatever the dates say.
+  at once, whatever the dates say. Whether practice, quiz and flashcards wait for the exam
+  announcement, as the design page proposes, is open (FR-020).
 - Q: Which source wins when they disagree about what the exam asks? → A: The student's class notes,
   then Classroom, then the textbook. The teacher's material prioritises scope; it does not limit it.
 - Q: In which language is each piece? → A: Explanations, videos and the study guide in Spanish, with
@@ -50,7 +51,9 @@ photos (it is a dependency, not a requirement here).
   ideas students confuse stay apart. Two or three blocks per topic, one video each, a few minutes
   long.
 - Q: How does the student know where to start? → A: Every piece is numbered in study order and its
-  title says what it is, what about and how long; a note numbered 0 says what to do first.
+  title says what it is, what about and how long; a note numbered 0 says what to do first. Titles
+  are in Spanish, as the constitution asks of everything the family reads, even when the piece's
+  content is in the exam's language.
 - Q: What happens with a teacher's answer key that is wrong? → A: Every numeric answer is
   recomputed. The parent's guide shows the correct value next to the sheet's, neutrally; nothing
   the student sees repeats the wrong value or names the teacher.
@@ -87,9 +90,10 @@ and a known exam language, run the pack and check each piece against the accepta
    practice sheet, quiz and flashcards are entirely in Basque and the videos and study guide in
    Spanish.
 3. **Given** a generated practice sheet that reuses a problem's data from the teacher's sheet,
-   **When** it is verified, **Then** it is regenerated, and never shown.
+   **When** it is verified, **Then** it is regenerated, and the family is never pointed at it.
 4. **Given** a piece with a numeric answer that does not match its recomputation, **When** it is
-   verified, **Then** it is not shown and the family is told which answer failed.
+   verified, **Then** it is not in the notebook when the run ends and the family is told which
+   answer failed.
 5. **Given** a run that changed the notebook account's output language, **When** it ends, by
    success or by failure, **Then** the setting is back to what it was before the run.
 
@@ -149,8 +153,9 @@ every piece (videos marked as "in the notebook") and then each piece on a new pa
 order: the practice sheet, the quiz with its answers at the end, the flashcards as a table, the
 study guide and the mind map drawn as a diagram. Formulas print as formulas.
 
-**Why this priority**: the parent prints what the student works on; the export the platform offers
-loses characters and the mind map cannot be exported at all.
+**Why this priority**: the parent prints what the student works on, and the platform has no print
+view for a report or a mind map (the operator found that exporting a report to Google Docs lost
+characters, 2026-10-26).
 
 **Independent Test**: build the PDF for the test topic and check the index against the notebook's
 list, the page each piece starts on, a formula and the mind map's legibility at print size.
@@ -172,7 +177,7 @@ After a Classroom sync, alfabeta notices that a subject's material moved to a ne
 exam was announced, and makes the previous topic's pack without being asked; the family only
 confirms the blocks.
 
-**Why this priority**: the manual run already works; this removes the need to remember it.
+**Why this priority**: the manual run works without it; this removes the need to remember it.
 
 **Independent Test**: feed the agenda of spec 001 with a material in a new topic and check that
 the previous topic's pack is proposed once, not on every later sync.
@@ -190,20 +195,23 @@ the previous topic's pack is proposed once, not on every later sync.
 
 ### User Story 6 - The student's class notes lead (Priority: P3)
 
-The family drops photos of the student's class notes into the topic's `apuntes/` folder. They
-become a source of the notebook and the most trusted one: when they show what was taught, the
-blocks follow them.
+The family drops photos of the student's class notes into the topic's `apuntes/` folder. They are
+transcribed literally, the transcription is checked by someone who can read the notes, and only
+then does it become a source of the notebook — the most trusted one: when the notes show what was
+taught, the blocks follow them.
 
 **Why this priority**: the notes are the best evidence of what the exam asks, but turning photos
-of handwriting into a usable source has not been tried yet.
+of handwriting into a usable source had not been tried when this was written.
 
 **Independent Test**: with photos in `apuntes/` that stress an idea the textbook barely covers,
 check that the proposed blocks include it.
 
 **Acceptance Scenarios**:
 
-1. **Given** photos in `apuntes/`, **When** the pack runs, **Then** they are sources of the
-   notebook and the proposed blocks cite them.
+1. **Given** photos in `apuntes/` with a checked transcription, **When** the pack runs, **Then**
+   the transcription is a source of the notebook and the proposed blocks cite it.
+2. **Given** photos whose transcription nobody has checked, **When** the pack runs, **Then** they
+   are not a source and the family is told.
 
 ---
 
@@ -233,12 +241,14 @@ check that the proposed blocks include it.
   they are confirmed. Once confirmed, the blocks of a topic are not proposed again.
 - **FR-002**: When sources disagree about what the exam asks, the class notes MUST win over
   Classroom and Classroom over the textbook.
-- **FR-003**: Two ideas students commonly confuse MUST fall in different blocks.
+- **FR-003**: Two ideas that the teacher's material or the parent's guide name as a typical
+  confusion MUST fall in different blocks.
 
 **Generation**
 
 - **FR-004**: The pack MUST hold, in the topic's single notebook: one explainer video per block, a
-  practice sheet, a quiz, flashcards, a study guide and a mind map.
+  practice sheet, a quiz, flashcards, a study guide and a mind map. Class notes become a source
+  only as a transcription someone who can read them has checked.
 - **FR-005**: Videos and the study guide MUST be in Spanish, giving each key term also in the
   exam's language as the class material writes it. Practice sheet, quiz and flashcards MUST be in
   the exam's language, configured per subject.
@@ -251,27 +261,27 @@ check that the proposed blocks include it.
 
 **Verification**
 
-- **FR-009**: Before a piece is visible to the student, alfabeta MUST check the language of its
-  whole text, recompute every numeric answer, and, for the practice sheet, compare its data with
-  the teacher's sheets.
-- **FR-010**: A piece that fails verification MUST NOT stay in the notebook; it is regenerated or
-  reported.
+- **FR-009**: Before the family is told the pack is ready, alfabeta MUST check the language of
+  every piece's whole text (for a video, its on-screen text), recompute every numeric answer, and,
+  for the practice sheet, compare its data with the teacher's sheets.
+- **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
+  regenerated or reported.
 - **FR-011**: Every teacher's answer key in the topic folder MUST be recomputed; each mismatch, and
   each statement missing a datum, is recorded for the parent's guide.
 
 **The parent's material**
 
-- **FR-012**: `docente/` in the topic folder MUST hold, in Spanish and as PDF and Markdown: the
-  confirmed blocks with their sources, a guide with questions to ask at home, the recomputed answer
-  key with each mismatch marked neutrally, and a glossary (exam language, Spanish, English,
-  one-line definition, formula).
+- **FR-012**: `docente/` in the topic folder MUST hold, in Spanish: the confirmed blocks with their
+  sources; a parent's guide with questions to ask at home and the teacher's sheets translated and
+  recomputed, each mismatch marked neutrally; and a glossary (exam language, Spanish, English,
+  one-line definition, formula). The guide and the glossary as PDF and Markdown.
 - **FR-013**: None of the parent's material may be visible in the notebook when the run ends.
 
 **Order and names**
 
-- **FR-014**: Every piece's title MUST start with its number in study order and say what it is,
-  what it is about and, for a video or quiz, its measured length or question count, in the language
-  the student uses it in, with no date and no recipient.
+- **FR-014**: Every piece's title MUST be in Spanish, start with its number in study order and say
+  what it is, what it is about and, for a video or quiz, its measured length or question count,
+  with no date and no recipient.
 - **FR-015**: The notebook's list MUST read in numbered order when the run ends, with a note
   numbered 0 first saying what to do first.
 - **FR-016**: The notebook's chat MUST be set to answer as a tutor: a hint before the answer,
@@ -281,7 +291,8 @@ check that the proposed blocks include it.
 **Printing**
 
 - **FR-017**: alfabeta MUST write one A4 PDF per topic into the topic's folder, holding an index of
-  every piece in the notebook's order and then every piece except videos, each on a new page: the
+  every piece in the notebook's order, then the start note, then every piece except videos, each
+  on a new page: the
   quiz with its answers after its questions, the flashcards as a table, the mind map as a diagram
   that fits one page.
 - **FR-018**: Formulas MUST print as typeset formulas, and lists and tables as such.
@@ -291,6 +302,9 @@ check that the proposed blocks include it.
 
 - **FR-020**: After a Classroom sync, a subject whose newest material belongs to a new topic, or
   an exam announced for a topic without a pack, MUST lead to that topic's pack being proposed once.
+  [NEEDS CLARIFICATION: one pack when the topic ends, as run on 2026-10-26, or two moments as the
+  design page proposes — videos and glossary when the topic ends; practice, quiz, flashcards and a
+  plan of short sessions when the exam is announced?]
 - **FR-021**: alfabeta MUST keep, per topic, a record of the pack: blocks, each piece with its
   notebook id, title, language, verification result and date, and the corrections found. A later
   run reads it to avoid regenerating what exists.
@@ -300,7 +314,7 @@ check that the proposed blocks include it.
 - **FR-022**: alfabeta MUST NOT write study blocks or reminders into the calendar. A link to the
   topic's folder in the description of an exam event that is already there is
   [NEEDS CLARIFICATION: allowed or not — it is a pointer, not a study block, but the calendar's rule
-  so far is "only what Classroom shows"].
+  is "only what Classroom shows"].
 - **FR-023**: Nothing about the student MAY enter the repository: prompts, names, ids and paths
   come from the private configuration.
 - **FR-024**: alfabeta MUST NOT type a password; the family signs in.
@@ -321,8 +335,9 @@ check that the proposed blocks include it.
 
 - **SC-001**: No numeric answer the student sees differs from its recomputation, across every
   piece of every pack.
-- **SC-002**: Every piece intended for the exam's language contains no paragraph in another
-  language, and every Spanish piece gives each key term in the exam's language.
+- **SC-002**: Every text piece intended for the exam's language contains no paragraph in another
+  language, and every Spanish text piece gives each key term in the exam's language. (A video's
+  audio cannot be checked by the run; its on-screen text is.)
 - **SC-003**: When a run ends, the notebook account's output language is what it was before the
   run, in every run, including failed ones.
 - **SC-004**: When a run ends, the notebook's list reads 0, 1, 2… with no gap and no piece of the
@@ -332,20 +347,24 @@ check that the proposed blocks include it.
 - **SC-006**: A topic's pack fits in one 5-hour usage window of the notebook account (measured
   2026-10-26: about 80 % for three videos and three reports).
 - **SC-007**: From "the topic is finished" to a pack the family can hand to the student, the
-  family spends only the time to confirm the blocks.
+  family intervenes at most twice: to confirm the blocks and, if a checked transcription of the
+  class notes is missing, to check it. Every other step runs without them.
 
 ## Assumptions
 
 - The topic folder exists with its sources, filled by the textbook capture and by `classroom-sync`.
 - The notebook is owned by a parent's personal Google account on a paid plan and shared with the
   student as viewer.
-- The notebook platform keeps no public API; `nlm` reaches it and may break, in which case the run
-  stops and says so.
+- The notebook platform has no public API; the tool that reaches it may break, in which case the
+  run stops and says so.
 - The study guide, mind map and quiz are generated from the whole notebook; the platform does not
   let a mind map be steered, so it may leave a block out.
-- About five pieces is the ceiling the panel that designed this proposed for the student; the
-  first topic ended with six to work through and two to consult. The family decides whether to
-  trim.
+- How many pieces the student can face is a hypothesis: the design page proposes few, citing
+  choice-overload research, and the first topic ended with six to work through and two to consult.
+  The family decides whether to trim.
+- While a run lasts, a piece not yet verified, or the parent's material, may be visible to a viewer
+  for some minutes: the platform shows a viewer every piece as soon as it exists. FR-009, FR-010
+  and FR-013 hold at the end of the run, not during it.
 - What a viewer sees has not been checked from the student's account; the requirements on what
   the student sees assume a viewer sees the same list as the owner.
 
@@ -354,4 +373,5 @@ check that the proposed blocks include it.
 - Spec 001 (`classroom-sync`): the topic folders, and the agenda that carries new topics and
   announced exams (FR-020).
 - `nlm` (`notebooklm-mcp-cli`), `pandoc`, Graphviz and Google Chrome on the machine that runs it.
-- A browser session of the notebook's owner for the one setting `nlm` cannot change (FR-007).
+- A browser session of the notebook's owner for the one setting `nlm` cannot change: the output
+  language of quiz and flashcards is account-wide (FR-007). The run drives that session itself.

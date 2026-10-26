@@ -33,10 +33,14 @@
 
 - Iteration 1 (2026-10-26): written after the procedure was run by hand on one topic, so the
   clarifications record the operator's decisions from that session instead of questions asked
-  beforehand. One marker remains: FR-022, whether an exam event may carry a link to the topic's
-  folder.
-- The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies, and the notebook
-  platform's account-wide language setting only as the behaviour FR-007 guards against; the
-  mechanisms belong to the plan.
+  beforehand. Two markers remain: FR-020, one pack when the topic ends or a second moment when the
+  exam is announced (the design page proposes two; the hand run made one); FR-022, whether an exam
+  event may carry a link to the topic's folder.
+- Iteration 2 (2026-10-26), after an independent review against the skill and the design page:
+  verification holds at the end of a run, not during it, because a viewer sees every piece as soon
+  as it exists; titles in Spanish per the constitution; class notes become a source only as a
+  checked transcription; the parent's answer key is part of the parent's guide; SC-007 bounded.
+- The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
+  to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The
   constitution's flow needs them before the spec is approved.
