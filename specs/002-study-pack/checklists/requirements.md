@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -44,6 +44,11 @@
   reopened with the operator's constraints: day-by-day study as content arrives, no reliance on
   detecting a topic's end, more when an exam is announced and early enough, nothing labelled
   optional. One marker remains, on FR-020; Story 5 waits for it.
+- Iteration 4 (2026-10-26): FR-020 settled by the operator's choice of three moments — «HOY» on
+  each new material (quiz and flashcards, no video), «REPASO SEMANA» on a fixed weekday (videos and
+  a mixed quiz; that week's «Ayer» pieces removed), «EXAMEN» as soon as an exam is known. Story 1
+  is the exam pack; Story 3 and Story 5 rewritten; FR-020 to FR-023 added and later requirements
+  renumbered (FR-024 to FR-028); SC-008 and SC-009 added. No marker remains.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The

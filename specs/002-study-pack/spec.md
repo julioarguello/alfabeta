@@ -30,7 +30,7 @@ without someone watching; the measurements behind each requirement are in
 skill's own table of measured behaviour.
 
 Out of this spec: writing to Classroom or to the textbook platform, the calendar beyond the facts
-spec 001 puts there and the two links of FR-022, audio overviews, and recognising handwriting in the class-note
+spec 001 puts there and the two links of FR-026, audio overviews, and recognising handwriting in the class-note
 photos (it is a dependency, not a requirement here).
 
 ## Clarifications
@@ -43,8 +43,9 @@ photos (it is a dependency, not a requirement here).
   day, so material is made as the teacher's content arrives, not only when a topic ends; detecting
   the end of a topic is not deterministic, so err on making too much rather than too little; an
   announced exam is a clear trigger to make more, early enough to be used; and nothing for the
-  student is labelled optional, because what is optional does not get done. How that maps to
-  moments and names is open (FR-020).
+  student is labelled optional, because what is optional does not get done. Settled in three
+  moments that need no end-of-topic detection: «HOY» on every new material, «REPASO SEMANA» on a
+  fixed weekday, «EXAMEN» as soon as an exam is known (FR-020 to FR-023).
 - Q: Which source wins when they disagree about what the exam asks? → A: The student's class notes,
   then Classroom, then the textbook. The teacher's material prioritises scope; it does not limit it.
 - Q: In which language is each piece? → A: Explanations, videos and the study guide in Spanish, with
@@ -74,16 +75,17 @@ photos (it is a dependency, not a requirement here).
 The actors are **the family** (the parent who launches alfabeta and helps at home, reading Spanish
 only), **the student** (a viewer of the topic's notebook) and **the teachers** (never interact).
 
-### User Story 1 - A finished topic gets its pack, checked before anyone sees it (Priority: P1)
+### User Story 1 - An announced exam gets its full pack, checked before anyone sees it (Priority: P1)
 
-A topic ends. alfabeta proposes the topic's blocks from its folder; once they are confirmed it
-makes, in the topic's notebook, one explainer video per block, a practice sheet, a quiz and
+An exam is announced. As soon as it is known, alfabeta proposes the topic's blocks from its folder;
+once they are confirmed it makes, in the topic's notebook, one explainer video per block, a
+practice sheet, a quiz and
 flashcards in the exam's language, a study guide and a mind map. It checks every piece before
 showing it: the language of the whole text, every number, and that the practice problems do not
 reuse the teacher's data.
 
-**Why this priority**: it is the point of the feature — less time from "the topic ended" to
-"there is something good to study from".
+**Why this priority**: an exam is the clearest deadline the student has, and the one signal that
+needs no guessing.
 
 **Independent Test**: with a test topic folder holding a teacher's sheet with a known wrong answer
 and a known exam language, run the pack and check each piece against the acceptance scenarios.
@@ -130,12 +132,13 @@ notebook lists none of them.
 
 ---
 
-### User Story 3 - The student opens the notebook and knows where to start (Priority: P1)
+### User Story 3 - The student opens the notebook and knows what to do today (Priority: P1)
 
-The student opens the topic's notebook. The first item is a note numbered 0 that says what to do
-first; then every piece in study order, numbered, each title saying what it is, what about and how
-long. The chat answers as a tutor: a hint before the answer, explanations in Spanish with the
-terms in the exam's language.
+The student opens the topic's notebook. The first item is a note numbered 0 that says, in one
+line, the one thing to do today and how long it takes; directly under it is that piece. Every
+title says which moment it belongs to (today, yesterday, the weekly review, the exam), what it is,
+what about and how long, and none of them invites skipping it. The chat answers as a tutor: a hint
+before the answer, explanations in Spanish with the terms in the exam's language.
 
 **Why this priority**: a notebook the student does not know how to use is not used.
 
@@ -143,11 +146,14 @@ terms in the exam's language.
 
 **Acceptance Scenarios**:
 
-1. **Given** the pack has finished, **When** the notebook is opened, **Then** the list reads 0, 1,
-   2… in order, with the note first.
-2. **Given** any piece, **When** its title is read, **Then** it carries its number, its kind, its
-   subject and, for a video or a quiz, its real length or number of questions.
-3. **Given** a question in the chat, **When** the student asks for an exercise's solution,
+1. **Given** a run has finished, **When** the notebook is opened, **Then** the note is first,
+   names one task with its duration, and the piece it names is second.
+2. **Given** any piece, **When** its title is read, **Then** it carries its moment, its number
+   within that moment when there are several, its kind, its subject and, for a video or a quiz, its
+   real length or number of questions.
+3. **Given** every title and the note, **When** they are read, **Then** none says «opcional»,
+   «extra», «si quieres» or anything that presents the piece as skippable.
+4. **Given** a question in the chat, **When** the student asks for an exercise's solution,
    **Then** the tutor gives a hint first and does not attribute any source to a person.
 
 ---
@@ -177,30 +183,38 @@ list, the page each piece starts on, a formula and the mind map's legibility at 
 
 ---
 
-### User Story 5 - The pack starts by itself when the topic ends (Priority: P2)
+### User Story 5 - Something to do every day the teacher posts, and a review every week (Priority: P2)
 
-After a Classroom sync, alfabeta notices that a subject's material moved to a new topic, or that an
-exam was announced, and makes the previous topic's pack without being asked; the family only
-confirms the blocks.
+After each Classroom sync, every new material the teacher posted becomes a small piece for today in
+its topic's notebook: a short quiz and a few flashcards in the exam's language, about that material
+alone, titled «HOY» with how long it takes. What was «HOY» yesterday becomes «Ayer». Once a week, on
+a fixed day, a «REPASO SEMANA» brings one short video per idea that arrived that week and a quiz
+that mixes the week with earlier ones; that week's «Ayer» pieces then leave the list. Nothing
+waits for a topic to end.
 
-**Why this priority**: the manual run works without it; this removes the need to remember it.
+**Why this priority**: it is what makes the study daily instead of a rush before the exam, and it
+needs the daily Classroom sync of spec 001 to exist.
 
-> [!NOTE]
-> These scenarios follow the first design, one pack when a topic ends. The operator revised it the
-> same day toward material made as content arrives (FR-020); they will be rewritten once FR-020 is
-> settled.
-
-**Independent Test**: feed the agenda of spec 001 with a material in a new topic and check that
-the previous topic's pack is proposed once, not on every later sync.
+**Independent Test**: feed the agenda of spec 001 with a material on Monday, another on Wednesday,
+nothing on Thursday and an exam announced on Thursday; run the syncs and the weekly day, and read
+the notebook's list after each.
 
 **Acceptance Scenarios**:
 
-1. **Given** a sync that shows the first material of a new topic, **When** it ends, **Then** the
-   previous topic's pack is proposed with its blocks.
-2. **Given** a topic whose pack exists, **When** later syncs bring more material to it, **Then**
-   the pack is not regenerated unless the family asks.
-3. **Given** an exam announced for a topic without a pack, **When** the sync ends, **Then** the
-   pack is proposed at once.
+1. **Given** a sync that brings a new material, **When** it ends, **Then** the notebook of that
+   material's topic has a «HOY» quiz and «HOY» flashcards about that material only, under the note,
+   and the previous «HOY» pieces are titled «Ayer».
+2. **Given** a sync that brings nothing new, **When** it ends, **Then** no piece is made and the
+   note names the oldest piece not yet done (the latest «HOY», «Ayer» or the review).
+3. **Given** a material already covered by a «HOY» piece, **When** it is synced again, **Then** no
+   second piece is made for it.
+4. **Given** the weekly review day, **When** its run ends, **Then** there is one video per idea
+   that arrived that week, a quiz mixing the week with earlier weeks, and none of that week's
+   «Ayer» pieces.
+5. **Given** a material without a topic in Classroom, **When** it is synced, **Then** its «HOY»
+   piece goes to the notebook of its subject's most recent topic and the family is told.
+6. **Given** an exam announced or declared, **When** the sync ends, **Then** the exam's blocks are
+   proposed at once (Story 1) and the exam event carries the two links of FR-026.
 
 ---
 
@@ -290,11 +304,13 @@ check that the proposed blocks include it.
 
 **Order and names**
 
-- **FR-014**: Every piece's title MUST be in Spanish, start with its number in study order and say
-  what it is, what it is about and, for a video or quiz, its measured length or question count,
-  with no date and no recipient.
-- **FR-015**: The notebook's list MUST read in numbered order when the run ends, with a note
-  numbered 0 first saying what to do first.
+- **FR-014**: Every piece's title MUST be in Spanish and start with its moment — `HOY`, `Ayer`,
+  `REPASO SEMANA` or `EXAMEN <weekday>` — followed by its number within that moment when there are
+  several; it says what the piece is, what it is about and, for a video or quiz, its measured length
+  or question count, with no date and no recipient. A piece in the exam's language says so.
+- **FR-015**: When a run ends, the notebook's list MUST open with the note «0 · Empieza aquí»,
+  rewritten by every run to name the one thing to do today with its duration, and directly under it
+  the piece the note names. No title and no note may present a piece as optional.
 - **FR-016**: The notebook's chat MUST be set to answer as a tutor: a hint before the answer,
   Spanish explanations with the exam's terms, the source order of FR-002, and no attribution of a
   source to a person.
@@ -311,25 +327,33 @@ check that the proposed blocks include it.
 
 **Trigger and record**
 
-- **FR-020**: Generation MUST follow the arrival of the teacher's content so the student can study
-  day by day, MUST NOT depend on detecting the end of a topic, and MUST make more when an exam is
-  announced, early enough for that material to be used before the exam. Nothing for the student
-  may be presented as optional.
-  [NEEDS CLARIFICATION: which pieces are made at each moment — on each new material, on a fixed
-  period, on an exam announcement — and how their names tell the student what to do today]
-- **FR-021**: alfabeta MUST keep, per topic, a record of the pack: blocks, each piece with its
-  notebook id, title, language, verification result and date, and the corrections found. A later
-  run reads it to avoid regenerating what exists.
+- **FR-020**: Each sync that brings a new teacher's material to a subject MUST make, in the notebook
+  of that material's topic, a «HOY» piece about that material alone: a quiz of about five questions
+  and about five flashcards in the exam's language. The previous «HOY» pieces are retitled «Ayer».
+  No video is made at this moment. A material already covered never gets a second «HOY» piece.
+- **FR-021**: On a fixed weekday, set in the configuration, alfabeta MUST make a «REPASO SEMANA» per
+  notebook that received material that week: one explainer video per idea that arrived, and a quiz
+  mixing that week with earlier ones. Once it is verified, that week's «Ayer» pieces are deleted.
+- **FR-022**: As soon as an exam is known — from the Classroom agenda or declared by the family —
+  alfabeta MUST propose the topic's blocks and make the exam pack of Story 1 on confirmation; with
+  no answer within one day, it makes it with the proposed blocks and says so. The family is told
+  how many afternoons remain before the exam.
+- **FR-023**: No step may depend on detecting that a topic has ended. A material without a topic in
+  Classroom goes to the notebook of its subject's most recent topic, and the family is told.
+- **FR-024**: alfabeta MUST keep, per topic, a record: blocks, each piece with its notebook id,
+  moment, title, language, verification result and date, the materials each «HOY» piece covers,
+  and the corrections found. A later run reads it to avoid regenerating what exists.
 
 **Boundaries**
 
-- **FR-022**: alfabeta MUST NOT write study blocks or reminders into the calendar, and MUST NOT
-  create events for the material. When a topic has an exam event, its description MUST carry a link
+- **FR-025**: alfabeta MUST NOT write study blocks or reminders into the calendar, and MUST NOT
+  create events for the material.
+- **FR-026**: When a topic has an exam event, its description MUST carry a link
   to the topic's Drive folder and one to its notebook, written once and not duplicated by later
   runs.
-- **FR-023**: Nothing about the student MAY enter the repository: prompts, names, ids and paths
+- **FR-027**: Nothing about the student MAY enter the repository: prompts, names, ids and paths
   come from the private configuration.
-- **FR-024**: alfabeta MUST NOT type a password; the family signs in.
+- **FR-028**: alfabeta MUST NOT type a password; the family signs in.
 
 ### Key Entities
 
@@ -339,7 +363,8 @@ check that the proposed blocks include it.
   number, title, language, audience (student or parent), verification result.
 - **Correction**: an exercise of a teacher's sheet whose recomputed result differs from the sheet,
   or whose statement lacks a datum.
-- **Pack record**: per topic, the blocks, the pieces and the corrections, with dates (FR-021).
+- **Pack record**: per topic, the blocks, the pieces with their moment, the materials each «HOY»
+  piece covers, and the corrections, with dates (FR-024).
 
 ## Success Criteria *(mandatory)*
 
@@ -352,15 +377,19 @@ check that the proposed blocks include it.
   audio cannot be checked by the run; its on-screen text is.)
 - **SC-003**: When a run ends, the notebook account's output language is what it was before the
   run, in every run, including failed ones.
-- **SC-004**: When a run ends, the notebook's list reads 0, 1, 2… with no gap and no piece of the
-  parent's material.
+- **SC-004**: When a run ends, the note is first, the piece it names is second, and no piece of
+  the parent's material is listed.
 - **SC-005**: The printed PDF lists every non-video piece of the notebook, in the same order, each
   starting on a new page.
-- **SC-006**: A topic's pack fits in one 5-hour usage window of the notebook account (measured
+- **SC-006**: An exam pack fits in one 5-hour usage window of the notebook account (measured
   2026-10-26: about 80 % for three videos and three reports).
-- **SC-007**: From "the topic is finished" to a pack the family can hand to the student, the
-  family intervenes at most twice: to confirm the blocks and, if a checked transcription of the
+- **SC-007**: From an exam being known to its pack being ready, the family intervenes at most
+  twice: to confirm the blocks and, if a checked transcription of the
   class notes is missing, to check it. Every other step runs without them.
+- **SC-008**: Every sync that brings new material ends with a «HOY» piece for it in its notebook,
+  and every weekly review day ends with its «REPASO SEMANA»; no «HOY» piece is made twice for the
+  same material.
+- **SC-009**: No title and no note in any notebook says «opcional», «extra» or «si quieres».
 
 ## Assumptions
 
@@ -379,11 +408,16 @@ check that the proposed blocks include it.
   and FR-013 hold at the end of the run, not during it.
 - What a viewer sees has not been checked from the student's account; the requirements on what
   the student sees assume a viewer sees the same list as the owner.
+- «HOY» needs the daily Classroom sync of spec 001; until it runs unattended, a «HOY» piece exists
+  only on the days someone runs the sync.
+- The quota cost of «HOY» pieces and weekly reviews across several subjects has not been measured;
+  quiz and flashcards cost less than videos, which is why «HOY» makes no video.
+- The weekly review day defaults to Friday.
 
 ## Dependencies
 
 - Spec 001 (`classroom-sync`): the topic folders, and the agenda that carries new topics and
-  announced exams (FR-020).
+  announced exams (FR-020, FR-022).
 - `nlm` (`notebooklm-mcp-cli`), `pandoc`, Graphviz and Google Chrome on the machine that runs it.
 - A browser session of the notebook's owner for the one setting `nlm` cannot change: the output
   language of quiz and flashcards is account-wide (FR-007). The run drives that session itself.
