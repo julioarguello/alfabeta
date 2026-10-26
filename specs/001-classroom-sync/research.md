@@ -47,6 +47,13 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   download at that moment. The tool's documentation says the task runs while the app is open and with
   a self-contained prompt; it says nothing about the browser or downloads. If it cannot, the
   scheduled run is limited to a notice and the family launches it with a command.
+- **Second risk, measured during S3: the school session does not last.** On 2026-10-25 and
+  2026-10-26 the school account at `/u/<n>` was sent three times to Google's «confirm your
+  identity» page (`accounts.google.com/…/confirmidentifier`). The last time, the operator had signed in
+  shortly before 09:15 and the session was gone by 10:35. With the session gone, the hidden iframe of R3 loads
+  the sign-in page, so its document becomes cross-origin: the extractor must treat a cross-origin
+  iframe as «session expired» and stop with that reason. Whether this is a school policy, and how
+  long a session lasts, was not measured; a daily unattended run depends on it.
 
 ### R2. Browser: Chrome with the Claude extension
 
@@ -253,6 +260,23 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   `python -m alfabeta downloads collect` moves it to `data/captures/`.
 - **Reason**: hundreds of items per class must not pass through Claude's context; a file can be
   saved, compared and used as a test.
+- **Open risk, against the unattended requirement**: a run must not wait for anyone to approve
+  anything in the browser. Measured 2026-10-26 in the operator's Chrome (Claude extension, school
+  account), downloads of a `blob:` file created by a script:
+  - from `example.com`, the file arrived with no dialog;
+  - from `classroom.google.com`, Chrome showed the «descargar varios archivos» (download multiple
+    files) dialog and held the download until the operator accepted it, although the operator saw
+    `classroom.google.com` under «Se permite» (Allowed) in «Descargas automáticas» (Automatic
+    downloads). Whether that setting belongs to the same Chrome profile as the extension was not
+    measured;
+  - one probe arrived within the same minute while a dialog was showing, and two earlier probes never
+    arrived; which download each dialog belonged to was not recorded.
+
+  Putting every page of a run in **one** file (S3 saved six pages as one 6.8 MB JSON) leaves at most
+  one download per run, but on 2026-10-26 even that single download needed the dialog. Until the
+  dialog is explained and removed, a download from Classroom is not an unattended transport; S2
+  (T011) answers it for scheduled runs, and the alternatives are a receiver on `127.0.0.1` or
+  returning the JSON in parts through the browser tool.
 
 ### R13. Personal-data guardrail
 
