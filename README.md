@@ -1,58 +1,148 @@
 # alfabeta
 
-**Claude skills so Generation Alpha can study with AI, and so their families can help them without losing the afternoon.**
+**Claude skills so a secondary-school student can study with AI, and their family can help without
+losing the afternoon.**
 
-It turns the school's digital textbooks into real study material (navigable PDFs + Markdown in
-Spanish, Basque and English), files it in your cloud storage by school year, subject and topic, and creates a
-[Gemini Notebook](https://notebook.google.com) (formerly NotebookLM) notebook per topic to ask questions, generate
-audio overviews, flashcards or quizzes. Coming soon: sync with Google Classroom and a study plan in the
-calendar.
+alfabeta organises what a student needs for each topic into one folder per topic in the family's
+cloud storage, and builds one [Gemini Notebook](https://notebook.google.com) (formerly NotebookLM)
+per topic to study from. The skills run in the [Claude](https://claude.ai) desktop app. The one that
+runs is the [Science Bits](https://learning-bits.com) textbook capture; the
+[Google Classroom](https://classroom.google.com) sync, the use of the student's own class notes, the
+study pack and the calendar are designed in [epic #1](https://github.com/julioarguello/alfabeta/issues/1)
+and in [About preparing study material in advance](docs/explanation/study-material.md).
+
+**If you are a family** that wants to use it, read [What it does](#what-it-does) and then
+[Get started](#get-started). **If you want to understand or change how study material is chosen and
+generated**, go to [About preparing study material in advance](docs/explanation/study-material.md).
+**If you want to contribute code**, start from the [specification](specs/001-classroom-sync/spec.md)
+and the [constitution](.specify/memory/constitution.md).
+
+| Section | You are… |
+|---|---|
+| [What it does](#what-it-does) | deciding whether this is for you |
+| [How it fits together](#how-it-fits-together) | wondering where each file and notebook comes from |
+| [Get started](#get-started) | ready to capture your first topic |
+| [Ground rules](#ground-rules) | worried about privacy, exams or the platforms' terms |
+| [Documentation](#documentation) | looking for something that is not on this page |
+
+---
+
+## What it does
+
+| Component | Where it is | What it does |
+|---|---|---|
+| `sciencebits-a-notebooklm` | Skill in [`skills/sciencebits-a-notebooklm/`](skills/sciencebits-a-notebooklm/SKILL.md) | Captures a Science Bits topic screen by screen, builds a navigable PDF and a Markdown file per language (Spanish, Basque, English), files them by school year, subject and topic, and creates the topic's notebook. |
+| `classroom-sync` | Specification in [`specs/001-classroom-sync/`](specs/001-classroom-sync/spec.md); implementation tracked in [epic #1](https://github.com/julioarguello/alfabeta/issues/1) | Is designed to copy the teacher's material from Classroom into the same topic folders, read-only, and keep an agenda of assignments and exams. |
+| Study pack | Design in [About preparing study material in advance](docs/explanation/study-material.md) | Is designed to prepare, as the teacher posts material, a few pieces per topic: short explainer videos, a glossary, practice in the exam's language, and a guide for the parent. |
+| Calendar | Design in the [roadmap](docs/roadmap.md#calendar) | One calendar per student, holding only objective facts from Classroom — assignments, exams, posted material — never study blocks. |
+
+## How it fits together
+
+Target layout, from [specification 001](specs/001-classroom-sync/plan.md) and the
+[study-pack design](docs/explanation/study-material.md). The Science Bits skill writes its files
+straight into the topic folder.
+
+```
+class notes (photos) ─┐
+Google Classroom ─────┼──► <school year>/<subject>/Tema NN - <title>/ ──► one notebook per topic ──► the student
+Science Bits ─────────┘     {apuntes, classroom, sciencebits}                 (shared as viewer)
+                                              │
+                                              └──► calendar: assignments, exams, posted material
+```
+
+When the three sources disagree about **what will be asked**, the design ranks the student's notes
+over Classroom, and Classroom over the textbook. The textbook still explains best; it is just the
+worst guide to the exam. The reasons, and the evidence behind them, are in
+[the explanation page](docs/explanation/study-material.md#three-sources-one-order-of-trust).
+
+In the design, the notebooks belong to a parent's personal Google account and are shared with the
+student, so the family can share them freely and the adult account avoids the platform's 18+ limit
+on cinematic video.
+
+## Get started
+
+> [!TIP]
+> **TL;DR** — clone the repository, install the notebook CLI, write your private configuration, add
+> the skill to Claude, then ask for a topic.
+>
+> ```bash
+> git clone https://github.com/julioarguello/alfabeta && cd alfabeta
+> uv tool install notebooklm-mcp-cli
+> nlm login
+> mkdir -p ~/.alfabeta && cp config.example.json ~/.alfabeta/config.json
+> ```
+>
+> The configuration holds names and folders only; never put a password in it.
+
+### Prerequisites
+
+| You need | Why |
+|---|---|
+| The [Claude desktop app](https://claude.ai/download) | The skill drives the app's built-in browser |
+| The [Desktop Commander](https://github.com/wonderwhy-er/DesktopCommanderMCP) connector in Claude | The skill reads your configuration and runs commands on your Mac through it |
+| [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
+| A folder synced to your cloud storage | The skill writes each topic under `storage.base_dir`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
+
+Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships `reportlab`,
+`beautifulsoup4` and `pypdf`.
+
+### Set up
+
+1. Copy `config.example.json` to `~/.alfabeta/config.json` and fill in `student` (name, grade, month
+   the school year starts), `storage` (`base_dir`, `tools_dir`), `subjects` and
+   `notebook.title_pattern`. It stays outside the repository.
+2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks — the skill uses
+   `nlm`'s default profile.
+3. Copy `skills/sciencebits-a-notebooklm/scripts/` to the `storage.tools_dir` folder of your
+   configuration.
+4. Add the skill to Claude by uploading `skills/sciencebits-a-notebooklm/`, or ask Claude «instala
+   la skill sciencebits-a-notebooklm de github.com/julioarguello/alfabeta» ("install the
+   sciencebits-a-notebooklm skill from github.com/julioarguello/alfabeta").
+5. Ask Claude: **«hazme el siguiente tema de física»** ("do the next physics topic for me"). The
+   student signs in to Science Bits when asked; no tool ever types a password.
+
+> [!WARNING]
+> **For the Classroom sync**: in the Chrome profile it uses, switch off *Ask where to save each file
+> before downloading*. Otherwise every download waits for a click and an unattended run stalls
+> ([measured](specs/001-classroom-sync/research.md#r12-from-the-browser-to-disk)).
+
+## Ground rules
+
+- **Read-only on school platforms.** alfabeta never turns anything in, comments, marks work as done,
+  or opens assessments or quizzes, in Classroom or in Science Bits — so no attempts are spent and no
+  grades change.
+- **Personal and educational use.** It captures only what the platform already shows the student.
+  The material belongs to its authors; do not redistribute it.
+- **The student is a minor.** Only the minimum data, never in the repository, URLs, logs, issues or
+  pull requests. A student is configuration, not code: a second student is a second configuration
+  file. Test data is invented.
+- **Gemini Notebook has no public API.** `nlm` uses internal endpoints and your account's session; it
+  may break, and its use may not fit Google's terms. Use it at your own risk, or turn notebooks off
+  with `notebook.enabled: false` and add the files by hand.
+- **Generated material is checked, not trusted.** The study pack recomputes every numeric answer
+  before it reaches the student — a teacher's answer key has been wrong before
+  ([example](docs/explanation/study-material.md#three-sources-one-order-of-trust)).
 
 ## Why «alfabeta»?
 
-It is a pun with four layers:
+A pun in four layers:
 
 | | |
 |---|---|
-| **alfabeto** (alphabet) | It is about learning. The first thing you learn is the alphabet; this is the alphabet of studying with AI. |
-| **generación Alfa** (Generation Alpha) | Who it is made for: those born since 2010, the first generation to study with AI from secondary school onwards. |
-| **beta** | Always in testing. It is a living project, remade with every topic, every subject and every school year. |
-| **poda alfa-beta** (alpha-beta pruning) | A geeky nod: the classic AI algorithm with which machines learned to play chess by discarding what is not worth looking at. Exactly what we want: study what matters. |
+| **alfabeto** (alphabet) | It is about learning; this is the alphabet of studying with AI. |
+| **generación Alfa** (Generation Alpha) | Who it is for: those born from 2010, the first to study with AI from secondary school. |
+| **beta** | Always in testing, remade with every topic, subject and school year. |
+| **poda alfa-beta** (alpha-beta pruning) | The classic game-search algorithm that discards what is not worth looking at. Exactly the point: study what matters. |
 
-## What is here
+## Documentation
 
-| Skill | Status | What it does |
+| Page | Kind | Read it when |
 |---|---|---|
-| [`sciencebits-a-notebooklm`](skills/sciencebits-a-notebooklm/SKILL.md) | ✅ works | Captures a Science Bits topic (every screen and every button), generates a PDF with a clickable table of contents + Markdown per language, saves it to your cloud storage and creates the Gemini Notebook notebook. |
-| `classroom-sync` | 🧪 proof of concept | Google Classroom assignments, due dates and materials → topic folder + notebook. See the [roadmap](docs/roadmap.md). |
-| `plan-de-estudio` | 💡 idea | Assignments and exams → Google Calendar with review sessions. |
-
-## Requirements
-
-- [Claude](https://claude.ai) with the **desktop app** (built-in browser and access to your Mac).
-- **Desktop Commander** connector (commands on the Mac).
-- For Gemini Notebook: [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli)
-  (`uv tool install notebooklm-mcp-cli` and `nlm login`).
-- Python 3 with `reportlab`, `beautifulsoup4` and `pypdf` (Claude's VM already ships them).
-
-## Installation
-
-1. Copy `config.example.json` to `~/.alfabeta/config.json` and fill it in (name, school year, folders, subjects).
-2. Copy the `skills/sciencebits-a-notebooklm/scripts/` folder to the `storage.tools_dir` path in your config.
-3. In Claude, add the skill by uploading `skills/sciencebits-a-notebooklm/` (or ask Claude «instala la skill
-   sciencebits-a-notebooklm de github.com/julioarguello/alfabeta» — "install the sciencebits-a-notebooklm skill
-   from github.com/julioarguello/alfabeta").
-4. Ask it: **«hazme el siguiente tema de física»** ("do the next physics topic for me").
-
-## Important notices
-
-- **Personal and educational use.** It captures only what the platform already shows the student with their own
-  account, so they can study. Do not redistribute the material: it belongs to its authors (Science Bits, the teachers…).
-- **It does not touch exams.** Assessment lessons are never opened, so no attempts are spent and no grades are changed.
-- **Gemini Notebook has no public API.** `notebooklm-mcp-cli` uses internal APIs and your Google account's
-  cookies; it may break and its use may not fit Google's terms. Use it at your own
-  risk (or turn it off with `notebook.enabled: false` and add the files by hand).
-- **Privacy.** No student data goes into the repo: everything personal lives in `~/.alfabeta/config.json`.
+| [About preparing study material in advance](docs/explanation/study-material.md) | Explanation | you want the evidence, the cases and the measurements behind the study design |
+| [Roadmap](docs/roadmap.md) | Plan | you want to know what gets built next |
+| [Classroom research](docs/classroom-investigacion.md) | Explanation | you wonder why there is no Classroom API |
+| [Specification 001](specs/001-classroom-sync/spec.md) and its [research notes](specs/001-classroom-sync/research.md) | Specification | you are building or reviewing the Classroom sync |
+| [Constitution](.specify/memory/constitution.md) | Principles | you are about to change how the project works |
 
 ## License
 
