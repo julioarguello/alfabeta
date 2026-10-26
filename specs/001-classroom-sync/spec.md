@@ -68,6 +68,26 @@ book providers other than Science Bits.
     confirmed waits in its own `YYYYMMDD - <teacher's title>` folder, like a teacher-only topic,
     and its replicas move when the family confirms the match; `Sin tema` is only for items
     Classroom leaves without a topic.
+- Q: The student has a personal Gmail account and a school Google Workspace for Education
+  account. Which one does the material reach? → A: Both. The operator decided it on 2026-10-26, and
+  the first mirror copy was made by hand that day. Every target takes a list of accounts instead of
+  one (FR-011a, FR-011b):
+  - Drive: one master folder (`drive.root`, in the personal account's Drive) plus a list of one-way
+    mirrors (`drive.mirrors`), each a folder in another account's Drive, mounted by Google Drive for
+    desktop on the same Mac. After every sync each mirror is brought up to date from the master.
+    Mechanism measured on the family Mac on 2026-10-26: `rsync -rlt --exclude .DS_Store
+    <master>/ <mirror>/`, without `--delete`. A mirror is never edited back into the master.
+  - Calendar: the one calendar is shared with every account in `calendar.shared_with`, each with
+    permission to see all event details.
+  - Notebooks: each topic notebook is shared as viewer with every account in
+    `notebook.share_with`.
+  - Measured 2026-10-26: the school domain allows a notebook owned by a personal Gmail account to be
+    shared with the school account as viewer, and it opens there; a calendar shared from a personal
+    account can be added in the school account and shows its events. Both depend on the school's
+    admin settings and are checked again if the school changes them.
+  - Today's `config.example.json`, read by the Science Bits skill until it moves to this template
+    (FR-022), carries the same lists as `storage.mirrors`, `calendar.shared_with` and
+    `notebook.share_with`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -292,6 +312,13 @@ saved.
   nowhere else; it stops and says so.
 - Google Drive for desktop is still uploading files from the previous sync: no effect,
   because alfabeta writes to the folder on disk.
+- A mirror's account is not mounted, or its Drive is full: the master and the other mirrors are
+  updated, the summary counts that mirror as failed, and the next sync brings it up to date.
+- A replica moves or is renamed in the master (a corrected match, a previous version): the mirror
+  receives the new name and keeps the old one, because a mirror is never pruned. A mirror holds at
+  least what the master holds, not exactly the same.
+- Someone edits or adds a file in a mirror: it is never copied back; if the master changes that
+  same file, the next sync overwrites the mirror's copy.
 - Two syncs of the same student at once: the second does not start while the first is still running.
 - Dates around the summer and winter daylight-saving changes: the date shown is the one Classroom
   shows.
@@ -359,6 +386,20 @@ saved.
   Drive, never the root of «Mi unidad» (My Drive), which already holds the student's content. It
   lives in the folder Google Drive for desktop mounts on the Mac; alfabeta only writes to that folder
   on disk and Google Drive for desktop does the sync with the cloud.
+- **FR-011a**: The root is the master. After every sync that reaches `apply`, and after a book
+  provider places a topic (`book place`), alfabeta MUST bring each folder in `drive.mirrors` up to
+  date from the master, one-way: it copies what is new or changed in the master, never deletes
+  anything from a mirror and never copies from a mirror into the master. A mirror already up to date
+  MUST receive zero writes (FR-025). A mirror that is not mounted or fails MUST NOT stop the sync,
+  the master or the other mirrors: it is reported and brought up to date by the next sync. The
+  summary for the family MUST say how many mirrors are up to date and how many failed, never their
+  paths (FR-031). An empty list means no mirrors.
+- **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
+  with no other: the student's calendar with each account in `calendar.shared_with`, with
+  permission to see all event details (built by the reminders epic), and each topic notebook a skill
+  creates with each account in `notebook.share_with`, as viewer. An account already shared with is
+  not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
+  count, never by address.
 - **FR-012**: Inside the root, the structure MUST be common to every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/<source>/`,
   with `classroom` and `sciencebits`
@@ -569,7 +610,8 @@ Example of the resulting structure (invented names):
   a cut-short capture (expired session, error) withdraws nothing. alfabeta MUST NOT delete anything
   from the student's folder.
 - **FR-028**: Every sync MUST leave a log entry with start, end, subjects walked and
-  items added, changed, withdrawn or not fetched, and end with a summary for the family.
+  items added, changed, withdrawn or not fetched, and mirrors up to date or failed (FR-011a), and
+  end with a summary for the family.
 - **FR-029**: The failure of a subject or of an attachment MUST NOT abort the rest. If it is
   interrupted, the next sync continues without duplicating.
 - **FR-030**: Two syncs of the same student MUST NOT run at once: the lock is taken
@@ -585,14 +627,16 @@ Example of the resulting structure (invented names):
 
 - **FR-031**: The name, the email or any data identifying the student MUST NOT appear in a
   URL that alfabeta builds, in the log or in an error message. Paths are shown
-  relative to the student's root folder, and the root's absolute path is never shown, because the
-  Google Drive for desktop mount path carries the account's email.
+  relative to the student's root folder, and the absolute path of the root or of a mirror is never
+  shown, because the Google Drive for desktop mount path carries the account's email.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Student**: a *tenant*. Their private configuration (display name, school year, root folder in
-  the family's Drive, subjects, Classroom account) and their local data folder (log, sync
-  state, the family's decisions).
+- **Student**: a *tenant*. Their private configuration (display name, school year, master folder in
+  the family's Drive and its mirrors, subjects, Classroom account, the accounts the calendar and the
+  notebooks are shared with) and their local data folder (log, sync state, the family's decisions).
+- **Mirror**: a folder in another of the student's accounts' Drive, mounted on the same Mac, kept
+  up to date one-way from the master folder.
 - **Subject**: a course of the student, with its folder name and the Classroom class that
   corresponds to it.
 - **Topic folder**: the third level of the structure, prefixed with its date. A topic folder holds
@@ -616,7 +660,8 @@ Example of the resulting structure (invented names):
 - **SC-001**: After a subject's first sync, 100 % of the items in its
   «Trabajo de clase» are replicated in its folder or noted with link and reason, checked item by
   item against what the student sees in Classroom.
-- **SC-002**: A second sync without changes (FR-025) modifies zero files in the student's folder.
+- **SC-002**: A second sync without changes (FR-025) modifies zero files in the student's folder
+  and in its mirrors.
 - **SC-003**: A moved due date, a new material or an attachment of an item that Classroom
   shows as modified appear in the folder and in the summary in the first sync after the
   change; an attachment edited only in Drive, or of an item that shows no modification mark (an
@@ -637,6 +682,9 @@ Example of the resulting structure (invented names):
 - **SC-009**: Searching the student's name and email in the log and in the messages of a
   full sync gives zero matches. The command never prints `display_name`: only Claude
   uses it when talking with the family in the chat.
+- **SC-010**: After a sync in which every mirror is mounted, every file in the master is in every
+  mirror with the same size and modification time (a `rsync -rlt --dry-run` from the master lists
+  nothing to copy).
 
 ## Assumptions
 
@@ -651,8 +699,10 @@ Example of the resulting structure (invented names):
 - The family Drive is mounted on the Mac with Google Drive for desktop. Which personal Google account
   it is (the family confirms which when mounting it in the plan), and which folder each student's
   root lives in, is configuration.
-- If the student does not own that account, the family shares once, from Drive, the student's root
-  folder with the student's personal Gmail account. alfabeta does not manage Drive permissions.
+- The student's other accounts (on 2026-10-26, the school Google Workspace for Education account)
+  get the material through mirrors (FR-011a), not through Drive sharing: each one's Drive is mounted
+  by Google Drive for desktop on the same Mac and its folder is listed in `drive.mirrors`. alfabeta
+  does not manage Drive permissions.
 - The Classroom API is not available for the student's school account
   (`docs/classroom-investigacion.md`); everything is read from what the student sees.
 - Topic and item titles are kept in the language the teacher writes them in.
@@ -665,8 +715,10 @@ Example of the resulting structure (invented names):
   it is added.
 - The plan sets the exact location of the private configuration and of the local data folder,
   always outside the repository and outside the shared folder.
-- The student's account for the calendar and the alerts is decided in the reminders epic. That
-  epic also sets each category's colour; the proposal is exam red, assignment orange,
+- The accounts the calendar is shared with are configuration (`calendar.shared_with`, FR-011b);
+  the calendar itself, its alerts and its events are built by the reminders epic. Measured
+  2026-10-26: a calendar shared from a personal account can be added in the student's school
+  account and shows its events. That epic also sets each category's colour; the proposal is exam red, assignment orange,
   quiz purple, material blue and announcement green, with the subject in the event title, because
   a calendar event takes a single colour. That epic also evaluates Google Tasks for assignments
   (the student marks them as done and they show in the calendar), checking which account they live
@@ -677,6 +729,7 @@ Example of the resulting structure (invented names):
 
 - The Claude desktop app with access to the Mac's files.
 - Chrome with the Claude extension and the student's Classroom session in it.
-- Google Drive for desktop with the family's account, already installed on the Mac.
+- Google Drive for desktop with the family's account, already installed on the Mac, and with the
+  account of each mirror mounted too.
 - The `sciencebits-a-notebooklm` skill, which moves to reading the per-student configuration and
   writing to the common structure (FR-022).

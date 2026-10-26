@@ -20,6 +20,15 @@ account = "changeme@example.org"
 # alfabeta's own folder inside the Drive mounted by Google Drive for desktop.
 # Never the root of «Mi unidad» (My Drive). Never shown in messages.
 root = "changeme"                   # e.g. "~/Library/CloudStorage/GoogleDrive-<account>/Mi unidad/alfabeta"
+# One-way mirrors of the root (FR-011a): a folder in each of the student's other accounts' Drives,
+# mounted by Google Drive for desktop on this Mac. Brought up to date from the root after every
+# sync; never read back, never pruned. Never shown in messages. [] for none.
+mirrors = ["changeme"]              # e.g. ["~/Library/CloudStorage/GoogleDrive-<school account>/Mi unidad/alfabeta"]
+
+[calendar]
+# Accounts the student's calendar is shared with, each with permission to see all event details
+# (FR-011b; the calendar is built by the reminders epic). [] for none.
+shared_with = ["changeme@example.org"]
 
 [downloads]
 # Folder where the browser leaves its downloads.
@@ -51,6 +60,8 @@ languages = ["changeme"]            # e.g. ["es", "en"]
 # Whether the Gemini Notebook notebook of each topic is created (epic 3; the Science Bits skill already does it).
 enabled = false
 # The constitution sets the name: «<grade level>. <Subject>. Tema NN - <title>».
+# Accounts each topic notebook is shared with as viewer (FR-011b). [] for none.
+share_with = ["changeme@example.org"]
 
 [[subjects]]
 # Name of the subject's folder.

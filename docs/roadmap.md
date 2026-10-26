@@ -20,7 +20,8 @@ Result of the test: the API is blocked for under-age students (see [classroom-in
 ## Calendar
 
 - Source: assignments, exams and posted material from `classroom-sync`.
-- Output: events in one calendar per student, owned by a parent and shared with the student. Only
+- Output: events in one calendar per student, owned by a parent and shared with every account in
+  `calendar.shared_with` (the student's personal and school accounts), each able to see event details. Only
   objective facts from Classroom; study time is planned by hand.
 
 ## Study pack
