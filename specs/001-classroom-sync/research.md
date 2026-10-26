@@ -291,6 +291,15 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   - one probe arrived within the same minute while a dialog was showing, and two earlier probes never
     arrived; which download each dialog belonged to was not recorded.
 
+  Measured 2026-10-26 in a manual import of every class (85 attachment downloads, one hidden `iframe`
+  every 3 s pointing at `drive.usercontent.google.com/download` or a `docs.google.com/…/export`):
+  84 files arrived complete, but the operator had to confirm Chrome's dialog, so these origins hold
+  the download, not Classroom. One video of a few hundred MB never arrived; Drive answers large files
+  with a confirmation page instead of the file. Candidate fix, not yet measured: list
+  `drive.usercontent.google.com` and `docs.google.com` under «Descargas automáticas» → «Se permite»
+  as part of the installation. Rejected: downloading with `curl` outside the browser, because it
+  needs the school session's cookies, a secret no tool may handle (constitution, minors' data).
+
   Putting every page of a run in **one** file (S3 saved six pages as one 6.8 MB JSON) leaves at most
   one download per run, but on 2026-10-26 even that single download needed the dialog. Until the
   dialog is explained and removed, a download from Classroom is not an unattended transport; S2
