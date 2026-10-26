@@ -223,7 +223,13 @@ def topic(args: argparse.Namespace, work: Path) -> None:
         nlm(args.profile, "notebook", "get", args.notebook, "--json")
     ).get("title", "")
     index = ["| | Pieza | Dónde |", "|---|---|---|"]
-    body: list[str] = []
+    # The start note ("0 · …") opens the index and is printed right after it.
+    notes = json.loads(nlm(args.profile, "note", "list", args.notebook, "--json"))
+    start = [
+        n for n in notes.get("notes", []) if re.match(r"0\s*·", n.get("title") or "")
+    ]
+    index += [f"| ✎ | {cell(n['title'])} | en este documento |" for n in start]
+    body: list[str] = [f"## {n['title']}\n\n{n.get('content', '')}\n" for n in start]
     for a in arts:
         name, kind = a.get("title") or a["type"], a["type"]
         if kind == "video":

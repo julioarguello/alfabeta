@@ -39,13 +39,15 @@ Never write a name, an email or an id into the repository.
    says what is prioritised, not what is excluded. List the ideas an exam could ask, grouped in **two
    or three blocks**; separate on purpose two ideas students confuse (density and concentration were
    one such pair). Write them to `docente/bloques.md` with the files they come from, and show them to
-   the family. **Once confirmed, the blocks are not decided again.**
+   the family. **Once confirmed, the blocks are not decided again.** Photos in `apuntes/` become a
+   source only as a literal transcription that someone who reads the notes has checked.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
    anything the student sees.
 3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time:
    - one video per block (`--format explainer --language es-ES`);
-   - reports: practice sheet (`--language` the exam language), glossary and parent guide (`--language es`);
+   - reports: study guide (`--format 'Study Guide' --language es`), practice sheet (`--language` the
+     exam language), glossary and parent guide (`--language es`);
    - quiz and flashcards, after the language switch below;
    - a mind map: `NOTEBOOKLM_HL=es nlm mindmap create <nb> -y` (it takes no focus, so it covers what
      the sources stress, which may not be every block).
@@ -67,14 +69,16 @@ Never write a name, an email or an id into the repository.
    glossary, each with its Markdown beside it.
 7. **Remove from Studio what the student must not see.** A viewer sees every Studio artifact, so the
    parent guide (it holds the answers) and the glossary leave Studio once their PDF and Markdown are
-   in `docente/` (`nlm studio delete <nb> <id> --profile <profile> --confirm`). The panel that
-   designed this put the ceiling at about five pieces the student works through; Tema 01 ended with
-   six to work through plus two to consult. Say so when a topic goes past it.
+   in `docente/` (`nlm studio delete <nb> <id> --profile <profile> --confirm`). Until this step a
+   viewer can see them: run it as soon as step 6 ends. Few pieces is a design hypothesis (see the
+   design page); Tema 01 ended with six to work through plus two to consult. Say so when a topic
+   goes past that.
 8. **Number and order.** Every title starts with its place in the study order — videos, practice,
    quiz, flashcards, then what is only consulted (guide, mind map) — and says what it is, what
-   about and how long, in the language the student uses it in, with no date and no recipient:
-   `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 galdera · Materia eta
-   disoluzioak`. Studio lists by last modification, so rename from the last piece to the first
+   about and how long, in Spanish — the constitution asks it of everything the family reads, and the
+   parent reads the printed index — with no date and no recipient; a piece in the exam's language
+   says so: `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 preguntas en euskera ·
+   Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
 9. **Add the start note** `0 · Empieza aquí` last, so it sits on top (`nlm note create`, or
@@ -82,7 +86,7 @@ Never write a name, an email or an id into the repository.
    (both in [`prompts.md`](prompts.md)).
 10. **Print the topic** for paper: `scripts/print_pack.py topic <nb> "<topic folder>/Tema NN para
     imprimir · <title>.pdf"`. One PDF: an index of every piece (videos marked as "in the
-    notebook"), then each report, the quiz with its answer key at the end, the flashcards as a
+    notebook"), the start note, then each report, the quiz with its answer key at the end, the flashcards as a
     table and the mind map drawn with Graphviz, each on a new page, in the numbered order. Run it
     after step 7, or the parent's material would print with it.
 11. **Report** to the family: what is in Studio and in what order, where the printable PDF is,
@@ -91,9 +95,10 @@ Never write a name, an email or an id into the repository.
 > [!WARNING]
 > The output language that quiz and flashcards are written in is an **account-wide** setting, not a
 > notebook one, and `nlm` has no flag for it. Before generating them, open the notebook in the
-> browser, signed in as the owner, and set *Settings → Output language* to the exam language; after
-> verifying them, set it back to *Default*. Left switched, every other notebook of that account
-> answers in that language (measured 2026-10-26).
+> browser, signed in as the owner, note the current value of *Settings → Output language*, and set
+> it to the exam language; after verifying them, set it back to the value you noted, even when the
+> run failed. Left switched, every other notebook of that account answers in that language (measured
+> 2026-10-26).
 
 ## Measured behaviour of Gemini Notebook
 
