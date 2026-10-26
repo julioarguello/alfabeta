@@ -33,7 +33,7 @@ and the [constitution](.specify/memory/constitution.md).
 |---|---|---|
 | `sciencebits-a-notebooklm` | Skill in [`skills/sciencebits-a-notebooklm/`](skills/sciencebits-a-notebooklm/SKILL.md) | Captures a Science Bits topic screen by screen, builds a navigable PDF and a Markdown file per language (Spanish, Basque, English), files them by school year, subject and topic, and creates the topic's notebook. |
 | `classroom-sync` | Specification in [`specs/001-classroom-sync/`](specs/001-classroom-sync/spec.md); implementation tracked in [epic #1](https://github.com/julioarguello/alfabeta/issues/1) | Is designed to copy the teacher's material from Classroom into the same topic folders, read-only, and keep an agenda of assignments and exams. |
-| `study-pack` | Skill in [`skills/study-pack/`](skills/study-pack/SKILL.md); the reasons in [About preparing study material in advance](docs/explanation/study-material.md) | Prepares a few pieces per finished topic inside its notebook — short explainer videos, practice, quiz and flashcards in the exam's language — and prints a glossary and a guide with a recomputed answer key for the parent to A4 PDF. |
+| `study-pack` | Skill in [`skills/study-pack/`](skills/study-pack/SKILL.md); the reasons in [About preparing study material in advance](docs/explanation/study-material.md) | Prepares a few pieces per finished topic inside its notebook — short explainer videos, practice, quiz and flashcards in the exam's language — prints a glossary and a guide with a recomputed answer key for the parent, and prints the whole topic as one A4 PDF. |
 | Calendar | Design in the [roadmap](docs/roadmap.md#calendar) | One calendar per student, holding only objective facts from Classroom — assignments, exams, posted material — never study blocks. |
 
 ## How it fits together
@@ -81,7 +81,7 @@ on cinematic video.
 | The [Claude desktop app](https://claude.ai/download) | The skill drives the app's built-in browser |
 | The [Desktop Commander](https://github.com/wonderwhy-er/DesktopCommanderMCP) connector in Claude | The skill reads your configuration and runs commands on your Mac through it |
 | [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
-| [pandoc](https://pandoc.org/installing.html) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports to PDF with them |
+| [pandoc](https://pandoc.org/installing.html), [Graphviz](https://graphviz.org/download/) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports and mind maps to PDF with them |
 | A folder synced to your cloud storage | The skill writes each topic under `storage.base_dir`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
 Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships `reportlab`,
