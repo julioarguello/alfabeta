@@ -66,9 +66,14 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   detail (status, dates, modification mark, attachments, student submission, grading) and the
   stream's posts. It navigates only to the home page, «Trabajo de clase», the stream and the detail
   page of assignments, materials and questions; it never follows a link to a form or quiz and never
-  clicks the «Tu trabajo» panel. It waits at least 2 s (with jitter) between pages. How it walks the
-  pages without losing the injected script (hidden iframe, `fetch` of the detail pages, or
-  re-injection by Claude on each page) is decided with S3 and recorded here before T032.
+  clicks the «Tu trabajo» panel. It waits at least 2 s (with jitter) between pages.
+- **How it walks the pages (decided with S3)**: the script stays injected in the tab on the home
+  page and loads each page it reads in a **hidden same-origin iframe** (off screen, 1200×800),
+  waiting until the iframe's document shows the expected labels, with a timeout and one retry. It
+  never navigates the tab itself, so the injected script is not lost. Rejected: a `fetch` of the
+  detail page returns HTTP 200 and about 0.8 MB of HTML that holds none of the content (no status,
+  no «Tu trabajo», no modification mark), because Classroom renders it with JavaScript; and
+  re-injection by Claude on each page costs one tool call per item.
 - **Complete capture or not**: each capture says whether it reached the end of the class
   (`complete`). A truncated capture withdraws no items (FR-027).
 - **Stops**: if it finds an anti-bot challenge (CAPTCHA, verification page, «demasiadas peticiones»
@@ -80,7 +85,18 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
 - **Alternatives**: reading the Classroom web app's internal calls (more stable, undocumented): left
   for the local MCP.
 
-### R4. Downloading Drive attachments (spike S1, first technical risk)
+Measured 2026-10-25 against the student's Classroom in Chrome (Claude extension, school account,
+interface in Spanish), read-only, with no title, name or identifier printed (spike S3):
+
+| Fact | How it was read |
+|---|---|
+| Classwork: `/u/<n>/w/<class>/t/all`; assignment `/u/<n>/c/<class>/a/<item>/details`; material `/u/<n>/c/<class>/m/<item>/details`; question `/u/<n>/c/<class>/mc/<item>/details` (an `/a/` link to a question is served at `/mc/`); student's work `/u/<n>/c/<class>/sp/<student>/all/default` | `href` patterns on the home and classwork pages, and the iframe's `location.pathname` |
+| The identifier in the URL is the item's numeric id encoded in base64; the classwork rows carry the numeric id in `data-stream-item-id` and the type in `data-stream-item-type` (`1` assignment, `5` material, `2` question) | Decoding one URL id against its row's `data-stream-item-id`; types counted per class |
+| Attachments to Google files link to `docs.google.com/<type>/d/<id>/edit` | Links on one material's detail page |
+| The assignment detail page shows a modification mark with the shape «(Última modificación: N oct)» | Text of one assignment's detail page |
+| Reading a question's detail page does not change «Tu trabajo»: the student's work page gave the same text hash before and after | Hash of `/sp/<student>/all/default` around one question's detail load |
+| A page in the hidden iframe was ready in 1.0–1.2 s (classwork, material, question, stream); one question load timed out at 25 s and succeeded on the retry | `performance.now()` around each iframe load |
+| 12 classes and 93 items in total; the largest class has 21 items | Classwork of every class, through the iframe | Downloading Drive attachments (spike S1, first technical risk)
 
 - **Problem**: the direct download `drive.google.com/uc?export=download` failed in the built-in
   browser (issue #1). Attachments link to `drive.google.com`.
@@ -159,6 +175,26 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   need.
 - **Check**: the personal-data guardrail (FR-005) also runs over the synthetic pages. No test and no
   CI job calls Classroom (constitution VI).
+- **Label allowlist (from S3)**: the UI labels seen on 2026-10-25 on the pages the extractor reads
+  (page text and `aria-label`s, compared against a candidate list; the interface in Spanish):
+  - navigation: «Trabajo de clase», «Tablón», «Personas», «Ver tu trabajo»;
+  - classwork listing: «Tarea», «Material», «Pregunta», «Sin tema», «Fecha de entrega»,
+    «Sin fecha de entrega», «Publicado», «Última modificación»;
+  - detail pages: «Tu trabajo», «Asignado», «Entregado», «Sin entregar», «Añadir o crear»,
+    «Marcar como completado», «Entregar», «Tu respuesta», «puntos», «Comentarios de la clase»,
+    «Comentarios privados»;
+  - stream: «Próximas entregas», «Ver todo», «ha publicado», «publicado una nueva tarea»;
+  - date shapes: «N oct», «N sept», «Hoy».
+- **Open question for the data model**: «Sin entregar» appeared as the status of a question's
+  «Tu trabajo» panel and on the student's work page. The status table in `data-model.md` maps
+  «Asignado» and «Falta» but not «Sin entregar»; whether it maps like «Falta» is not measured.
+- **How long a class takes (from S3)**: about 4 s per item (1.0–1.2 s for the iframe, the 2 s minimum
+  wait with jitter, and the time to read the panel), so about 2 minutes for the largest class
+  measured on 2026-10-25 (21 items) and under 7 minutes for every class of that day (93 items).
+- **`lock_idle_minutes` stays at 30**: the longest stretch without a renewal is in the Science Bits
+  skill, whose `nlm source add … --wait --wait-timeout 300` blocks up to 5 minutes per file; in the
+  Classroom skill it is one class (about 2 minutes), renewing between classes. T017 copies the
+  contract's value to `config/template.toml`.
 
 ### R9. Per-student configuration: TOML with a mirror template, outside the repo
 
