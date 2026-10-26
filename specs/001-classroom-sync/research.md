@@ -295,10 +295,11 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   every 3 s pointing at `drive.usercontent.google.com/download` or a `docs.google.com/…/export`):
   84 files arrived complete, but the operator had to confirm Chrome's dialog, so these origins hold
   the download, not Classroom. One video of a few hundred MB never arrived; Drive answers large files
-  with a confirmation page instead of the file. Fix: list `drive.usercontent.google.com` and `docs.google.com` under «Descargas automáticas» →
-  «Se permite» as part of the installation. Measured 2026-10-26 right after the operator added them:
-  two downloads fired 1.5 s apart from a Classroom page arrived within 2 s each, which a held
-  download does not do. Rejected: downloading with `curl` outside the browser, because it
+  with a confirmation page instead of the file. Tried: list `drive.usercontent.google.com` and `docs.google.com` under «Descargas automáticas» →
+  «Se permite» as part of the installation, but it did not work: on 2026-10-26, right after the
+  operator added both origins, two downloads fired 1.5 s apart from a Classroom page arrived within
+  2 s and the operator still saw the dialog. Arrival time therefore does not show the absence of
+  the dialog. Whether the setting was made in the same Chrome profile as the extension is not known. Rejected: downloading with `curl` outside the browser, because it
   needs the school session's cookies, a secret no tool may handle (constitution, minors' data).
 
   Putting every page of a run in **one** file (S3 saved six pages as one 6.8 MB JSON) leaves at most
