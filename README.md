@@ -6,9 +6,9 @@ losing the afternoon.**
 alfabeta organises what a student needs for each topic into one folder per topic in the family's
 cloud storage, and builds one [Gemini Notebook](https://notebook.google.com) (formerly NotebookLM)
 per topic to study from. The skills run in the [Claude](https://claude.ai) desktop app. The one that
-runs is the [Science Bits](https://learning-bits.com) textbook capture; the
-[Google Classroom](https://classroom.google.com) sync, the use of the student's own class notes, the
-study pack and the calendar are designed in [epic #1](https://github.com/julioarguello/alfabeta/issues/1)
+run are the [Science Bits](https://learning-bits.com) textbook capture and the study pack; the
+[Google Classroom](https://classroom.google.com) sync, the use of the student's own class notes and
+the calendar are designed in [epic #1](https://github.com/julioarguello/alfabeta/issues/1)
 and in [About preparing study material in advance](docs/explanation/study-material.md).
 
 **If you are a family** that wants to use it, read [What it does](#what-it-does) and then
@@ -33,7 +33,7 @@ and the [constitution](.specify/memory/constitution.md).
 |---|---|---|
 | `sciencebits-a-notebooklm` | Skill in [`skills/sciencebits-a-notebooklm/`](skills/sciencebits-a-notebooklm/SKILL.md) | Captures a Science Bits topic screen by screen, builds a navigable PDF and a Markdown file per language (Spanish, Basque, English), files them by school year, subject and topic, and creates the topic's notebook. |
 | `classroom-sync` | Specification in [`specs/001-classroom-sync/`](specs/001-classroom-sync/spec.md); implementation tracked in [epic #1](https://github.com/julioarguello/alfabeta/issues/1) | Is designed to copy the teacher's material from Classroom into the same topic folders, read-only, and keep an agenda of assignments and exams. |
-| Study pack | Design in [About preparing study material in advance](docs/explanation/study-material.md) | Is designed to prepare, as the teacher posts material, a few pieces per topic: short explainer videos, a glossary, practice in the exam's language, and a guide for the parent. |
+| `study-pack` | Skill in [`skills/study-pack/`](skills/study-pack/SKILL.md); the reasons in [About preparing study material in advance](docs/explanation/study-material.md) | Prepares a few pieces per finished topic inside its notebook — short explainer videos, practice, quiz and flashcards in the exam's language — and prints a glossary and a guide with a recomputed answer key for the parent to A4 PDF. |
 | Calendar | Design in the [roadmap](docs/roadmap.md#calendar) | One calendar per student, holding only objective facts from Classroom — assignments, exams, posted material — never study blocks. |
 
 ## How it fits together
@@ -81,6 +81,7 @@ on cinematic video.
 | The [Claude desktop app](https://claude.ai/download) | The skill drives the app's built-in browser |
 | The [Desktop Commander](https://github.com/wonderwhy-er/DesktopCommanderMCP) connector in Claude | The skill reads your configuration and runs commands on your Mac through it |
 | [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
+| [pandoc](https://pandoc.org/installing.html) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports to PDF with them |
 | A folder synced to your cloud storage | The skill writes each topic under `storage.base_dir`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
 Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships `reportlab`,
@@ -89,15 +90,17 @@ Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships 
 ### Set up
 
 1. Copy `config.example.json` to `~/.alfabeta/config.json` and fill in `student` (name, grade, month
-   the school year starts), `storage` (`base_dir`, `tools_dir`), `subjects` and
-   `notebook.title_pattern`. It stays outside the repository.
-2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks — the skill uses
-   `nlm`'s default profile.
-3. Copy `skills/sciencebits-a-notebooklm/scripts/` to the `storage.tools_dir` folder of your
-   configuration.
-4. Add the skill to Claude by uploading `skills/sciencebits-a-notebooklm/`, or ask Claude «instala
-   la skill sciencebits-a-notebooklm de github.com/julioarguello/alfabeta» ("install the
-   sciencebits-a-notebooklm skill from github.com/julioarguello/alfabeta").
+   the school year starts), `storage` (`base_dir`, `tools_dir`), `subjects`, `notebook`
+   and `study_pack.exam_language`. It stays outside the repository.
+2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks. The Science
+   Bits skill uses `nlm`'s default profile; the study pack uses the one named in
+   `notebook.nlm_profile`, so write `default` there unless you keep a separate profile.
+3. Copy `skills/sciencebits-a-notebooklm/scripts/` and `skills/study-pack/scripts/` to the
+   `storage.tools_dir` folder of your configuration.
+4. Add the skills to Claude by uploading `skills/sciencebits-a-notebooklm/` and
+   `skills/study-pack/`, or ask Claude «instala la skill sciencebits-a-notebooklm de
+   github.com/julioarguello/alfabeta» ("install the sciencebits-a-notebooklm skill from
+   github.com/julioarguello/alfabeta").
 5. Ask Claude: **«hazme el siguiente tema de física»** ("do the next physics topic for me"). The
    student signs in to Science Bits when asked; no tool ever types a password.
 

@@ -17,7 +17,17 @@
   "languages": ["es", "eu", "en"],
   "notebook": {
     "enabled": true,
-    "title_pattern": "{grade}. {subject}. Tema {nn} - {title}"
+    "title_pattern": "{grade}. {subject}. Tema {nn} - {title}",
+    "collection_pattern": "{grade} · {subject}",
+    "nlm_profile": "changeme-family",
+    "share_with": "changeme-student@example.com",
+    "share_role": "viewer"
+  },
+  "study_pack": {
+    "exam_language": {
+      "FiQui": "eu",
+      "Bio": "eu"
+    }
   },
   "sciencebits": {
     "url": "https://learning-bits.com/intranet/es/myclasses/index"
