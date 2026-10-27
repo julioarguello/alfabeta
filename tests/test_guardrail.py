@@ -67,8 +67,10 @@ def _home_with_config(tmp_path: Path) -> Path:
         'display_name = "Iñigo"\nschool_year = "2026-2027"\n'
         "[classroom]\n"
         f'account = "{_at("inigo.x", "cole.example.org")}"\n'
+        "[storage]\n"
+        'base = "~/Drive/Iñigo"\n'
         "[drive]\n"
-        'root = "~/Drive/Iñigo"\n'
+        'root = "alfabeta"\n'
     )
     return home
 
@@ -77,6 +79,8 @@ def test_named_values_come_from_identifying_keys_only(tmp_path: Path):
     named = guardrail.named_values(_home_with_config(tmp_path))
     assert "Iñigo" in named and "estudiante" in named
     assert "2026-2027" not in named
+    assert "~/Drive/Iñigo" in named
+    assert "alfabeta" not in named  # drive.root names a folder inside My Drive, as the repository does
 
 
 def test_named_value_fires_even_where_generic_ones_do_not(tmp_path: Path):

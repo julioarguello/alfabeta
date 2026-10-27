@@ -47,9 +47,22 @@ _B64_TOKEN = re.compile(
 _NUMERIC_ID = re.compile(r"(?<![0-9A-Za-z.])[0-9]{11,15}(?![0-9A-Za-z.])")
 _PLACEHOLDER = re.compile(r"<[^<>\n]{1,60}>|\bsynth-\d+\b")
 
-# Keys whose values identify the student or their accounts in a real configuration.
+# Keys whose values identify the student or their accounts in a real configuration. `drive.root` is not
+# one: since spec 004 it is a folder name inside My Drive ("alfabeta"), and it would match every file here.
 _IDENTIFYING_KEYS = frozenset(
-    {"id", "display_name", "name", "account", "address", "root", "classroom_class", "school", "drive", "notebook_owner"}
+    {
+        "id",
+        "display_name",
+        "name",
+        "account",
+        "address",
+        "base",
+        "mirrors",
+        "classroom_class",
+        "school",
+        "drive",
+        "notebook_owner",
+    }
 )
 _MIN_NAMED_LENGTH = 4
 
