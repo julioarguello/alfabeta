@@ -26,7 +26,7 @@ own table is the subset the requirements rest on; this one is the full list.
 | Drive accepts two `properties has { … }` clauses joined with `and` | The look-ups before create of the same setup, no error | 2026-10-27 |
 | A Drive PDF source listed by `nlm source list --json` has an empty `url`, type `pdf`, and the Drive file's name as its title, `.pdf` included, whatever `--title` said | Same notebook, after setup | 2026-10-27 |
 | Listing the whole alfabeta folder (384 items, 168 folders) takes 171 Drive requests and 73 s from the Mac | `ScopedDrive.open` with a counting transport | 2026-10-27 |
-| Step 2 on the four photos of 2026-10-26: Haiku 5.5 invents readings that change the meaning (an «ez dira» crossed out read as «eratzen»); Opus 5.5 invents a crossing-out where there is a wavy underline and adds boxes; Sonnet 5.5 keeps the layout, misreads one letter twice («dituten», «daitezke» for «duten», «daiteke») and marks its doubts. `claude-sonnet-5-5` stays. Each photo cost 2,466 tokens in and 326 to 553 out (effort `low`), about 0.009 USD a page | Quickstart step 2, each output compared with the checked Markdown and the photo | 2026-10-27 |
+| Step 2 on the four photos of 2026-10-26: Haiku 5.5 invents readings that change the meaning (an «ez dira» crossed out read as «eratzen»); Opus 5.5 invents a crossing-out where there is a wavy underline and adds boxes; Sonnet 5.5 keeps the layout, misreads one letter twice («dituten», «daitezke» for «duten», «daiteke») and marks its doubts. `claude-sonnet-5-5` stays. Each photo cost 2,466 tokens in and 326 to 553 out (effort `low`), about 0.009 USD a page at 2 and 10 USD per million tokens in and out | Quickstart step 2, each output compared with the checked Markdown and the photo | 2026-10-27 |
 | The operator checked the transcription of four pages of notes made on 2026-10-26 against the photos and accepted it; it is one Markdown with a `## Página N` section per photo, each embedding the photo by name | This project's conversation of 2026-10-26; the Markdown is in the topic's `apuntes/` | 2026-10-26 |
 | Tema 01's notebook holds those notes as two plain sources titled «Apuntes · Apuntes de clase · T01.md» and «… .pdf» | `nlm source add` output of 2026-10-26 | 2026-10-26 |
 | Spec 001 places a Classroom item as `YYYYMMDD - <title>.<ext>`, as a `.md` note, or as a folder with its files, `descripcion.md` and `enlaces.md`; assignments are folders with `enunciado - <name>` and `enunciado.md`, plus the student's `entrega - <name>` and the grading `correccion.md` | `specs/001-classroom-sync/tasks.md` T027 and `data-model.md` | 2026-10-27 |
@@ -143,7 +143,7 @@ own table is the subset the requirements rest on; this one is the full list.
   until the photo changes. A credit or spend-limit refusal puts every pending photo in `budget_wait`,
   retried on the first run of each day, reported once when it starts and once when it clears.
 - **Cost**: measured in quickstart step 2 (first table): 2,466 tokens in and 326 to 553 out per photo
-  at effort `low`, about 0.009 USD a page with Sonnet 5.5. Prices live in the configuration
+  at effort `low`, about 0.009 USD a page with Sonnet 5.5 at 2 and 10 USD per million tokens in and out. Prices live in the configuration
   (`[notes] price_in`, `price_out`), declared once.
 - **Minors**: the operator is Anthropic's customer, and the student never interacts with the API;
   he uploads photos to his Drive. On our reading of the Usage Policy (first table) that is not a
