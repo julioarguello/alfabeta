@@ -280,7 +280,10 @@ tick the teacher also sees.
   calendar. Once postings are timed (FR-023), one calendar means one notification setting for about
   19 events a week, of which about 3 are warnings. A second calendar lets each reader switch
   notifications on for warnings only (capture of 2026-10-26: 13.3 postings, 2.4 due dates and
-  3.1 warning days a week)]. Not Google Tasks: a task written through the API keeps only its date,
+  3.1 warning days a week)]. alfabeta cannot set a reader's notification per event. Measured
+  2026-10-27: a test event that alfabeta's writer account created with its own 37-minute reminder
+  showed no notification to the student's school account or to the owner's account. Both event
+  pages read «Las notificaciones solo se aplican a ti». The event was deleted afterwards. Not Google Tasks: a task written through the API keeps only its date,
   so it cannot carry a 16:00 warning (Google Tasks API reference, read 2026-10-27).
 - **FR-002**: Warnings and due-date events MUST reach two readers, each through their own account:
   the student and the operator. Delivery is checked per reader (FR-019).
