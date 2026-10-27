@@ -26,8 +26,8 @@ devil's advocate on 2026-10-27; their disagreements are kept in the clarificatio
 settled here.
 
 What this spec takes from spec 001's reminders epic: the warnings, the timetable, and which account
-reads them. What it leaves: one colour per category (FR-020a of spec 001) and "today / this week"
-views.
+reads them, and a daily list of pending work that stands in for its "today / this week" views.
+What it leaves: one colour per category (FR-020a of spec 001).
 
 Out of this spec: writing anything to Classroom; study blocks in the calendar; Google Tasks;
 changing how Classroom is captured (a due date shown only as a time, "Fecha de entrega: 8:00", is
@@ -37,8 +37,27 @@ notification settings, which only that person can do.
 **Changes elsewhere once this spec is approved.** Four places say the calendar holds only
 objective facts and no reminders: FR-025 of spec 002 (julioarguello/alfabeta#22), the roadmap's
 Calendar section, the calendar policy line of the student's private configuration, and the
-operator's standing instruction recorded outside the repository. They are edited to match the
-answer to the second clarification question, and not before.
+operator's standing instruction recorded outside the repository. The operator chose warnings that
+restate facts (Clarifications, 2026-10-27), so the edit is narrow: "objective facts only" stays, and
+each place gains "plus warnings and a daily list that restate those facts". FR-025's ban on study
+blocks stays whole.
+
+## Clarifications
+
+### Session 2026-10-27
+
+- Q: Which miss is this spec meant to prevent? → A: The Physics and Chemistry group video about
+  chromatography: posted Thursday 8 October, due 13 October with no time, a window of 5 days that
+  ran over a long weekend (Monday 12 October is a public holiday). The capture of 2026-10-26 already
+  reads it «Calificado», so only a replay can test it (SC-008).
+- Q: Who reads the warnings? → A: The student and the operator, each on their own account.
+- Q: May a warning advise («Empieza hoy») or only restate a fact? → A: Only restate a fact: what is
+  due, when, and how many days are left. No advice wording.
+- Q: Windows of 2 to 7 days: only the evening-before warning, or also one at about half the window?
+  → A: Also one at about half the window, as the operator's rule says.
+- Q: At what time is the student home, per weekday? → A: Not needed: every warning at 16:00, every
+  day. The operator added a need in the same answer: a list he can open any day and sit down with
+  ("venga, ¿qué tengo que hacer?"), beside the warnings (User Story 7).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -82,12 +101,12 @@ calendar reminds him until the due date.
 **Acceptance Scenarios**:
 
 1. **Given** an assignment with a window of 8 days or more, **When** warnings are computed, **Then**
-   it gets a first warning that starts the work, one a week before, and the last one before the due
-   instant (FR-006).
-2. **Given** a warning that would fall on a day with no home slot, **When** warnings are computed,
-   **Then** it moves to the previous day that has one.
-3. **Given** a project due on a Sunday, **When** warnings are computed, **Then** none of its
-   warnings falls on a day without a home slot.
+   it gets a first warning 14 days before (28 days too when the window exceeds 28), one 7 days
+   before, and the last one before the due instant (FR-006).
+2. **Given** an assignment with a window of 2 to 7 days, **When** warnings are computed, **Then** it
+   gets one warning at about half the window and the last one before the due instant (FR-006).
+3. **Given** a project due on a Sunday, **When** warnings are computed, **Then** its warnings sit at
+   16:00 on the days the rule gives, weekend days included.
 
 ---
 
@@ -179,12 +198,42 @@ reader's phone by the family.
 2. **Given** a test event, **When** the family sees its notification on the reader's phone, **Then**
    the date and the account are recorded.
 
+---
+
+### User Story 7 - A list he sits down with, any day (Priority: P1)
+
+The operator's words (2026-10-27): something he can look at every day and say "right, I sit down,
+what do I have to do". Warnings say *when* something is close; the list says *what* is pending, all
+of it. Warnings reach him only on days something is close, and the 31 pending assignments with no
+due date never get one.
+
+**Why this priority**: it is the one place the student and the operator look at together, and the
+only place undated work shows up after its posting day.
+
+**Independent Test**: build the list from the capture of 2026-10-26 and compare it, line by line,
+with the statuses Classroom showed that day.
+
+**Acceptance Scenarios**:
+
+1. **Given** the capture of 2026-10-26, **When** the list is built, **Then** it holds every
+   assignment not handed in, in three groups: due ahead, nearest first (4); past due and still not
+   handed in according to Classroom (9); no due date, newest first (31). Each line gives subject,
+   title as Classroom writes it, due date and hour when Classroom gives them, and Classroom's status.
+2. **Given** an item whose status becomes «Entregado», «Calificado» or «Entregado con retraso»,
+   **When** the next sync runs, **Then** it leaves the list.
+3. **Given** the list, **When** it is read, **Then** it holds only facts: no advice, no priority
+   alfabeta made up, no estimated effort.
+
 ### Edge Cases
 
 - A due date in January read in December: the year is the one nearest the capture date.
 - An item edited after posting («Última modificación»): the window counts from the posting date, or
   from the first sync that saw its due date if the teacher added the date later.
-- Two or more warnings in the same home slot: one event lists them all, nearest due date first.
+- Two or more warnings on the same day: one event lists them all, nearest due date first.
+- A public holiday or a weekend: warnings still sit at 16:00; the chromatography video's last
+  warning falls on the 12 October holiday.
+- Two steps of one item on the same day (a window of 2 days puts the half-window warning on the
+  evening before): one warning.
 - A class with dated work that is not in the timetable mapping: its warnings are still written
   (they need only the home slot); its exams are all-day and nothing is inferred for it; the run says
   which class.
@@ -203,30 +252,34 @@ reader's phone by the family.
 - **FR-001**: Warnings MUST be timed events in the student's calendar, in Spanish. Not Google Tasks:
   a task keeps only its date and lives only in the account that writes it (Google Tasks API
   reference, read 2026-10-27).
-- **FR-002**: Warnings MUST be read by [NEEDS CLARIFICATION: who reads the warnings — the student
-  on his own accounts, a parent on theirs, or both?].
-- **FR-003**: A warning MUST say what to do and when, name the subject and the work as Classroom
-  titles it, give the due day (and hour when Classroom gives one), and link the item's folder in the
-  Drive. Its wording follows the answer to: [NEEDS CLARIFICATION: may a warning advise («Empieza
-  hoy…», «queda una semana») or only restate a fact («Mañana 8:00: entrega…»)? This decides how much
-  of spec 002 FR-025 survives].
-- **FR-004**: Two or more warnings for the same home slot MUST be one event listing every item.
+- **FR-002**: Warnings and the daily list (FR-023) MUST reach two readers, each through their own
+  account: the student and the operator. Delivery is checked per reader (FR-019).
+- **FR-003**: A warning MUST restate facts only: the subject, the work as Classroom titles it, the
+  due day (and hour when Classroom gives one), the days left, and a link to the item's folder in the
+  Drive. Example: «Entrega en 3 días (martes 13 oct): Física y Química · Zuen kromatografiaren
+  bideoa». No advice wording («empieza hoy», «date prisa»).
+- **FR-004**: All warnings of one day MUST be one event at 16:00 listing every item, nearest due
+  first.
 
 **When**
 
 - **FR-005**: No warning MAY exist after its item's due instant. A due date without a time MUST stay
-  a date: no due hour is invented (Classroom's help does not say what time it means).
-- **FR-006**: Warnings MUST follow the window `g` = due date − start date (FR-007), in days:
-  - the last warning at the last home slot strictly before the due instant;
-  - `g` of 8 days or more: also a first warning 14 days before the due date and one 7 days before,
-    and one 28 days before when `g` exceeds 28;
-  - `g` from 2 to 7: [NEEDS CLARIFICATION: only the last warning, or also an earlier one at about
-    half the window, as the family's rule implies?];
-  - a warning before the day after the start date is dropped.
+  a date: no due hour is invented (Classroom's help does not say what time it means). For computing
+  warnings only, its cutoff is the start of the due date, so its last warning is the day before.
+- **FR-006**: Warnings MUST follow the window `g` = due date − start date (FR-007), in days, every
+  warning at the home slot (FR-008):
+  - last: the last home slot strictly before the due instant (or the cutoff of FR-005);
+  - `g` from 2 to 7: also one on due date − ⌈g/2⌉;
+  - `g` of 8 or more: also one on due date − 14 and one on due date − 7, plus due date − 28 when `g`
+    exceeds 28;
+  - any warning other than the last that falls on or before the start date is dropped; two steps of
+    one item on the same day are one warning.
+  - Worked example, the chromatography video (start Thursday 8 October, due 13 October, no time,
+    `g` = 5): Saturday 10 October and Monday 12 October, both at 16:00.
 - **FR-007**: The start date MUST be the posting date, or the date of the first sync that saw the due
   date if the teacher added it later. «Última modificación» MUST NOT move it.
-- **FR-008**: Home slots MUST come from the student's private configuration, one per weekday or
-  none; a warning on a day without one moves to the previous day that has one.
+- **FR-008**: The home slot MUST be one time for every day of the week, weekends and holidays
+  included, read from the student's private configuration; the operator set it to 16:00.
 - **FR-009**: When warnings for an item still ahead are already in the past (first run, late sync),
   they MUST become one warning at the next home slot.
 
@@ -257,8 +310,8 @@ reader's phone by the family.
   or first line («-rako» in Basque, «para el» in Spanish, «for» in English); the subject has a session
   that weekday; it falls strictly after the posting date and within 7 days. The result is the next
   session of that subject, and the event says it was deduced and from which words.
-- **FR-017**: Assignments with no due date MUST get no warning; they MUST be listed in a weekly
-  «Sin fecha» summary on the weekday the configuration sets.
+- **FR-017**: Assignments with no due date MUST get no warning; they appear in the daily list
+  (FR-023).
 - **FR-018**: Posting events (material and assignments, all-day on the posting date) MUST stay as they
   are: they are the only calendar presence of the 37 undated assignments, and the constitution makes
   what is posted part of the agenda.
@@ -273,8 +326,18 @@ reader's phone by the family.
   warning.
 - **FR-021**: Times MUST be computed in `Europe/Madrid` with no hand-made offsets; tests MUST cover
   both daylight-saving changes with fixtures. A live check across a change waits for March 2027.
-- **FR-022**: Nothing personal enters the repository: the timetable, the mapping, the home slots and
+- **FR-022**: Nothing personal enters the repository: the timetable, the mapping, the home slot and
   the delivery checks live in the student's private configuration or data folder.
+
+**The daily list**
+
+- **FR-023**: Every sync MUST rebuild a list of the assignments not handed in, grouped and ordered as
+  User Story 7 says, facts only, readable by both readers (FR-002).
+- **FR-024**: The list's form: [NEEDS CLARIFICATION: read-only — the body of one event every day at
+  16:00 that also carries that day's warnings, so no new place to open — or tickable — a sheet in the
+  family's Drive whose ticks alfabeta reads at the next sync? If tickable, does a tick also remove
+  the item's warnings when Classroom still reads «Sin entregar» or «Asignado» (work handed in on
+  paper)?]
 
 ### Key Entities
 
@@ -285,8 +348,10 @@ reader's phone by the family.
   words, the family).
 - **Warning**: item, step (start, a week before, last…), date and home slot, wording, stable identity.
 - **Exam**: subject, date, source (stream post or family), placed session if any.
-- **Home slot**: weekday → time, or none.
+- **Home slot**: one time of day for every day (16:00).
 - **Reader**: an account that reads the calendar, and the date its delivery was seen, if ever.
+- **Daily list**: the assignments not handed in on the day of a sync, in three groups, each line a
+  Classroom fact.
 
 ## Success Criteria *(mandatory)*
 
@@ -298,24 +363,31 @@ reader's phone by the family.
   warning before its due instant, except items posted and due with no home slot between (2
   measured), which the run names.
 - **SC-003**: Replaying the capture from 7 September to 26 October gives at most one warning event
-  per evening, and the weekly count is reported; the operator accepts it before warnings are switched
-  on (the panel measured about 3 a week with a draft rule set).
+  per day, and the weekly count of days with a warning is reported; the operator accepts it before
+  warnings are switched on (the panel measured about 3 a week with a draft rule set that had no
+  half-window warning).
 - **SC-004**: Inference over the 37 undated items of the capture yields exactly one due date, the
   Physics «Ostegunerako» one, at that Thursday's Physics session, and nothing else.
 - **SC-005**: A second run with no change creates, moves and deletes 0 events.
 - **SC-006**: Before warnings are on for a reader, a delivery check for that reader is on record.
 - **SC-007**: Fixtures at both daylight-saving changes give the same wall-clock times as on any other
   day.
-- **SC-008**: The miss the family names as the reason for this spec, replayed, gets a warning before
-  its due instant.
+- **SC-008**: The chromatography video (Clarifications), replayed with a sync on 8 or 9 October,
+  gets warnings on Saturday 10 and Monday 12 October at 16:00 and none on or after 13 October. Only a
+  replay can test it: the capture of 2026-10-26 already reads it «Calificado». In live use the same
+  outcome depends on a daily sync (julioarguello/alfabeta#13).
+- **SC-009**: The daily list built from the capture of 2026-10-26 has 4 items due ahead, 9 past due
+  and not handed in, and 31 with no due date, and no item Classroom reads as handed in.
 
 ## Assumptions
 
 - Classroom shows due dates only in the forms measured on 2026-10-26: "D mon", "D mon, HH:MM", and a
   bare time that spec 001 resolves to the capture's date.
 - The timetable holds for the whole school year; a change means editing the configuration.
-- After-school activities are not known; home slots are configuration, defaulting to the end of
-  classes on weekdays and to none at weekends until the family says otherwise.
+- One home slot, 16:00 every day, by the operator's choice. On Monday and Tuesday classes end at
+  16:00, so those warnings arrive as he leaves school.
+- Of the 31 pending assignments with no due date, 21 were posted before 12 October; some may be
+  done on paper and never marked in Classroom, which the daily list cannot tell (FR-024).
 - Classroom may already send the student its own "due within 24 hours" notification (Classroom Help
   6141557); whether it is on for his account has not been measured. Its existence does not change
   what this spec writes.
@@ -325,5 +397,5 @@ reader's phone by the family.
 
 - `classroom-sync` (spec 001): the capture, including stream exam posts and the bare-time due form.
 - A scheduled sync, julioarguello/alfabeta#13, at least daily and before the earliest home slot.
-- The family, to transcribe the timetable once, map the classes, set the home slots and watch the
-  delivery check on the student's phone.
+- The family, to transcribe the timetable once, map the classes, and watch the delivery check on
+  the student's phone; the operator checks his own account.

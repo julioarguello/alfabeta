@@ -31,12 +31,12 @@
 
 ## Notes
 
-- Three markers remain, in FR-002 (who reads the warnings), FR-003 (fact or advice) and FR-006
-  (warnings for windows of 2 to 7 days). They are the operator's value decisions the panel left
-  split; `/speckit-clarify` asks them, together with the miss that motivates the spec (SC-008) and
-  the home slots per weekday (FR-008).
+- Clarify session 2026-10-27 answered FR-002 (both readers), FR-003 (facts only), FR-006 (a
+  half-window warning for 2 to 7 days), FR-008 (16:00 every day) and SC-008 (the chromatography
+  video). The same answer added User Story 7, a daily list.
+- One marker remains, FR-024: whether the daily list is read-only (inside the daily 16:00 event) or
+  tickable (a sheet in the family's Drive), and whether a tick removes warnings.
 - Named platforms (Google Calendar, Google Tasks, Classroom) are the product's fixed surroundings,
   not implementation choices; spec 001 and spec 002 name them the same way. FR-001 and FR-005 cite
   the documentation that rules out the alternatives.
-- Two blockers for `/speckit-plan`, not for clarify: the delivery check on the student's phone
-  (FR-019) and the answer about the miss (SC-008).
+- Blockers for `/speckit-plan`: FR-024, and the delivery check on the student's phone (FR-019).
