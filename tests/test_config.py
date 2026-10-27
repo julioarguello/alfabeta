@@ -235,7 +235,7 @@ def test_notes_and_notebook_keys_of_spec_005(home: Path):
     assert cfg.notebook_owner == "familia@example.com"
 
 
-@pytest.mark.parametrize("bad", ["price_in = 0.0", "price_in = -1.0"])
+@pytest.mark.parametrize("bad", ["price_in = 0.0", "price_in = -1.0", "price_in = nan", "price_in = inf"])
 def test_a_price_of_zero_or_less_is_refused(home: Path, bad: str):
     write(home, text(home).replace("price_in = 2.0", bad, 1))
     with pytest.raises(config.ConfigError, match=r"notes\.price_in must be a number above 0"):

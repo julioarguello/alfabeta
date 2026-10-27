@@ -11,6 +11,7 @@ Every read goes through a reader (`READERS`) with the key's dotted path as a str
 
 from __future__ import annotations
 
+import math
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -103,7 +104,7 @@ def _count(data: Mapping[str, Any], path: str, *names: str) -> int:
 
 def _float(data: Mapping[str, Any], path: str, *names: str) -> float:
     value = _at(data, path, names)
-    if not isinstance(value, float) or value <= 0:
+    if not isinstance(value, float) or not math.isfinite(value) or value <= 0:
         raise ConfigError(f"key {path} must be a number above 0")
     return value
 
