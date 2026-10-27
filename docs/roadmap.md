@@ -29,6 +29,9 @@ Result of the test: the API is blocked for under-age students (see [classroom-in
 - Output: a few pieces per topic in its notebook — explainer videos, a glossary, practice in the
   exam's language — and a guide for the parent in the Drive.
 - Design and evidence: [About preparing study material in advance](explanation/study-material.md).
+- From [#20](https://github.com/julioarguello/alfabeta/issues/20) on, the
+  [`study-pack` skill](../skills/study-pack/SKILL.md) runs it on request; starting it by itself when
+  Classroom moves to a new topic waits for `classroom-sync`.
 
 ## Other ideas
 
