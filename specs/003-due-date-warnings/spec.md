@@ -73,9 +73,18 @@ blocks stays whole.
   has no session that day, weekends and holidays included, at break time (10:00–10:25). The student
   has no phone in class, so a notification during class is seen later, and that is acceptable for
   these events. The warning that matters is the one ahead of the work: at 16:00 on the days the
-  lead-time rule gives, with no event on a day with nothing to warn about and no fixed daily event.
+  lead-time rule gives, and no fixed daily event. (The next answer turned each warning into a
+  reminder on the item's own event.)
   Recorded interpretation: break time replaces "the previous day's session", which the operator
   first proposed for postings, and it applies to every event alfabeta writes.
+- Q: How does a warning reach the student, if a reminder belongs to whoever sets it? → A: The
+  operator: notifications only for the student; the operator wants none. The student will not set
+  any. alfabeta gets its own Google connection (spec 004), authorised by the student's personal
+  Gmail, and writes the events as that account. A reminder it puts on an event is then the
+  student's own. The warning is a reminder on the due-date or exam event itself, at 16:00 on the
+  days the lead-time rule gives. Postings carry none. There is one calendar and no warning events.
+  The school account cannot be used: its administrator blocks third-party apps for under-18
+  users.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -94,14 +103,14 @@ posted, and read the warnings produced for the short-gap items.
 **Acceptance Scenarios**:
 
 1. **Given** a Maths sheet posted on a Monday and due Tuesday at 08:00, and a sync on Monday
-   afternoon, **When** warnings are computed, **Then** one warning sits at Monday's home slot,
-   naming the subject, the work, and "mañana 8:00".
+   afternoon, **When** warnings are computed, **Then** its due-date event (Tuesday 07:30–08:00)
+   carries one reminder that rings at Monday's home slot.
 2. **Given** an assignment whose status becomes «Entregado», «Calificado» or «Entregado con retraso»,
    **When** the next sync runs, **Then** its pending warnings are gone and its due-date event stays.
 3. **Given** an assignment posted and due on the same day (2 measured), **When** no home slot exists
    between the sync and the due instant, **Then** no warning is written.
 4. **Given** a due date without a time (6 measured), **When** warnings are computed, **Then** the
-   last warning sits at the home slot of the day before, and its due-date event says «Classroom no
+   last reminder rings at the home slot of the day before, and its due-date event says «Classroom no
    indica hora».
 
 ---
@@ -199,16 +208,17 @@ names the class day it was posted.
 
 ### User Story 6 - Nobody believes warnings arrive until someone saw one arrive (Priority: P1)
 
-A reminder written by the account that creates an event reaches nobody else; each reader gets only
-the notification defaults of their own account for that calendar, and nobody else can change them
-(Google's Calendar API reminders guide and Calendar Help 37242, read 2026-10-27). Whether either of
-the student's accounts notifies him of this calendar has not been measured.
+A reminder belongs to the account that sets it. It reaches nobody else, and nobody else can change
+another account's notifications (Google's Calendar API reminders guide and Calendar Help 37242,
+read 2026-10-27; measured the same day, FR-001). The warnings therefore exist only if alfabeta
+writes as the student's personal Gmail (spec 004), and they ring only on a phone where that account
+shows its calendar.
 
 **Why this priority**: if nothing reaches him, every other story is decoration and the family stops
 checking because "the calendar warns him".
 
-**Independent Test**: a timed test event in each calendar alfabeta writes, watched on each reader's
-phone by the family.
+**Independent Test**: a test event written as the student's Gmail with a reminder 10 minutes ahead,
+watched on his phone by the family.
 
 **Acceptance Scenarios**:
 
@@ -252,7 +262,8 @@ tick the teacher also sees.
 - A due date in January read in December: the year is the one nearest the capture date.
 - An item edited after posting («Última modificación»): the window counts from the posting date, or
   from the first sync that saw its due date if the teacher added the date later.
-- Two or more warnings on the same day: one event lists them all, nearest due date first.
+- Two or more items warned on the same day: each event rings on its own at 16:00; they are not
+  merged.
 - A public holiday or a weekend: warnings still sit at 16:00; the chromatography video's last
   warning falls on the 12 October holiday.
 - Two steps of one item on the same day (a window of 2 days puts the half-window warning on the
@@ -274,25 +285,22 @@ tick the teacher also sees.
 
 **Where warnings go**
 
-- **FR-001**: Warnings MUST be timed events at the home slot, in Spanish, in [NEEDS CLARIFICATION:
-  the same calendar as postings and due dates, or a second calendar «alfabeta · Avisos» with the
-  same owner and sharing? A reader's notification setting applies to every timed event of a
-  calendar. Once postings are timed (FR-023), one calendar means one notification setting for about
-  19 events a week, of which about 3 are warnings. A second calendar lets each reader switch
-  notifications on for warnings only (capture of 2026-10-26: 13.3 postings, 2.4 due dates and
-  3.1 warning days a week)]. alfabeta cannot set a reader's notification per event. Measured
-  2026-10-27: a test event that alfabeta's writer account created with its own 37-minute reminder
-  showed no notification to the student's school account or to the owner's account. Both event
-  pages read «Las notificaciones solo se aplican a ti». The event was deleted afterwards. Not Google Tasks: a task written through the API keeps only its date,
-  so it cannot carry a 16:00 warning (Google Tasks API reference, read 2026-10-27).
-- **FR-002**: Warnings and due-date events MUST reach two readers, each through their own account:
-  the student and the operator. Delivery is checked per reader (FR-019).
-- **FR-003**: A warning MUST restate facts only: the subject, the work as Classroom titles it, the
-  due day (and hour when Classroom gives one), the days left, and a link to the item's folder in the
-  Drive. Example: «Entrega en 3 días (martes 13 oct): Física y Química · Zuen kromatografiaren
-  bideoa». No advice wording («empieza hoy», «date prisa»).
-- **FR-004**: All warnings of one day MUST be one event at 16:00 listing every item, nearest due
-  first. A day with nothing to warn about has no warning event.
+- **FR-001**: A warning MUST be a reminder on the item's own event (its due-date event, or its
+  exam), set by alfabeta writing as the student's personal Gmail through its own Google connection
+  (spec 004). There are no separate warning events and no second calendar. A reminder belongs to the
+  account that sets it. Measured 2026-10-27: a test event that alfabeta's present writer account
+  created with its own 37-minute reminder showed no notification to the student's school account
+  or to the owner's account; both event pages read «Las notificaciones solo se aplican a ti», and
+  the event was deleted afterwards. Not Google Tasks: a task written through the API keeps only its
+  date, so it cannot ring at 16:00 (Google Tasks API reference, read 2026-10-27).
+- **FR-002**: Reminders MUST ring for the student only. The operator reads the same calendar with no
+  notifications, by the operator's choice. Delivery is checked on the student's phone (FR-019).
+- **FR-003**: Event titles MUST restate facts only, because a reminder shows the event's title and
+  time and nothing else. A due date reads «Entrega · Física y Química · Zuen kromatografiaren
+  bideoa». The description adds the due day and hour when Classroom gives them, and the item's
+  folder in the Drive. No advice wording («empieza hoy», «date prisa»).
+- **FR-004**: A posting event MUST carry no reminder. A due-date or exam event carries only the
+  reminders of FR-006 and FR-015, written explicitly, never the calendar's defaults.
 
 **When**
 
@@ -315,8 +323,8 @@ tick the teacher also sees.
   date if the teacher added it later. «Última modificación» MUST NOT move it.
 - **FR-008**: The home slot MUST be one time for every day of the week, weekends and holidays
   included, read from the student's private configuration; the operator set it to 16:00.
-- **FR-009**: When warnings for an item still ahead are already in the past (first run, late sync),
-  they MUST become one warning at the next home slot.
+- **FR-009**: When every reminder computed for an item still ahead falls in the past (first run,
+  late sync), the item MUST get one reminder at the next home slot before its due instant.
 
 **What changes them**
 
@@ -324,8 +332,10 @@ tick the teacher also sees.
   pending warnings and keep its due-date event. Any other status, or none, keeps them: status is not
   a reliable "done" (work handed in on paper reads «Sin entregar»).
 - **FR-011**: A moved or removed due date MUST recompute or remove the item's warnings.
-- **FR-012**: Every warning MUST have a stable identity per item and step, so a run with no change in
-  Classroom creates, moves and deletes nothing.
+- **FR-012**: Every event MUST have a stable identity per item, and its reminders are a function of
+  the item, so a run with no change in Classroom creates, moves, deletes and edits nothing.
+- **FR-012a**: An event takes at most the number of reminders Google allows per event (spec 004
+  verifies it); the rule of FR-006 never needs more than four.
 
 **The timetable**
 
@@ -354,12 +364,11 @@ tick the teacher also sees.
 
 **Running and verifying**
 
-- **FR-019**: Delivery to a reader MUST be considered unseen until the family watched a timed test
-  event arrive on that reader's phone, on the student's school account and on the operator's own
-  account, after that reader set notifications for the calendar holding warnings. Setting them on a
-  calendar shared with you is documented only for calendars you own (Calendar Help 37242), so the
-  test also proves it can be done. The check is recorded with its date and account, and each run
-  says which readers are unchecked. alfabeta never states that a warning was received.
+- **FR-019**: Delivery MUST be considered unseen until the family watched a reminder that alfabeta
+  set as the student's Gmail ring on his phone. The check is recorded with its date, and each run
+  says whether it is on record. alfabeta never states that a warning was received. If the calendar
+  also shows in his school account on that phone, each event appears twice; one of the two
+  subscriptions is removed on the phone.
 - **FR-020**: A warning for work due the next morning exists only if a sync ran between the posting
   and that evening's home slot. The run MUST say which items were first seen too late for any
   warning.
@@ -401,12 +410,14 @@ tick the teacher also sees.
 - **Class mapping**: a Classroom class identifier → a timetable subject.
 - **Due date**: date, optional time, and where it came from (Classroom's field, inferred from named
   words, the family).
-- **Warning**: item, step (start, a week before, last…), date and home slot, wording, stable identity.
+- **Warning**: a reminder on an item's due-date or exam event — step (28, 14 or 7 days before, half
+  the window, the evening before), the instant it rings (a home slot), set as the student.
 - **Exam**: subject, date, source (stream post or family), placed session if any.
 - **Home slot**: one time of day for every day (16:00).
-- **Reader**: an account that reads the calendar, and the date its delivery was seen, if ever.
+- **Reader**: an account that reads the calendar. Only the student's Gmail has reminders, and the
+  date its delivery was seen is recorded.
 - **Placement**: where an event is drawn — its subject's session that day, else break time, or the
-  home slot for warnings, or the due time for a timed due date. Never all-day.
+  or the due time for a timed due date. Never all-day.
 
 ## Success Criteria *(mandatory)*
 
@@ -417,14 +428,14 @@ tick the teacher also sees.
 - **SC-002**: Replaying the capture day by day, every dated item not handed in gets at least one
   warning before its due instant, except items posted and due with no home slot between (2
   measured), which the run names.
-- **SC-003**: Replaying the capture from 7 September to 26 October gives at most one warning event
-  per day, and the weekly counts of warning days and of all events are reported; the operator
+- **SC-003**: Replaying the capture from 7 September to 26 October reports the weekly counts of
+  reminders, of days with a reminder and of all events; the operator
   accepts them before warnings are switched on (measured 2026-10-27 on that capture with these
   rules: 3.1 warning days a week).
 - **SC-004**: Inference over the 37 undated items of the capture yields exactly one due date, the
   Physics «Ostegunerako» one, at that Thursday's Physics session, and nothing else.
 - **SC-005**: A second run with no change creates, moves and deletes 0 events.
-- **SC-006**: Before warnings are on for a reader, a delivery check for that reader is on record.
+- **SC-006**: Before reminders are switched on, the delivery check of FR-019 is on record.
 - **SC-007**: Fixtures at both daylight-saving changes give the same wall-clock times as on any other
   day.
 - **SC-008**: The chromatography video (Clarifications), replayed with a sync on 8 or 9 October,
@@ -458,6 +469,9 @@ tick the teacher also sees.
 ## Dependencies
 
 - `classroom-sync` (spec 001): the capture, including stream exam posts and the bare-time due form.
+- Spec 004, alfabeta's own Google connection: the student's Gmail authorises it once, and alfabeta
+  writes the calendar as that account.
 - A scheduled sync, julioarguello/alfabeta#13, at least daily and before the earliest home slot.
+- The student's phone shows his personal Gmail's calendar in the Calendar app.
 - The family, to transcribe the timetable once, map the classes, and watch the delivery check on
   the student's phone; the operator checks his own account.
