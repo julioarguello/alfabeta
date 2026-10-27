@@ -9,14 +9,16 @@ photos of 2026-10-26 and never leaves the operator's machine and the alfabeta wo
 - Spec 004's link of the student's Gmail is `ok` (`python -m alfabeta google check --student <id>`)
   and its scoped Drive adapter is built.
 - The student's alfabeta folder in Drive is shared read-only with the notebook owner's account.
-- An API key in the Claude Console workspace `alfabeta` of the organisation Server Startup. Check
-  first, in *Settings → Profile*, that the Console shows the company account.
+- Two API keys in the Claude Console workspace `alfabeta` of the organisation Server Startup, one for
+  the Mac's keychain and one for the cloud's secret store. Check first, in *Settings → Profile*, that
+  the Console shows the company account.
+- A second OAuth Desktop client for the cloud in the same Google Cloud project, its JSON downloaded.
 - `nlm login --check --profile <profile>` reports the notebook owner.
 
 ## 1. A test topic with its living files
 
 ```bash
-python -m alfabeta notebook setup --student <id> --topic "<test topic folder>"
+python -m alfabeta notebook setup --student <id> --topic "<subject>/<test topic folder>"
 ```
 
 Expect: `{ok: true}` with both sources set; the notebook lists exactly two Drive sources. Run it
@@ -51,8 +53,9 @@ the report names it. Rename it to « (revisada)», run again: the page reads «R
 ## 5. The cloud job
 
 Deploy as `docs/how-to/notes-cloud-run.md` says (written with slice 2), including the cloud's own
-link: `python -m alfabeta google link --student <id> --account student --scopes drive --print-token`
-piped into `gcloud secrets versions add <google_link_secret> --data-file=-`. Then, with the Mac
+link: `python -m alfabeta google link --student <id> --account student --client-file <cloud client
+JSON> --scopes drive --print-token` piped into `gcloud secrets versions add <google_link_secret>
+--data-file=-`, then delete the JSON. Record what each free tier of research R11 showed at setup. Then, with the Mac
 **off**, upload a second invented photo from the phone.
 
 Expect, within one hour: the page in the living file and a report in `Informes/`. Record the time
@@ -64,7 +67,9 @@ Put an invented PDF named `YYYYMMDD - Prueba` into the test topic's `classroom/`
 next cloud run: its cover page and pages in `Classroom · <topic>.pdf`; the notebook answers about it
 two minutes after being opened. Record the time from upload to the living file (SC-003). Replace the
 PDF with a changed one: its pages are replaced, not added. Repeat with an item folder holding a PDF,
-a Word file, `descripcion.md` and `enlaces.md`: one entry.
+a Word file, `descripcion.md` and `enlaces.md`: one entry. Repeat with an assignment folder holding
+`enunciado - Prueba.pdf`, `entrega - Prueba.pdf` and `correccion.md`: only the statement's pages
+enter.
 
 ## 7. Limits and budget
 

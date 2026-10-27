@@ -164,6 +164,9 @@ and check that nothing changed.
    **Then** it is one entry: one cover page, the description, then each file's pages.
 5. **Given** an item edited by the teacher, **When** classroom-sync brings the new version, **Then**
    its pages in the living file are replaced in place, not added again.
+6. **Given** an assignment folder with `enunciado - <name>`, `entrega - <name>` and `correccion.md`,
+   **When** it is added, **Then** only the statement's pages enter the living file; the student's
+   work and its grading do not.
 
 ---
 
@@ -254,26 +257,29 @@ source and one living Classroom source, and that a second run adds nothing.
   alfabeta folder in the student's Drive, whatever wrote it (phone, web, Drive for desktop,
   classroom-sync), from Drive's own record of changes, keeping its position in that record between
   runs so nothing is missed or read twice. Changes outside the alfabeta folder are dropped before
-  anything else happens and nothing about them is kept or logged (spec 004 FR-009a, as amended).
-- **FR-002**: Whatever Drive holds under a topic folder and the master lacks MUST be brought into the
-  master on the Mac's next run: the family's files and the files the cloud run writes. A file the
-  Mac itself uploaded is not brought back, a file the master already holds with the same checksum is
-  recorded as such, and an existing file in the master is never overwritten (constitution VII,
-  1.6.0).
+  anything else happens and nothing about them is kept or logged (spec 004 FR-009a, as amended),
+  except the fact that a recorded file left the folder or was removed. A change to a file alfabeta
+  itself wrote (its records, run log, transcriptions, living files, reports, temporary conversions)
+  is never an arrival.
+- **FR-002**: Whatever Drive holds under a topic folder MUST reach the master, the family's files and
+  the cloud run's alike (constitution VII, 1.6.0). This spec depends on spec 004's FR-011a, added in
+  this pull request, which owns that pull and its rule.
 - **FR-003**: Each file MUST have one record: its Drive id, checksum (or modification time for a
   Google-native file), kind, topic folder, and state. Two runs with no change MUST write nothing
-  but the run's own log (constitution V).
+  but the run's own log, which also holds the change cursor (constitution V).
 - **FR-004**: The first run, and the first sight of a topic, MUST take in what the topic folder
-  already holds, not only what changes afterwards. A Markdown in `apuntes/` that embeds a photo by
-  name is taken as that photo's transcription, with no call to Claude.
+  already holds, not only what changes afterwards; so must a folder that joins the alfabeta folder
+  with content in it. A Markdown in `apuntes/` that embeds a photo by name is taken as that photo's
+  transcription, with no call to Claude.
 
 **Transcribing the notes**
 
 - **FR-005**: Every JPEG, PNG or WebP image in a topic's `apuntes/` MUST be transcribed literally,
   keeping spelling and language, with the conventions the notes of 2026-10-26 used: text written
   between lines, crossed out text, doubtful readings, unreadable parts, drawings described, boxed
-  text. The result is a PDF (the photo, then its text) and its Markdown, named in Spanish, next to
-  the photo. Other formats are reported as not supported.
+  text. The result is a PDF (the photo, then its text) and its Markdown next to the photo, named
+  `<photo name> · transcripción.pdf` and `.md`; an adopted transcription gets its PDF the same way.
+  Other formats are reported as not supported.
 - **FR-006**: An image with the same checksum as one already transcribed MUST NOT be transcribed
   again; it is reported as a duplicate. A transcription that fails is retried at most three times,
   then reported and left until the photo changes.
@@ -281,7 +287,8 @@ source and one living Classroom source, and that a second run adds nothing.
   is an automatic transcription, and whether the student checked it or marked it as wrong.
 - **FR-008**: The student MUST be able to mark a transcription as checked (« (revisada)») or as
   wrong (« (mal)») by renaming its PDF in Drive from his phone. A page marked wrong stays in the
-  living file, labelled as under correction, until a correction (User Story 2) replaces it.
+  living file, labelled as under correction, until a correction (User Story 2) replaces it; then
+  alfabeta writes the corrected PDF under its name without the mark.
 
 **Reaching the notebook**
 
@@ -289,13 +296,16 @@ source and one living Classroom source, and that a second run adds nothing.
   and `Classroom · <topic>.pdf`, where `<topic>` is the folder's name after its date. Only the setup
   on the Mac creates them and adds each, once, to the topic's notebook as a Drive source. Material
   that arrives later goes into them; no other source is added for it.
-- **FR-010**: Notes pages go into the living notes file in page order. Each Classroom item, whether
-  a file, a note or a folder (User Story 3), goes into the living Classroom file as one entry: a
-  cover page (title, posting date, description and addresses from `descripcion.md` and
-  `enlaces.md`), then the pages of each of its files, in posting order. A PDF is copied page by
-  page; a Google-native or Office file is converted to PDF through Drive; a Markdown note is set as
-  text; an image is one page; anything else is named on the cover page. A changed item or page is
-  replaced in place.
+- **FR-010**: Notes pages go into the living notes file in the order they were first seen. Each
+  Classroom item, whether a file, a note or a folder (User Story 3), goes into the living Classroom
+  file as one entry: a cover page (title, posting date, description and addresses from
+  `descripcion.md` and `enlaces.md`), then the pages of each of its files, in posting order. A PDF
+  is copied page by page; a Google-native or Office file is converted to PDF through Drive; a
+  Markdown note is set as text; an image is one page; anything else is named on the cover page. The
+  student's own work and its grading, `entrega - <name>` and `correccion.md` (spec 001), are never
+  put into a living file (constitution III). An item in `Sin tema` goes into the living Classroom
+  file of its subject's most recent topic (spec 002 FR-023). A changed item or page is replaced in
+  place; an item moved to another topic leaves the first living file and enters the second.
 - **FR-011**: alfabeta MUST NOT delete, rename or move a living file, nor remove a source from a
   notebook. A living file that is missing, trashed or outside its topic folder is reported and is
   not recreated.
@@ -308,14 +318,16 @@ source and one living Classroom source, and that a second run adds nothing.
   reached the notebook, transcriptions marked by the student, duplicates, unsupported or unreadable
   photos, removed files, unexpected files, topics waiting for setup, living files over the page
   count, and failures. A repeating failure is reported when it starts and when it clears, not on
-  every run. Logs name topic folders and counts, never the student (constitution III).
+  every run. Logs carry opaque indexes and counts, never a name, a Drive id or a path
+  (constitution III).
 
 **Where it runs and what it may spend**
 
-- **FR-014**: Detection, transcription, the living files and the report (FR-001, FR-003 to FR-013)
-  MUST run in the cloud, in the operator's Google Cloud project for alfabeta, on a schedule that does
-  not depend on the family's Mac. The Drive-to-master copy (FR-002), Classroom capture (spec 001) and
-  the one-off notebook setup (User Story 5) stay on the Mac. Constitution IX is amended in the same
+- **FR-014**: Detection, transcription, updating the living files and the report (FR-001, FR-003 to
+  FR-008, FR-010 to FR-013) MUST run in the cloud, in the operator's Google Cloud project for
+  alfabeta, on a schedule that does not depend on the family's Mac; the same pass can also be run on
+  the Mac by hand. The pull into the master (FR-002), Classroom capture (spec 001) and creating the
+  living files and their sources (FR-009, User Story 5) stay on the Mac. Constitution IX is amended in the same
   pull request.
 - **FR-015**: The AI that transcribes and writes the "what it adds" report MUST be paid from the
   operator's Claude plan API credit, in the alfabeta workspace and under its monthly spend limit.
@@ -324,9 +336,10 @@ source and one living Classroom source, and that a second run adds nothing.
   student's Drive, the notebook owner's notebook, the operator's Google Cloud project for alfabeta,
   and Claude through the alfabeta workspace (constitution III, 1.6.0). No model whose terms exclude
   minors is used, and the student never interacts with the model directly.
-- **FR-017**: The cloud run MUST hold its own Google link and its Claude key in that project's secret
-  store, readable only by the run, never in the repository, the configuration, a log or an error
-  message (constitution II, 1.6.0). Its failures MUST reach the family without that link: the
+- **FR-017**: The cloud run MUST hold its own Google link, made with an OAuth client of its own, and
+  its own Claude key in that project's secret store, readable only by the run's service account,
+  never in the repository, the configuration, a log or an error message. The Mac keeps its own
+  client, token and key; nothing is copied between them (constitution II, 1.6.0). Its failures MUST reach the family without that link: the
   project alerts the operator when a run fails, and the Mac's sync warns in the agenda when the
   cloud's last successful run, which every run records as its own log, is more than two hours old.
 
@@ -381,13 +394,14 @@ source and one living Classroom source, and that a second run adds nothing.
 ## Dependencies
 
 - Spec 004 (julioarguello/alfabeta#30): Drive access as the student, the folder allowlist, and the
-  move of the master folder out of the Drive for desktop mount. FR-002 must exist before that move,
-  or photos from the phone stop reaching the master. This pull request amends its FR-007 (the cloud's own link
-  and secrets), FR-009a (the change feed) and the edge case on refresh tokens.
+  move of the master folder out of the Drive for desktop mount. This pull request amends its FR-007
+  (the cloud's own link and secrets), FR-009a (the change feed) and the edge case on refresh tokens,
+  and adds FR-011a (the pull into the master), which must ship before that move.
 - Spec 001: classroom-sync, which puts each Classroom item into the topic's `classroom/` folder in
   Drive.
 - Spec 002: the study pack, which ranks the notes first and owns regeneration. Its User Story 6 and
   FR-004 required a checked transcription; this spec supersedes that (Clarifications).
 - The operator: sharing the student's alfabeta folder with the notebook owner, a billing account on
-  the operator's Google Cloud project for alfabeta, and an API key in the alfabeta Console workspace (created
-  2026-10-27, no key yet).
+  the operator's Google Cloud project for alfabeta, a second OAuth client there for the cloud run,
+  and two API keys in the alfabeta Console workspace, one for the Mac and one for the cloud (the
+  workspace was created 2026-10-27, with no key yet).

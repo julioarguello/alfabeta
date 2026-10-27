@@ -1,25 +1,23 @@
 # Data model: Class notes and new material reach the topic's notebook by themselves
 
 The cloud run's records live in one file, `.alfabeta/estado.json`, at the root of the alfabeta
-folder in the student's Drive (research R4; constitution II, 1.6.0). Its own log is
-`.alfabeta/ultima-ejecucion.json` (research R13). The Mac's pull cursor lives in the Mac's data
-folder. Ids are Drive file ids and notebook source ids: data, never in the repository or a log.
-
-## ChangeCursor
-
-| Field | Meaning |
-|---|---|
-| `page_token` | `newStartPageToken` of the last run whose writes all succeeded |
-| `saved_at` | When it was saved |
-
-Saved last, and only when the token moved or the run wrote something (SC-004). A run that fails
-before the end leaves it unchanged, and the next run reads the same changes again. No cursor means
-first run: research R2's listing.
+folder in the student's Drive (research R4; constitution II, 1.6.0). Its own log, which also holds
+the change cursor, is `.alfabeta/ultima-ejecucion.json` (research R2, R13). The pull into the master
+and its cursor belong to spec 004 (FR-011a). Ids are Drive file ids and notebook source ids: data,
+never in the repository or a log. Logs carry opaque indexes and counts, never a name, an id or a
+path.
 
 ## RunLog (`.alfabeta/ultima-ejecucion.json`)
 
-`started`, `ended`, `result` (`ok`, `partial`, `failed`), written at the end of every run. The Mac
-reads `ended` of the last `ok` or `partial` run (FR-017).
+Written at the end of every run: the run's own log (constitution V), the one write an idle run makes.
+
+| Field | Meaning |
+|---|---|
+| `started`, `ended`, `result` | This run; `result` is `ok`, `partial` or `failed` |
+| `last_ok_ended` | `ended` of the last `ok` or `partial` run, kept across failed runs; the Mac reads it (FR-017) |
+| `page_token` | The change cursor: `newStartPageToken` of the last run whose writes all succeeded; a failed run keeps the previous one, so the next run reads the same changes again. Absent means first run (research R2's listing) |
+
+`estado.json` is written only when a record changes (SC-004).
 
 ## Topic
 
@@ -34,7 +32,8 @@ One per Drive file seen under a topic folder, keyed by Drive id.
 |---|---|
 | `file_id` | Drive id |
 | `topic` | Topic folder id |
-| `kind` | `notes_photo` (an image in `apuntes/`), `notes_transcript` (a transcription PDF alfabeta wrote in `apuntes/`), `notes_text` (a transcription Markdown in `apuntes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`), `living_file`, `unexpected` |
+| `kind` | `notes_photo` (an image in `apuntes/`), `notes_transcript` (a transcription PDF in `apuntes/`), `notes_text` (a transcription Markdown in `apuntes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`), `living_file`, `unexpected` |
+| `own` | true for every file alfabeta wrote (transcriptions, living files, state, run log, reports, temporary conversions): a change to it is consumed, never an arrival (research R2). A family edit of an own Markdown (a correction) is told apart by its checksum differing from the one alfabeta recorded |
 | `version` | Drive's `md5Checksum`, or `modifiedTime` for a Google-native file; "a new version" means either changed |
 | `state` | See below |
 
@@ -55,8 +54,8 @@ One per transcribed photo.
 | Field | Meaning |
 |---|---|
 | `photo_id`, `photo_version` | The photo it transcribes |
-| `pdf_id`, `markdown_id`, `markdown_version` | The transcription files next to the photo; for an adopted Markdown, its section |
-| `order` | Position in the living file: by the photo's name, then by upload time |
+| `pdf_id`, `markdown_id`, `markdown_version` | `<photo name> · transcripción.pdf` and `.md` next to the photo; for an adopted Markdown, its section, and a PDF written for it |
+| `order` | Position in the living file: the order pages were first seen; a correction keeps it |
 | `review` | `automatic`, `checked` (PDF renamed with « (revisada)»), `wrong` (« (mal)») |
 | `source` | `claude` or `adopted` (an existing Markdown, research R2) |
 | `model`, `usage` | The model and its token counts, for the report; empty when adopted |
@@ -84,14 +83,16 @@ file is created, and the report says so.
 
 ## ClassroomEntry
 
-One per Classroom item, keyed by the item: the Drive id of its file, note or folder.
+One per Classroom item, keyed by the item: the Drive id of its file, note or folder. An item in
+`Sin tema` belongs to the living Classroom file of its subject's most recent topic (spec 002
+FR-023); an item moved to another topic folder moves to that topic's file.
 
 | Field | Meaning |
 |---|---|
 | `item_id`, `item_version` | The item; for a folder, the latest `version` of anything inside |
 | `title`, `posted` | From the item's name, `YYYYMMDD - <title>` (constitution, Storage) |
 | `description`, `addresses` | From `descripcion.md` and `enlaces.md`, when the item is a folder |
-| `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover) |
+| `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type in `.alfabeta/conversiones/`, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover). `entrega - <name>` and `correccion.md` are never parts (constitution III) |
 | `pages` | Pages in the living file |
 
 A new `item_version` replaces the entry's pages in place.
@@ -104,11 +105,12 @@ Written only when the run changed something (User Story 4).
 |---|---|
 | `run_at` | Start of the run, `Europe/Madrid` |
 | per topic | State changes since the last report: pages added, items added, duplicates, unsupported, unreadable, gone, marks by the student, unexpected files, `waiting_setup`, living files `missing` or over the page count, failures, and the "what it adds" text |
-| `spend` | Tokens in and out this run, and the month's spend so far, summed from the recorded `usage` at `[notes] price_in` and `price_out` (the Console's cost page is the authority; reading it needs an admin key this plan does not ask for) |
+| `spend` | Tokens in and out this run, and the month's spend so far from the spend ledger |
 
-Logs carry topic folder ids and counts. The report is in Spanish, in Drive.
+The report is in Spanish, in Drive.
 
-## PullCursor (on the Mac)
+## SpendLedger (in `estado.json`)
 
-`data/drive/pull.json` in the student's data folder: the Mac's own `page_token` for the pull
-(research R10). Independent of the cloud's cursor.
+One row per month: tokens in and out of every Claude call, transcriptions and "what it adds" alike,
+and their cost at `[notes] price_in` and `price_out`. The Console's cost page is the authority;
+reading it needs an admin key this plan does not ask for.

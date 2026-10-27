@@ -227,6 +227,14 @@ run.
   (research R7), so the operator moves the student's base folder out of the mount, and every run
   refuses a base folder inside it. The mount keeps showing the Drive copy; anything written there
   by hand bypasses alfabeta's upload records.
+- **FR-011a**: Leaving the mount MUST NOT stop what the mount used to bring. Added by spec 005
+  (julioarguello/alfabeta#44, constitution VII 1.6.0): every sync first pulls into the master what
+  Drive holds under a topic folder, outside the cloud run's state folder, with its own change
+  cursor. A Drive id with no upload record is downloaded and recorded `adopted`; a recorded id with
+  a new Drive version overwrites the master copy only if that copy's md5 still equals the last
+  pulled version, else it is written beside it with « (de Drive)» and reported; a file whose md5
+  the master already holds at that path is recorded and not copied. Nothing is deleted in the
+  master. This MUST ship before the base folder leaves the mount.
 - **FR-012**: A file MUST count as uploaded only when Drive confirms it with the same size and
   checksum as on the Mac. An upload is idempotent: a second run with nothing new uploads nothing.
 

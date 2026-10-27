@@ -149,6 +149,8 @@ each file.
   5. `drive push` twice, the second reporting `uploaded: 0`.
 
   Save the `files.list` and upload responses, with invented values, to `tests/fixtures/google/`.
+- [ ] T029a [US3] Added by spec 005. Write `tests/test_google_pull.py` for FR-011a, one test per branch: a Drive id with no upload record is downloaded and recorded `adopted`; a recorded id with a new version overwrites a master copy whose md5 equals the last pulled version; the same with a master copy changed since is written beside with « (de Drive)» and reported; a file whose md5 the master already holds is recorded, not copied; a removed Drive file deletes nothing; files under `.alfabeta/` are skipped; pull then `drive push` uploads 0.
+- [ ] T029b [US3] Added by spec 005. Implement `drive pull` in `src/alfabeta/google/pull.py` and `src/alfabeta/__main__.py`: its own cursor in `data/drive/pull.json` (its own log, constitution V), `ScopedDrive.changes`, the rule of FR-011a, JSON `{ok, pulled, beside, recorded}`, codes 0 · 2 · 3. Call it at the start of every sync run. Must be done before T029 step 4 moves the base folder off the mount.
 
 ---
 

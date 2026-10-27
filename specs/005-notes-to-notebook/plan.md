@@ -25,18 +25,17 @@ and warns when the cloud has stopped running.
 **Storage**:
 
 - configuration: `[notes]` and `[cloud]` keys ([contracts/config-template.toml](contracts/config-template.toml));
-- secrets: three Secret Manager secrets mounted as files into the cloud run (its own Google link,
-  the Claude key, the configuration), the keychain for the Mac (research R3);
-- records: `.alfabeta/estado.json` and the run log `.alfabeta/ultima-ejecucion.json` in the
-  student's Drive (research R4, R13), the Mac's `data/drive/pull.json` and spec 004's
-  `uploads.jsonl`.
+- secrets: three Secret Manager secrets mounted as files into the cloud run (its own OAuth client
+  and token, its own Claude key, the configuration); the keychain for the Mac's own (research R3);
+- records: `.alfabeta/estado.json` and the run log `.alfabeta/ultima-ejecucion.json`, which holds
+  the change cursor, in the student's Drive (research R2, R4, R13).
 
 **Testing**: `pytest` with spec 004's recorded-response transport for Drive and a recorded Claude
 response with invented content; a fake `NotebookSources` for `nlm`. Image fixtures are drawn by the
 test suite, never photos of real notes. The live proof is [quickstart.md](quickstart.md).
 
-**Target Platform**: Cloud Run job (Linux container) for `notes run`; macOS for `notebook setup` and
-`drive pull`.
+**Target Platform**: Cloud Run job (Linux container) for `notes run`; macOS for `notebook setup`, the
+cloud link and the staleness check.
 
 **Project Type**: subcommands of spec 001's local command (`python -m alfabeta`), plus a container
 that runs one of them.
@@ -51,7 +50,7 @@ hour leave three quarters of the hour as margin.
 - no source added or removed by the cloud; nothing of the family's deleted anywhere (alfabeta's own
   temporary Office conversions go to Drive's trash at once, research R6);
 - idempotent runs: unchanged input, zero writes (SC-004);
-- spend under the workspace limit (FR-014).
+- spend under the workspace limit (FR-015).
 
 **Scale/Scope**: one student, two subjects, about 4 to 8 note pages and a dozen Classroom items per
 topic.
@@ -64,8 +63,8 @@ constitution 1.6.0, amended in this pull request.
 | Principle | How the plan meets it | Status |
 |---|---|---|
 | I. The student is configuration | Project, region, schedule, secret names and model are config keys; the code knows no student, topic or account | Pass |
-| II. Three layers (1.6.0) | Template keys in the repo; values in the private config, mounted into the job as a secret; the Mac's token in the keychain, the cloud's own link and the Claude key in the project's secret store, none copied between them; the cloud's records in the state folder in Drive that II names | Pass |
-| III. Minors' data | Photos go to the student's Drive, the owner's notebook (by Drive sharing), the company project and Claude, all listed in III (1.6.0); no model whose terms exclude minors; logs carry topics and counts; fixtures are invented and drawn | Pass |
+| II. Three layers (1.6.0) | Template keys in the repo; values in the private config, mounted into the job as a secret; the Mac's client, token and Claude key in the keychain; the cloud's own OAuth client, token and Claude key in the project's secret store, downloaded or minted straight into it, so nothing is copied between places; the cloud's records in the state folder in Drive that II names | Pass |
+| III. Minors' data | Photos go to the student's Drive, the owner's notebook (by Drive sharing), the project and Claude, all listed in III (1.6.0); the student's work and grading (`entrega`, `correccion.md`) never enter a living file; no model whose terms exclude minors; the job's environment names no student; logs carry opaque indexes and counts; fixtures are invented and drawn | Pass |
 | IV. Read-only on school platforms | Nothing here reads or writes Classroom; it reads what classroom-sync put into Drive | Pass |
 | V. Idempotent, incremental | Records keyed by Drive id and checksum; cursor saved last; deterministic rebuilds compared by checksum before upload; nothing deleted, a vanished photo is reported | Pass |
 | VI. One isolated, tested provider | Drive behind spec 004's adapter, Claude behind one `Transcriber` port, `nlm` behind one `NotebookSources` port; each with recorded or fake responses | Pass |
@@ -107,7 +106,7 @@ src/alfabeta/notes/
 ├── sources.py        # NotebookSources port + NlmSources (`nlm source add --drive`), Mac only
 ├── run.py            # notes run: one reconciliation pass
 ├── setup.py          # notebook setup
-├── pull.py           # drive pull and the cloud staleness check (Mac)
+├── watch.py          # the Mac's check that the cloud ran recently (FR-017)
 └── report.py         # RunReport → Informes/*.md, and "what it adds"
 deploy/notes-cloud-run/
 ├── Dockerfile
@@ -131,8 +130,8 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 | Domain | `Arrival`, `NotesPage`, `LivingFile`, `ClassroomEntry`, `ChangeCursor`, `RunReport` | Values, states and transitions from the [data model](data-model.md); no I/O |
 | Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `PdfBuilder`, `NotebookSources`, `Clock` | What the core needs from the outside |
 | Adapters | `DriveChangeFeed`, `DriveStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
-| Services | `run_notes`, `setup_topic`, `pull_family_files`, `write_report` | One per subcommand; return results the CLI prints |
-| CLI | `notes run`, `notebook setup`, `drive pull` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
+| Services | `run_notes`, `setup_topic`, `check_cloud`, `write_report` | One per subcommand or sync step; return results the CLI prints |
+| CLI | `notes run`, `notebook setup`, `google link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
 
 ## Vertical slices (each leaves the system demonstrable)
 
@@ -145,25 +144,25 @@ answers. Ports are written for it, not for the end state.
 2. **The same pass in the cloud.** Covers US1 scenario 1, FR-014 and FR-017. The cloud's own link,
    `FileTokenStore`, the container, the job, the Scheduler job, the alert, the Mac's staleness check
    and the how-to. Done when quickstart step 5 passes with the Mac off.
-3. **Classroom items in their living file.** Covers US3 and FR-009. Done when quickstart step 6
+3. **Classroom items in their living file.** Covers US3 and FR-010. Done when quickstart step 6
    passes.
 4. **Marks, corrections, report and budget.** Covers US2, US4, FR-013 and FR-015. Done when quickstart steps 4
    and 7 pass.
-5. **Drive's files reach the master.** Covers FR-002. `drive pull` in every Mac sync. Done when a
-   photo uploaded from the phone and its transcription are in the master after the next sync, and
-   the next `drive push` uploads nothing. Must ship before spec 004's
-   slice 4 moves the master out of the Drive for desktop mount.
+5. **Drive's files reach the master.** FR-002, built as spec 004's FR-011a (its tasks T029a and
+   T029b). Done when a photo uploaded from the phone and its transcription are in the master after
+   the next sync, and the next `drive push` uploads nothing. Must ship before spec 004 moves the
+   master out of the Drive for desktop mount.
 6. **Tema 01 and real use.** US5 scenario 2 on the real topic, then quickstart step 8.
 
-Slice 5 depends only on spec 004's Drive adapter and can run in parallel with slices 1 to 4.
+Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4.
 
 ## Complexity Tracking
 
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
 | A cloud job in the company's Google Cloud project | The operator wants notes to reach the notebook with the Mac off; the desktop app's tasks need it open (research, first table) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0 |
-| A second refresh token for the student, with the client and the Claude key, in Secret Manager | The cloud cannot read the Mac's keychain; constitution II (1.6.0) forbids copying a secret between places (research R3) | A service account cannot act as a consumer Gmail |
+| A second OAuth client and refresh token for the student, and a second Claude key, in Secret Manager | The cloud cannot read the Mac's keychain; constitution II (1.6.0) forbids copying a secret between places (research R3) | A service account cannot act as a consumer Gmail |
 | One account-wide Drive read: the change feed | Drive v3's change feed takes no folder filter (research, first table); polling each folder instead costs one listing per folder per run | Spec 004 FR-009a amended: the adapter drops every change outside the allowlist before returning, keeps and logs nothing about it, and the scope test covers the feed |
-| The cloud's records in Drive instead of a database | One small JSON with one writer at a time (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |
+| The cloud's records in Drive instead of a database | One small JSON, two writers guarded by a revision check (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |
 | `reportlab` and `pypdf` at runtime | The standard library cannot draw or merge PDFs, and the notebook follows a PDF in Drive (research R6) | A Google Doc living file needs images at public URLs |
 | Two places that call Claude (transcription, "what it adds") under one budget | The report is what tells the family the pack is missing what the notes stress (US4) | No report: the student studies a pack that silently misses the notes |

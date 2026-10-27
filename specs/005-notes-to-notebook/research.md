@@ -23,7 +23,8 @@ own table is the subset the requirements rest on; this one is the full list.
 | The Max plan's 200 USD monthly API credit reaches the Console organisation Server Startup; its workspace `alfabeta` has a 10 USD monthly limit and no key | Claude Console billing and spend-limit pages, company account | 2026-10-27 |
 | The operator checked the transcription of four pages of notes made on 2026-10-26 against the photos and accepted it; it is one Markdown with a `## Página N` section per photo, each embedding the photo by name | This project's conversation of 2026-10-26; the Markdown is in the topic's `apuntes/` | 2026-10-26 |
 | Tema 01's notebook holds those notes as two plain sources titled «Apuntes · Apuntes de clase · T01.md» and «… .pdf» | `nlm source add` output of 2026-10-26 | 2026-10-26 |
-| Spec 001 places a Classroom item as `YYYYMMDD - <title>.<ext>`, as a `.md` note, or as a folder with its files, `descripcion.md` and `enlaces.md`; assignments are folders with `enunciado - <name>` and `enunciado.md` | `specs/001-classroom-sync/tasks.md` T027 and `data-model.md` | 2026-10-27 |
+| Spec 001 places a Classroom item as `YYYYMMDD - <title>.<ext>`, as a `.md` note, or as a folder with its files, `descripcion.md` and `enlaces.md`; assignments are folders with `enunciado - <name>` and `enunciado.md`, plus the student's `entrega - <name>` and the grading `correccion.md` | `specs/001-classroom-sync/tasks.md` T027 and `data-model.md` | 2026-10-27 |
+| A material without a topic goes to the notebook of its subject's most recent topic | `specs/002-study-pack/spec.md` FR-023 | 2026-10-27 |
 
 ## R1 — Where each part runs
 
@@ -31,7 +32,8 @@ own table is the subset the requirements rest on; this one is the full list.
   - **Cloud, every 15 minutes**: read the change feed, transcribe, rebuild living files, write the
     report (FR-001, FR-003 to FR-013).
   - **Mac, in each scheduled sync**: bring into the master what Drive holds and the master lacks
-    (FR-002), check that the cloud ran recently (FR-017), and run classroom-sync, which puts
+    (FR-002, owned by spec 004's FR-011a), check that the cloud ran recently (FR-017), and run
+    classroom-sync, which puts
     Classroom items into Drive (spec 001, spec 004 `drive push`).
   - **Mac, once per topic**: create both living files and add them to the notebook as sources (User
     Story 5), because only `nlm` can add a source.
@@ -43,15 +45,22 @@ own table is the subset the requirements rest on; this one is the full list.
 ## R2 — Detecting arrivals: poll the change feed
 
 - **Decision**: Cloud Scheduler starts the Cloud Run job every 15 minutes. The job builds spec 004's
-  folder allowlist, reads `changes.list` from its saved cursor through `ScopedDrive`, follows
-  `nextPageToken`, and keeps only changes whose `parents` are in the allowlist; a new folder whose
-  parent is in it joins it in the same pass. Every other change is dropped inside the adapter before
-  the caller sees it (spec 004 FR-009a, amended). The cursor is saved only after the run's writes
-  succeed, and only if the token moved or something was written.
-- **First run and first sight of a topic**: with no cursor, the job takes `getStartPageToken`
-  first, then lists the whole tree under the allowlist once, so material that existed before the
-  cursor is taken in (FR-004). A Markdown in `apuntes/` that embeds a photo by name, in a section of
-  its own, is that photo's transcription (Tema 01's form, first table): no Claude call.
+  folder allowlist and reads `changes.list` from its cursor through `ScopedDrive.changes`, following
+  `nextPageToken`. The adapter receives the set of file ids the state records and lets through a
+  change whose parents are in the allowlist, or whose file id is recorded (so a recorded file that
+  was removed or moved out still arrives, as `gone`); it drops everything else before returning and
+  logs nothing about it (spec 004 FR-009a, amended). A folder that joins the allowlist is listed
+  whole once, so content moved in with it is taken in.
+- **Echoes**: every write the cloud makes (state, run log, transcriptions, living files, reports,
+  temporary conversions) comes back through the next feed page. A change to a file id the state
+  records as alfabeta's own is consumed: never an arrival, never a reason to write.
+- **The cursor lives in the run log**, `.alfabeta/ultima-ejecucion.json`, written at the end of every
+  run as the run's own log (constitution V). `estado.json` is written only when a record changes, so
+  an idle run, whose token moves because of its own previous run log, writes only the run log
+  (SC-004).
+- **First run**: with no cursor, the job takes `getStartPageToken` first, then lists the whole tree
+  under the allowlist once (FR-004). A Markdown in `apuntes/` that embeds a photo by name, in a
+  section of its own, is that photo's transcription (Tema 01's form, first table): no Claude call.
 - **Rationale**: four polls an hour meet SC-001 (one hour) with margin, need no public endpoint, and
   use one Scheduler job.
 - **Alternatives**: push channels (first table): a public endpoint, renewal at most weekly, and a
@@ -60,34 +69,39 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R3 — The cloud's own link and secrets
 
-- **Decision**: the operator links the student's Gmail a second time on the Mac with spec 004's
-  flow and client, asking only for the Drive scope, with
-  `alfabeta google link --student <id> --account student --scopes drive --print-token`. The command
-  writes the refresh token, with the client id and secret, as one JSON to standard output and keeps
-  nothing locally; the operator pipes it straight into `gcloud secrets versions add <name>
-  --data-file=-`. Nobody types or copies it, and it is never on disk. The Mac's own token stays in the
-  keychain.
-- **Three secrets, mounted as files** into the job by Cloud Run: the Google link (token and
-  client), the Claude API key of the workspace `alfabeta`, and the student's configuration. A
-  `FileTokenStore` implements spec 004's `TokenStore` over the mounted files. At 15 minutes the job
-  runs about 2,900 times a month; three secrets read once per run stay inside the 10,000 free
+- **Decision**: the cloud gets its own OAuth client, a second Desktop client in the same project.
+  The operator downloads its JSON from Google and, on the Mac, runs
+  `alfabeta google link --student <id> --account student --client-file <that JSON> --scopes drive --print-token`.
+  The command uses that client (never the keychain's), always adds `openid` and `email` so spec
+  004's account check can run, validates the grant against the scopes it asked for, writes
+  `{client_id, client_secret, refresh_token}` as one JSON line to standard output, keeps nothing, and
+  refuses to run when standard output is a terminal. The operator pipes it into
+  `gcloud secrets versions add <google_link_secret> --data-file=-` and deletes the downloaded JSON.
+  The Mac's own client and token never leave the keychain, and the cloud's never enter it.
+- **Claude**: two API keys in the workspace `alfabeta`, each created in the Console for one place:
+  one in the Mac's keychain (slice 1 and the quickstart), one in the cloud's secret store.
+- **Three secrets, mounted as files** into the job: the Google link, the Claude key, and the
+  student's configuration. The job's service account may read exactly these three. A
+  `FileTokenStore` implements spec 004's `TokenStore` over the mounted files. The student id is read
+  from the configuration secret, so the job's environment and logs name no student. At 15 minutes
+  the job runs about 2,900 times a month; three secrets read once per run stay inside the 10,000 free
   accesses.
-- **Rationale**: constitution II (1.6.0): each place holds its own secrets, none copied. Revoking the
-  cloud's link leaves the Mac working, and the reverse.
-- **Alternatives**: a service account cannot act as a consumer Gmail. Copying the Mac's token:
-  forbidden by II.
+- **Rationale**: constitution II (1.6.0): each place holds its own secrets, none copied. Revoking one
+  place's link or key leaves the other working.
+- **Alternatives**: a service account cannot act as a consumer Gmail. Reusing the Mac's client:
+  copies its secret, forbidden by II.
 
 ## R4 — The cloud run's state
 
 - **Decision**: one JSON file `estado.json` in a folder `.alfabeta` at the root of the alfabeta
-  folder, read and written through `ScopedDrive`. It holds the cursor and the record of every file
-  (data model). Two writers exist: the cloud run, and `notebook setup` on the Mac, which records the
-  source ids. Both read `headRevisionId` at start, re-read it immediately before writing, and on a
-  difference stop without writing and retry once from the start. The job runs with one task, at most
-  one execution at a time, and a 10-minute timeout, shorter than the 15-minute period.
-- **Rationale**: no new service and no new client code. The re-check narrows the race to the
-  instants between check and write; with one cloud execution at a time and setup run by hand, that
-  window is where a conflict can happen, and the retry absorbs it.
+  folder, read and written through `ScopedDrive`. It holds the record of every file and the month's
+  spend ledger (data model); the cursor is in the run log (R2). Two writers exist: the cloud run, and
+  `notebook setup` on the Mac, which records the living files. Both read `headRevisionId` at start,
+  re-read it immediately before writing, and on a difference stop without writing and retry once from
+  the start.
+- **Overlap**: the job has one task, task retries set to 0, and a 10-minute timeout, shorter than the
+  15-minute period, so one execution has ended before the next starts unless the Scheduler fires
+  late; the revision check covers that case. Setup on the Mac is run by hand.
 - **Cloud data folder**: the job copies the mounted configuration to a writable temporary home and
   runs `--home` there, so spec 004's records (`accounts.json`, `drive.json`) are written and lost with
   the container. The allowlist is rebuilt every run, as spec 004 already does.
@@ -122,16 +136,22 @@ own table is the subset the requirements rest on; this one is the full list.
   content, and uploaded as a new revision of the same Drive file id. Rebuilds are deterministic
   (fixed metadata and creation date), so an unchanged rebuild is detected by checksum and not
   uploaded (SC-004). Names: `Apuntes · <topic>.pdf` and `Classroom · <topic>.pdf`, `<topic>` being the
-  topic folder's name after its date. Topics are keyed by folder id, so two subjects' `Sin tema`
-  never collide.
-  - Notes: a cover page, then per page the photo and its transcription, headed «Transcripción
-    automática», «Revisada por el alumno» or «En corrección».
+  topic folder's name after its date. Topics are keyed by folder id.
+  - Notes: a cover page, then per page, in the order pages were first seen, the photo and its
+    transcription, headed «Transcripción automática», «Revisada por el alumno» or «En corrección».
   - Classroom: a cover page, then per item (a file, a `.md` note or a folder, first table) one entry:
     a cover page with title, posting date, the text of `descripcion.md` and the addresses of
     `enlaces.md`, then each file's pages. A PDF is copied page by page; a Google-native file is
-    exported to PDF through Drive; an Office file is copied by Drive into the Google type and
-    exported, and the copy is put in Drive's trash at once (it was never the family's); a Markdown is
-    set as text; an image is one page; anything else is named on the cover page.
+    exported to PDF through Drive; an Office file is copied by Drive into the Google type in
+    `.alfabeta/conversiones/`, exported, and that copy put in Drive's trash at once (it was never the
+    family's); a Markdown is set as text; an image is one page; anything else is named on the cover
+    page.
+  - **Never in a living file**: `entrega - <name>` and `correccion.md`, the student's own work and
+    its grading (spec 001's data model; constitution III). An assignment enters with its statement
+    only.
+  - **`Sin tema`**: its items go into the living Classroom file of the subject's most recent topic,
+    as spec 002 FR-023 sends them to that topic's notebook. An item moved by classroom-sync to
+    another topic leaves the first file and enters the second.
 - **Dependencies**: `reportlab` to draw pages and `pypdf` to copy pages, both pure Python and pinned.
 - **Who creates them**: only `notebook setup`. A run that finds a topic without living files records
   and transcribes, and builds nothing (spec User Story 5, scenario 3). A run checks each recorded
@@ -141,53 +161,55 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R7 — The student's marks and corrections
 
-- **Decision**: marks are renames of the transcription PDF: « (revisada)» or « (mal)» before the
-  extension. A correction is either a photo named like the original plus « (corregida)», which
-  replaces that page's photo and transcription, or an edit of the page's Markdown in Drive (its
-  checksum changes), which re-renders the page from the edited text without calling Claude. Either
-  clears « (mal)» by renaming the PDF back.
+- **Decision**: a page's PDF is `<photo name> · transcripción.pdf`, also for an adopted Markdown.
+  Marks are renames of it: « (revisada)» or « (mal)» before the extension. A correction is either a
+  photo named like the original plus « (corregida)», which replaces that page's photo and
+  transcription in place, or an edit of the page's Markdown in Drive (its checksum changes), which
+  re-renders the page from the edited text without calling Claude. After a correction alfabeta
+  writes the new PDF under the name without a mark; the latest event wins.
 - **Rationale**: the Drive phone app renames and uploads; nothing else to install (FR-008).
 
 ## R8 — The report and "what it adds"
 
 - **Decision**: a run that changed something writes `Informe AAAAMMDD-HHMM.md` into `Informes/` at the
   root of the alfabeta folder, in Spanish. "What it adds" is one Claude call per changed topic,
-  given the new pages and the text of the study guide section of the topic's printable PDF
-  (`Tema NN para imprimir · <title>.pdf`, spec 002), extracted with `pypdf`; skipped with a line when
-  the topic has no printable PDF or the budget is spent. The Mac's sync lists `Informes/` through
-  `ScopedDrive` and puts one agenda line per report it has not listed before.
+  given the new pages and the text of the study guide section of the topic's printable PDF, which
+  the study-pack skill writes as `Tema NN para imprimir · <title>.pdf` in the topic folder
+  (`skills/study-pack/SKILL.md`, step 10), extracted with `pypdf`; skipped with a line when that PDF
+  is missing or the budget is spent. Every call's `usage` goes into the month's spend ledger. The
+  Mac's sync lists `Informes/` through `ScopedDrive` and adds one agenda line per report it has not
+  listed before.
 - **Rationale**: Drive is the one channel the cloud and the family share.
 - **Alternatives**: email needs a Gmail scope no spec asks for (spec 004 R9). Rejected.
 
 ## R9 — Setting up a topic, and Tema 01
 
-- **Decision**: `notebook setup` on the Mac creates both living files from what is recorded, adds
-  each with `nlm source add --drive <id> --type pdf`, and records the source ids in `estado.json`
-  (R4's check). It creates a file only when no file id is recorded. It lists the notebook's plain
-  sources whose title starts with «Apuntes ·» or «Classroom ·» (Tema 01's, first table) for the
-  family to remove by hand; alfabeta removes nothing (FR-011).
+- **Decision**: `notebook setup --topic <subject>/<folder>` on the Mac finds the topic's notebook by
+  `[notebook] title_pattern` (`nlm notebook list`), creates both living files from what is recorded
+  when no file id is recorded, adds each with `nlm source add --drive <id> --type pdf`, and records
+  the file and source ids in `estado.json` (R4's check). It lists the notebook's other sources whose
+  title starts with «Apuntes ·» or «Classroom ·» and whose id is not a recorded living source
+  (Tema 01's two, first table) for the family to remove by hand; alfabeta removes nothing (FR-011).
 
 ## R10 — Bringing Drive's files into the master
 
-- **Decision**: the Mac's pull reads the change feed from its own cursor (`data/drive/pull.json`)
-  and downloads into the master every file under a topic folder that is not in `.alfabeta/` and
-  that spec 004's `uploads.jsonl` does not already record by Drive id. That covers the family's files
-  and the cloud's transcriptions and living files, so the mirrors receive them (constitution VII,
-  1.6.0). Each downloaded file gets an `UploadRecord` with `how = "adopted"`, so spec 004's next
-  `drive push` uploads nothing for it. A path that already exists in the master is never overwritten:
-  the file is reported, and written beside it with « (de Drive)» before the extension.
-- **Rationale**: the upload records already say which files came from the Mac; no marker on files
-  is needed.
+- **Decision**: owned by spec 004's FR-011a, added in this pull request: the pull exists because spec
+  004 leaves the mount, and its rule is an upload-record rule. This spec relies on it and adds
+  nothing to it.
 
 ## R11 — Deploying and watching the cloud run
 
 - **Decision**: one container image built from the repository by Cloud Build, a Cloud Run job (one
-  task, one execution at a time, 10-minute timeout) in a Tier 1 European region chosen at setup, one
-  Scheduler job, and the job's service account allowed to read exactly the three secrets of R3.
-  The project alerts the operator by email when an execution fails (Cloud Monitoring alert policy).
-  A spent budget is not a failure: the job exits 0 and reports it.
-- **To verify at setup**: Cloud Build's free minutes cover a build; the region is Tier 1; the
-  company billing account's three free Scheduler jobs are not already used.
+  task, task retries 0, 10-minute timeout) in a Tier 1 European region chosen at setup, one
+  Scheduler job in time zone `Europe/Madrid` (constitution VIII), and a service account allowed to
+  read exactly the three secrets of R3. The project alerts the operator by email when an execution
+  fails (a Cloud Monitoring alert policy). A spent budget is not a failure: the job exits 0 and
+  reports it. A missing Claude key in the cloud is a failure (exit 3): the alert fires.
+- **To verify at setup, recorded in this table when read**: Cloud Build's and Artifact Registry's
+  free allowances cover one image; Cloud Logging and Monitoring alerting cost nothing at this
+  volume; the region is Tier 1; the company billing account's three free Scheduler jobs are not
+  already used. Until then constitution IX's "within its free tier" is a stated aim, checked in
+  quickstart step 5.
 
 ## R12 — Limits of a notebook source
 
@@ -198,10 +220,9 @@ own table is the subset the requirements rest on; this one is the full list.
 ## R13 — When the cloud run fails
 
 - **Decision**: two channels that do not need the cloud's Google link: the project's alert to the
-  operator (R11), and the Mac's sync. Every cloud run ends by writing
-  `.alfabeta/ultima-ejecucion.json` (start, end, result): the run's own log, the one write
-  constitution V allows a run with no change. The Mac's sync reads it with the Mac's own link and
-  writes an agenda line and a macOS notification when the last successful cloud run is more than
-  two hours old (spec 004 R9's channels).
+  operator (R11), and the Mac's sync. Every cloud run ends by writing `.alfabeta/ultima-ejecucion.json`
+  (its own log: start, end, result, `last_ok_ended`, the cursor). The Mac's sync reads
+  `last_ok_ended` with the Mac's own link and writes an agenda line and a macOS notification
+  (spec 004's `notify`) when it is older than `[notes] cloud_stale_hours`.
 - **Known gap**: with the Mac off and the alert email unread, a failure is seen when a page does not
   arrive.

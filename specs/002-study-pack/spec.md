@@ -239,7 +239,8 @@ check that the proposed blocks include it.
    are not a source and the family is told.
 
 > Superseded on 2026-10-27 by spec 005 (julioarguello/alfabeta#44): transcriptions reach the
-> notebook without a check, each page saying it is automatic and whether the student checked it.
+> notebook without a check, each page saying it is automatic and whether the student checked it,
+> and only through the topic's living notes file: the pack adds no source of its own for them.
 > The ranking of the notes first is unchanged.
 
 ---

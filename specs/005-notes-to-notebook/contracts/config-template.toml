@@ -19,8 +19,8 @@ project = "changeme"
 region = "changeme"                 # e.g. "europe-west1"
 # How often the Scheduler starts `notes run`, as a cron expression in Europe/Madrid.
 schedule = "*/15 * * * *"
-# Secret Manager names (research R3): the cloud's Google link (token and client), the Claude API key
-# of the alfabeta workspace, and this configuration. Names only, never values.
+# Secret Manager names (research R3): the cloud's Google link (its own OAuth client and token), the
+# cloud's own Claude API key of the alfabeta workspace, and this configuration. Names only, never values.
 google_link_secret = "changeme"
 claude_key_secret = "changeme"
 config_secret = "changeme"
