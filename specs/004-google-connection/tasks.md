@@ -23,7 +23,7 @@ other two channels of research R9 still ship.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add the keys of `specs/004-google-connection/contracts/config-template.toml` to `config/template.toml`. Change the comment of `[drive] root` to "the alfabeta folder's path inside the student's My Drive", and add `[storage] base`, `[calendar] id` and `[google]`. Run spec 001's `tests/test_template_covers_reads.py`.
+- [x] T001 Add the keys of `specs/004-google-connection/contracts/config-template.toml` to `config/template.toml`. Change the comment of `[drive] root` to "the alfabeta folder's path inside the student's My Drive", and add `[storage] base`, `[calendar] id` and `[google]`. Run spec 001's `tests/test_template_covers_reads.py`.
 - [ ] T002 [P] Create `src/alfabeta/google/__init__.py` and the empty `tests/fixtures/google/README.md`. The README says every file there is a recorded response with invented values, named `<call>-<YYYY-MM-DD>.json`.
 
 ---

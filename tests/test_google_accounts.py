@@ -23,7 +23,7 @@ def _grant(email: str | None, scopes: str = GRANTED) -> oauth.Grant:
 
 @pytest.fixture
 def cfg(home: Path) -> config.StudentConfig:
-    return config.load(home, "s9")
+    return config.load(home, "s9", ("classroom", "calendar", "google"))
 
 
 def _link(

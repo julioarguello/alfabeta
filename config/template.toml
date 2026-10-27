@@ -1,0 +1,103 @@
+# alfabeta's configuration template (spec 001 FR-001; spec 004 adds [storage], [calendar] id and [google]).
+# Each student copies this file to ~/.alfabeta/<student>/config.toml and changes the changeme values.
+# A key that is missing, extra, changes type or contains changeme stops alfabeta (FR-003);
+# `alfabeta --home <dir> config check --student <id>` lists every such key, never its value.
+
+[student]
+# Name Claude uses to address the family in the chat. The command never prints it (nor log, URL or Drive).
+display_name = "changeme"
+# School year, first level of the folder structure.
+school_year = "changeme"            # e.g. "2026-2027"
+# Grade level, for the notebook names.
+grade_level = "changeme"            # e.g. "1º ESO"
+# Languages that titles and announcements may come in.
+languages = ["changeme"]            # e.g. ["es", "en"]
+
+[classroom]
+# Email address of the school account. Compared locally with the account button; never goes in a URL.
+account = "changeme@example.org"
+
+[storage]
+# The student's base folder on the Mac, outside the Google Drive for desktop mount (spec 004 R7):
+# every run refuses one under ~/Library/CloudStorage/GoogleDrive-*. Never shown in messages.
+base = "changeme"                   # e.g. "~/alfabeta/<student>"
+
+[drive]
+# The alfabeta folder's path inside the student's My Drive (spec 004), never the root of My Drive.
+root = "changeme"                   # e.g. "alfabeta"
+# One-way mirrors of the base folder (FR-011a): a folder in each of the student's other accounts' Drives,
+# mounted by Google Drive for desktop on this Mac. Brought up to date after every sync; never read back,
+# never pruned. Never shown in messages. [] for none.
+mirrors = ["changeme"]              # e.g. ["~/Library/CloudStorage/GoogleDrive-<school account>/Mi unidad/alfabeta"]
+
+[calendar]
+# The family calendar alfabeta writes to, as the student's Gmail (spec 004). Never printed.
+id = "changeme@group.calendar.google.com"
+# Accounts the student's calendar is shared with, each with permission to see all event details
+# (FR-011b; the calendar is built by the reminders epic). [] for none.
+shared_with = ["changeme@example.org"]
+
+[downloads]
+# Folder where the browser leaves its downloads.
+folder = "changeme"                 # e.g. "~/Downloads"
+
+[sync]
+# Every how many days all attachments are downloaded again to check their hash.
+full_review_days = 7
+# Minutes without activity after which the lock of a dead run is released on its own.
+lock_idle_minutes = 30
+# How many captures are kept per class in the data folder.
+kept_captures = 10
+
+[tools]
+# Local folder where the skills copy their working scripts. Outside Dropbox and the base folder.
+folder = "changeme"                 # e.g. "~/.alfabeta/tools"
+# Clone of the alfabeta repository; the skills run `uv run --project <repository> python -m alfabeta`
+# on the Mac (never in the app's virtual machine).
+repository = "changeme"             # e.g. "~/opt/alfabeta"
+
+[sciencebits]
+# If no subject has book = "sciencebits", url = "" and languages = [] are valid.
+# Science Bits class page.
+url = "changeme"                    # e.g. "https://learning-bits.com/intranet/es/myclasses/index"
+# Languages each topic is captured in; the first one gives the topic folder's title.
+languages = ["changeme"]            # e.g. ["es", "en"]
+
+[notebook]
+# Whether the Gemini Notebook notebook of each topic is created (epic 3; the Science Bits skill already does it).
+enabled = false
+# The constitution sets the name: «<grade level>. <Subject>. Tema NN - <title>».
+# Accounts each topic notebook is shared with as viewer (FR-011b). [] for none.
+share_with = ["changeme@example.org"]
+
+[schedule]
+# Time of the daily sync (local time), or "" for on demand only.
+daily = "changeme"                  # e.g. "17:30"
+
+[google]
+# A label for the operator, never an id or a secret.
+project_label = "changeme"
+
+[google.accounts.changeme]
+# One table per linked account; the alias is the table's name (e.g. [google.accounts.student]),
+# lowercase ASCII, and logs use only the alias.
+role = "student"
+# Kept only here to check that linking picked the right account. Never printed.
+address = "changeme@example.com"
+scopes = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/drive",
+  "openid",
+  "email",
+]
+
+[[subjects]]
+# Name of the subject's folder.
+folder = "changeme"                 # e.g. "Mates"
+# Title of the class in Classroom; used to propose the link, which then goes by id.
+classroom_class = "changeme"
+# Book provider, or "" if none. It is also the name of its subfolder.
+# Book topics are not configured: they are the «<YYYYMMDD> - Tema NN - <title>» folders (any date) that already hold that subfolder.
+book = "changeme"                   # e.g. "sciencebits"
+# Name of the class on the book's platform, or "" if there is no book.
+book_class = "changeme"             # e.g. "Matemáticas - 1º ESO"
