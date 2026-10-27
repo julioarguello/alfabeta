@@ -1,0 +1,3 @@
+#!/bin/sh
+# Personal-data guardrail on the staged change (spec 001 T015). Installed by `make setup-hooks`.
+exec uv run --locked python -m alfabeta guardrail --staged
