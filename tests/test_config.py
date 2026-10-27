@@ -56,7 +56,13 @@ enabled = false
 share_with = []
 
 [schedule]
-daily = "17:30"
+monday = "16:15"
+tuesday = "16:15"
+wednesday = "15:15"
+thursday = "15:15"
+friday = "16:15"
+saturday = ""
+sunday = ""
 
 [google]
 project_label = "alfabeta (prueba)"

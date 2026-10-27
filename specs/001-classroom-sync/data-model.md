@@ -65,7 +65,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `notebook.enabled` | boolean | Whether each topic's notebook is created |
 | `notebook.share_with` | list of email addresses | Accounts each topic notebook is shared with as viewer (FR-011b); may be empty; never goes in a URL or the log |
 | `subjects` | list of `Subject` | At least one |
-| `schedule.daily` | time `HH:MM` or empty | Time of the scheduled task; empty = on demand only |
+| `schedule.monday` … `schedule.sunday` | time `HH:MM` or empty | Time of the scheduled task on that weekday; empty = no run that day, all empty = on demand only |
 
 ## Subject
 

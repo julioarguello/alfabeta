@@ -71,8 +71,15 @@ enabled = false
 share_with = ["changeme@example.org"]
 
 [schedule]
-# Time of the daily sync (local time), or "" for on demand only.
-daily = "changeme"                  # e.g. "17:30"
+# Time of the scheduled sync on each weekday (local time, "HH:MM"), or "" for no sync that day.
+# Seven "" = on demand only.
+monday = "changeme"                 # e.g. "16:15"
+tuesday = "changeme"                # e.g. "16:15"
+wednesday = "changeme"              # e.g. "15:15"
+thursday = "changeme"               # e.g. "15:15"
+friday = "changeme"                 # e.g. "16:15"
+saturday = "changeme"               # e.g. ""
+sunday = "changeme"                 # e.g. ""
 
 [google]
 # A label for the operator, never an id or a secret.
