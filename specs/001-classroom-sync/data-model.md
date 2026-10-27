@@ -127,8 +127,8 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 
 | «Tu trabajo» (your work) text | Detail notice | `status` |
 |---|---|---|
-| «Asignado» (assigned) or «Falta» (missing) and a future due date or no date | — | `pending` |
-| «Asignado» or «Falta» and a past due date | — | `overdue` |
+| «Asignado» (assigned), «Falta» (missing) or «Sin entregar» (not turned in) and a future due date or no date | — | `pending` |
+| «Asignado», «Falta» or «Sin entregar» and a past due date | — | `overdue` |
 | «Entregado» (turned in) or «Entregado con retraso» (turned in late) | — | `turned_in` |
 | «Calificado» (graded) or «Devuelto» (returned) | — | `returned` |
 | any | «El profesor ha indicado que falta esto» (the teacher marked this as missing) | `missing_per_teacher` (overrides everything above) |
