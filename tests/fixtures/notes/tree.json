@@ -1,0 +1,236 @@
+{
+ "files": [
+  {
+   "id": "raiz",
+   "name": "alfabeta",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "root"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "alf",
+   "name": ".alfabeta",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "raiz"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "st",
+   "name": "state.json",
+   "mimeType": "application/json",
+   "parents": [
+    "alf"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "5555"
+  },
+  {
+   "id": "lr",
+   "name": "last-run.json",
+   "mimeType": "application/json",
+   "parents": [
+    "alf"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "6666"
+  },
+  {
+   "id": "inf",
+   "name": "Informes",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "raiz"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "rep",
+   "name": "20261027 - informe.md",
+   "mimeType": "text/markdown",
+   "parents": [
+    "inf"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "7777"
+  },
+  {
+   "id": "anio",
+   "name": "2026-2027",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "raiz"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "fyq",
+   "name": "FyQ",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "anio"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "t1",
+   "name": "20260915 - Tema 01 - Materia inventada",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "fyq"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "ap",
+   "name": "apuntes",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "t1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "f1",
+   "name": "IMG_0001.jpg",
+   "mimeType": "image/jpeg",
+   "parents": [
+    "ap"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a001"
+  },
+  {
+   "id": "tp1",
+   "name": "IMG_0001.jpg · transcripción.pdf",
+   "mimeType": "application/pdf",
+   "parents": [
+    "ap"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a002"
+  },
+  {
+   "id": "tm1",
+   "name": "IMG_0001.jpg · transcripción.md",
+   "mimeType": "text/markdown",
+   "parents": [
+    "ap"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a003"
+  },
+  {
+   "id": "u1",
+   "name": "notas.txt",
+   "mimeType": "text/plain",
+   "parents": [
+    "ap"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a004"
+  },
+  {
+   "id": "cl",
+   "name": "classroom",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "t1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "it1",
+   "name": "20261001 - Ficha de repaso",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "cl"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "p1",
+   "name": "enunciado - Ficha.pdf",
+   "mimeType": "application/pdf",
+   "parents": [
+    "it1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a005"
+  },
+  {
+   "id": "it2",
+   "name": "20261002 - Vídeo.md",
+   "mimeType": "text/markdown",
+   "parents": [
+    "cl"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a006"
+  },
+  {
+   "id": "lf1",
+   "name": "Apuntes · Materia inventada.pdf",
+   "mimeType": "application/pdf",
+   "parents": [
+    "t1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a007"
+  },
+  {
+   "id": "u2",
+   "name": "Otra cosa.docx",
+   "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+   "parents": [
+    "t1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a008"
+  },
+  {
+   "id": "sb",
+   "name": "sciencebits",
+   "mimeType": "application/vnd.google-apps.folder",
+   "parents": [
+    "t1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false
+  },
+  {
+   "id": "b1",
+   "name": "libro.pdf",
+   "mimeType": "application/pdf",
+   "parents": [
+    "sb"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a009"
+  }
+ ]
+}

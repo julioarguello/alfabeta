@@ -1,0 +1,9 @@
+{
+ "changes": [
+  {"fileId": "foto-1", "removed": false, "file": {"name": "IMG_0001.jpg", "mimeType": "image/jpeg", "parents": ["tema-1"], "md5Checksum": "aaaa1111", "modifiedTime": "2026-10-27T09:00:00.000Z", "trashed": false}},
+  {"fileId": "fuera-1", "removed": false, "file": {"name": "Diario-FUERA.pdf", "mimeType": "application/pdf", "parents": ["fuera"], "md5Checksum": "bbbb2222", "modifiedTime": "2026-10-27T09:01:00.000Z", "trashed": false}},
+  {"fileId": "fuera-2", "removed": true},
+  {"fileId": "ficha-1", "removed": false, "file": {"name": "ficha.pdf", "mimeType": "application/pdf", "parents": ["fuera"], "md5Checksum": "cccc3333", "modifiedTime": "2026-10-27T09:02:00.000Z", "trashed": false}}
+ ],
+ "newStartPageToken": "201"
+}
