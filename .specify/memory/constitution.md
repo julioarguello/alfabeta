@@ -25,13 +25,15 @@ Rationale: the first student is the first *tenant*, not the product.
 |---|---|---|---|
 | **Template** | Structure and example values (`changeme`) documenting every key | Repo (`template.*`) | Yes, the only one |
 | **Student configuration** | Name, school year, school, subjects, paths, calendar, accounts | Outside the repo or ignored by git | Never |
-| **Data and secrets** | Downloads, captures, PDFs, sessions and cookies, tokens, notebook and event ids | Local data folder and the system keychain | Never |
+| **Data and secrets** | Downloads, captures, PDFs, sessions and cookies, tokens, notebook and event ids | Local data folder and the system keychain; for a cloud run a spec names (IX), that project's secret store and one state folder inside the alfabeta folder of the student's Drive | Never |
 
 - The template MUST mirror every real configuration line by line (*template mirroring*): every key
   the code reads MUST be declared in the template, and an undeclared key is an error at start-up,
   not a silent default.
 - Secrets (cookies, tokens) MUST live in the system keychain or in the data folder with user-only
-  permissions, never in the configuration.
+  permissions, never in the configuration. A cloud run a spec names (IX) holds its own secrets in
+  its project's secret store, readable only by that run; a secret is never copied from the Mac to
+  the cloud or back.
 - An automatic guardrail (pre-commit hook and CI test) MUST prevent pushing real names, emails,
   personal paths or ids. The guardrail MUST have cases that prove it fires.
 
@@ -101,9 +103,11 @@ cannot be undone.
   configuration. When that cloud is the family's Drive, alfabeta MUST write it through its own
   Google connection and count a file as uploaded only when the cloud confirms it; it MUST NOT rely
   for it on a sync client whose result it cannot read.
-- What the family adds in that Drive under a topic folder (the student's photos of his notes, for
-  example) MUST be brought back into the master. This is the only Drive-to-master direction; it
-  never applies to a mirror.
+- Whatever that Drive holds under a topic folder and the master lacks (what the family adds, such as
+  the student's photos of his notes, and what a cloud run writes) MUST be brought back into the
+  master, so the mirrors receive it too. This is the only Drive-to-master direction; it never
+  applies to a mirror. A cloud run's state folder and its reports live only in Drive: they are not
+  part of the master and never reach a mirror.
 - alfabeta then brings each configured mirror up to date from the master, one-way. A mirror is the
   Drive folder of an account alfabeta's own connection cannot reach (the school account), mounted on
   the same Mac. It is never read back into the master, and nothing is deleted from it. Its upload

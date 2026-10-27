@@ -38,6 +38,7 @@
   because each row must say what it was observed with (`sdd.md`, Phase 3). The requirements name
   the services the family configured (Drive, the notebook, Claude, the Google Cloud project), not how
   they are called.
-- The same pull request amends the constitution to 1.6.0 (III, VII, IX and the notebooks line) and
+- The same pull request amends the constitution to 1.6.0 (II, III, VII, IX and the notebooks line),
+  spec 004 (FR-007, FR-009a, the refresh-token edge case, a note under its Constitution Check), and
   marks spec 002's check of transcriptions as superseded. `skills/study-pack/SKILL.md` still states
   the check; it changes with the implementation, not in this documentation-only pull request.

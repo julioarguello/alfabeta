@@ -149,7 +149,9 @@ run.
   External app is in Testing and asks for more than basic profile scopes (Google OAuth 2.0 docs,
   read 2026-10-27). The app MUST be published before the first real link (FR-003).
 - **More than 100 refresh tokens** for one account and one client: Google invalidates the oldest. A
-  re-link replaces the stored token, it never adds a second one.
+  re-link replaces the stored token, it never adds a second one. Spec 005 adds one more link of the
+  same account for its cloud run, stored only there: two tokens, one per place, each replaced only
+  by a re-link in its own place.
 - **The operator's work account changes or leaves the organisation**: the project and every
   authorisation go with it. The run says so as in User Story 4.
 - **An organisation policy in the work account forbids External apps**: the project cannot be
@@ -189,7 +191,9 @@ run.
 
 - **FR-007**: The refresh token MUST be kept in the system keychain, one entry per linked account,
   and never in the repository, the configuration, a log or an error message. The client secret is
-  kept the same way.
+  kept the same way. Amended by spec 005 (constitution II, 1.6.0): the cloud run's own link keeps
+  its token and the client in the alfabeta project's secret store; the Mac's token never leaves
+  the keychain.
 - **FR-008**: Linking MUST open Google's own sign-in in the browser. alfabeta never sees or types a
   password (constitution III).
 
@@ -210,7 +214,10 @@ run.
 - **FR-009a**: Every Drive read and write MUST stay inside the alfabeta folder that the student's
   configuration names (its id, resolved once). A call outside it is refused by alfabeta's own Drive
   adapter, and a test asserts that no call leaves the folder. The scope allows more; alfabeta does
-  not use it.
+  not use it. Amended by spec 005: Drive's change feed has no folder filter (only `spaces` and
+  `restrictToMyDrive`), so reading it is the one account-wide read. The adapter drops every change
+  outside the allowlist before returning, and nothing about a dropped change is kept or logged; the
+  scope test covers the feed too.
 - **FR-010**: Switching Drive on MUST NOT duplicate or lose a file. A one-off migration matches each
   file in the folder on the Mac with the file Drive already holds at the same path, by size and
   checksum. It adopts the matches, uploads what Drive lacks, and reports both lists plus any file
