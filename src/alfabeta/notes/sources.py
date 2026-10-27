@@ -34,7 +34,7 @@ class Source:
 
     id: str
     title: str
-    url: str = ""  # for a Drive source, unmeasured whether it carries the file id
+    url: str = ""  # empty for a Drive source (measured 2026-10-27)
 
 
 class NotebookSources(Protocol):

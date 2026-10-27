@@ -108,9 +108,9 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         title = file.name.removesuffix(".pdf")
         # A setup stopped after adding the source (nlm failed on the next one, or another writer
         # changed state.json) runs again: the source is found, never added twice (FR-009).
-        again = next((s for s in present if file.id in s.url), None) or next(
-            (s for s in present if s.title == title), None
-        )
+        # Measured 2026-10-27: a Drive source's `url` is empty and its title is the Drive file's name,
+        # `.pdf` included, whatever `--title` said; so the name is what finds it.
+        again = next((s for s in present if s.title in (file.name, title)), None)
         source = again.id if again else sources.add_drive_source(notebook, file.id, title)
         built, _ = current.set_up(file.id, source).built(hashlib.md5(data).hexdigest(), pages)
         living[kind] = living_record(built)
