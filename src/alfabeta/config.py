@@ -1,21 +1,50 @@
-"""The student's private configuration, `<home>/<student>/config.toml`.
+"""The student's private configuration, `<home>/<student>/config.toml` (spec 001 FR-001…FR-004).
 
-Only the keys spec 004's commands read. Spec 001 (T019) replaces this with the loader that validates
-every key against `config/template.toml`.
+The repository's `config/template.toml` is the contract: a key that is missing, extra, changes type
+or contains `changeme` is a problem named by its key, never by its value (FR-003). `config check`
+compares the whole file; a command loads only the tables it reads, so a run is not stopped by a
+table it never touches (spec 001 T024).
+
+Every read goes through a reader (`READERS`) with the key's dotted path as a string literal, so
+`tests/test_template_covers_reads.py` can check that the template declares every key read.
 """
 
 from __future__ import annotations
 
+import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Iterable, Mapping
+
+TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "template.toml"
+# A template table whose only child is this table holds one table per name the operator chooses.
+DYNAMIC = "changeme"
+READERS = frozenset({"_str", "_strs", "_names"})
+
+_NAME = re.compile(r"[a-z][a-z0-9_-]*")
+# Google Drive for desktop mounts every account under this folder (spec 004 R7).
+_DRIVE_MOUNTS = Path("Library") / "CloudStorage"
+_MY_DRIVE = frozenset({"mi unidad", "my drive"})
 
 
 class ConfigError(Exception):
     """The configuration is missing or a key this command needs is absent or invalid."""
+
+
+@dataclass(frozen=True)
+class Problem:
+    """A key and what is wrong with it; never its value."""
+
+    key: str
+    reason: str
+
+    def as_json(self) -> dict[str, str]:
+        """The `{key, reason}` shape of `config check`."""
+        return {"key": self.key, "reason": self.reason}
 
 
 @dataclass(frozen=True)
@@ -28,20 +57,73 @@ class AccountConfig:
     scopes: tuple[str, ...]
 
 
+def _at(data: Mapping[str, Any], path: str, names: tuple[str, ...]) -> Any:
+    node: Any = data
+    pending = list(names)
+    for part in path.split("."):
+        step = pending.pop(0) if part == "*" else part
+        if not isinstance(node, dict) or step not in node:
+            raise ConfigError(f"key {path} was not loaded")
+        node = cast("dict[str, Any]", node)[step]
+    return node
+
+
+def _str(data: Mapping[str, Any], path: str, *names: str, allow_empty: bool = False) -> str:
+    value = _at(data, path, names)
+    if not isinstance(value, str) or (not value and not allow_empty):
+        raise ConfigError(f"key {path} is empty")
+    return value
+
+
+def _strs(data: Mapping[str, Any], path: str, *names: str, allow_empty: bool = False) -> tuple[str, ...]:
+    value = _at(data, path, names)
+    if not isinstance(value, list) or (not value and not allow_empty):
+        raise ConfigError(f"key {path} is empty")
+    return tuple(cast("list[str]", value))
+
+
+def _names(data: Mapping[str, Any], path: str, *names: str) -> tuple[str, ...]:
+    value = _at(data, path, names)
+    if not isinstance(value, dict):
+        raise ConfigError(f"key {path} is not a table")
+    return tuple(sorted(cast("dict[str, Any]", value)))
+
+
 @dataclass(frozen=True)
 class StudentConfig:
-    """The keys spec 004 reads, resolved once per command."""
+    """The validated tables of one student's configuration, read through the readers."""
 
     student: str
     root: Path
-    school_account: str
-    calendar_id: str
-    accounts: dict[str, AccountConfig]
+    data: Mapping[str, Any] = field(repr=False)
 
     @property
     def data_dir(self) -> Path:
         """The student's data folder."""
         return self.root / "data"
+
+    @property
+    def school_account(self) -> str:
+        """The school account's address."""
+        return _str(self.data, "classroom.account")
+
+    @property
+    def calendar_id(self) -> str:
+        """The family calendar alfabeta writes to."""
+        return _str(self.data, "calendar.id")
+
+    @property
+    def accounts(self) -> dict[str, AccountConfig]:
+        """The linked Google accounts by alias."""
+        return {
+            alias: AccountConfig(
+                alias=alias,
+                role=_str(self.data, "google.accounts.*.role", alias),
+                address=_str(self.data, "google.accounts.*.address", alias),
+                scopes=_strs(self.data, "google.accounts.*.scopes", alias),
+            )
+            for alias in _names(self.data, "google.accounts")
+        }
 
     def account(self, alias: str) -> AccountConfig:
         """The linked account with that alias."""
@@ -51,53 +133,143 @@ class StudentConfig:
             raise ConfigError(f"no [google.accounts.{alias}] in the configuration") from None
 
 
-def _table(data: dict[str, Any], key: str) -> dict[str, Any]:
-    value = data.get(key)
-    if not isinstance(value, dict):
-        raise ConfigError(f"missing table [{key}]")
-    return cast("dict[str, Any]", value)
+def load_template(path: Path = TEMPLATE) -> dict[str, Any]:
+    """The repository's template."""
+    with path.open("rb") as handle:
+        return tomllib.load(handle)
 
 
-def _text(table: dict[str, Any], key: str, where: str) -> str:
-    value = table.get(key)
-    if not isinstance(value, str) or not value or "changeme" in value:
-        raise ConfigError(f"missing or unset key {where}.{key}")
-    return value
+def _is_dynamic(example: dict[str, Any]) -> bool:
+    return list(example) == [DYNAMIC] and isinstance(example[DYNAMIC], dict)
 
 
-def load(home: Path, student: str) -> StudentConfig:
-    """Load the student's configuration from `<home>/<student>/config.toml`."""
+def _join(key: str, child: str) -> str:
+    return f"{key}.{child}" if key else child
+
+
+def _compare(value: Any, example: Any, key: str, problems: list[Problem]) -> None:
+    if isinstance(example, dict):
+        if not isinstance(value, dict):
+            problems.append(Problem(key, "type"))
+            return
+        table = cast("dict[str, Any]", value)
+        template = cast("dict[str, Any]", example)
+        if _is_dynamic(template):
+            if not table:
+                problems.append(Problem(f"{key}.<name>", "missing"))
+            for name, child in table.items():
+                if _NAME.fullmatch(name):
+                    _compare(child, template[DYNAMIC], f"{key}.{name}", problems)
+                else:
+                    problems.append(Problem(f"{key}.<name>", "invalid_name"))
+            return
+        problems.extend(Problem(_join(key, k), "missing") for k in template if k not in table)
+        problems.extend(Problem(_join(key, k), "extra") for k in table if k not in template)
+        for k in template:
+            if k in table:
+                _compare(table[k], template[k], _join(key, k), problems)
+    elif isinstance(example, list):
+        if not isinstance(value, list):
+            problems.append(Problem(key, "type"))
+            return
+        items = cast("list[Any]", value)
+        element = cast("list[Any]", example)[0]
+        for index, item in enumerate(items):
+            where = f"{key}[{index}]" if isinstance(element, dict) else key
+            _compare(item, element, where, problems)
+    elif type(value) is not type(example):  # bool is an int to isinstance
+        problems.append(Problem(key, "type"))
+    elif isinstance(value, str) and "changeme" in value.lower():
+        problems.append(Problem(key, "unset"))
+
+
+def validate(
+    data: Mapping[str, Any], template: Mapping[str, Any], tables: Iterable[str] | None = None
+) -> list[Problem]:
+    """Problems of `data` against `template`, over every table or only `tables`."""
+    problems: list[Problem] = []
+    if tables is None:
+        _compare(dict(data), dict(template), "", problems)
+    else:
+        for name in tables:
+            if name not in data:
+                problems.append(Problem(name, "missing"))
+            else:
+                _compare(data[name], template[name], name, problems)
+    # One problem per key and reason: a list of scalars reports its key once.
+    return list(dict.fromkeys(problems))
+
+
+def _read(home: Path, student: str) -> tuple[Path, dict[str, Any]]:
+    if not _NAME.fullmatch(student):
+        raise ConfigError("the student id must be lowercase ASCII")
     root = home / student
     path = root / "config.toml"
     if not path.is_file():
         raise ConfigError(f"no configuration for student {student!r}")
-    with path.open("rb") as handle:
-        data = tomllib.load(handle)
-    classroom = _table(data, "classroom")
-    calendar = _table(data, "calendar")
-    google = _table(data, "google")
-    raw_accounts = google.get("accounts")
-    if not isinstance(raw_accounts, dict) or not raw_accounts:
-        raise ConfigError("missing table [google.accounts.<alias>]")
-    accounts: dict[str, AccountConfig] = {}
-    for alias, raw in cast("dict[str, Any]", raw_accounts).items():
-        if not isinstance(raw, dict):
-            raise ConfigError(f"[google.accounts.{alias}] must be a table")
-        table = cast("dict[str, Any]", raw)
-        where = f"google.accounts.{alias}"
-        scopes = table.get("scopes")
-        if not isinstance(scopes, list) or not scopes or not all(isinstance(s, str) for s in cast("list[Any]", scopes)):
-            raise ConfigError(f"missing or invalid key {where}.scopes")
-        accounts[alias] = AccountConfig(
-            alias=alias,
-            role=_text(table, "role", where),
-            address=_text(table, "address", where),
-            scopes=tuple(cast("list[str]", scopes)),
-        )
-    return StudentConfig(
-        student=student,
-        root=root,
-        school_account=_text(classroom, "account", "classroom"),
-        calendar_id=_text(calendar, "id", "calendar"),
-        accounts=accounts,
-    )
+    try:
+        with path.open("rb") as handle:
+            return root, tomllib.load(handle)
+    except tomllib.TOMLDecodeError as err:
+        raise ConfigError(f"config.toml is not valid TOML ({err})") from None
+
+
+def load(home: Path, student: str, tables: Iterable[str], template: Path = TEMPLATE) -> StudentConfig:
+    """Load the student's configuration, validating the tables this command reads."""
+    root, data = _read(home, student)
+    wanted = tuple(tables)
+    problems = validate(data, load_template(template), wanted)
+    if problems:
+        listed = ", ".join(f"{p.key} ({p.reason})" for p in problems)
+        raise ConfigError(f"invalid configuration: {listed}")
+    return StudentConfig(student, root, {name: data[name] for name in wanted})
+
+
+def _inside(path: Path, folder: Path) -> bool:
+    return path == folder or folder in path.parents
+
+
+def _local(value: str) -> Path:
+    return Path(value).expanduser()
+
+
+def _check_places(cfg: StudentConfig, problems: list[Problem], warnings: list[Problem]) -> None:
+    data = cfg.data
+    base = _local(_str(data, "storage.base"))
+    if not base.is_absolute():
+        problems.append(Problem("storage.base", "not_absolute"))
+    elif not base.is_dir():
+        problems.append(Problem("storage.base", "not_found"))
+    mounts = Path.home() / _DRIVE_MOUNTS
+    if any(p.parent == mounts and p.name.startswith("GoogleDrive-") for p in (base, *base.parents)):
+        problems.append(Problem("storage.base", "inside_drive_mount"))
+    if _inside(cfg.data_dir, base):
+        problems.append(Problem("storage.base", "contains_data_folder"))
+    if _inside(_local(_str(data, "tools.folder")), base):
+        problems.append(Problem("tools.folder", "inside_base"))
+
+    root = _str(data, "drive.root", allow_empty=True).strip("/")
+    if root.startswith("~") or str(_DRIVE_MOUNTS) in root:
+        problems.append(Problem("drive.root", "local_path"))
+    elif not root or root.lower() in _MY_DRIVE:
+        problems.append(Problem("drive.root", "is_my_drive"))
+
+    for index, value in enumerate(_strs(data, "drive.mirrors", allow_empty=True)):
+        key = f"drive.mirrors[{index}]"
+        mirror = _local(value)
+        if mirror.name.lower() in _MY_DRIVE:
+            problems.append(Problem(key, "is_my_drive"))
+        elif _inside(mirror, base) or _inside(base, mirror):
+            problems.append(Problem(key, "overlaps_base"))
+        elif not mirror.is_dir():
+            warnings.append(Problem(key, "not_mounted"))
+
+
+def check(home: Path, student: str, template: Path = TEMPLATE) -> tuple[list[Problem], list[Problem]]:
+    """Every problem of the whole file, and the warnings (`config check`)."""
+    root, data = _read(home, student)
+    problems = validate(data, load_template(template))
+    warnings: list[Problem] = []
+    if not problems:
+        _check_places(StudentConfig(student, root, data), problems, warnings)
+    return problems, warnings

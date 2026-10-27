@@ -38,6 +38,26 @@ def _fail(reason: str, code: int, message: str) -> int:
     return code
 
 
+# The configuration tables each command group reads; the others are not validated for it.
+TABLES = {"google": ("classroom", "google"), "calendar": ("classroom", "calendar", "google")}
+
+
+def _cmd_config_check(home: Path, student: str) -> int:
+    problems, warnings = config.check(home, student)
+    for warning in warnings:
+        print(f"alfabeta: warning: {warning.key}: {warning.reason}", file=sys.stderr)
+    for problem in problems:
+        print(f"alfabeta: {problem.key}: {problem.reason}", file=sys.stderr)
+    _emit(
+        {
+            "ok": not problems,
+            "problems": [p.as_json() for p in problems],
+            "warnings": [w.as_json() for w in warnings],
+        }
+    )
+    return EXIT_INVALID if problems else EXIT_OK
+
+
 def _student_account(cfg: config.StudentConfig) -> str:
     for alias, account in sorted(cfg.accounts.items()):
         if account.role == "student":
@@ -144,13 +164,18 @@ def build_parser() -> argparse.ArgumentParser:
     scope.add_argument("--history", dest="scope", action="store_const", const="history", help="every published commit")
     guard.set_defaults(scope="staged")
 
+    cfg_group = groups.add_parser("config", help="the student's configuration").add_subparsers(
+        dest="verb", required=True
+    )
+    cfg_check = cfg_group.add_parser("check", help="compare the configuration with the template")
+
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
     probe = cal.add_parser("probe", help="a test event with one reminder at its start")
     probe.add_argument("--minutes", type=int, default=10)
     clean = cal.add_parser("probe-clean", help="delete a probe event")
     clean.add_argument("--event", required=True)
 
-    for sub in (setter, link, google.choices["check"], unlink, probe, clean):
+    for sub in (setter, link, google.choices["check"], unlink, probe, clean, cfg_check):
         sub.add_argument("--student", required=True)
     return parser
 
@@ -168,7 +193,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.group == "google" and args.verb == "client":
             return _cmd_client_set(args, store)
-        cfg = config.load(home, args.student)
+        if args.group == "config":
+            return _cmd_config_check(home, args.student)
+        cfg = config.load(home, args.student, TABLES[args.group])
         if args.group == "google":
             if args.verb == "link":
                 return _cmd_link(args, cfg, store)

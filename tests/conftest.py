@@ -24,6 +24,7 @@ account = "{SCHOOL_ADDRESS}"
 
 [calendar]
 id = "{CALENDAR_ID}"
+shared_with = []
 
 [google]
 project_label = "alfabeta (prueba)"

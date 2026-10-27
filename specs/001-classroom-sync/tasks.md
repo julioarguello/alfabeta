@@ -66,10 +66,10 @@ dates, state, lock, sources, placement and the command.
 
 ### Per-student configuration (FR-001…FR-004; contracts/config-template.toml)
 
-- [ ] T017 [P] Copy the contract to `config/template.toml` and delete `config.example.json`
-- [ ] T018 [P] Write `tests/test_config.py`: a key that is missing, extra, changes type or contains `changeme` anywhere in the value → an error that names the key and does not show the value; `drive.root` equal to the root of «Mi unidad» (My Drive) or nonexistent → an error without showing the path; nonexistent `--home` → an error without creating it; `data/` or `tools.folder` inside `drive.root` → error
-- [ ] T019 Implement `src/alfabeta/config.py` and the subcommand `config check`: loads with `tomllib`, compares the set of keys and types with `config/template.toml`, rejects values that contain `changeme`, resolves the student's paths (`config.toml`, `data/`) from `--home` and the student `id` («lowercase ASCII»)
-- [ ] T020 [P] Write `tests/test_template_covers_reads.py`: every key that `src/alfabeta/` reads exists in `config/template.toml` (an AST walk of the configuration accesses), with a positive control: over a test module with N known accesses it finds the N, and an undeclared key planted in it makes the check fail (no comparison with the number of keys in the template: some are read only by the skills)
+- [x] T017 [P] Copy the contract to `config/template.toml` and delete `config.example.json` — done 2026-10-27 with spec 004's keys merged in; `config.example.json` stays until the README and the `study-pack` and `sciencebits-a-notebooklm` skills read the template instead
+- [x] T018 [P] Write `tests/test_config.py`: a key that is missing, extra, changes type or contains `changeme` anywhere in the value → an error that names the key and does not show the value; `drive.root` equal to the root of «Mi unidad» (My Drive) or nonexistent → an error without showing the path; nonexistent `--home` → an error without creating it; `data/` or `tools.folder` inside `drive.root` → error
+- [x] T019 Implement `src/alfabeta/config.py` and the subcommand `config check`: loads with `tomllib`, compares the set of keys and types with `config/template.toml`, rejects values that contain `changeme`, resolves the student's paths (`config.toml`, `data/`) from `--home` and the student `id` («lowercase ASCII»)
+- [x] T020 [P] Write `tests/test_template_covers_reads.py`: every key that `src/alfabeta/` reads exists in `config/template.toml` (an AST walk of the configuration accesses), with a positive control: over a test module with N known accesses it finds the N, and an undeclared key planted in it makes the check fail (no comparison with the number of keys in the template: some are read only by the skills)
 
 ### Domain, dates, state, lock, sources and placement
 

@@ -17,9 +17,10 @@ languages = ["changeme"]            # e.g. ["es", "en"]
 account = "changeme@example.org"
 
 [drive]
-# alfabeta's own folder inside the Drive mounted by Google Drive for desktop.
+# Spec 004 changed this key's meaning: the alfabeta folder's path inside the student's My Drive,
+# and the local folder moved to [storage] base (spec 004 R7). The repository's config/template.toml holds both.
 # Never the root of «Mi unidad» (My Drive). Never shown in messages.
-root = "changeme"                   # e.g. "~/Library/CloudStorage/GoogleDrive-<account>/Mi unidad/alfabeta"
+root = "changeme"                   # e.g. "alfabeta"
 # One-way mirrors of the root (FR-011a): a folder in each of the student's other accounts' Drives,
 # mounted by Google Drive for desktop on this Mac. Brought up to date from the root after every
 # sync; never read back, never pruned. Never shown in messages. [] for none.
