@@ -21,6 +21,9 @@ the family's accounts the same day.
 | An External app in a Workspace organisation can be published unverified: status «In production», 100-user cap, «requires verification» banner; `github.com` is accepted as an authorised domain for the home page and the privacy link | Measured 2026-10-27, the app's Audience and Branding pages |
 | The student's personal Gmail is supervised with Family Link: signing in to the app asks a parent to approve with a passkey before the consent screen; the unverified-app screen then appears and can be passed | Measured 2026-10-27, three link attempts; the first ended on another family account's consent screen and was cancelled with nothing stored |
 | A reminder set as the student's Gmail (one, at the event's start) shows on that event for the student's account and not for the owner's | Measured 2026-10-27, probe event read in Calendar as both accounts |
+| That reminder rang at its start on a phone signed in to the student's Gmail: the operator's phone, not the student's own, which is still to be checked | Measured 2026-10-27 12:17, the operator watched it |
+| An event created earlier by another account takes a reminder set as the student: the API reads it back for the student, and the owner's view of the event shows none | Measured 2026-10-27, a past all-day event patched and then restored to its earlier reminders |
+| A deleted event is still returned by `get` with `status: cancelled`. Inserting its id again returns HTTP 409, and an update with `status: confirmed` brings it back | Measured 2026-10-27, the probe event; it was deleted afterwards |
 
 ## R1 — Runtime dependencies: the standard library
 
@@ -108,6 +111,9 @@ the family's accounts the same day.
     insert with that id does. The design therefore treats a conflict on insert as "the event
     exists, possibly cancelled": it reads it and updates it with `status: confirmed`. The probe
     measures this by deleting the probe event and inserting the same id again.
+  - Both were measured on 2026-10-27, and both behave as designed (Observed facts). `upsert` meets the
+    cancelled event through `get` first, so it updates instead of inserting. The 409 path covers the
+    case where Google has already dropped the cancelled copy.
 
 ## R6 — Drive: whole-Drive scope, self-limited to the alfabeta folder
 
