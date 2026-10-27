@@ -66,6 +66,10 @@ class PdfBuilder(Protocol):
         """The Classroom living file: each entry with its parts."""
         ...
 
+    def page(self, page: NotesPage, image: bytes) -> bytes:
+        """One page's own PDF."""
+        ...
+
 
 def _register_font(candidates: Sequence[Path], name: str = FONT) -> str:
     if name in pdfmetrics.getRegisteredFontNames():
@@ -163,9 +167,23 @@ class ReportlabPdfBuilder:
             f"Apuntes · {topic.name}", ["Transcripción literal de los apuntes de clase, página a página."]
         )
         for page, image in sorted(pages, key=lambda p: p[0].order):
-            story += [Paragraph(page.heading, self._heading), Spacer(1, 0.3 * cm), self._photo(image), PageBreak()]
-            story += [Paragraph(page.heading, self._heading), *self._text(page.markdown), PageBreak()]
+            story += self._page(page, image)
         return _finish([self._drawn(story, f"Apuntes · {topic.name}")])
+
+    def _page(self, page: NotesPage, image: bytes) -> list[Flowable]:
+        return [
+            Paragraph(page.heading, self._heading),
+            Spacer(1, 0.3 * cm),
+            self._photo(image),
+            PageBreak(),
+            Paragraph(page.heading, self._heading),
+            *self._text(page.markdown),
+            PageBreak(),
+        ]
+
+    def page(self, page: NotesPage, image: bytes) -> bytes:
+        """One page's own PDF, `<photo name> · transcripción.pdf`: the photo and its transcription."""
+        return _finish([self._drawn(self._page(page, image), "transcripción")])[0]
 
     def classroom(
         self, topic: Topic, entries: Sequence[tuple[ClassroomEntry, Sequence[RenderedPart]]]

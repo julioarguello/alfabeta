@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -118,3 +119,30 @@ def test_a_reply_without_a_file_is_a_drive_error(tmp_path: Path):
     t.responses.append(Response(200, b""))
     with pytest.raises(DriveError, match="without a file"):
         drive.upload("tema-1", "a.pdf", b"abc", "application/pdf")
+
+
+def test_properties_go_with_the_upload_and_find_it_again(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses.append(confirmed("tr-1", "tema-1", b"texto"))
+    drive.upload("tema-1", "foto.jpg · transcripción.md", b"texto", "text/markdown", {"alfabeta_for": "foto-1"})
+    assert b'"properties": {"alfabeta_for": "foto-1"}' in (t.calls[-1][3] or b"")
+    reply = {
+        **file("tr-1", "tema-1", "foto.jpg · transcripción.md"),
+        "properties": {"alfabeta_for": "foto-1", "alfabeta_role": "markdown"},
+    }
+    t.responses.append(json_response(200, {"files": [reply]}))
+    found = drive.made_for("tema-1", {"alfabeta_role": "markdown", "alfabeta_for": "foto-1"})
+    assert found is not None and found.id == "tr-1" and found.prop("alfabeta_role") == "markdown"
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(t.calls[-1][1]).query)["q"][0]
+    assert "properties has { key='alfabeta_for' and value='foto-1' } and properties has { key='alfabeta_role'" in q
+
+
+def test_sharing_mails_nobody_and_never_a_folder(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses.append(json_response(200, {"id": "permiso"}))
+    drive.share_reader("ficha-1", "familia@example.com")
+    method, url, _, body = t.calls[-1]
+    assert (method, json.loads(body or b"{}")["role"]) == ("POST", "reader")
+    assert url.endswith("/files/ficha-1/permissions?sendNotificationEmail=false")
+    with pytest.raises(DriveError, match="never a folder"):
+        drive.share_reader("tema-1", "familia@example.com")
