@@ -431,7 +431,12 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
     management may reject an unmanaged sign-in; the Classroom Android app may call a private
     endpoint, not `classroom.googleapis.com`. Spike S4 settles it with one read-only call.
   - Accepted risks (the family decides in the review): it poses as a Google first-party app, which
-    is against Google's terms; the sign-in shows as a new Android device on the account.
+    is against Google's terms; the sign-in shows as a new Android device on the account; and the
+    stored master token is **account-wide and bypasses the second factor** — read-only is only the
+    scope the runner requests from the short-lived tokens it derives, not a property of the stored
+    secret. So the stored token is at least as sensitive as the password: if the vault is read (by
+    the project's administrators, R17, or in a breach) the exposure is the whole account, not
+    read-only Classroom. The family accepts custody of a secret as sensitive as the password.
 - **What the vault stores**: the student's secrets in the family's cloud project's secret store
   (R17), encrypted at rest, with versions; the newest is in use. For the token route, the sign-in
   token; for the web route, the stored session plus the password and second-factor seed the family

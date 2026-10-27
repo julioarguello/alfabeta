@@ -62,8 +62,14 @@ minor's data.
   tool decides on its own to grant itself access. A tool MAY then sign in again on the student's
   behalf, with nobody present, only under all of these conditions:
   - it uses a credential or token the family stored, for that one account, in a vault (II);
-  - the vault holds the minimum for the route in use: a scoped token in preference to the password,
-    and the password with its second-factor seed only for the documented fallback route;
+  - the vault holds as little as the route needs: a sign-in token in preference to the password, and
+    the password with its second-factor seed only for the documented fallback route. The preference
+    for the token rests on its being revocable on its own and not reused on other services, not on
+    its being narrower in power: a first-party sign-in token can be account-wide and bypass the
+    second factor, so the stored secret is at least as sensitive as the password. Read-only is the
+    scope alfabeta's code requests from the short-lived tokens it derives, not a property of the
+    stored secret. Whoever can read the vault (II names them) can reach the whole account, so the
+    family accepts custody of a secret as sensitive as the password;
   - a deterministic script that alfabeta's own code runs does the sign-in. Claude writes that
     script but MUST NOT itself type a credential or run the login by hand;
   - no evasion is used (IV): if a sign-in cannot succeed without defeating a bot or human check, it

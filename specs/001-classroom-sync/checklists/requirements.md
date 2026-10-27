@@ -58,8 +58,12 @@
   constitution and use a vault (their words quoted in research R15). Two routes: the token route
   (gpsoauth first-party sign-in token, primary) and the scripted web sign-in (password and
   second-factor seed in the vault, fallback), each gated by a spike (S4, S5, S6) with pass criteria
-  in the plan, instead of leaving anything as a `[NEEDS CLARIFICATION]` marker. Two risk-acceptance
+  in the plan, instead of leaving anything as a `[NEEDS CLARIFICATION]` marker. Three risk-acceptance
   decisions are the family's, to be recorded in the Clarifications when the PR review settles them:
-  the custody of the secret by the cloud project's administrators (constitution II names them), and
-  the terms-of-service risk of automated access to a minor's account. Constitution 2.0.0 (MAJOR:
+  the custody of the secret by the cloud project's administrators (constitution II names them); the
+  terms-of-service risk of automated access to a minor's account; and the blast radius of the
+  token-route secret, which is account-wide and bypasses the second factor, so a vault read exposes
+  the whole account (FR-032a). Because this amendment weakens NON-NEGOTIABLE principles III and IV,
+  the independent review determined (constitution, Development workflow) that it needs the operator's
+  explicit request, quoted with its date in the PR, before any merge. Constitution 2.0.0 (MAJOR:
   principle III redefined). `/speckit-analyze` was re-run on this change.

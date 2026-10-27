@@ -115,9 +115,12 @@ replaces the local MCP design of julioarguello/alfabeta#2.
     student's school account works in the Classroom app on an Android phone (operator, 2026-10-27),
     so a first-party client may reach it where our own client cannot. It escapes the web session's
     short life. Its risks, which the family accepts in this review: it poses as a first-party app,
-    which is against Google's terms; it shows as a new device on the account; and the API may be
-    blocked for a minor's account at the policy level, not just for third-party clients, in which
-    case the route fails. Spike S4 decides it with one read-only call.
+    which is against Google's terms; it shows as a new device on the account; the stored token is
+    account-wide and bypasses the second factor (read-only is only the scope requested from the
+    derived tokens), so the stored secret is at least as sensitive as the password and a vault read
+    exposes the whole account; and the API may be blocked for a minor's account at the policy level,
+    not just for third-party clients, in which case the route fails. Spike S4 decides it with one
+    read-only call.
   - **Fallback — the scripted web sign-in.** The vault holds the password and the second-factor
     seed; when the stored browser session has expired, a deterministic script signs in and the
     runner reads the to-do pages in a headless browser (FR-034). Its risks, which the family
@@ -825,8 +828,12 @@ Example of the resulting structure (invented names):
   MUST prove, with one read-only call for the real account, that this reaches the student's
   Classroom despite the school's block on third-party clients (`docs/classroom-investigacion.md`);
   if it does not, the token route is not built. The spec records its accepted risks: it poses as a
-  first-party app (against Google's terms), shows as a new device on the account, and may be blocked
-  at the account-policy level.
+  first-party app (against Google's terms); shows as a new device on the account; may be blocked at
+  the account-policy level; and its stored token is **account-wide and bypasses the second factor**
+  (read-only is only the scope requested from the derived short-lived tokens, not a property of the
+  stored secret), so the stored secret is at least as sensitive as the password and a vault read —
+  by the project's administrators (FR-033, constitution II) or in a breach — exposes the whole
+  account, not read-only Classroom.
 - **FR-032b**: The **web route** (fallback) MUST read the to-do pages (FR-034) in a headless browser
   with the read-only guard of FR-038, using the browser session the family started by hand, kept in
   the vault (FR-033). When a run lands on a Google sign-in page because the session has expired, a
@@ -847,7 +854,10 @@ Example of the resulting structure (invented names):
   only when it actually changed (FR-025); the password and second-factor seed are seeded by the
   family and the runner never rewrites them. Only the configured school account is used. The family
   can revoke any of them at any moment by changing the credential or signing the account out, and
-  the run stops when the secret it needs stops working.
+  the run stops when the secret it needs stops working. Because the token-route secret is as
+  sensitive as the password (FR-032a), the cloud project MUST keep an audit log of every read of a
+  vault secret, and the family MUST be told the first time a new device or first-party sign-in is
+  registered on the student's account, so a misuse of the stored token is visible.
 - **FR-033a**: Every secret the runner holds MUST be named as a separate vault entry, with where it
   lives, who seeds it, who can read it and how it is refreshed:
   - **token route**: the first-party sign-in token (seeded once by `runner session login`, renewed
@@ -1031,10 +1041,12 @@ Example of the resulting structure (invented names):
   read its secrets, the student's stored sign-in among them (research R17). The family accepts or
   refuses that custody in the review of this amendment.
 - The two routes carry risks the family accepts in this review (research R15 to R17): the token
-  route poses as a Google first-party app (against Google's terms) and shows as a new device on the
-  account; the web route signs a minor's account in by script, which Google blocks for automated
-  browsers and which risks a lockout. Both read-only, both the student's own account, both without
-  evasion; a spike proves each before it is built.
+  route poses as a Google first-party app (against Google's terms), shows as a new device on the
+  account, and stores a token that is account-wide and bypasses the second factor — as sensitive as
+  the password, so a vault read exposes the whole account, not read-only Classroom; the web route
+  signs a minor's account in by script, which Google blocks for automated browsers and which risks a
+  lockout. Both read-only in the scope the runner requests, both the student's own account, both
+  without evasion; a spike proves each before it is built.
 - Reading Classroom by program, today through the Claude extension and with User Story 7 with
   nobody present, is automated access to pages whose `robots.txt` disallows it, and Google's terms
   forbid automated access that violates those instructions; the account at stake is the student's
