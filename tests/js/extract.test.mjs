@@ -164,3 +164,46 @@ test("the file name carries the run and the class", () => {
   const name = extract.fileName({ type: "class", run: "r1", class: { id: "synth-1" }, captured_at: "2026-10-27T15:22:00Z" });
   assert.equal(name, "alfabeta-capture-r1-synth-1-20261027-152200.json");
 });
+
+// What the first real run found (2026-10-27): an expired session, and a page that does not load.
+async function captureWith(failOn, error) {
+  const browser = fakeBrowser();
+  const load = async (path) => {
+    if (failOn.test(path)) throw error();
+    return browser.load(path);
+  };
+  const result = await extract.captureClass({ run: "r1", classId: "synth-1", account: 5, ...browser, load });
+  return JSON.parse(JSON.stringify(result));
+}
+
+test("an expired session stops the class with session_expired", async () => {
+  const win = page("home").window;
+  const result = await captureWith(/\/m\/[^/]+\/details$/, () => new win.alfabetaExtract.SessionExpired());
+  assert.deepEqual({ type: result.type, reason: result.reason, class: result.class }, { type: "stop", reason: "session_expired", class: "synth-1" });
+});
+
+test("a page that does not load leaves the capture incomplete, not aborted", async () => {
+  const full = await capture();
+  const result = await captureWith(/\/m\/[^/]+\/details$/, () => new Error("timeout"));
+  assert.equal(result.type, "class");
+  assert.equal(result.complete, false);
+  assert.ok(result.items.length > 0 && result.items.length < full.result.items.length);
+  assert.ok(result.items.every((i) => i.type !== "material"));
+});
+
+test("readiness per page kind on the synthetic pages", () => {
+  const ready = (name, path) => extract.pageReady(path, page(name).window.document);
+  assert.equal(ready("classwork", "/u/5/w/synth-1/t/all"), true);
+  assert.equal(ready("assignment-detail", "/u/5/c/synth-1/a/x/details"), true);
+  assert.equal(ready("material-detail", "/u/5/c/synth-1/m/x/details"), true);
+  assert.equal(ready("stream", "/u/5/c/synth-1"), true);
+  assert.equal(ready("challenge", "/u/5/w/synth-1/t/all"), false);
+});
+
+test("«Ayer» is a posting date", () => {
+  const dom = page("assignment-detail");
+  const doc = dom.window.document;
+  const posted = [...doc.querySelectorAll("div")].find((d) => /^\d{1,2} \w+ \(Última modificación/.test(d.textContent.trim()) && d.children.length === 0);
+  posted.textContent = "Ayer";
+  assert.equal(dom.window.alfabetaExtract.readDetail(doc).posted_text, "Ayer");
+});
