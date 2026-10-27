@@ -25,13 +25,18 @@ Rationale: the first student is the first *tenant*, not the product.
 |---|---|---|---|
 | **Template** | Structure and example values (`changeme`) documenting every key | Repo (`template.*`) | Yes, the only one |
 | **Student configuration** | Name, school year, school, subjects, paths, calendar, accounts | Outside the repo or ignored by git | Never |
-| **Data and secrets** | Downloads, captures, PDFs, sessions and cookies, tokens, notebook and event ids | Local data folder and the system keychain | Never |
+| **Data and secrets** | Downloads, captures, PDFs, sessions and cookies, tokens, notebook and event ids | Local data folder and the system keychain; for a cloud run a spec names (IX), that project's secret store and one state folder inside the alfabeta folder of the student's Drive | Never |
 
 - The template MUST mirror every real configuration line by line (*template mirroring*): every key
   the code reads MUST be declared in the template, and an undeclared key is an error at start-up,
   not a silent default.
 - Secrets (cookies, tokens) MUST live in the system keychain or in the data folder with user-only
-  permissions, never in the configuration.
+  permissions, never in the configuration. A cloud run a spec names (IX) holds its own secrets in
+  its project's secret store, readable only by that run. A secret kept on the Mac never leaves it,
+  and the cloud's secrets are never stored on the Mac; a secret minted on the Mac for the cloud goes
+  straight to the cloud's store without touching the Mac's disk or keychain. The one exception is an
+  OAuth client file downloaded from Google, read once by the command that links an account and
+  deleted right after, the same way spec 004 loads the Mac's own client.
 - An automatic guardrail (pre-commit hook and CI test) MUST prevent pushing real names, emails,
   personal paths or ids. The guardrail MUST have cases that prove it fires.
 
@@ -46,7 +51,8 @@ minor's data.
 - Their name, email or any data that identifies them MUST NOT appear in a URL, a log, an error
   message, an issue, a pull request or a commit. Logs use opaque ids.
 - Data MUST go only to the services the family itself uses and configures (the student's or the
-  family's Google account, their cloud, the Claude app). No other third party.
+  family's Google account, their cloud, the operator's Google Cloud project for alfabeta, Claude
+  through the app or the operator's API workspace). No other third party.
 - Test data MUST be invented. No fixture holds material or data of a real student.
 - The student or their family signs in to each platform. No tool MUST type credentials.
 
@@ -100,6 +106,11 @@ cannot be undone.
   configuration. When that cloud is the family's Drive, alfabeta MUST write it through its own
   Google connection and count a file as uploaded only when the cloud confirms it; it MUST NOT rely
   for it on a sync client whose result it cannot read.
+- Whatever that Drive holds under a topic folder and the master lacks (what the family adds, such as
+  the student's photos of his notes, and what a cloud run writes) MUST be brought back into the
+  master, so the mirrors receive it too. This is the only Drive-to-master direction; it never
+  applies to a mirror. A cloud run's state folder and its reports live only in Drive: they are not
+  part of the master and never reach a mirror.
 - alfabeta then brings each configured mirror up to date from the master, one-way. A mirror is the
   Drive folder of an account alfabeta's own connection cannot reach (the school account), mounted on
   the same Mac. It is never read back into the master, and nothing is deleted from it. Its upload
@@ -124,7 +135,10 @@ Rationale: an unofficial tool must not leave the student without their notes.
 
 ### IX. Simplicity
 
-- Everything runs on the family's Mac. No servers or cloud of our own until a measured need exists.
+- Everything runs on the family's Mac unless a spec names a need the Mac cannot meet. Such a need
+  runs in the operator's Google Cloud project for alfabeta, within its free tier, and the spec
+  names what stays on the Mac. The first is spec 005: the student's notes reach the notebook while
+  the Mac is off, because the desktop app's scheduled tasks run only while the app is open.
 - A new dependency MUST justify in the plan why the standard library or what is already there is
   not enough.
 
@@ -148,7 +162,9 @@ Rationale: an unofficial tool must not leave the student without their notes.
   topic. There are no month folders. Every Classroom item starts with its posting date,
   `YYYYMMDD - <title>`.
 - **Notebooks**: one per topic, named `<grade level>. <Subject>. Tema NN - <title>` (`<grade level>`
-  is the student's grade level, not the school year of the folder); only new sources are added.
+  is the student's grade level, not the school year of the folder). Material that arrives after the
+  notebook is created goes into the topic's living Drive files, which are its sources (spec 005);
+  only the study pack adds other sources, and never twice.
 - **Language**: everything technical is written in English: code, identifiers, CLI, configuration
   keys, data files, documentation, specs, issues, pull requests and commits. What the student and
   the family read is in Spanish: the folder and file names in their folder, the agenda, the summary
@@ -180,4 +196,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - Pull request reviews MUST verify compliance. Complexity that departs from IX MUST be justified in
   writing.
 
-**Version**: 1.5.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
+**Version**: 1.6.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27

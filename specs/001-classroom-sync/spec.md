@@ -397,7 +397,9 @@ saved.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
   permission to see all event details (built by the reminders epic), and each topic notebook a skill
-  creates with each account in `notebook.share_with`, as viewer. An account already shared with is
+  creates with each account in `notebook.share_with`, as viewer. From spec 005
+  (julioarguello/alfabeta#44) on, each topic's two living files are shared, as reader, with the
+  account in `notebook.owner`, and with no other. An account already shared with is
   not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
   count, never by address.
 - **FR-012**: Inside the root, the structure MUST be common to every source:
@@ -702,7 +704,8 @@ Example of the resulting structure (invented names):
 - The student's other accounts (on 2026-10-26, the school Google Workspace for Education account)
   get the material through mirrors (FR-011a), not through Drive sharing: each one's Drive is mounted
   by Google Drive for desktop on the same Mac and its folder is listed in `drive.mirrors`. alfabeta
-  does not manage Drive permissions.
+  does not manage Drive permissions, except the one share of each living file that spec 005 adds
+  (FR-011b).
 - The Classroom API is not available for the student's school account
   (`docs/classroom-investigacion.md`); everything is read from what the student sees.
 - Topic and item titles are kept in the language the teacher writes them in.

@@ -17,6 +17,7 @@ These subcommands follow spec 001's [command contract](../../001-classroom-sync/
 | `calendar probe-clean --student <id> --event <id>` | Deletes the probe event. | the family calendar | JSON `{ok}` | 0 |
 | `drive migrate --student <id> [--apply]` | R6's migration. A dry run by default; `--apply` acts only when `differs` is empty. | `data/google/migration-<run>.json`; with `--apply`, Drive and `uploads.jsonl` | JSON `{ok, adopted, to_upload, differs, native, only_in_drive}` (counts) | 0 · 1 `differs_present` with `--apply` · 2 link not `ok` |
 | `drive push --student <id>` | Uploads every file whose size or md5 differs from its latest upload record, and confirms each one (FR-012). Called by the sync runs. | Drive, `uploads.jsonl` | JSON `{ok, uploaded, failed}` | 0 · 3 if any upload failed (others still done) · 2 link not `ok` |
+| `drive pull --student <id>` | Added by spec 005. FR-011a: pulls into the master what Drive holds under a topic folder and the master lacks or holds an older pulled version of. Called first by every sync run. | master folder, `uploads.jsonl`, `data/google/pull.json` | JSON `{ok, pulled, beside, recorded}` (counts) | 0 · 2 link not `ok` · 3 if any file failed |
 
 **Exit codes**: 0 ok · 1 usage or validation error · 2 a Google link is not usable · 3 partial
 failure. Codes 2 and 3 make a scheduled run report failure (FR-013).

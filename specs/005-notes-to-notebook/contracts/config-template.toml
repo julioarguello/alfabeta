@@ -1,0 +1,37 @@
+# Keys this spec adds to config/template.toml. Every key the code reads is declared here
+# (constitution II, template mirroring). Values in the student's private configuration.
+
+[notes]
+# Claude model that transcribes the photos (research R5). Chosen in quickstart step 2.
+model = "changeme"                  # e.g. "claude-sonnet-5-5"
+# Published price of that model, USD per million tokens, for the report's spend (research R5).
+# 0 is refused at start-up: a spend reported as zero would hide a real one.
+price_in = 0.0                      # e.g. 2.0
+price_out = 0.0                     # e.g. 10.0
+# Pages a living file may hold before the run warns the family (research R12).
+warn_pages = 100
+# Hours since the cloud's last successful run after which the Mac warns (FR-017).
+cloud_stale_hours = 2
+
+[notebook]
+# Name of each topic's notebook, used by `notebook setup` to find it (research R9). <topic> is the
+# topic folder's name after its date, so a teacher's topic without «Tema NN» is named the same way.
+title_pattern = "changeme"         # e.g. "{grade}. {subject}. {topic}"
+# `nlm` profile of the account that owns the notebooks.
+nlm_profile = "changeme"
+# That account's address: the only one each living file is shared with, as reader (FR-009).
+owner = "changeme@example.com"
+
+[cloud]
+# Read by the how-to and by the setup checks, never by the cloud run itself.
+# Google Cloud project that runs `notes run` (constitution IX, 1.6.0).
+project = "changeme"
+# Region of the Cloud Run job and the Scheduler job; a Tier 1 region (research R11).
+region = "changeme"                 # e.g. "europe-west1"
+# How often the Scheduler starts `notes run`, as a cron expression in Europe/Madrid.
+schedule = "*/15 * * * *"
+# Secret Manager names (research R3): the cloud's Google link (its own OAuth client and token), the
+# cloud's own Claude API key of the alfabeta workspace, and this configuration. Names only, never values.
+google_link_secret = "changeme"
+claude_key_secret = "changeme"
+config_secret = "changeme"

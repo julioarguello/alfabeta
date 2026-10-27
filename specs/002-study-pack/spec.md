@@ -238,6 +238,11 @@ check that the proposed blocks include it.
 2. **Given** photos whose transcription nobody has checked, **When** the pack runs, **Then** they
    are not a source and the family is told.
 
+> Superseded on 2026-10-27 by spec 005 (julioarguello/alfabeta#44): transcriptions reach the
+> notebook without a check, each page saying it is automatic and whether the student checked it,
+> and only through the topic's living notes file: the pack adds no source of its own for them.
+> The ranking of the notes first is unchanged.
+
 ---
 
 ### Edge Cases
@@ -273,7 +278,7 @@ check that the proposed blocks include it.
 
 - **FR-004**: The pack MUST hold, in the topic's single notebook: one explainer video per block, a
   practice sheet, a quiz, flashcards, a study guide and a mind map. Class notes become a source
-  only as a transcription someone who can read them has checked.
+  as their literal transcription (spec 005, which superseded the check this requirement asked for).
 - **FR-005**: Videos and the study guide MUST be in Spanish, giving each key term also in the
   exam's language as the class material writes it. Practice sheet, quiz and flashcards MUST be in
   the exam's language, configured per subject.

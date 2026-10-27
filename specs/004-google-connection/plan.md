@@ -72,6 +72,12 @@ constitution 1.5.0, amended in this pull request.
 
 Re-checked after Phase 1: unchanged.
 
+Amended by spec 005 (julioarguello/alfabeta#44, constitution 1.6.0): its cloud run keeps a second
+link of the student's Gmail, with the client, in the alfabeta project's secret store, and reads the
+Drive change feed through `ScopedDrive` (FR-007, FR-009a). From that spec on, the III row's "never
+through the organisation" holds for the Mac only: the cloud run processes the student's files in
+the organisation's project. The macOS-only secret store of the complexity table stays the Mac's.
+
 ## Project Structure
 
 ### Documentation (this feature)
