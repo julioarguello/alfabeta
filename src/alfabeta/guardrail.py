@@ -63,7 +63,7 @@ _IDENTIFYING_KEYS = frozenset(
         "classroom_class",
         "school",
         "drive",
-        "notebook_owner",
+        "owner",  # notebook.owner (spec 005); named values match the leaf key
     }
 )
 _MIN_NAMED_LENGTH = 4

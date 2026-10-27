@@ -78,6 +78,8 @@ def _home_with_config(tmp_path: Path) -> Path:
         'base = "~/Drive/Iñigo"\n'
         "[drive]\n"
         'root = "alfabeta"\n'
+        "[notebook]\n"
+        f'owner = "{_at("familia.y", "correo.example.org")}"\n'
     )
     return home
 
@@ -88,6 +90,7 @@ def test_named_values_come_from_identifying_keys_only(tmp_path: Path):
     assert "2026-2027" not in named
     assert "~/Drive/Iñigo" in named
     assert "alfabeta" not in named  # drive.root names a folder inside My Drive, as the repository does
+    assert _at("familia.y", "correo.example.org") in named  # notebook.owner (spec 005)
 
 
 def test_named_value_fires_even_where_generic_ones_do_not(tmp_path: Path):

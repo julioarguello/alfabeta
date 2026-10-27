@@ -174,7 +174,9 @@ own table is the subset the requirements rest on; this one is the full list.
     topic, the topic folder whose date is latest when the material is first seen, and stay there,
     as spec 002 FR-023 sends them to that topic's notebook. An item moved by classroom-sync to
     another topic leaves the first file and enters the second.
-- **Dependencies**: `reportlab` to draw pages and `pypdf` to copy pages, both pure Python and pinned.
+- **Dependencies**: `reportlab` to draw pages and `pypdf` to copy pages, pinned. `pypdf` is pure
+  Python; `reportlab` 5.1.0 pulls Pillow, which ships binary wheels, and charset-normalizer
+  (`uv add`, 2026-10-27).
 - **Who creates them**: only `notebook setup`. A run that finds a topic without living files records
   and transcribes, and builds nothing (spec User Story 5, scenario 3). A run checks each recorded
   living file's parent and `trashed` before writing; a missing one is reported, never recreated.

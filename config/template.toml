@@ -1,4 +1,5 @@
-# alfabeta's configuration template (spec 001 FR-001; spec 004 adds [storage], [calendar] id and [google]).
+# alfabeta's configuration template (spec 001 FR-001; spec 004 adds [storage], [calendar] id and [google];
+# spec 005 adds [notes] and three [notebook] keys).
 # Each student copies this file to ~/.alfabeta/<student>/config.toml and changes the changeme values.
 # A key that is missing, extra, changes type or contains changeme stops alfabeta (FR-003);
 # `alfabeta --home <dir> config check --student <id>` lists every such key, never its value.
@@ -69,6 +70,27 @@ enabled = false
 # The constitution sets the name: «<grade level>. <Subject>. Tema NN - <title>».
 # Accounts each topic notebook is shared with as viewer (FR-011b). [] for none.
 share_with = ["changeme@example.org"]
+# Name of each topic's notebook, used to find it (spec 005 research R9): {grade} is the grade level,
+# {subject} the subject's folder, {topic} the topic folder's name after its date, so a teacher's
+# topic is named the same way.
+title_pattern = "changeme"          # e.g. "{grade}. {subject}. {topic}"
+# `nlm` profile of the account that owns the notebooks.
+nlm_profile = "changeme"            # e.g. "family"
+# That account's address: the only one each topic's living files are shared with, as reader
+# (spec 005 FR-009, spec 001 FR-011b).
+owner = "changeme@example.com"
+
+[notes]
+# Claude model that transcribes the photos of the student's notes (spec 005 research R5).
+model = "changeme"                  # e.g. "claude-sonnet-5-5"
+# That model's published price in USD per million tokens, in and out, for the report's spend.
+# 0 is refused: a spend reported as zero would hide a real one.
+price_in = 0.0                      # e.g. 2.0
+price_out = 0.0                     # e.g. 10.0
+# Pages a living file may hold before the run warns the family (spec 005 research R12).
+warn_pages = 100
+# Hours since the cloud's last successful run after which the Mac's sync warns (spec 005 FR-017).
+cloud_stale_hours = 2
 
 [schedule]
 # Time of the scheduled sync on each weekday (local time, "HH:MM"), or "" for no sync that day.

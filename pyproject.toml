@@ -5,7 +5,13 @@ description = "Study material, Classroom and the family calendar for one student
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    # Spec 005: copies pages from Classroom PDFs into a living file; the standard library reads no PDF.
+    "pypdf==6.21.3",
+    # Spec 005: draws the living files' pages (photo, transcription, cover); the standard library draws
+    # no PDF. Pulls Pillow (binary wheels) and charset-normalizer.
+    "reportlab==5.1.0",
+]
 
 [dependency-groups]
 dev = ["ruff", "pyright", "pytest", "jsonschema"]

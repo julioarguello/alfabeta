@@ -73,6 +73,16 @@ languages = ["es", "en"]
 [notebook]
 enabled = false
 share_with = []
+title_pattern = "{{grade}}. {{subject}}. {{topic}}"
+nlm_profile = "prueba"
+owner = "familia@example.com"
+
+[notes]
+model = "claude-sonnet-5-5"
+price_in = 2.0
+price_out = 10.0
+warn_pages = 100
+cloud_stale_hours = 2
 
 [schedule]
 monday = ""
