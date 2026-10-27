@@ -1,0 +1,21 @@
+# Keys this spec adds to config/template.toml. Every key the code reads is declared here
+# (constitution II, template mirroring). Values in the student's private configuration.
+
+[notes]
+# Claude model that transcribes the photos (research R5). Chosen in quickstart step 2.
+model = "changeme"                  # e.g. "claude-sonnet-5-5"
+# Pages a living file may hold before the run warns the family (research R12).
+warn_pages = 100
+
+[cloud]
+# Google Cloud project that runs `notes run` (constitution IX, 1.6.0).
+project = "changeme"
+# Region of the Cloud Run job and the Scheduler job; a Tier 1 region (research R11).
+region = "changeme"                 # e.g. "europe-west1"
+# How often the Scheduler starts `notes run`, as a cron expression in Europe/Madrid.
+schedule = "*/15 * * * *"
+# Secret Manager names. The secrets hold the cloud's own refresh token, the OAuth client and the
+# Claude API key of the alfabeta workspace (research R3). Names only, never values.
+token_secret = "changeme"
+client_secret = "changeme"
+claude_key_secret = "changeme"
