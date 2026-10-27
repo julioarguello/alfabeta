@@ -100,7 +100,7 @@ src/alfabeta/
 ├── sources.py                      # Source Protocol; ClassroomSource and BookSource
 ├── capture.py                      # reads, checks and normalises the extractor's captures
 ├── classification.py               # each item's category and exam candidates
-├── placement.py                    # year/subject/topic|month/source and file names
+├── placement.py                    # year/subject/dated topic/source and dated file names
 ├── state.py                        # JSON state, JSON Lines log, lock with fcntl.flock
 ├── plan.py                         # sources ↔ state diff: what to download, write, decide
 ├── downloads.py                    # collection from the downloads folder and verification
@@ -151,7 +151,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 | Browser | Claude + `SKILL.md` | Locates the school account, runs the extractor, downloads attachments according to the plan, proposes matches (with confidence) and exams |
 | Domain | `Student`, `Subject`, `Item`, `Attachment`, `Replica`, `AgendaEntry`, `Grading`, `Decision`, `Run` | Immutable dataclasses (see data-model) |
 | Domain | `Classifier` | Closed category with precedence, and exam candidates from cues |
-| Domain | `Placer` | Folder and name of each replica from school year, subject, confirmed match or month, source and role |
+| Domain | `Placer` | Folder and name of each replica from school year, subject, confirmed match, teacher's topic or `Sin tema`, source and role; finds an existing topic folder by the name after its `YYYYMMDD - ` prefix |
 | Domain | `DateResolver` | Absolute date in `Europe/Madrid` from the displayed text, the school year and the capture time |
 | Ports | `Source` | Protocol: `name` (the subfolder) and normalised `items()` for `Planner`; implementations `ClassroomSource` (captures) and `BookSource` (a book provider's directory) |
 | Ports | `StateStore`, `DecisionStore`, `StudentFolder`, `DownloadsInbox` | Protocols: state and decisions, writing to the Drive folder, collection from the downloads folder |
@@ -203,12 +203,15 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 - It takes the student's and the browser's lock (`lock take --mode interactive`, or `scheduled` if a
   scheduled task launches it) before opening Science Bits and releases it when done, so it never
   overlaps a Classroom sync in the browser or in the downloads (FR-030).
-- "The next topic" comes from the `Tema NN` folders that already have `sciencebits/` in the Drive;
-  nothing needs adding to the configuration.
+- "The next topic" comes from the folders whose name contains `Tema NN`, whatever their
+  `YYYYMMDD - ` prefix, that already have `sciencebits/` in the Drive; nothing needs adding to the
+  configuration.
 - Its result (`TemaNN_<LANG>.pdf` and `.md`) is still generated as today in the working folder under
   Downloads, and `book place` moves it through `BookSource` to
-  `<school-year>/<subject>/<Tema NN - title>/<book>/` inside the Drive root (the subfolder is the value of
-  `book`), with the same hash and previous-version rules as Classroom.
+  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title>/<book>/` inside the Drive root (the subfolder is
+  the value of `book`), with the same hash and previous-version rules as Classroom. It reuses the
+  existing folder whose name contains `Tema NN - `, whatever its date; only if there is none does it
+  create one dated today.
 - It neither reads nor writes Dropbox; what was captured there before stays as it is.
 - The Gemini Notebook notebook stays as today, enabled or not with `[notebook] enabled`, until
   epic 3. In the `nlm` step the skill lists the notebook's sources and adds only the missing ones

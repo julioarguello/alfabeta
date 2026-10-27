@@ -44,11 +44,16 @@ straight into the topic folder.
 
 ```
 class notes (photos) ─┐
-Google Classroom ─────┼──► <school year>/<subject>/Tema NN - <title>/ ──► one notebook per topic ──► the student
-Science Bits ─────────┘     {apuntes, classroom, sciencebits}                 (shared as viewer)
+Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► the student
+Science Bits ─────────┘     {apuntes, classroom, sciencebits}                            (shared as viewer)
                                               │
                                               └──► calendar: assignments, exams, posted material
 ```
+
+Every topic folder starts with the date the teacher posted its first material, so the student sees
+each topic in time. A teacher's topic that is not in the textbook carries the teacher's title
+instead of `Tema NN - <title>`, and what Classroom posts with no topic goes in `YYYYMMDD - Sin tema`.
+Each Classroom file inside `classroom/` starts with its own posting date, `YYYYMMDD - <title>`.
 
 When the three sources disagree about **what will be asked**, the design ranks the student's notes
 over Classroom, and Classroom over the textbook. The textbook still explains best; it is just the

@@ -8,7 +8,7 @@
   "storage": {
     "base_dir": "~/Library/CloudStorage/Dropbox/Documents/Ane",
     "tools_dir": "~/Library/CloudStorage/Dropbox/Documents/Ane/_herramientas/alfabeta",
-    "topic_folder_pattern": "{year}/{subject}/Tema {nn} - {title}"
+    "topic_folder_pattern": "{year}/{subject}/{date} - Tema {nn} - {title}"
   },
   "subjects": {
     "Fisika eta Kimika": "FiQui",

@@ -18,7 +18,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Attachment `role` `links` | `enlaces.md` |
 | Attachment `role` `description` | `descripcion.md` |
 | Attachment `role` `material` | the material file's own name |
-| Attachment `role` `announcement` | `YYYY-MM-DD - aviso - <summary>.md` |
+| Attachment `role` `announcement` | `YYYYMMDD - aviso - <summary>.md` |
 | Agenda `list` `pending` | «Pendiente» |
 | Agenda `list` `done` | «Hecho» |
 | Agenda `list` `posted` | «Publicado» |
@@ -28,10 +28,15 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Agenda entry `date: null` | «sin fecha» |
 | Attachment not fetched, noted in `enlaces.md` | «no traído» |
 | Summary for the family (stderr of `apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
-| Book topic folder | `Tema NN - <title>` |
-| Teacher's topic folder with no book equivalent | `Tema PNN - <teacher's title>` |
-| Month folder (item with no confirmed topic) | `YYYY-MM` |
+| Book topic folder | `YYYYMMDD - Tema NN - <title>` |
+| Teacher's topic folder with no book equivalent, or with its match not yet confirmed | `YYYYMMDD - <teacher's title>` |
+| Folder for what Classroom posts with no topic | `YYYYMMDD - Sin tema` |
+| Classroom item in `classroom/` | `YYYYMMDD - <title>` |
 | Previous version of a replica | `<name> (anterior YYYY-MM-DD)` |
+
+A topic folder's `YYYYMMDD` is the posting date of the first Classroom item placed in it, or the
+day a book provider creates it if it comes first. It is set when the folder is created and never
+changes: a folder is found by the part of its name after `YYYYMMDD - `, whatever the date.
 
 ## Student
 
@@ -70,8 +75,9 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 
 `[sciencebits] url` and `languages` accept `""` and `[]` when no subject has `book = "sciencebits"`.
 
-Book topics are not configured: they are the subject's `Tema NN - <title>` folders that already
-hold their book's subfolder in the Drive.
+Book topics are not configured: they are the subject's folders whose name contains
+`Tema NN - <title>`, whatever their date prefix, that already hold their book's subfolder in the
+Drive.
 
 The effective link between a subject and its class is a `Decision` of type `class_link`,
 tied to the class id; the title only serves to propose it.
@@ -86,9 +92,9 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 
 | Field | Type | Rule |
 |---|---|---|
-| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) · `teacher_topic_number` (written by `apply` in the run that first places something from a `Tema PNN` topic: in a subject with a book, after its match is rejected; in one without a book, without confirmation) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
+| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
 | `origin` | Classroom id (class, topic or item); for `detected_exam` and `exam_correction`, `<item>#exam-<k>`, where Claude assigns `k` = 1, 2… when proposing (the classifier gives a single candidate per item) | Unique key per `(type, origin)` among the non-superseded ones; a repeated proposal does not write |
-| `target` | subject, topic folder, exam (`date`, `reason`), correction (`date`, `category`, `discarded`) or the `NN` of a `Tema PNN` topic | |
+| `target` | subject, topic folder, exam (`date`, `reason`), correction (`date`, `category`, `discarded`) | |
 | `reason` | text | What led to the proposal or to the correction |
 | `confidence` | `high` · `medium` · `low` | Only in proposals |
 | `state` | `proposed` → `confirmed` · `rejected`; `confirmed` or `rejected` → `superseded` | Only `confirmed` counts, except `detected_exam` (it appears in the agenda as detected) and `dismissed_candidate` (the candidate stops being pending), which count from the moment they are `proposed`; the family can reject a `dismissed_candidate` and the candidate returns to pending. A `(type, origin)` with a non-superseded decision is not proposed again; a `rejected` one, only if its origin shows a modification after the rejection. `detected_exam` is not rejected: it is discarded with an `exam_correction` |
@@ -101,7 +107,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 |---|---|---|
 | `id` | Classroom id | From the detail URL; stable |
 | `class_id` | Classroom id | |
-| `topic_id` | topic id or empty | Empty or without a confirmed match → month folder |
+| `topic_id` | topic id or empty | Empty → `Sin tema` folder; without a confirmed match → the teacher's topic's own folder |
 | `type` | `assignment` · `material` · `question` · `announcement` | |
 | `title` | text | As the teacher writes it |
 | `posted_at` | date | From «Fecha de creación» (creation date); never from «Última modificación» (last modified) |

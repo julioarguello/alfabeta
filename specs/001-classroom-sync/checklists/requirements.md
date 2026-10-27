@@ -51,3 +51,4 @@
 - `/speckit-analyze` pass 5 (2026-10-25): the observation of the real Classroom this list asked for is done (research, facts table); that pass's medium findings fixed.
 - `/speckit-analyze` passes 6 and 7 (2026-10-25): their high findings fixed (sandbox flow, run identifier, «unchanged» with dates going by, `display_name`, captures from another run). From pass 8 on only critical and high findings are fixed; the medium and low ones left are listed in the spec PR as open.
 - `/speckit-analyze` passes 8–11 (2026-10-25): pass 11 ends with no critical or high findings. The open medium and low ones go in the spec PR description.
+- Clarification 2026-10-26 (constitution 1.3.0): topic folders and Classroom items carry a `YYYYMMDD` date prefix, `Tema PNN` and the month folders are dropped, and what has no topic goes in `<date> - Sin tema` (FR-012–FR-015). The spec, plan, data model, contracts, quickstart, research and tasks follow it.
