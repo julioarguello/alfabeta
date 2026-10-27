@@ -9,10 +9,13 @@ and decisions arrive with T039.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 from pathlib import Path
+from typing import Any, cast
 
-from alfabeta import config
+from alfabeta import config, decisions, plan
+from alfabeta.model import DecisionType
 from alfabeta.state import RUN_ENV
 
 DEFAULT_STUDENT = "sample"
@@ -124,9 +127,82 @@ def prepare(home: Path, student: str = DEFAULT_STUDENT) -> Path:
     (home / "tools").mkdir(exist_ok=True)
     captures = home / "sandbox-captures"
     captures.mkdir(exist_ok=True)
+    attachments = home / "sandbox-attachments"
+    attachments.mkdir(exist_ok=True)
     for fixture in sorted(FIXTURES.glob("*.json")):
         (captures / fixture.name).write_bytes(fixture.read_bytes())
+        for name in _downloadable_names(json.loads(fixture.read_text())):
+            (attachments / name).write_bytes(b"%PDF-1.4\n% invented attachment of the sandbox\n")
+    _decide(root / "data")
     return root
+
+
+def _downloadable_names(capture: dict[str, Any]) -> list[str]:
+    """The expected names of the files and Google files a fixture capture holds."""
+    found: list[dict[str, Any]] = []
+    for item in cast("list[dict[str, Any]]", capture.get("items", [])):
+        detail = cast("dict[str, Any]", item.get("detail") or {})
+        found += cast("list[dict[str, Any]]", detail.get("attachments", []) + detail.get("submission", []))
+    for post in cast("list[dict[str, Any]]", capture.get("stream", [])):
+        found += cast("list[dict[str, Any]]", post.get("attachments", []))
+    return [plan.expected_name(a["name"], a["kind"]) for a in found if plan.download_url(a, 0)]
+
+
+def _decide(data_dir: Path) -> None:
+    """The decisions a sandbox run starts from: both classes linked, and one detected exam proposed."""
+    on = dt.date(2026, 10, 27)
+    store = decisions.DecisionStore.open(data_dir)
+    links = [
+        decisions.Proposal.parse(
+            {
+                "type": "class_link",
+                "origin": cls,
+                "target": {"subject": folder},
+                "reason": "sandbox",
+                "confidence": "high",
+            },
+            on,
+        )
+        for cls, folder in (("synth-1", "FyQ"), ("synth-2", "Ingles"))
+    ]
+    exam = decisions.Proposal.parse(
+        {
+            "type": "detected_exam",
+            "origin": "synth-30#exam-1",
+            "target": {"date": "2026-11-05", "reason": "the announcement names the exam's day"},
+            "reason": "sandbox",
+            "confidence": "medium",
+            "origin_hash": "sandbox",
+        },
+        on,
+    )
+    store.propose([*links, exam], on)
+    for cls in ("synth-1", "synth-2"):
+        store.confirm(DecisionType.CLASS_LINK, cls, on)
+    store.save()
+
+
+def download_batch(home: Path, student: str, batch: int) -> list[str]:
+    """Copy to the downloads folder the attachments batch `batch` of the last plan requests."""
+    cfg = config.load(home, student, ("downloads",))
+    downloads = Path(cfg.downloads_folder).expanduser()
+    plan_path = home / student / "data" / "plan.json"
+    if not plan_path.is_file():
+        raise SandboxError("there is no plan yet")
+    requested = [d for d in json.loads(plan_path.read_text())["downloads"] if int(d["batch"]) == batch]
+    written: list[str] = []
+    for download in requested:
+        source = home / "sandbox-attachments" / download["expected_name"]
+        if not source.is_file():
+            raise SandboxError("the plan requests an attachment the sandbox does not have")
+        target = downloads / source.name
+        number = 1
+        while target.exists():  # as the browser does: « (1)» before the extension
+            target = downloads / f"{source.stem} ({number}){source.suffix}"
+            number += 1
+        target.write_bytes(source.read_bytes())
+        written.append(target.name)
+    return written
 
 
 def download_captures(home: Path, student: str, run: str | None) -> list[str]:
