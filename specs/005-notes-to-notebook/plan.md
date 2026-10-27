@@ -27,7 +27,7 @@ and warns when the cloud has stopped running.
 - configuration: `[notes]` and `[cloud]` keys ([contracts/config-template.toml](contracts/config-template.toml));
 - secrets: three Secret Manager secrets mounted as files into the cloud run (its own OAuth client
   and token, its own Claude key, the configuration); the keychain for the Mac's own (research R3);
-- records: `.alfabeta/estado.json` and the run log `.alfabeta/ultima-ejecucion.json`, which holds
+- records: `.alfabeta/state.json` and the run log `.alfabeta/last-run.json`, which holds
   the change cursor, in the student's Drive (research R2, R4, R13).
 
 **Testing**: `pytest` with spec 004's recorded-response transport for Drive and a recorded Claude
@@ -98,7 +98,7 @@ specs/005-notes-to-notebook/
 src/alfabeta/notes/
 ├── __init__.py
 ├── model.py          # Arrival, NotesPage, LivingFile, ClassroomEntry, ChangeCursor, RunReport (no I/O)
-├── state.py          # StateStore port + DriveStateStore over .alfabeta/estado.json with the revision check
+├── state.py          # StateStore port + DriveNotesStateStore over .alfabeta/state.json with the revision check
 ├── changes.py        # ChangeFeed port + DriveChangeFeed: changes.list paging, allowlist filter, kinds
 ├── transcribe.py     # Transcriber port + ClaudeTranscriber (Messages API through HttpTransport)
 ├── secrets.py        # FileTokenStore: spec 004's TokenStore over the files the cloud mounts
@@ -129,7 +129,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 |---|---|---|
 | Domain | `Arrival`, `NotesPage`, `LivingFile`, `ClassroomEntry`, `ChangeCursor`, `RunReport` | Values, states and transitions from the [data model](data-model.md); no I/O |
 | Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `PdfBuilder`, `NotebookSources`, `Clock` | What the core needs from the outside |
-| Adapters | `DriveChangeFeed`, `DriveStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
+| Adapters | `DriveChangeFeed`, `DriveNotesStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
 | Services | `run_notes`, `setup_topic`, `check_cloud`, `write_report` | One per subcommand or sync step; return results the CLI prints |
 | CLI | `notes run`, `notebook setup`, `google link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
 
@@ -160,7 +160,7 @@ Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4.
 
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
-| A cloud job in the company's Google Cloud project | The operator wants notes to reach the notebook with the Mac off; the desktop app's tasks need it open (research, first table) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0 |
+| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes to reach the notebook with the Mac off; the desktop app's tasks need it open (research, first table) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0 |
 | A second OAuth client and refresh token for the student, and a second Claude key, in Secret Manager | The cloud cannot read the Mac's keychain; constitution II (1.6.0) forbids copying a secret between places (research R3) | A service account cannot act as a consumer Gmail |
 | One account-wide Drive read: the change feed | Drive v3's change feed takes no folder filter (research, first table); polling each folder instead costs one listing per folder per run | Spec 004 FR-009a amended: the adapter drops every change outside the allowlist before returning, keeps and logs nothing about it, and the scope test covers the feed |
 | The cloud's records in Drive instead of a database | One small JSON, two writers guarded by a revision check (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |

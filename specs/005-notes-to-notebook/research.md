@@ -30,7 +30,7 @@ own table is the subset the requirements rest on; this one is the full list.
 
 - **Decision**: three places.
   - **Cloud, every 15 minutes**: read the change feed, transcribe, rebuild living files, write the
-    report (FR-001, FR-003 to FR-013).
+    report (FR-001, FR-003 to FR-008, FR-010 to FR-013, as FR-014 lists).
   - **Mac, in each scheduled sync**: bring into the master what Drive holds and the master lacks
     (FR-002, owned by spec 004's FR-011a), check that the cloud ran recently (FR-017), and run
     classroom-sync, which puts
@@ -51,11 +51,16 @@ own table is the subset the requirements rest on; this one is the full list.
   was removed or moved out still arrives, as `gone`); it drops everything else before returning and
   logs nothing about it (spec 004 FR-009a, amended). A folder that joins the allowlist is listed
   whole once, so content moved in with it is taken in.
+- **Fields**: the feed asks only for `nextPageToken,newStartPageToken,changes(fileId,removed,
+  file(name,mimeType,parents,md5Checksum,modifiedTime,trashed))`; the name is read only for changes
+  the adapter keeps.
 - **Echoes**: every write the cloud makes (state, run log, transcriptions, living files, reports,
   temporary conversions) comes back through the next feed page. A change to a file id the state
-  records as alfabeta's own is consumed: never an arrival, never a reason to write.
-- **The cursor lives in the run log**, `.alfabeta/ultima-ejecucion.json`, written at the end of every
-  run as the run's own log (constitution V). `estado.json` is written only when a record changes, so
+  records as alfabeta's own is consumed: never an arrival, never a reason to write. Two changes to
+  own files are the family's and do arrive: a new name of a transcription PDF (a mark) and a new
+  checksum of a transcription Markdown (a correction).
+- **The cursor lives in the run log**, `.alfabeta/last-run.json`, written at the end of every
+  run as the run's own log (constitution V). `state.json` is written only when a record changes, so
   an idle run, whose token moves because of its own previous run log, writes only the run log
   (SC-004).
 - **First run**: with no cursor, the job takes `getStartPageToken` first, then lists the whole tree
@@ -79,7 +84,8 @@ own table is the subset the requirements rest on; this one is the full list.
   `gcloud secrets versions add <google_link_secret> --data-file=-` and deletes the downloaded JSON.
   The Mac's own client and token never leave the keychain, and the cloud's never enter it.
 - **Claude**: two API keys in the workspace `alfabeta`, each created in the Console for one place:
-  one in the Mac's keychain (slice 1 and the quickstart), one in the cloud's secret store.
+  one stored in the Mac's keychain with `alfabeta claude key set` (read from standard input, like
+  spec 004's `google client set`), one in the cloud's secret store.
 - **Three secrets, mounted as files** into the job: the Google link, the Claude key, and the
   student's configuration. The job's service account may read exactly these three. A
   `FileTokenStore` implements spec 004's `TokenStore` over the mounted files. The student id is read
@@ -93,12 +99,17 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R4 — The cloud run's state
 
-- **Decision**: one JSON file `estado.json` in a folder `.alfabeta` at the root of the alfabeta
+- **Decision**: one JSON file `state.json` in a folder `.alfabeta` at the root of the alfabeta
   folder, read and written through `ScopedDrive`. It holds the record of every file and the month's
   spend ledger (data model); the cursor is in the run log (R2). Two writers exist: the cloud run, and
-  `notebook setup` on the Mac, which records the living files. Both read `headRevisionId` at start,
-  re-read it immediately before writing, and on a difference stop without writing and retry once from
-  the start.
+  `notebook setup` on the Mac, and `notes run` started by hand on the Mac. All three read
+  `headRevisionId` at start, re-read it immediately before writing, and on a difference stop without
+  writing and retry once from the start.
+- **Look up before create**: every file a run creates carries `appProperties.alfabeta_for = <the
+  photo's or item's Drive id>`. Before creating a transcription or a conversion, a run looks for a
+  file with that property in the same folder and updates it instead. A run that crashed after an
+  upload, or two overlapping runs, therefore never leave two transcriptions of one photo
+  (constitution V). Living files are updated by file id and never created by a run.
 - **Overlap**: the job has one task, task retries set to 0, and a 10-minute timeout, shorter than the
   15-minute period, so one execution has ended before the next starts unless the Scheduler fires
   late; the revision check covers that case. Setup on the Mac is run by hand.
@@ -110,6 +121,8 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R5 — Transcribing a photo
 
+- **Unreadable**: the instructions ask for the single line `[ilegible: página completa]` when nothing
+  on the photo can be read; that answer is the `unreadable` state, and the page is left out.
 - **Decision**: one Claude Messages API call per photo, image first, then the instructions: literal
   transcription with the conventions of 2026-10-26 (text between lines `^(…)`, crossed out `~~…~~`,
   doubtful `[?]`, unreadable `[ilegible]`, drawings `[dibujo: …]`, boxed `[recuadro]`), the photo's
@@ -143,13 +156,19 @@ own table is the subset the requirements rest on; this one is the full list.
     a cover page with title, posting date, the text of `descripcion.md` and the addresses of
     `enlaces.md`, then each file's pages. A PDF is copied page by page; a Google-native file is
     exported to PDF through Drive; an Office file is copied by Drive into the Google type in
-    `.alfabeta/conversiones/`, exported, and that copy put in Drive's trash at once (it was never the
+    `.alfabeta/conversions/`, exported, and that copy put in Drive's trash at once (it was never the
     family's); a Markdown is set as text; an image is one page; anything else is named on the cover
     page.
-  - **Never in a living file**: `entrega - <name>` and `correccion.md`, the student's own work and
-    its grading (spec 001's data model; constitution III). An assignment enters with its statement
-    only.
-  - **`Sin tema`**: its items go into the living Classroom file of the subject's most recent topic,
+  - **Never in a living file**: every file whose name starts with `entrega - ` or `correccion`,
+    whatever follows (spec 001's roles `submission` and `grading`, including their
+    `(anterior YYYY-MM-DD)` versions): the student's own work and its grading (constitution III). An
+    assignment enters with its statement only.
+  - **Previous versions**: a file named `<name> (anterior YYYY-MM-DD)` (spec 001 FR-015b) is never a
+    part; the current version replaces the item's pages in place.
+  - **Announcements** (`… aviso …` notes in `Sin tema`) are not material and stay out (spec 002
+    FR-023 routes material only).
+  - **`Sin tema`**: its materials go into the living Classroom file of the subject's most recent
+    topic, the topic folder whose date is latest when the material is first seen, and stay there,
     as spec 002 FR-023 sends them to that topic's notebook. An item moved by classroom-sync to
     another topic leaves the first file and enters the second.
 - **Dependencies**: `reportlab` to draw pages and `pypdf` to copy pages, both pure Python and pinned.
@@ -187,7 +206,10 @@ own table is the subset the requirements rest on; this one is the full list.
 - **Decision**: `notebook setup --topic <subject>/<folder>` on the Mac finds the topic's notebook by
   `[notebook] title_pattern` (`nlm notebook list`), creates both living files from what is recorded
   when no file id is recorded, adds each with `nlm source add --drive <id> --type pdf`, and records
-  the file and source ids in `estado.json` (R4's check). It lists the notebook's other sources whose
+  the file and source ids in `state.json` (R4's check). It shares each living file read-only with
+  the notebook owner's account, and nothing else (the measurement of 2026-10-27 shared exactly the
+  files). Before building, it runs the same recording pass as `notes run` for that topic, so Tema
+  01's adopted Markdown is in the first build. It lists the notebook's other sources whose
   title starts with «Apuntes ·» or «Classroom ·» and whose id is not a recorded living source
   (Tema 01's two, first table) for the family to remove by hand; alfabeta removes nothing (FR-011).
 
@@ -199,6 +221,8 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R11 — Deploying and watching the cloud run
 
+- **Notifier in the cloud**: spec 004's account check calls a `Notifier`; the cloud injects one that
+  only logs, because `osascript` exists only on the Mac.
 - **Decision**: one container image built from the repository by Cloud Build, a Cloud Run job (one
   task, task retries 0, 10-minute timeout) in a Tier 1 European region chosen at setup, one
   Scheduler job in time zone `Europe/Madrid` (constitution VIII), and a service account allowed to
@@ -220,9 +244,9 @@ own table is the subset the requirements rest on; this one is the full list.
 ## R13 — When the cloud run fails
 
 - **Decision**: two channels that do not need the cloud's Google link: the project's alert to the
-  operator (R11), and the Mac's sync. Every cloud run ends by writing `.alfabeta/ultima-ejecucion.json`
-  (its own log: start, end, result, `last_ok_ended`, the cursor). The Mac's sync reads
-  `last_ok_ended` with the Mac's own link and writes an agenda line and a macOS notification
+  operator (R11), and the Mac's sync. Every cloud run ends by writing `.alfabeta/last-run.json`
+  (its own log: start, end, result, `ran_on`, `last_ok_ended`, the cursor). Only a run with
+  `ran_on = cloud` moves `last_ok_ended`. The Mac's sync reads it with the Mac's own link and writes an agenda line and a macOS notification
   (spec 004's `notify`) when it is older than `[notes] cloud_stale_hours`.
 - **Known gap**: with the Mac off and the alert email unread, a failure is seen when a page does not
   arrive.

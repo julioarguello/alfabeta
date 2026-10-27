@@ -260,7 +260,8 @@ source and one living Classroom source, and that a second run adds nothing.
   anything else happens and nothing about them is kept or logged (spec 004 FR-009a, as amended),
   except the fact that a recorded file left the folder or was removed. A change to a file alfabeta
   itself wrote (its records, run log, transcriptions, living files, reports, temporary conversions)
-  is never an arrival.
+  is never an arrival, with two exceptions that are the family's: a new name of a transcription PDF
+  (a mark, FR-008) and a new checksum of a transcription Markdown (a correction).
 - **FR-002**: Whatever Drive holds under a topic folder MUST reach the master, the family's files and
   the cloud run's alike (constitution VII, 1.6.0). This spec depends on spec 004's FR-011a, added in
   this pull request, which owns that pull and its rule.
@@ -299,13 +300,18 @@ source and one living Classroom source, and that a second run adds nothing.
 - **FR-010**: Notes pages go into the living notes file in the order they were first seen. Each
   Classroom item, whether a file, a note or a folder (User Story 3), goes into the living Classroom
   file as one entry: a cover page (title, posting date, description and addresses from
-  `descripcion.md` and `enlaces.md`), then the pages of each of its files, in posting order. A PDF
-  is copied page by page; a Google-native or Office file is converted to PDF through Drive; a
-  Markdown note is set as text; an image is one page; anything else is named on the cover page. The
-  student's own work and its grading, `entrega - <name>` and `correccion.md` (spec 001), are never
-  put into a living file (constitution III). An item in `Sin tema` goes into the living Classroom
-  file of its subject's most recent topic (spec 002 FR-023). A changed item or page is replaced in
-  place; an item moved to another topic leaves the first living file and enters the second.
+  `descripcion.md` and `enlaces.md`), then the pages of each of its files: entries in posting
+  order, files in name order. A PDF is copied page by page; a Google-native or Office file is
+  converted to PDF through Drive; a Markdown note is set as text; an image is one page; anything
+  else is named on the cover page. The student's own work and its grading (spec 001's roles
+  `submission` and `grading`: every file whose name starts with `entrega - ` or `correccion`,
+  whatever follows) are never put into a living file (constitution III). A previous version spec 001
+  keeps beside an edited one (`<name> (anterior YYYY-MM-DD)`) is never put in either: the current
+  version replaces the old pages in place. An announcement note (`aviso`) is not material and is left
+  out. A material in `Sin tema` goes into the living Classroom file of its subject's most recent
+  topic, the topic folder whose date is latest when the material is first seen, and stays there
+  (spec 002 FR-023). An item moved to another topic leaves the first living file and enters the
+  second.
 - **FR-011**: alfabeta MUST NOT delete, rename or move a living file, nor remove a source from a
   notebook. A living file that is missing, trashed or outside its topic folder is reported and is
   not recreated.
@@ -341,7 +347,8 @@ source and one living Classroom source, and that a second run adds nothing.
   never in the repository, the configuration, a log or an error message. The Mac keeps its own
   client, token and key; nothing is copied between them (constitution II, 1.6.0). Its failures MUST reach the family without that link: the
   project alerts the operator when a run fails, and the Mac's sync warns in the agenda when the
-  cloud's last successful run, which every run records as its own log, is more than two hours old.
+  cloud's last successful run, which every run records as its own log, is older than
+  `[notes] cloud_stale_hours`. A run started by hand on the Mac does not count as the cloud's.
 
 ### Key Entities
 
@@ -374,15 +381,16 @@ source and one living Classroom source, and that a second run adds nothing.
   exactly once.
 - **SC-007**: The month's spend on AI stays under the workspace limit, and the report states what it
   was.
-- **SC-008**: A search of the logs, reports and repository for the student's name or address finds
-  nothing.
+- **SC-008**: A search of the logs, the run log and the repository for the student's name or address
+  finds nothing, and every report passes the guardrail's detectors before it is written.
 
 ## Assumptions
 
 - The student uploads photos to the topic's `apuntes/` folder in the Drive of his personal Gmail,
   the master. The school Drive is a mirror and is never read (constitution VII).
-- The notebook owner's account can read the student's alfabeta folder in Drive; the notebook needs
-  that to hold a Drive source.
+- The notebook owner's account needs read access to each living file, and to nothing else: the
+  setup shares the two living files of each topic with it, as on 2026-10-27, never the whole folder
+  with the student's work and grades.
 - A Drive-backed PDF keeps refreshing the way it did on 2026-10-27. If Google changes it, the living
   files fall back to being refreshed as sources by the Mac run.
 - The transcription quality of the API model is at least that of the transcription of 2026-10-26,
@@ -401,7 +409,7 @@ source and one living Classroom source, and that a second run adds nothing.
   Drive.
 - Spec 002: the study pack, which ranks the notes first and owns regeneration. Its User Story 6 and
   FR-004 required a checked transcription; this spec supersedes that (Clarifications).
-- The operator: sharing the student's alfabeta folder with the notebook owner, a billing account on
+- The operator: a billing account on
   the operator's Google Cloud project for alfabeta, a second OAuth client there for the cloud run,
   and two API keys in the alfabeta Console workspace, one for the Mac and one for the cloud (the
   workspace was created 2026-10-27, with no key yet).

@@ -233,8 +233,12 @@ run.
   cursor. A Drive id with no upload record is downloaded and recorded `adopted`; a recorded id with
   a new Drive version overwrites the master copy only if that copy's md5 still equals the last
   pulled version, else it is written beside it with « (de Drive)» and reported; a file whose md5
-  the master already holds at that path is recorded and not copied. Nothing is deleted in the
-  master. This MUST ship before the base folder leaves the mount.
+  the master already holds at that path is recorded and not copied. A rename in Drive renames the
+  master copy when that copy is unchanged since the last pull. Nothing is deleted in the master. The
+  pull takes the student's lock like every writer (spec 001), never renames or renumbers a file the
+  placer wrote, and its « (de Drive)» copies are never pushed back. This MUST ship before the base
+  folder leaves the mount. Other specs cite it as "spec 004 FR-011a", because spec 001 has an FR-011a
+  of its own.
 - **FR-012**: A file MUST count as uploaded only when Drive confirms it with the same size and
   checksum as on the Mac. An upload is idempotent: a second run with nothing new uploads nothing.
 

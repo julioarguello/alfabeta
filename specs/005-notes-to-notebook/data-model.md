@@ -1,23 +1,23 @@
 # Data model: Class notes and new material reach the topic's notebook by themselves
 
-The cloud run's records live in one file, `.alfabeta/estado.json`, at the root of the alfabeta
+The cloud run's records live in one file, `.alfabeta/state.json`, at the root of the alfabeta
 folder in the student's Drive (research R4; constitution II, 1.6.0). Its own log, which also holds
-the change cursor, is `.alfabeta/ultima-ejecucion.json` (research R2, R13). The pull into the master
+the change cursor, is `.alfabeta/last-run.json` (research R2, R13). The pull into the master
 and its cursor belong to spec 004 (FR-011a). Ids are Drive file ids and notebook source ids: data,
 never in the repository or a log. Logs carry opaque indexes and counts, never a name, an id or a
 path.
 
-## RunLog (`.alfabeta/ultima-ejecucion.json`)
+## RunLog (`.alfabeta/last-run.json`)
 
 Written at the end of every run: the run's own log (constitution V), the one write an idle run makes.
 
 | Field | Meaning |
 |---|---|
-| `started`, `ended`, `result` | This run; `result` is `ok`, `partial` or `failed` |
-| `last_ok_ended` | `ended` of the last `ok` or `partial` run, kept across failed runs; the Mac reads it (FR-017) |
+| `started`, `ended`, `result`, `ran_on` | This run; `result` is `ok`, `partial` or `failed`; `ran_on` is `cloud` or `mac` |
+| `last_ok_ended` | `ended` of the last `ok` or `partial` run with `ran_on = cloud`, kept across failed runs and Mac runs; the Mac reads it (FR-017) |
 | `page_token` | The change cursor: `newStartPageToken` of the last run whose writes all succeeded; a failed run keeps the previous one, so the next run reads the same changes again. Absent means first run (research R2's listing) |
 
-`estado.json` is written only when a record changes (SC-004).
+`state.json` is written only when a record changes (SC-004).
 
 ## Topic
 
@@ -33,7 +33,8 @@ One per Drive file seen under a topic folder, keyed by Drive id.
 | `file_id` | Drive id |
 | `topic` | Topic folder id |
 | `kind` | `notes_photo` (an image in `apuntes/`), `notes_transcript` (a transcription PDF in `apuntes/`), `notes_text` (a transcription Markdown in `apuntes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`), `living_file`, `unexpected` |
-| `own` | true for every file alfabeta wrote (transcriptions, living files, state, run log, reports, temporary conversions): a change to it is consumed, never an arrival (research R2). A family edit of an own Markdown (a correction) is told apart by its checksum differing from the one alfabeta recorded |
+| `own` | true for every file alfabeta wrote (transcriptions, living files, state, run log, reports, temporary conversions): a change to it is consumed, never an arrival (research R2), except a new name of a `notes_transcript` (a mark) and a checksum of a `notes_text` that differs from the one alfabeta recorded (a correction) |
+| `for` | `appProperties.alfabeta_for` of an own file: the photo or item it was made from; a run looks it up before creating (research R4) |
 | `version` | Drive's `md5Checksum`, or `modifiedTime` for a Google-native file; "a new version" means either changed |
 | `state` | See below |
 
@@ -83,16 +84,18 @@ file is created, and the report says so.
 
 ## ClassroomEntry
 
-One per Classroom item, keyed by the item: the Drive id of its file, note or folder. An item in
-`Sin tema` belongs to the living Classroom file of its subject's most recent topic (spec 002
-FR-023); an item moved to another topic folder moves to that topic's file.
+One per Classroom item, keyed by the item: the Drive id of its file, note or folder. A material in
+`Sin tema` belongs to the living Classroom file of its subject's most recent topic, the topic folder
+with the latest date when the material is first seen, and stays there (spec 002 FR-023); an
+announcement (`aviso`) is not an entry. An item moved to another topic folder moves to that topic's
+file.
 
 | Field | Meaning |
 |---|---|
 | `item_id`, `item_version` | The item; for a folder, the latest `version` of anything inside |
 | `title`, `posted` | From the item's name, `YYYYMMDD - <title>` (constitution, Storage) |
 | `description`, `addresses` | From `descripcion.md` and `enlaces.md`, when the item is a folder |
-| `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type in `.alfabeta/conversiones/`, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover). `entrega - <name>` and `correccion.md` are never parts (constitution III) |
+| `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type in `.alfabeta/conversions/`, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover). Never parts: any file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's `submission` and `grading`, constitution III), and any `<name> (anterior YYYY-MM-DD)` (a previous version, replaced by the current one) |
 | `pages` | Pages in the living file |
 
 A new `item_version` replaces the entry's pages in place.
@@ -109,7 +112,7 @@ Written only when the run changed something (User Story 4).
 
 The report is in Spanish, in Drive.
 
-## SpendLedger (in `estado.json`)
+## SpendLedger (in `state.json`)
 
 One row per month: tokens in and out of every Claude call, transcriptions and "what it adds" alike,
 and their cost at `[notes] price_in` and `price_out`. The Console's cost page is the authority;

@@ -32,8 +32,9 @@ Rationale: the first student is the first *tenant*, not the product.
   not a silent default.
 - Secrets (cookies, tokens) MUST live in the system keychain or in the data folder with user-only
   permissions, never in the configuration. A cloud run a spec names (IX) holds its own secrets in
-  its project's secret store, readable only by that run; a secret is never copied from the Mac to
-  the cloud or back.
+  its project's secret store, readable only by that run. A secret kept on the Mac never leaves it,
+  and the cloud's secrets are never stored on the Mac; a secret minted on the Mac for the cloud goes
+  straight to the cloud's store without touching the Mac's disk or keychain.
 - An automatic guardrail (pre-commit hook and CI test) MUST prevent pushing real names, emails,
   personal paths or ids. The guardrail MUST have cases that prove it fires.
 

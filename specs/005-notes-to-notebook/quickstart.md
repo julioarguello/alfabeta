@@ -8,7 +8,6 @@ photos of 2026-10-26 and never leaves the operator's machine and the alfabeta wo
 
 - Spec 004's link of the student's Gmail is `ok` (`python -m alfabeta google check --student <id>`)
   and its scoped Drive adapter is built.
-- The student's alfabeta folder in Drive is shared read-only with the notebook owner's account.
 - Two API keys in the Claude Console workspace `alfabeta` of the organisation Server Startup, one for
   the Mac's keychain and one for the cloud's secret store. Check first, in *Settings → Profile*, that
   the Console shows the company account.
@@ -21,8 +20,9 @@ photos of 2026-10-26 and never leaves the operator's machine and the alfabeta wo
 python -m alfabeta notebook setup --student <id> --topic "<subject>/<test topic folder>"
 ```
 
-Expect: `{ok: true}` with both sources set; the notebook lists exactly two Drive sources. Run it
-again: nothing changes.
+Expect: `{ok: true}` with both sources set; the notebook lists exactly two Drive sources; each living
+file is shared read-only with the notebook owner, and nothing else in the folder is. Run it again:
+nothing changes.
 
 ## 2. Choose the model on the real notes
 
@@ -44,11 +44,16 @@ python -m alfabeta notes run --student <id>
 Expect: a PDF and a Markdown next to the photo; one page in `Apuntes · <topic>.pdf` headed
 «Transcripción automática»; `pages_added: 1`. Open the notebook, wait two minutes, ask about a word
 only that page holds. Run again: `pages_added: 0`, and the living file's revision does not change.
+Then add one more page and open the notebook as the student, a viewer, not as its owner: record
+whether the new page appears within five minutes (SC-002 rests on it; on 2026-10-27 only the owner
+was measured).
 
 ## 4. The student's marks
 
 Rename the transcription PDF adding « (mal)», run `notes run`: the page reads «En corrección» and
 the report names it. Rename it to « (revisada)», run again: the page reads «Revisada por el alumno».
+Edit the page's Markdown in Drive and record whether Drive keeps the same file id with a new checksum
+or converts it to a Google Doc; the correction rule of research R7 assumes the first.
 
 ## 5. The cloud job
 
