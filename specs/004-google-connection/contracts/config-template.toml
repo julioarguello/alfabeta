@@ -1,0 +1,26 @@
+# Keys this spec adds to, or changes in, spec 001's config/template.toml.
+# Every value is an example. The student's real file lives outside the repository.
+
+[storage]
+# The student's base folder on the Mac, outside the Drive for desktop mount (research R7).
+base = "~/alfabeta/changeme"
+
+[drive]
+# Changed meaning: the alfabeta folder's path INSIDE the student's My Drive, not a local mount path.
+root = "alfabeta"
+
+[google]
+# A label for the operator, never an id or a secret.
+project_label = "changeme"
+
+[google.accounts.changeme]
+# The alias is the table's name (e.g. [google.accounts.student]); logs use only the alias.
+role = "student"
+# Kept only here to check that linking picked the right account. Never printed.
+address = "changeme@example.com"
+scopes = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/drive",
+  "openid",
+  "email",
+]
