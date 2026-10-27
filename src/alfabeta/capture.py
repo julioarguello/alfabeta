@@ -38,7 +38,9 @@ _MODIFIED = re.compile(r"\(\s*última modificación:\s*([^)]*)\)", re.IGNORECASE
 _NO_DUE = "sin fecha de entrega"
 
 # data-model.md, «Status from the detail texts».
-_WAITING = frozenset({"asignado", "falta"})
+# Nothing turned in yet: pending until the due date passes, overdue after it. «Sin entregar» is what a
+# question shows (seen on 2026-10-25); the operator set its meaning on 2026-10-27.
+_WAITING = frozenset({"asignado", "falta", "sin entregar"})
 _TURNED_IN = frozenset({"entregado", "entregado con retraso"})
 _RETURNED = frozenset({"calificado", "devuelto"})
 _MISSING_NOTICE = "falta esto"

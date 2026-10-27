@@ -215,9 +215,9 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
     «Comentarios privados»;
   - stream: «Próximas entregas», «Ver todo», «ha publicado», «publicado una nueva tarea»;
   - date shapes: «N oct», «N sept», «Hoy».
-- **Open question for the data model**: «Sin entregar» appeared as the status of a question's
-  «Tu trabajo» panel and on the student's work page. The status table in `data-model.md` maps
-  «Asignado» and «Falta» but not «Sin entregar»; whether it maps like «Falta» is not measured.
+- **«Sin entregar»** appeared as the status of a question's «Tu trabajo» panel and on the student's
+  work page. Decided by the operator on 2026-10-27: it means nothing was turned in, so it maps like
+  «Asignado» and «Falta» (`pending` before the due date, `overdue` after it).
 - **How long a class takes (from S3)**: about 4 s per item (1.0–1.2 s for the iframe, the 2 s minimum
   wait with jitter, and the time to read the panel), so about 2 minutes for the largest class
   measured on 2026-10-25 (21 items) and under 7 minutes for every class of that day (93 items).
