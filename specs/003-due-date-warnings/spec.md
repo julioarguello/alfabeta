@@ -29,7 +29,8 @@ What this spec takes from spec 001's reminders epic: the warnings, the timetable
 reads them, and a daily list of pending work that stands in for its "today / this week" views.
 What it leaves: one colour per category (FR-020a of spec 001).
 
-Out of this spec: writing anything to Classroom; study blocks in the calendar; Google Tasks;
+Out of this spec: writing anything to Classroom; study blocks in the calendar; Google Tasks as the
+carrier of warnings (it may carry the daily list, FR-024);
 changing how Classroom is captured (a due date shown only as a time, "Fecha de entrega: 8:00", is
 resolved against the capture's own date by spec 001, a dependency here); changing anyone's
 notification settings, which only that person can do.
@@ -215,10 +216,10 @@ with the statuses Classroom showed that day.
 
 **Acceptance Scenarios**:
 
-1. **Given** the capture of 2026-10-26, **When** the list is built, **Then** it holds every
-   assignment not handed in, in three groups: due ahead, nearest first (4); past due and still not
-   handed in according to Classroom (9); no due date, newest first (31). Each line gives subject,
-   title as Classroom writes it, due date and hour when Classroom gives them, and Classroom's status.
+1. **Given** a capture, **When** the list is built, **Then** it holds every assignment not handed
+   in, in three groups: due ahead, nearest first; past due and still not handed in according to
+   Classroom; no due date, newest first. Each line gives subject, title as Classroom writes it, due
+   date and hour when Classroom gives them, and Classroom's status.
 2. **Given** an item whose status becomes «Entregado», «Calificado» or «Entregado con retraso»,
    **When** the next sync runs, **Then** it leaves the list.
 3. **Given** the list, **When** it is read, **Then** it holds only facts: no advice, no priority
@@ -250,8 +251,8 @@ with the statuses Classroom showed that day.
 **Where warnings go**
 
 - **FR-001**: Warnings MUST be timed events in the student's calendar, in Spanish. Not Google Tasks:
-  a task keeps only its date and lives only in the account that writes it (Google Tasks API
-  reference, read 2026-10-27).
+  a task written through the API keeps only its date, so it cannot carry a 16:00 warning (Google
+  Tasks API reference, read 2026-10-27).
 - **FR-002**: Warnings and the daily list (FR-023) MUST reach two readers, each through their own
   account: the student and the operator. Delivery is checked per reader (FR-019).
 - **FR-003**: A warning MUST restate facts only: the subject, the work as Classroom titles it, the
@@ -333,11 +334,29 @@ with the statuses Classroom showed that day.
 
 - **FR-023**: Every sync MUST rebuild a list of the assignments not handed in, grouped and ordered as
   User Story 7 says, facts only, readable by both readers (FR-002).
-- **FR-024**: The list's form: [NEEDS CLARIFICATION: read-only — the body of one event every day at
-  16:00 that also carries that day's warnings, so no new place to open — or tickable — a sheet in the
-  family's Drive whose ticks alfabeta reads at the next sync? If tickable, does a tick also remove
-  the item's warnings when Classroom still reads «Sin entregar» or «Asignado» (work handed in on
-  paper)?]
+- **FR-024**: The list's form, using only tools the family already has: [NEEDS CLARIFICATION:
+  which account does the student open every day, and which of these is the list?
+  (a) Classroom's own «Tareas pendientes» in the school account, ticked with the student's own
+  «Marcar como completada», which alfabeta then reads as handed in (FR-010); alfabeta writes nothing
+  new, and its daily 16:00 event adds only what that page lacks (exams, inferred dates).
+  (b) Google Tasks in the student's personal account, written by alfabeta and ticked by him in Tasks
+  or in his Calendar; alfabeta reads the ticks and restates them in the daily event for the
+  operator. Needs a consent the student gives once, not yet tried.
+  (c) Read-only: the body of the daily 16:00 event.]
+
+  Measured 2026-10-27 in the school account, read only:
+  - Classroom keeps a calendar per class with every item that has a due date. The school account
+    also shows alfabeta's calendar. A due date with no time appears there as all-day.
+  - «Tareas pendientes» grouped the pending work as: Asignado, 32 with no due date and 3 dated;
+    Sin entregar, 11.
+  - Google Tasks is enabled in the school account and empty. alfabeta cannot write to it: the school
+    blocks third-party apps for under-18 users (Workspace admin help, read 2026-10-27).
+
+  Documented, read 2026-10-27:
+  - «Marcar como completada» turns the status into «Entregado», and the student can undo it. Work
+    marked after the due date is recorded as late (Classroom Help 6020285).
+  - A task created through the Tasks API keeps its date only. A task with a date shows in Google
+    Calendar and can be ticked there (Calendar Help 9901136).
 
 ### Key Entities
 
@@ -376,8 +395,9 @@ with the statuses Classroom showed that day.
   gets warnings on Saturday 10 and Monday 12 October at 16:00 and none on or after 13 October. Only a
   replay can test it: the capture of 2026-10-26 already reads it «Calificado». In live use the same
   outcome depends on a daily sync (julioarguello/alfabeta#13).
-- **SC-009**: The daily list built from the capture of 2026-10-26 has 4 items due ahead, 9 past due
-  and not handed in, and 31 with no due date, and no item Classroom reads as handed in.
+- **SC-009**: The daily list built from a capture has, group by group, the same items that
+  Classroom's «Tareas pendientes» shows the student on the same day. The count of each group is
+  reported, and no item Classroom reads as handed in appears.
 
 ## Assumptions
 
@@ -386,8 +406,9 @@ with the statuses Classroom showed that day.
 - The timetable holds for the whole school year; a change means editing the configuration.
 - One home slot, 16:00 every day, by the operator's choice. On Monday and Tuesday classes end at
   16:00, so those warnings arrive as he leaves school.
-- Of the 31 pending assignments with no due date, 21 were posted before 12 October; some may be
-  done on paper and never marked in Classroom, which the daily list cannot tell (FR-024).
+- Of the 31 pending assignments with no due date in the capture of 2026-10-26, 21 were posted before
+  12 October. Some of them may have been done on paper and never marked in Classroom, which the
+  daily list cannot tell unless someone ticks them (FR-024).
 - Classroom may already send the student its own "due within 24 hours" notification (Classroom Help
   6141557); whether it is on for his account has not been measured. Its existence does not change
   what this spec writes.

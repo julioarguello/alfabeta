@@ -34,8 +34,10 @@
 - Clarify session 2026-10-27 answered FR-002 (both readers), FR-003 (facts only), FR-006 (a
   half-window warning for 2 to 7 days), FR-008 (16:00 every day) and SC-008 (the chromatography
   video). The same answer added User Story 7, a daily list.
-- One marker remains, FR-024: whether the daily list is read-only (inside the daily 16:00 event) or
-  tickable (a sheet in the family's Drive), and whether a tick removes warnings.
+- One marker remains, FR-024: which account the student opens every day, and so which tool the list
+  lives in. The options are Classroom's own «Tareas pendientes» with «Marcar como completada», Google
+  Tasks in the student's personal account, or read-only in the daily event. The operator asked for
+  no new tools.
 - Named platforms (Google Calendar, Google Tasks, Classroom) are the product's fixed surroundings,
   not implementation choices; spec 001 and spec 002 name them the same way. FR-001 and FR-005 cite
   the documentation that rules out the alternatives.
