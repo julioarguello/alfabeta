@@ -3,7 +3,8 @@
 The output keeps the tags, the CSS classes, the hierarchy and the interface labels of the
 allowlist recorded in research R8, and invents everything else with stable values: texts, other
 attribute values, dates, and the ids inside URLs as `synth-<n>` in the same position. Scripts are
-emptied, because they carry the page's data. Nothing is written if any input text outside the
+emptied, because they carry the page's data, and so are stylesheets, which are most of a page's
+size and nothing the extractor reads. Nothing is written if any input text outside the
 allowlist survives, or if the personal-data guardrail finds something in the result.
 """
 
@@ -92,6 +93,11 @@ _ROUTES = frozenset(
         "not-turned-in",
         "missing",
         "done",
+        "mc",
+        "sp",
+        "default",
+        "course",
+        "ai",
     }
 )
 _HOSTS = frozenset({"classroom.google.com", "drive.google.com", "docs.google.com", "www.youtube.com", "youtu.be"})
@@ -104,6 +110,8 @@ _SUFFIXED = re.compile(
 # An opaque id in an attribute (`data-id`): no spaces, at least 8 characters, letters and digits.
 _ID_TOKEN = re.compile(r"(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{8,}={0,2}")
 _MIN_CHECKED = 4
+# Enumerations the page uses for structure (`data-stream-item-type="1"`, `aria-current="page"`), never data.
+_ENUM = re.compile(r"\d{1,3}|true|false|page")
 _ID_IN_NAME = re.compile(r"\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}", re.IGNORECASE)
 
 
@@ -146,7 +154,7 @@ class _Inventor:
     def value(self, original: str) -> str:
         """Any text: kept if it is a label, shaped if it is a date or a labelled date, else invented."""
         stripped = original.strip()
-        if not stripped or _is_label(stripped):
+        if not stripped or _is_label(stripped) or _ENUM.fullmatch(stripped):
             return original
         if _DATE.fullmatch(stripped):
             return original.replace(stripped, self.date(stripped))
@@ -204,7 +212,8 @@ class _Rewriter(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.out.append(f"<{tag}{self._attrs(attrs)}>")
-        self._in_script = tag == "script"
+        # Scripts carry the page's data; stylesheets are most of its size and the extractor needs neither.
+        self._in_script = tag in ("script", "style")
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.out.append(f"<{tag}{self._attrs(attrs)}/>")
@@ -217,10 +226,6 @@ class _Rewriter(HTMLParser):
     def handle_data(self, data: str) -> None:
         if self._in_script:
             return  # dropped: a script carries the page's data and never reaches the result
-        last = self.out[-1] if self.out else ""
-        if last.startswith("<style"):
-            self.out.append(data)
-            return
         self.seen.add(data)
         invented = self.inventor.value(data)
         self.emitted.append(invented)
@@ -238,7 +243,14 @@ def _pieces(text: str) -> set[str]:
         labelled = _LABELLED.match(stripped)
         if labelled:
             stripped = labelled.group(3).strip()
-        allowed = _is_label(stripped) or _DATE.fullmatch(stripped) or stripped in _ROUTES
+        suffixed = _SUFFIXED.match(stripped)
+        allowed = (
+            _is_label(stripped)
+            or _DATE.fullmatch(stripped)
+            or stripped in _ROUTES
+            or _ENUM.fullmatch(stripped)
+            or (suffixed is not None and _ENUM.fullmatch(suffixed.group(1)))  # «100 puntos»
+        )
         if len(stripped) >= _MIN_CHECKED and not allowed:
             found.add(stripped)
     return found
