@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,13 +31,13 @@
 
 ## Notes
 
-- Three markers remain, all decisions for the operator: how Classroom items are held in the notebook
-  (User Story 3), who checks a transcription and how (FR-007), and whether the notes path runs with
-  the Mac off (FR-013, constitution IX).
+- The three markers of the first draft were answered on 2026-10-27 and are recorded under
+  Clarifications: the notes path runs in the cloud, transcriptions are not checked before reaching
+  the notebook, and Classroom material goes into one living file per topic.
 - The table "What was measured before writing this" names tools (`nlm`, Drive API `changes.list`)
-  because each row must say what it was observed with (`sdd.md`, Phase 3). The requirements
-  themselves name services the family configured (Drive, the notebook, Claude), not how they are
-  called.
-- FR-002 needs a constitution amendment (VII gains a Drive-to-master direction for what the family
-  adds); FR-013 needs another (IX) if the answer is "with the Mac off". Both belong in the spec pull
-  request.
+  because each row must say what it was observed with (`sdd.md`, Phase 3). The requirements name
+  the services the family configured (Drive, the notebook, Claude, the Google Cloud project), not how
+  they are called.
+- The same pull request amends the constitution to 1.6.0 (III, VII, IX and the notebooks line) and
+  marks spec 002's check of transcriptions as superseded. `skills/study-pack/SKILL.md` still states
+  the check; it changes with the implementation, not in this documentation-only pull request.
