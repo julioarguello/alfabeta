@@ -17,6 +17,10 @@ the family's accounts the same day.
 | In Spain a person manages their own Google Account from 14 | Google Accounts help 1350409 |
 | The student's folder lives today inside the Drive that Google Drive for desktop mounts | The student's configuration (`accounts.drive`, `storage`) and the `drive.root` key of spec 001's template |
 | The chat's Google Calendar connector holds one Google account at a time | Anthropic help 10166901 ("the Google account you've connected"); third-party guides agree. No official multi-account path found |
+| Google classes `calendar.events` as sensitive and `drive` as restricted; `openid` and `userinfo.email` as non-sensitive | Measured 2026-10-27, the app's Data Access page in the Cloud console |
+| An External app in a Workspace organisation can be published unverified: status «In production», 100-user cap, «requires verification» banner; `github.com` is accepted as an authorised domain for the home page and the privacy link | Measured 2026-10-27, the app's Audience and Branding pages |
+| The student's personal Gmail is supervised with Family Link: signing in to the app asks a parent to approve with a passkey before the consent screen; the unverified-app screen then appears and can be passed | Measured 2026-10-27, three link attempts; the first ended on another family account's consent screen and was cancelled with nothing stored |
+| A reminder set as the student's Gmail (one, at the event's start) shows on that event for the student's account and not for the owner's | Measured 2026-10-27, probe event read in Calendar as both accounts |
 
 ## R1 — Runtime dependencies: the standard library
 

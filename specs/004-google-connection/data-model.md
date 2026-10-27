@@ -33,7 +33,7 @@ If any check fails, the token is revoked and nothing is stored.
 
 ## AuthCheck (per run, per account)
 
-`ok` · `revoked` · `expired` (`invalid_grant`) · `missing_scope` · `no_token` · `network`. Written to
+`ok` · `revoked` · `expired` (`invalid_grant`) · `missing_scope` · `no_token` · `no_client` · `network`. Written to
 the run's log line by alias. Every status except `ok` and `network` stops the outputs that need that
 account. `network` lets the run retry later and is reported the same way.
 
