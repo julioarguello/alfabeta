@@ -7,18 +7,21 @@ an absolute path; accounts are named by alias.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import json
+import os
 import sys
 import webbrowser
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, config, guardrail
+from alfabeta import __version__, config, guardrail, state
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
+from alfabeta.model import RunMode, StopReason
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -56,6 +59,53 @@ def _cmd_config_check(home: Path, student: str) -> int:
         }
     )
     return EXIT_INVALID if problems else EXIT_OK
+
+
+# Reasons a skill may give `log stop`; `idle` is the watcher's own (contracts/cli.md).
+LOG_STOP_REASONS = tuple(r for r in StopReason if r != StopReason.IDLE)
+
+
+def _lock(home: Path, student: str) -> state.Lock:
+    return state.Lock(home, config.student_root(home, student) / "data")
+
+
+def _cmd_lock(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        if args.verb == "take":
+            mode = RunMode(args.mode)
+            try:
+                idle = config.load(home, args.student, ("sync",)).lock_idle_minutes
+            except config.ConfigError as err:
+                line = state.stopped_line(None, StopReason.INVALID_CONFIG) | {"mode": str(mode)}
+                state.StateStore(lock.data_dir).log(line)
+                return _fail(str(StopReason.INVALID_CONFIG), EXIT_INVALID, str(err))
+            _emit({"ok": True, "run": lock.take(mode, idle)})
+        elif args.verb == "renew":
+            lock.renew(run)
+            _emit({"ok": True})
+        else:
+            lock.release(run)
+            _emit({"ok": True})
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    return EXIT_OK
+
+
+def _cmd_log_stop(args: argparse.Namespace, home: Path) -> int:
+    if args.reason not in LOG_STOP_REASONS:
+        return _fail("invalid_reason", EXIT_INVALID, f"--reason must be one of: {', '.join(LOG_STOP_REASONS)}")
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    lease = lock.lease()
+    state.StateStore(lock.data_dir).log(state.stopped_line(run, StopReason(args.reason), lease))
+    if run and lease is not None and lease.get("run") == run:
+        # The watcher may already have let go; the line is written either way.
+        with contextlib.suppress(state.LockError):
+            lock.release(run)
+    _emit({"ok": True})
+    return EXIT_OK
 
 
 def _student_account(cfg: config.StudentConfig) -> str:
@@ -164,6 +214,15 @@ def build_parser() -> argparse.ArgumentParser:
     scope.add_argument("--history", dest="scope", action="store_const", const="history", help="every published commit")
     guard.set_defaults(scope="staged")
 
+    lock = groups.add_parser("lock", help="the run's lock").add_subparsers(dest="verb", required=True)
+    take = lock.add_parser("take", help="start a run and hold the student's and the browser's lock")
+    take.add_argument("--mode", required=True, choices=[str(m) for m in RunMode])
+    renew = lock.add_parser("renew", help="renew the lock of the run in ALFABETA_RUN")
+    release = lock.add_parser("release", help="release the lock of the run in ALFABETA_RUN")
+    log = groups.add_parser("log", help="the run log").add_subparsers(dest="verb", required=True)
+    stop = log.add_parser("stop", help="write the stopped line of a run halted before apply")
+    stop.add_argument("--reason", required=True)
+
     cfg_group = groups.add_parser("config", help="the student's configuration").add_subparsers(
         dest="verb", required=True
     )
@@ -175,7 +234,7 @@ def build_parser() -> argparse.ArgumentParser:
     clean = cal.add_parser("probe-clean", help="delete a probe event")
     clean.add_argument("--event", required=True)
 
-    for sub in (setter, link, google.choices["check"], unlink, probe, clean, cfg_check):
+    for sub in (setter, link, google.choices["check"], unlink, probe, clean, cfg_check, take, renew, release, stop):
         sub.add_argument("--student", required=True)
     return parser
 
@@ -193,6 +252,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.group == "google" and args.verb == "client":
             return _cmd_client_set(args, store)
+        if args.group == "lock":
+            return _cmd_lock(args, home)
+        if args.group == "log":
+            return _cmd_log_stop(args, home)
         if args.group == "config":
             return _cmd_config_check(home, args.student)
         cfg = config.load(home, args.student, TABLES[args.group])
