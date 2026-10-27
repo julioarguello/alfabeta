@@ -46,7 +46,7 @@ Out of this spec:
 **Constitution.** Principle VII says the student's folder on the Mac is the base output and that
 "alfabeta only writes in the folder", which a sync client then uploads. Writing to Drive directly
 amends that sentence. The folder stays the base output; Drive becomes an output alfabeta writes and
-checks itself (FR-012). The amendment goes through the constitution's own process before the plan.
+checks itself (FR-012). The constitution is amended to 1.3.0 in the same pull request as this spec.
 
 ## Clarifications
 
