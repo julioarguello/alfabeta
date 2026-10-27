@@ -393,8 +393,9 @@ with what «Tareas pendientes» shows the student the same day.
 - **SC-002**: Replaying the capture day by day, every dated item not handed in gets at least one
   warning before its due instant, except items posted and due with no home slot between (2
   measured), which the run names.
-- **SC-003**: Replaying the capture from 7 September to 26 October gives one event per day, and the weekly count of days with a warning is reported; the operator accepts it before
-  warnings are switched on (the panel measured about 3 a week with a draft rule set that had no
+- **SC-003**: Replaying the capture from 7 September to 26 October gives one event per day, and the
+  weekly count of days with a warning is reported; the operator accepts it before warnings are
+  switched on (the panel measured about 3 a week with a draft rule set that had no
   half-window warning).
 - **SC-004**: Inference over the 37 undated items of the capture yields exactly one due date, the
   Physics «Ostegunerako» one, at that Thursday's Physics session, and nothing else.
