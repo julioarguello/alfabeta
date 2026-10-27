@@ -34,7 +34,9 @@ Rationale: the first student is the first *tenant*, not the product.
   permissions, never in the configuration. A cloud run a spec names (IX) holds its own secrets in
   its project's secret store, readable only by that run. A secret kept on the Mac never leaves it,
   and the cloud's secrets are never stored on the Mac; a secret minted on the Mac for the cloud goes
-  straight to the cloud's store without touching the Mac's disk or keychain.
+  straight to the cloud's store without touching the Mac's disk or keychain. The one exception is an
+  OAuth client file downloaded from Google, read once by the command that links an account and
+  deleted right after, the same way spec 004 loads the Mac's own client.
 - An automatic guardrail (pre-commit hook and CI test) MUST prevent pushing real names, emails,
   personal paths or ids. The guardrail MUST have cases that prove it fires.
 

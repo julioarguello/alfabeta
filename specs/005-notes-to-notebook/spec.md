@@ -295,8 +295,9 @@ source and one living Classroom source, and that a second run adds nothing.
 
 - **FR-009**: Each topic MUST have two living files in its folder in Drive, `Apuntes · <topic>.pdf`
   and `Classroom · <topic>.pdf`, where `<topic>` is the folder's name after its date. Only the setup
-  on the Mac creates them and adds each, once, to the topic's notebook as a Drive source. Material
-  that arrives later goes into them; no other source is added for it.
+  on the Mac creates them, shares each read-only with the account in `[notebook] owner` (the one
+  that owns the notebooks) and with no other, and adds each, once, to the topic's notebook as a
+  Drive source. Material that arrives later goes into them; no other source is added for it.
 - **FR-010**: Notes pages go into the living notes file in the order they were first seen. Each
   Classroom item, whether a file, a note or a folder (User Story 3), goes into the living Classroom
   file as one entry: a cover page (title, posting date, description and addresses from
@@ -388,9 +389,9 @@ source and one living Classroom source, and that a second run adds nothing.
 
 - The student uploads photos to the topic's `apuntes/` folder in the Drive of his personal Gmail,
   the master. The school Drive is a mirror and is never read (constitution VII).
-- The notebook owner's account needs read access to each living file, and to nothing else: the
-  setup shares the two living files of each topic with it, as on 2026-10-27, never the whole folder
-  with the student's work and grades.
+- The notebook owner's account needs read access to each living file, and to nothing else (FR-009),
+  as on 2026-10-27; never the whole folder with the student's work and grades. Whether the
+  notebook's viewers also need it was not measured; quickstart step 3 checks.
 - A Drive-backed PDF keeps refreshing the way it did on 2026-10-27. If Google changes it, the living
   files fall back to being refreshed as sources by the Mac run.
 - The transcription quality of the API model is at least that of the transcription of 2026-10-26,
@@ -413,3 +414,5 @@ source and one living Classroom source, and that a second run adds nothing.
   the operator's Google Cloud project for alfabeta, a second OAuth client there for the cloud run,
   and two API keys in the alfabeta Console workspace, one for the Mac and one for the cloud (the
   workspace was created 2026-10-27, with no key yet).
+- Spec 001: this pull request amends its FR-011b and its assumption that alfabeta manages no Drive
+  permissions, so that the living files' one share (FR-009) is named there too.

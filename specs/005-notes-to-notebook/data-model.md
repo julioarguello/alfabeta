@@ -34,7 +34,7 @@ One per Drive file seen under a topic folder, keyed by Drive id.
 | `topic` | Topic folder id |
 | `kind` | `notes_photo` (an image in `apuntes/`), `notes_transcript` (a transcription PDF in `apuntes/`), `notes_text` (a transcription Markdown in `apuntes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`), `living_file`, `unexpected` |
 | `own` | true for every file alfabeta wrote (transcriptions, living files, state, run log, reports, temporary conversions): a change to it is consumed, never an arrival (research R2), except a new name of a `notes_transcript` (a mark) and a checksum of a `notes_text` that differs from the one alfabeta recorded (a correction) |
-| `for` | `appProperties.alfabeta_for` of an own file: the photo or item it was made from; a run looks it up before creating (research R4) |
+| `for` | `properties.alfabeta_for` of an own file: the photo or item it was made from; a run looks it up before creating (research R4) |
 | `version` | Drive's `md5Checksum`, or `modifiedTime` for a Google-native file; "a new version" means either changed |
 | `state` | See below |
 

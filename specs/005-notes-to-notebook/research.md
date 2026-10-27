@@ -81,7 +81,8 @@ own table is the subset the requirements rest on; this one is the full list.
   004's account check can run, validates the grant against the scopes it asked for, writes
   `{client_id, client_secret, refresh_token}` as one JSON line to standard output, keeps nothing, and
   refuses to run when standard output is a terminal. The operator pipes it into
-  `gcloud secrets versions add <google_link_secret> --data-file=-` and deletes the downloaded JSON.
+  `gcloud secrets versions add <google_link_secret> --data-file=-` and deletes the downloaded JSON
+  at once: the one exception constitution II (1.6.0) names.
   The Mac's own client and token never leave the keychain, and the cloud's never enter it.
 - **Claude**: two API keys in the workspace `alfabeta`, each created in the Console for one place:
   one stored in the Mac's keychain with `alfabeta claude key set` (read from standard input, like
@@ -105,7 +106,7 @@ own table is the subset the requirements rest on; this one is the full list.
   `notebook setup` on the Mac, and `notes run` started by hand on the Mac. All three read
   `headRevisionId` at start, re-read it immediately before writing, and on a difference stop without
   writing and retry once from the start.
-- **Look up before create**: every file a run creates carries `appProperties.alfabeta_for = <the
+- **Look up before create**: every file a run creates carries `properties.alfabeta_for = <the
   photo's or item's Drive id>`. Before creating a transcription or a conversion, a run looks for a
   file with that property in the same folder and updates it instead. A run that crashed after an
   upload, or two overlapping runs, therefore never leave two transcriptions of one photo
@@ -208,7 +209,7 @@ own table is the subset the requirements rest on; this one is the full list.
   when no file id is recorded, adds each with `nlm source add --drive <id> --type pdf`, and records
   the file and source ids in `state.json` (R4's check). It shares each living file read-only with
   the notebook owner's account, and nothing else (the measurement of 2026-10-27 shared exactly the
-  files). Before building, it runs the same recording pass as `notes run` for that topic, so Tema
+  files), the account in `[notebook] owner`. Before building, it runs the same recording pass as `notes run` for that topic, so Tema
   01's adopted Markdown is in the first build. It lists the notebook's other sources whose
   title starts with «Apuntes ·» or «Classroom ·» and whose id is not a recorded living source
   (Tema 01's two, first table) for the family to remove by hand; alfabeta removes nothing (FR-011).
