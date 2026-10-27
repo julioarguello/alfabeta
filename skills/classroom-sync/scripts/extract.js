@@ -34,7 +34,8 @@
   const BUTTON_LABELS = new Set(["Añadir o crear", "Marcar como completado", "Entregar"]);
   const CHALLENGE = /tráfico inusual|demasiadas peticiones|unusual traffic|captcha/i;
   const MONTHS = "ene|feb|mar|abr|may|jun|jul|ago|sept|oct|nov|dic";
-  const DATE = `(?:\\d{1,2} (?:${MONTHS})(?:, \\d{1,2}:\\d{2})?|\\d{1,2}:\\d{2})`;
+  // «Hoy» and «Ayer» too: an item posted the day before shows «Ayer» (first real run, 2026-10-27).
+  const DATE = `(?:\\d{1,2} (?:${MONTHS})(?:, \\d{1,2}:\\d{2})?|\\d{1,2}:\\d{2}|Hoy|Ayer)`;
   const POSTED = new RegExp(`^(${DATE})(?:\\s*\\(Última modificación:\\s*(${DATE})\\))?$`);
   const NOTICE = /^(Tarea|Material|Pregunta): /;
 
@@ -274,6 +275,11 @@
   }
 
   // One class: «Trabajo de clase», each item's detail, the stream. `load(path)` returns {doc, path}.
+  // The loader throws this when a page lands on Google's sign-in: the school session expired.
+  class SessionExpired extends Error {
+    constructor() { super("session_expired"); this.name = "SessionExpired"; }
+  }
+
   async function captureClass({ run, classId, title, account, load, sleep, now, random }) {
     let last = null;
     const visit = async (path) => {
@@ -286,7 +292,13 @@
       last = now().getTime();
       return page;
     };
-    const classwork = await visit(`/u/${account}/w/${classId}/t/all`);
+    let classwork;
+    try {
+      classwork = await visit(`/u/${account}/w/${classId}/t/all`);
+    } catch (err) {
+      if (err && err.name === "SessionExpired") return stop(run, now, "session_expired", classId);
+      throw err;
+    }
     let reason = detectStop(classwork.doc, "classwork");
     if (reason) return stop(run, now, reason, classId);
     const listing = readClasswork(classwork.doc);
@@ -294,44 +306,77 @@
     let complete = true;
     for (const row of listing.items) {
       const route = DETAIL_ROUTE[row.type];
-      const page = await visit(`/u/${account}/c/${classId}/${route}/${base64(row.numericId)}/details`);
+      let page;
+      try {
+        page = await visit(`/u/${account}/c/${classId}/${route}/${base64(row.numericId)}/details`);
+      } catch (err) {
+        if (err && err.name === "SessionExpired") return stop(run, now, "session_expired", classId);
+        complete = false; // a page that does not load: this capture is incomplete and withdraws nothing
+        continue;
+      }
       reason = detectStop(page.doc, row.type);
       if (reason) return stop(run, now, reason, classId);
       const id = page.path.split("/")[6]; // /u/<n>/c/<class>/<a|m|mc>/<item>/details
       if (!id) { complete = false; continue; }
       items.push({ id, topic: row.topic, type: row.type, title: row.title, listing_date_text: row.listing_date_text, detail: readDetail(page.doc) });
     }
-    const streamPage = await visit(`/u/${account}/c/${classId}`);
-    reason = detectStop(streamPage.doc, "stream");
-    if (reason) return stop(run, now, reason, classId);
+    let streamPage = null;
+    try {
+      streamPage = await visit(`/u/${account}/c/${classId}`);
+    } catch (err) {
+      if (err && err.name === "SessionExpired") return stop(run, now, "session_expired", classId);
+      complete = false;
+    }
+    if (streamPage) {
+      reason = detectStop(streamPage.doc, "stream");
+      if (reason) return stop(run, now, reason, classId);
+    }
     return {
       version: VERSION, type: "class", run, captured_at: now().toISOString(), complete,
-      class: { id: classId, title: title || "" }, topics: listing.topics, items, stream: readStream(streamPage.doc),
+      class: { id: classId, title: title || "" }, topics: listing.topics, items, stream: streamPage ? readStream(streamPage.doc) : [],
     };
   }
 
-  // The default loader: a hidden same-origin iframe, so the injected script is never lost.
-  function iframeLoader(win, { timeoutMs = 30000 } = {}) {
-    return (path) => new Promise((resolve, reject) => {
-      const attempt = (left) => {
-        const frame = win.document.createElement("iframe");
-        frame.style.cssText = "position:absolute;left:-10000px;width:1200px;height:800px;visibility:hidden";
-        const timer = win.setTimeout(() => { frame.remove(); left > 0 ? attempt(left - 1) : reject(new Error("timeout")); }, timeoutMs);
-        frame.addEventListener("load", () => {
-          const poll = win.setInterval(() => {
-            const doc = frame.contentDocument;
-            if (doc && doc.body && doc.querySelector("[role=main], li h2, li h3")) {
-              win.clearInterval(poll); win.clearTimeout(timer);
-              resolve({ doc, path: frame.contentWindow.location.pathname });
-              win.setTimeout(() => frame.remove(), 0);
-            }
-          }, 250);
-        });
-        frame.src = path;
-        win.document.body.appendChild(frame);
-      };
-      attempt(1);
+  // When a page is ready to read: its rows, its title and date, or its posts. The iframe's own `load`
+  // event is not waited for: on Classroom it came more than 30 s after the content (2026-10-27).
+  function pageReady(path, doc) {
+    if (/\/w\/[^/]+\/t\/all$/.test(path)) return !!doc.querySelector("li[data-stream-item-type]");
+    if (/\/details$/.test(path)) {
+      return doc.querySelectorAll("h1").length >= 2 && texts(doc.body).some((t) => new RegExp(`^${DATE}`).test(t.text));
+    }
+    return !!doc.querySelector("[data-stream-item-id]");
+  }
+
+  // The default loader: a hidden same-origin iframe, so the injected script is never lost. It polls
+  // from the start; a frame that leaves Classroom (Google's sign-in) is an expired session.
+  function iframeLoader(win, { timeoutMs = 40000, attempts = 2 } = {}) {
+    const once = (path) => new Promise((resolve, reject) => {
+      const frame = win.document.createElement("iframe");
+      frame.style.cssText = "position:absolute;left:-10000px;width:1200px;height:800px;visibility:hidden";
+      frame.src = path;
+      win.document.body.appendChild(frame);
+      const started = Date.now();
+      const poll = win.setInterval(() => {
+        let doc = null;
+        try { doc = frame.contentDocument; } catch (_) { doc = null; }
+        if (doc === null || (doc.location && /accounts\.google\.com/.test(doc.location.host))) {
+          win.clearInterval(poll); frame.remove(); reject(new SessionExpired()); return;
+        }
+        if (doc.body && doc.location.href !== "about:blank" && pageReady(path, doc)) {
+          win.clearInterval(poll);
+          win.setTimeout(() => { resolve({ doc, path: frame.contentWindow.location.pathname }); win.setTimeout(() => frame.remove(), 0); }, 1500);
+        } else if (Date.now() - started > timeoutMs) {
+          win.clearInterval(poll); frame.remove(); reject(new Error("timeout"));
+        }
+      }, 300);
     });
+    return async (path) => {
+      let last;
+      for (let i = 0; i < attempts; i++) {
+        try { return await once(path); } catch (err) { if (err && err.name === "SessionExpired") throw err; last = err; }
+      }
+      throw last;
+    };
   }
 
   function fileName(capture) {
@@ -351,6 +396,6 @@
 
   root.alfabetaExtract = {
     VERSION, MIN_WAIT_MS, detectStop, readClasses, readClasswork, readDetail, readStream, attachmentOf,
-    captureClasses, captureClass, iframeLoader, fileName, save, base64,
+    captureClasses, captureClass, iframeLoader, pageReady, SessionExpired, fileName, save, base64,
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);

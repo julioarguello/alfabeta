@@ -169,6 +169,22 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   and ignores Chrome's half-downloaded `.crdownload` files, checks that it is complete and leaves it
   ready to place (FR-018). It collects only what it requested.
 
+- **First real run, measured 2026-10-27** (operator's Chrome, extension profile, school account,
+  one class with 13 items, read only; no title, name or id printed):
+  - The class list was captured and downloaded as a file with no dialog, and `downloads collect`
+    took it.
+  - In the hidden iframe, a page's content was readable 4–13 s after loading started, but the
+    iframe's `load` event sometimes came after more than 30 s. The loader now polls from the start
+    and waits for what each page kind must show (its rows; its title and date; its posts).
+  - The school account's session expired twice the same afternoon, the second time less than
+    30 minutes after the operator signed in. Once expired, every iframe lands on Google's sign-in
+    page, which, being another origin, reads as an empty frame: the loader now stops the class with
+    `session_expired` instead of waiting out its timeout. How long the session lasts was not
+    measured, and it decides whether an unattended run (#13) can work.
+  - The lock was released as `idle` after 30 minutes without a renewal during the browser part. The
+    watcher worked as designed; the skill must call `lock renew` between browser steps.
+  - An item posted the day before shows «Ayer» as its date; the extractor accepts «Hoy» and «Ayer».
+
 ### R5. Dates without a year, and relative dates
 
 - **Decision**: a single date resolver: the year inferred from the school year (September to
