@@ -1,0 +1,93 @@
+{
+ "changes": [
+  {
+   "fileId": "st",
+   "removed": false,
+   "file": {
+    "name": "state.json",
+    "mimeType": "application/json",
+    "parents": [
+     "alf"
+    ],
+    "modifiedTime": "2026-10-20T10:00:00.000Z",
+    "trashed": false,
+    "md5Checksum": "5556"
+   }
+  },
+  {
+   "fileId": "lr",
+   "removed": false,
+   "file": {
+    "name": "last-run.json",
+    "mimeType": "application/json",
+    "parents": [
+     "alf"
+    ],
+    "modifiedTime": "2026-10-20T10:00:00.000Z",
+    "trashed": false,
+    "md5Checksum": "6667"
+   }
+  },
+  {
+   "fileId": "tp1",
+   "removed": false,
+   "file": {
+    "name": "IMG_0001.jpg · transcripción (revisada).pdf",
+    "mimeType": "application/pdf",
+    "parents": [
+     "ap"
+    ],
+    "modifiedTime": "2026-10-20T10:00:00.000Z",
+    "trashed": false,
+    "md5Checksum": "a002"
+   }
+  },
+  {
+   "fileId": "tm1",
+   "removed": false,
+   "file": {
+    "name": "IMG_0001.jpg · transcripción.md",
+    "mimeType": "text/markdown",
+    "parents": [
+     "ap"
+    ],
+    "modifiedTime": "2026-10-20T10:00:00.000Z",
+    "trashed": false,
+    "md5Checksum": "a0b3"
+   }
+  },
+  {
+   "fileId": "lf1",
+   "removed": false,
+   "file": {
+    "name": "Apuntes · Materia inventada.pdf",
+    "mimeType": "application/pdf",
+    "parents": [
+     "t1"
+    ],
+    "modifiedTime": "2026-10-20T10:00:00.000Z",
+    "trashed": false,
+    "md5Checksum": "a0c7"
+   }
+  },
+  {
+   "fileId": "p1",
+   "removed": false,
+   "file": {
+    "name": "enunciado - Ficha.pdf",
+    "mimeType": "application/pdf",
+    "parents": [
+     "it1"
+    ],
+    "modifiedTime": "2026-10-20T10:00:00.000Z",
+    "trashed": false,
+    "md5Checksum": "a0d5"
+   }
+  },
+  {
+   "fileId": "f1",
+   "removed": true
+  }
+ ],
+ "newStartPageToken": "302"
+}

@@ -23,11 +23,14 @@ if TYPE_CHECKING:
     from alfabeta.google.transport import HttpTransport
 
 API = "https://www.googleapis.com/drive/v3/files"
+CHANGES = "https://www.googleapis.com/drive/v3/changes"
 UPLOAD = "https://www.googleapis.com/upload/drive/v3/files"
 FOLDER = "application/vnd.google-apps.folder"
 # Up to this size an upload is one multipart request; above it, a resumable session (research R6).
 MULTIPART_LIMIT = 5 * 1024 * 1024
-FIELDS = "id,name,mimeType,parents,size,md5Checksum,trashed"
+FIELDS = "id,name,mimeType,parents,size,md5Checksum,modifiedTime,trashed"
+# Spec 005 research R2: only what the feed needs; a name is read only for a change the adapter keeps.
+CHANGE_FIELDS = "nextPageToken,newStartPageToken,changes(fileId,removed,file(name,mimeType,parents,md5Checksum,modifiedTime,trashed))"
 _BOUNDARY = "alfabeta-part"
 
 
@@ -57,6 +60,13 @@ class DriveFile:
     parents: tuple[str, ...] = ()
     size: int | None = None
     md5: str | None = None
+    modified: str | None = None
+    trashed: bool = False
+
+    @property
+    def version(self) -> str:
+        """Drive's checksum, or the modification time of a Google-native file (spec 005 data model)."""
+        return self.md5 or self.modified or ""
 
     @property
     def is_folder(self) -> bool:
@@ -76,7 +86,18 @@ class DriveFile:
             parents=tuple(cast("list[str]", data.get("parents", []))),
             size=int(size) if size is not None else None,
             md5=cast("str | None", data.get("md5Checksum")),
+            modified=cast("str | None", data.get("modifiedTime")),
+            trashed=bool(data.get("trashed", False)),
         )
+
+
+@dataclass(frozen=True)
+class Change:
+    """One kept change of the feed: a file inside the folder, or a recorded one that left it."""
+
+    file_id: str
+    left: bool  # removed, trashed or moved out of the alfabeta folder
+    file: DriveFile | None = None
 
 
 def cache_path(config: StudentConfig) -> Path:
@@ -106,15 +127,27 @@ class ScopedDrive:
         probe = cls(transport, token, DriveFile("", "", FOLDER), {})
         root = probe._cached_root(cache, root_path) or probe._resolve(root_path)
         write_atomic(cache, json.dumps({"root_id": root.id, "root_path": root_path}, indent=1) + "\n")
-        tree = {root.id: root}
-        pending = [root.id]
+        drive = cls(transport, token, root, {root.id: root})
+        drive.relist()
+        return drive
+
+    def relist(self) -> None:
+        """List the tree under the root again; spec 005's first run does, after taking its cursor."""
+        self._tree = {self.root.id: self.root}
+        for item in self._walk(self.root.id):
+            self._tree[item.id] = item
+
+    def _walk(self, folder_id: str) -> list[DriveFile]:
+        """Everything under a folder, listed from Drive."""
+        found: list[DriveFile] = []
+        pending = [folder_id]
         while pending:
             folder = pending.pop()
-            for child in probe._query(f"{_quote(folder)} in parents and trashed = false"):
-                tree[child.id] = child
+            for child in self._query(f"{_quote(folder)} in parents and trashed = false"):
+                found.append(child)
                 if child.is_folder:
                     pending.append(child.id)
-        return cls(transport, token, root, tree)
+        return found
 
     def _cached_root(self, cache: Path, root_path: str) -> DriveFile | None:
         if not cache.is_file():
@@ -157,6 +190,118 @@ class ScopedDrive:
         """What this run's listing found directly inside the folder, sorted by name."""
         self._folder(folder_id)
         return sorted((f for f in self._tree.values() if folder_id in f.parents), key=lambda f: (f.name, f.id))
+
+    def items(self) -> list[DriveFile]:
+        """Everything this run's listing holds under the root, the root excluded."""
+        return [f for f in self._tree.values() if f.id != self.root.id]
+
+    def ancestors(self, item_id: str) -> list[DriveFile]:
+        """The folders from just below the root down to the item's parent; empty for the root's children."""
+        self._inside(item_id)
+        chain: list[DriveFile] = []
+        parent = next((p for p in self._tree[item_id].parents if p in self._tree), None)
+        while parent is not None and parent != self.root.id:
+            chain.append(self._tree[parent])
+            parent = next((p for p in self._tree[parent].parents if p in self._tree), None)
+        return chain[::-1]
+
+    def lookup(self, folder_id: str, name: str) -> DriveFile | None:
+        """The item with that name in the folder, asked of Drive now, not of this run's listing.
+
+        Another writer may have created it since the run started (spec 005 research R4).
+        """
+        self._folder(folder_id)
+        q = f"{_quote(folder_id)} in parents and name = {_quote(name)} and trashed = false"
+        found = sorted(self._query(q), key=lambda f: f.id)
+        if len(found) > 1:
+            raise DriveError("more than one item with that name in the folder")
+        for item in found:
+            self._tree[item.id] = item
+        return found[0] if found else None
+
+    def content(self, file_id: str) -> bytes:
+        """The file's bytes."""
+        self._inside(file_id)
+        resp = self._transport.request("GET", f"{API}/{file_id}?alt=media", headers=self._headers())
+        if resp.status >= 400:
+            raise DriveError(f"Drive API returned {resp.status}", resp.status)
+        return resp.body
+
+    def head_revision(self, file_id: str) -> str | None:
+        """The file's `headRevisionId`, read now (spec 005 research R4)."""
+        self._inside(file_id)
+        data = self._call("GET", f"{API}/{file_id}?fields=headRevisionId")
+        return cast("str | None", data.get("headRevisionId"))
+
+    # --- the change feed (spec 005 research R2; spec 004 FR-009a as amended) ----------------------
+
+    def start_page_token(self) -> str:
+        """The cursor of now: changes after it are the next run's."""
+        data = self._call("GET", f"{CHANGES}/startPageToken")
+        return str(data["startPageToken"])
+
+    def changes(self, page_token: str, known_ids: frozenset[str]) -> tuple[list[Change], str]:
+        """The kept changes since the cursor, and the next cursor.
+
+        The feed has no folder filter, so it is the one read of the whole Drive. A change is kept when
+        its parents are in the allowlist, or when its file id is recorded (a recorded file that left
+        arrives, so it can be marked gone). Everything else is dropped here, unread beyond its parents,
+        and nothing about it is kept or logged. A folder that joins the allowlist is listed whole once.
+        """
+        kept: list[Change] = []
+        token: str | None = page_token
+        new_start = page_token
+        while token:
+            params = {
+                "pageToken": token,
+                "fields": CHANGE_FIELDS,
+                "pageSize": "1000",
+                "spaces": "drive",
+                "includeRemoved": "true",
+                "restrictToMyDrive": "true",
+            }
+            page = self._call("GET", f"{CHANGES}?{urllib.parse.urlencode(params)}")
+            for raw in cast("list[dict[str, Any]]", page.get("changes", [])):
+                if raw.get("fileId"):  # a change of a shared drive has none
+                    kept += self._keep(raw, known_ids)
+            token = cast("str | None", page.get("nextPageToken"))
+            new_start = cast("str", page.get("newStartPageToken", new_start))
+        return kept, new_start
+
+    def _keep(self, raw: dict[str, Any], known_ids: frozenset[str]) -> list[Change]:
+        file_id = str(raw["fileId"])
+        data = cast("dict[str, Any] | None", raw.get("file"))
+        if file_id == self.root.id:
+            # Its parent is outside by definition: a rename, a star or a share of the folder changes
+            # nothing here, and losing it fails the run (spec 004 T023).
+            if raw.get("removed") or data is None or data.get("trashed"):
+                raise DriveError("the alfabeta folder is in the trash")
+            return []
+        parents = cast("list[str]", (data or {}).get("parents", []))
+        inside = data is not None and any(p in self._tree for p in parents)
+        if raw.get("removed") or data is None or data.get("trashed") or not inside:
+            return self._leave(file_id, known_ids)
+        item = DriveFile.of({**data, "id": file_id})
+        joined = item.is_folder and file_id not in self._tree
+        self._tree[file_id] = item
+        kept = [Change(file_id, left=False, file=item)]
+        if joined:
+            for below in self._walk(file_id):
+                self._tree[below.id] = below
+                kept.append(Change(below.id, left=False, file=below))
+        return kept
+
+    def _leave(self, file_id: str, known_ids: frozenset[str]) -> list[Change]:
+        """Drop an item and what is under it from the allowlist; the recorded ones arrive as gone."""
+        gone: list[Change] = []
+        pending = [file_id]
+        while pending:
+            item = pending.pop()
+            if item in known_ids:
+                gone.append(Change(item, left=True))
+            pending += [f.id for f in self._tree.values() if item in f.parents]
+            self._tree.pop(item, None)
+        return gone
 
     def get(self, file_id: str) -> DriveFile:
         """The file as Drive holds it now."""
