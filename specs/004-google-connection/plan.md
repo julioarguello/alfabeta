@@ -62,7 +62,7 @@ constitution 1.3.0, amended in this pull request.
 |---|---|---|
 | I. The student is configuration | Accounts, addresses, the Drive root and the project label are config keys under `--student <id>`; the code knows none of them | Pass |
 | II. Three layers | Template keys in the repo ([contracts/config-template.toml](contracts/config-template.toml)); values in the private config; tokens and client secret in the keychain; records in `data/` | Pass |
-| III. Minors' data | No `login_hint`, so no address in a URL. Accounts are named by alias in output. The address is compared locally and never printed. Test responses have invented values. Data goes only to the family's own Google account | Pass |
+| III. Minors' data | No `login_hint`, so no address in a URL. Accounts are named by alias in output. The address is compared locally and never printed. Test responses have invented values. Data goes only to the family's own Google account. The project in the work organisation holds only the app's registration: tokens and data travel between the Mac and the student's own Google account, never through the organisation | Pass |
 | IV. Read-only on school platforms | The school account is refused at linking; nothing here touches Classroom | Pass |
 | V. Idempotent, incremental | Deterministic event ids; patch only on difference; uploads keyed by path with size and md5; migration adopts before uploading and deletes nothing | Pass |
 | VI. One isolated, tested provider | Google sits behind one transport port and three adapters (OAuth, Calendar, Drive), tested against recorded shapes | Pass |

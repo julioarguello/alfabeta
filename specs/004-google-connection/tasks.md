@@ -10,7 +10,7 @@
 Google. The live proof is the quickstart's.
 
 **Depends on spec 001**: the package and gates (spec 001 T001–T009), the guardrail (T013–T015),
-the configuration loader and template (T017–T020), and the state store, log and lock (T024–T025).
+the configuration loader and template (T017–T020), and the state store, log and lock (T025–T026).
 Phase 6's agenda line needs spec 001's agenda module. Without it, that one task is deferred and the
 other two channels of research R9 still ship.
 
@@ -23,7 +23,7 @@ other two channels of research R9 still ship.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add the keys of `specs/004-google-connection/contracts/config-template.toml` to `config/template.toml`. Change the comment of `[drive] root` to "the alfabeta folder's path inside the student's My Drive", and add `[storage] base` and `[google]`. Run spec 001's `tests/test_template_covers_reads.py`.
+- [ ] T001 Add the keys of `specs/004-google-connection/contracts/config-template.toml` to `config/template.toml`. Change the comment of `[drive] root` to "the alfabeta folder's path inside the student's My Drive", and add `[storage] base`, `[calendar] id` and `[google]`. Run spec 001's `tests/test_template_covers_reads.py`.
 - [ ] T002 [P] Create `src/alfabeta/google/__init__.py` and the empty `tests/fixtures/google/README.md`. The README says every file there is a recorded response with invented values, named `<call>-<YYYY-MM-DD>.json`.
 
 ---
@@ -73,7 +73,7 @@ accounts.
   - re-link replaces the keychain entry;
   - `check` returns one status per alias;
   - output never contains the address. Assert with the configured address of an invented fixture.
-- [ ] T011 [US1] Implement `src/alfabeta/google/accounts.py`: `link_account`, `check_accounts`, `unlink_account`, `set_client` (reads the downloaded client JSON), and `data/google/accounts.json` (`linked_on`).
+- [ ] T011 [US1] Implement `src/alfabeta/google/accounts.py`: `link_account`, `check_accounts`, `unlink_account`, `set_client` (reads the downloaded client JSON), and `data/google/accounts.json` (`linked_on`). `check_accounts` also warns when a token fails with `invalid_grant` less than 8 days after `linked_on`, the symptom of an app left in Testing (data model, GoogleApp).
 - [ ] T012 [US1] Wire `google client set|link|check|unlink` into `src/alfabeta/__main__.py` per `contracts/cli.md`: JSON on stdout, exit 0 / 1 / 2, and the reasons `bad_client_file`, `wrong_account`, `school_account`, `missing_scope`, `denied`, `no_client`.
 - [ ] T013 [US1] Run quickstart steps 1–4 on the real accounts. Save the token, refresh and revoke responses, with invented values, to `tests/fixtures/google/`. Record the dates in `specs/004-google-connection/research.md` under Observed facts.
 
@@ -116,6 +116,7 @@ channel that does not need that link.
   - the id-reuse result.
 
   Save the event responses to `tests/fixtures/google/`. If id reuse behaves differently from the design, update `research.md` R5 and T018 before continuing.
+- [ ] T022 [US2] Once T021 is recorded, the operator removes the chat connector's account (the work account) from the family calendar's sharing, so that alfabeta's `CalendarClient` is its only writer (FR-008b). Record the date in `research.md` under Observed facts.
 
 ---
 
@@ -126,21 +127,21 @@ each file.
 
 **Independent test**: quickstart step 7.
 
-- [ ] T022 [P] [US3] Write `tests/test_google_drive_scope.py` (FR-009a). Two checks:
+- [ ] T023 [P] [US3] Write `tests/test_google_drive_scope.py` (FR-009a). Two checks:
   - every public method of `ScopedDrive`, called with a file or parent id outside the folder allowlist, raises before any request reaches `FakeTransport`;
   - the allowlist is rebuilt from `files.list` per run, and a trashed root fails the run.
-- [ ] T023 [P] [US3] Write `tests/test_google_drive.py`:
+- [ ] T024 [P] [US3] Write `tests/test_google_drive.py`:
   - multipart upload up to 5 MB, resumable above;
   - an upload counts as done only when the response's `size` and `md5Checksum` equal the local file's (FR-012);
   - a changed local file becomes `files.update` with media on the same Drive id, never a second file.
-- [ ] T024 [US3] Implement `src/alfabeta/google/drive.py`, the `ScopedDrive` of research R6. It resolves the root from `[drive] root`, caches `root_id` in `data/google/drive.json`, and lists, uploads and updates, always inside the allowlist.
-- [ ] T025 [P] [US3] Write `tests/test_google_migrate.py`. Match by relative path; same size and md5 → `adopted`; missing → `to_upload`; different → `differs`; no checksum → `native`; Drive-only → `only_in_drive`. `--apply` refuses while `differs` is non-empty, and nothing is ever deleted.
-- [ ] T026 [US3] Implement `src/alfabeta/google/migrate.py` and `drive migrate [--apply]`. Write `data/google/migration-<run>.json` with names, and print counts only.
-- [ ] T027 [US3] Implement `drive push` and the mount check of FR-011:
+- [ ] T025 [US3] Implement `src/alfabeta/google/drive.py`, the `ScopedDrive` of research R6. It resolves the root from `[drive] root`, caches `root_id` in `data/google/drive.json`, and lists, uploads and updates, always inside the allowlist.
+- [ ] T026 [P] [US3] Write `tests/test_google_migrate.py`. Match by relative path; same size and md5 → `adopted`; missing → `to_upload`; different → `differs`; no checksum → `native`; Drive-only → `only_in_drive`. `--apply` refuses while `differs` is non-empty, and nothing is ever deleted.
+- [ ] T027 [US3] Implement `src/alfabeta/google/migrate.py` and `drive migrate [--apply]`. Write `data/google/migration-<run>.json` with names, and print counts only.
+- [ ] T028 [US3] Implement `drive push` and the mount check of FR-011:
   - refuse a `[storage] base` under `~/Library/CloudStorage/GoogleDrive-*`;
   - append to `data/google/uploads.jsonl`;
   - exit 3 on a partial failure, after finishing the other files.
-- [ ] T028 [US3] Run quickstart step 7 on the real Drive:
+- [ ] T029 [US3] Run quickstart step 7 on the real Drive:
   1. dry run;
   2. review `differs`;
   3. apply;
@@ -153,20 +154,20 @@ each file.
 
 ## Phase 7: Polish and cross-cutting
 
-- [ ] T029 [P] Extend spec 001's guardrail patterns so that a refresh token (`1//…`), a client secret (`GOCSPX-…`) and the configured addresses are caught by `guardrail --all --history` (SC-006). Add the cases to `tests/test_guardrail.py`, built at run time.
-- [ ] T030 Add the agenda's failure line, research R9 channel 3, when spec 001's agenda module exists. Otherwise leave a `TODO(tech-debt)` in `src/alfabeta/google/notify.py` naming that blocker and this branch's issue (`origin: #30`).
-- [ ] T031 [P] Update spec 001's `specs/001-classroom-sync/contracts/config-template.toml` comment on `[drive] root`, and the `study-pack` skill's path instructions, to the meanings this spec gives them.
-- [ ] T032 Run quickstart step 9 from the scheduled run of julioarguello/alfabeta#13: 8 days after linking, `ok` with no sign-in and 0 keychain prompts. Then count 30 consecutive scheduled runs for SC-001.
+- [ ] T030 [P] Extend spec 001's guardrail patterns so that a refresh token (`1//…`), a client secret (`GOCSPX-…`) and the configured addresses are caught by `guardrail --all --history` (SC-006). Add the cases to `tests/test_guardrail.py`, built at run time. Add a test that scans the log lines and the reports under an invented `data/` written by a full test run, and finds no address, token or secret.
+- [ ] T031 Add the agenda's failure line, research R9 channel 3, when spec 001's agenda module exists. Otherwise leave a `TODO(tech-debt)` in `src/alfabeta/google/notify.py` naming that blocker and this branch's issue (`origin: #30`).
+- [ ] T032 [P] Update spec 001's `specs/001-classroom-sync/contracts/config-template.toml` comment on `[drive] root`, and the `study-pack` skill's path instructions, to the meanings this spec gives them.
+- [ ] T033 Run quickstart step 9 from the scheduled run of julioarguello/alfabeta#13: 8 days after linking, `ok` with no sign-in and 0 keychain prompts. Then count 30 consecutive scheduled runs for SC-001.
 
 ---
 
 ## Dependencies and order
 
 ```text
-spec 001 T001–T025 ─▶ Phase 1 ─▶ Phase 2 ─▶ US1 (Phase 3) ─┬─▶ US4 (Phase 4)
+spec 001 T001–T026 ─▶ Phase 1 ─▶ Phase 2 ─▶ US1 (Phase 3) ─┬─▶ US4 (Phase 4)
                                                           ├─▶ US2 (Phase 5) ─▶ spec 003 plan
                                                           └─▶ US3 (Phase 6)
-Phases 4–6 ─▶ Phase 7 (T032 also needs #13's schedule)
+Phases 4–6 ─▶ Phase 7 (T033 also needs #13's schedule)
 ```
 
 - US1 blocks everything else: no story works without a link.
@@ -176,11 +177,11 @@ Phases 4–6 ─▶ Phase 7 (T032 also needs #13's schedule)
 ## Parallel examples
 
 - Phase 2: T003, T005 and T007 together, then T004 and T006.
-- After US1: one person on US2 (T018–T021), another on US3 (T022–T028). They touch different files.
+- After US1: one person on US2 (T018–T021), another on US3 (T023–T029). They touch different files.
 
 ## Implementation strategy
 
-1. **MVP = US1 + US2** (T001–T013, T018–T021). It answers the question that has blocked spec 003
+1. **MVP = US1 + US2** (T001–T013, T018–T022). It answers the question that has blocked spec 003
    since the start: does a reminder alfabeta sets ring on the student's phone?
 2. **Then US4.** Nothing goes unattended while a lost link could fail silently.
 3. **Then US3.** It replaces Drive for desktop; until then spec 001 keeps writing to the mount.

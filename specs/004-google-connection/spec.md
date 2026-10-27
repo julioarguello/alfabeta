@@ -181,8 +181,8 @@ run.
   and role. The first is the student's personal Gmail, role `student`. The operator's accounts are
   not linked unless a later spec needs them.
 - **FR-005**: Each linked account MUST be asked only for the scopes alfabeta uses: Calendar events,
-  to create, update and delete events and their reminders as that account; and Drive, as FR-009
-  decides. A scope is added only by a spec that needs it, and adding one means linking again.
+  to create, update and delete events and their reminders as that account; Drive, as FR-009
+  decides; and `openid` and `email`, which only identify the account that was linked (FR-006). A scope is added only by a spec that needs it, and adding one means linking again.
 - **FR-006**: The school account MUST be refused at linking.
 
 **Where the authorisation lives**
@@ -228,7 +228,8 @@ run.
 - **FR-013**: A run MUST check every linked account before writing anything. A failed one stops
   the outputs that need it, lets the others complete (constitution VII), and exits with failure.
 - **FR-014**: When the student's link fails, the family MUST learn it on a channel that does not
-  depend on that link. The run's own report is one; which second channel is decided in the plan.
+  depend on that link: the run's own report and exit code, a notification on the family's Mac, and
+  a line in the agenda (research R9).
 - **FR-015**: Every run MUST use each refresh token at least once, so none reaches six months
   unused.
 

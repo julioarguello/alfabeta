@@ -9,6 +9,10 @@ base = "~/alfabeta/changeme"
 # Changed meaning: the alfabeta folder's path INSIDE the student's My Drive, not a local mount path.
 root = "alfabeta"
 
+[calendar]
+# The family calendar alfabeta writes to, as the student's Gmail. Never printed.
+id = "changeme@group.calendar.google.com"
+
 [google]
 # A label for the operator, never an id or a secret.
 project_label = "changeme"
