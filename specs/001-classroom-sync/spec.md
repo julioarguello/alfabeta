@@ -156,6 +156,14 @@ replaces the local MCP design of julioarguello/alfabeta#2.
   them was read, not the start of the capture: a read can cross midnight, and the manual capture
   of 2026-10-26 placed a bare «8:00» (which means today at 8:00) on the wrong day. Each detail page
   carries its own read instant (FR-021).
+- Q: Does the family accept the risks this amendment asks them to carry — custody of the vault
+  secret by the cloud project's administrators (II), the terms-of-service risk of automated access
+  to a minor's account (R15), and that the token-route secret is account-wide and bypasses the
+  second factor, so a vault read exposes the whole account (FR-032a)? → A: Yes. The operator
+  accepted all three on 2026-10-27, knowing the stored token is at least as sensitive as the
+  password, and asked for the amendment to be merged. This is the explicit, eyes-open request the
+  constitution's Development workflow requires to merge a change that weakens NON-NEGOTIABLE
+  principles III and IV; it is quoted with its date in the pull request.
 
 ## User Scenarios & Testing *(mandatory)*
 
