@@ -26,8 +26,9 @@ devil's advocate on 2026-10-27; their disagreements are kept in the clarificatio
 settled here.
 
 What this spec takes from spec 001's reminders epic: the warnings, the timetable, and which account
-reads them, and a daily list of pending work that stands in for its "today / this week" views.
-What it leaves: one colour per category (FR-020a of spec 001).
+reads them. It also changes where in the day every event alfabeta writes is placed: no event is
+all-day (FR-023). What it leaves: one colour per category (FR-020a of spec 001); the student's
+checklist is Classroom's own page, not something alfabeta builds (FR-024).
 
 Out of this spec: writing anything to Classroom; study blocks in the calendar; Google Tasks;
 changing how Classroom is captured (a due date shown only as a time, "Fecha de entrega: 8:00", is
@@ -39,7 +40,7 @@ objective facts and no reminders: FR-025 of spec 002 (julioarguello/alfabeta#22)
 Calendar section, the calendar policy line of the student's private configuration, and the
 operator's standing instruction recorded outside the repository. The operator chose warnings that
 restate facts (Clarifications, 2026-10-27), so the edit is narrow: "objective facts only" stays, and
-each place gains "plus warnings and a daily list that restate those facts". FR-025's ban on study
+each place gains "plus warnings that restate those facts". FR-025's ban on study
 blocks stays whole.
 
 ## Clarifications
@@ -67,6 +68,14 @@ blocks stays whole.
     not yet tried, and Classroom would still read «Sin entregar».
   - A read-only list: nothing would ever clear it.
   Accepted cost: the teacher sees each mark, and a mark after the due date is recorded as late.
+- Q: Where in the day does each event sit? → A (operator, 2026-10-27): no all-day events, because
+  they go unnoticed. Postings and due dates sit in their subject's session that day; when the subject
+  has no session that day, weekends and holidays included, at break time (10:00–10:25). The student
+  has no phone in class, so a notification during class is seen later, and that is acceptable for
+  these events. The warning that matters is the one ahead of the work: at 16:00 on the days the
+  lead-time rule gives, with no event on a day with nothing to warn about and no fixed daily event.
+  Recorded interpretation: break time replaces "the previous day's session", which the operator
+  first proposed for postings, and it applies to every event alfabeta writes.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -92,7 +101,8 @@ posted, and read the warnings produced for the short-gap items.
 3. **Given** an assignment posted and due on the same day (2 measured), **When** no home slot exists
    between the sync and the due instant, **Then** no warning is written.
 4. **Given** a due date without a time (6 measured), **When** warnings are computed, **Then** the
-   last warning sits at the home slot of the day before, and no due hour appears anywhere.
+   last warning sits at the home slot of the day before, and its due-date event says «Classroom no
+   indica hora».
 
 ---
 
@@ -157,8 +167,8 @@ against the timetable.
 
 1. **Given** an exam on a day when its subject has exactly one session, **When** it is written,
    **Then** it sits in that session, labelled as a time taken from the timetable.
-2. **Given** an exam on a day when its subject has no session or more than one, **When** it is
-   written, **Then** it is all-day.
+2. **Given** an exam on a day when its subject has no session, **When** it is written, **Then** it
+   sits at break time, labelled as an hour not known.
 3. **Given** a known exam, **When** warnings are computed, **Then** there is one a week before and
    one the evening before.
 
@@ -182,8 +192,8 @@ names the class day it was posted.
    from which words.
 2. **Given** a title that names the day it was posted, **When** due dates are inferred, **Then**
    nothing is inferred.
-3. **Given** an assignment with no due date and nothing inferable, **When** the week's summary is
-   written, **Then** it is listed there, and it gets no warning.
+3. **Given** an assignment with no due date and nothing inferable, **When** warnings are computed,
+   **Then** it gets none, and it stays in Classroom's «Tareas pendientes» and as its posting event.
 
 ---
 
@@ -197,8 +207,8 @@ the student's accounts notifies him of this calendar has not been measured.
 **Why this priority**: if nothing reaches him, every other story is decoration and the family stops
 checking because "the calendar warns him".
 
-**Independent Test**: a test warning and an all-day test event on the calendar, watched on each
-reader's phone by the family.
+**Independent Test**: a timed test event in each calendar alfabeta writes, watched on each reader's
+phone by the family.
 
 **Acceptance Scenarios**:
 
@@ -217,28 +227,25 @@ of it. Warnings reach him only on days something is close, and the 31 pending as
 due date never get one.
 
 The list the student sits down with is Classroom's own «Tareas pendientes», in his school account
-(Clarifications). He ticks with «Marcar como completada». alfabeta builds no list for him. It
-restates the same list in the daily 16:00 event, because the operator cannot open the student's
-Classroom, and it adds what that page lacks: exams and inferred due dates.
+(Clarifications). He ticks with «Marcar como completada». alfabeta builds no list. The operator, who
+cannot open the student's Classroom, sees what is pending in the calendar: every due-date event
+says whether Classroom reads the work as handed in.
 
 **Why this priority**: the only place undated work shows up after its posting day, and the only
 tick the teacher also sees.
 
-**Independent Test**: build the daily event's list from a capture and compare it, group by group,
-with what «Tareas pendientes» shows the student the same day.
+**Independent Test**: compare the due-date events of a capture, prefix by prefix, with what
+«Tareas pendientes» shows the student the same day.
 
 **Acceptance Scenarios**:
 
-1. **Given** a capture, **When** the daily event is written, **Then** its list holds every
-   assignment not handed in, in Classroom's groups: due ahead, nearest first; «Sin entregar»; no
-   due date, newest first. Each line gives subject, title as Classroom writes it, due date and hour
-   when Classroom gives them, and Classroom's status.
+1. **Given** a dated assignment not handed in, **When** its due-date event is written, **Then** its
+   title starts «Entrega ·»; **When** Classroom later reads it «Entregado», «Calificado» or
+   «Entregado con retraso», **Then** the next sync retitles it «Entregado · …» and keeps it.
 2. **Given** an item the student marked done, **When** the next sync runs, **Then** Classroom reads
-   it «Entregado», it leaves the list and its warnings are removed (FR-010).
-3. **Given** the list, **When** it is read, **Then** it holds only facts: no advice, no priority
-   alfabeta made up, no estimated effort.
-4. **Given** an exam or an inferred due date, **When** the daily event is written, **Then** it is
-   listed apart, marked as not coming from «Tareas pendientes».
+   it «Entregado» and its warnings are removed (FR-010).
+3. **Given** any event alfabeta writes, **When** it is read, **Then** it holds only facts: no advice,
+   no priority alfabeta made up, no estimated effort.
 
 ### Edge Cases
 
@@ -251,8 +258,10 @@ with what «Tareas pendientes» shows the student the same day.
 - Two steps of one item on the same day (a window of 2 days puts the half-window warning on the
   evening before): one warning.
 - A class with dated work that is not in the timetable mapping: its warnings are still written
-  (they need only the home slot); its exams are all-day and nothing is inferred for it; the run says
-  which class.
+  (they need only the home slot); its events sit at break time and nothing is inferred for it; the
+  run says which class.
+- A due time near midnight (23:59): the due-date event ends at the due instant and never runs into
+  the next day.
 - A school holiday on an inferred weekday: the timetable has no holiday calendar, so the inferred
   date is labelled as deduced and the family can correct it.
 - Daylight-saving changes (the next one in March 2027).
@@ -265,23 +274,30 @@ with what «Tareas pendientes» shows the student the same day.
 
 **Where warnings go**
 
-- **FR-001**: Warnings MUST be timed events in the student's calendar, in Spanish. Not Google Tasks:
-  a task written through the API keeps only its date, so it cannot carry a 16:00 warning (Google
-  Tasks API reference, read 2026-10-27).
-- **FR-002**: Warnings and the daily list (FR-023) MUST reach two readers, each through their own
-  account: the student and the operator. Delivery is checked per reader (FR-019).
+- **FR-001**: Warnings MUST be timed events at the home slot, in Spanish, in [NEEDS CLARIFICATION:
+  the same calendar as postings and due dates, or a second calendar «alfabeta · Avisos» with the
+  same owner and sharing? A reader's notification setting applies to every timed event of a
+  calendar. Once postings are timed (FR-023), one calendar means one notification setting for about
+  19 events a week, of which about 3 are warnings. A second calendar lets each reader switch
+  notifications on for warnings only (capture of 2026-10-26: 13.3 postings, 2.4 due dates and
+  3.1 warning days a week)]. Not Google Tasks: a task written through the API keeps only its date,
+  so it cannot carry a 16:00 warning (Google Tasks API reference, read 2026-10-27).
+- **FR-002**: Warnings and due-date events MUST reach two readers, each through their own account:
+  the student and the operator. Delivery is checked per reader (FR-019).
 - **FR-003**: A warning MUST restate facts only: the subject, the work as Classroom titles it, the
   due day (and hour when Classroom gives one), the days left, and a link to the item's folder in the
   Drive. Example: «Entrega en 3 días (martes 13 oct): Física y Química · Zuen kromatografiaren
   bideoa». No advice wording («empieza hoy», «date prisa»).
 - **FR-004**: All warnings of one day MUST be one event at 16:00 listing every item, nearest due
-  first.
+  first. A day with nothing to warn about has no warning event.
 
 **When**
 
 - **FR-005**: No warning MAY exist after its item's due instant. A due date without a time MUST stay
-  a date: no due hour is invented (Classroom's help does not say what time it means). For computing
-  warnings only, its cutoff is the start of the due date, so its last warning is the day before.
+  a date: no due hour is invented (Classroom's help does not say what time it means). The time its
+  event is drawn at (FR-023) is not a due hour, and the event says «Classroom no indica hora». For
+  computing warnings, its cutoff is the start of the due date, so its last warning is the day
+  before.
 - **FR-006**: Warnings MUST follow the window `g` = due date − start date (FR-007), in days, every
   warning at the home slot (FR-008):
   - last: the last home slot strictly before the due instant (or the cutoff of FR-005);
@@ -313,9 +329,9 @@ with what «Tareas pendientes» shows the student the same day.
 - **FR-013**: The timetable MUST live in the student's private configuration as sessions (weekday,
   start, end, subject), with Classroom classes mapped to subjects by class identifier, never by
   name (two of the twelve class names are not subject names). The repository holds only a template.
-- **FR-014**: An exam MUST sit in its subject's session when the subject has exactly one session that
-  day, labelled «hora según horario»; otherwise it is all-day. Exams come from stream announcements
-  and from the family.
+- **FR-014**: An exam MUST sit in its subject's session that day, labelled «hora según horario»;
+  when the subject has no session that day, at break time, labelled «hora no conocida». Exams come
+  from stream announcements and from the family.
 - **FR-015**: A known exam MUST get a warning 7 days before and one at the home slot of the day
   before.
 
@@ -326,18 +342,21 @@ with what «Tareas pendientes» shows the student the same day.
   or first line («-rako» in Basque, «para el» in Spanish, «for» in English); the subject has a session
   that weekday; it falls strictly after the posting date and within 7 days. The result is the next
   session of that subject, and the event says it was deduced and from which words.
-- **FR-017**: Assignments with no due date MUST get no warning; they appear in the daily list
-  (FR-023).
-- **FR-018**: Posting events (material and assignments, all-day on the posting date) MUST stay as they
-  are: they are the only calendar presence of the 37 undated assignments, and the constitution makes
-  what is posted part of the agenda.
+- **FR-017**: Assignments with no due date MUST get no warning; they stay in Classroom's «Tareas
+  pendientes» and as their posting event.
+- **FR-018**: Posting events (material and assignments) MUST stay, placed by FR-023 on the posting
+  date: they are the only calendar presence of the undated assignments, and the constitution makes
+  what is posted part of the agenda. The time is the class's, not the moment of posting, which the
+  capture does not hold; the event says so.
 
 **Running and verifying**
 
-- **FR-019**: Delivery to a reader MUST be considered unseen until the family watched a timed and an
-  all-day test event arrive on that reader's phone, on the student's school account and on the
-  operator's own account; the check is recorded with its date and account,
-  and each run says which readers are unchecked. alfabeta never states that a warning was received.
+- **FR-019**: Delivery to a reader MUST be considered unseen until the family watched a timed test
+  event arrive on that reader's phone, on the student's school account and on the operator's own
+  account, after that reader set notifications for the calendar holding warnings. Setting them on a
+  calendar shared with you is documented only for calendars you own (Calendar Help 37242), so the
+  test also proves it can be done. The check is recorded with its date and account, and each run
+  says which readers are unchecked. alfabeta never states that a warning was received.
 - **FR-020**: A warning for work due the next morning exists only if a sync ran between the posting
   and that evening's home slot. The run MUST say which items were first seen too late for any
   warning.
@@ -346,15 +365,17 @@ with what «Tareas pendientes» shows the student the same day.
 - **FR-022**: Nothing personal enters the repository: the timetable, the mapping, the home slot and
   the delivery checks live in the student's private configuration or data folder.
 
-**The daily list**
+**Placement and the checklist**
 
-- **FR-023**: There MUST be one event every day at 16:00. It carries that day's warnings (FR-004)
-  and below them the list of assignments not handed in, grouped and ordered as User Story 7 says,
-  facts only, readable by both readers (FR-002).
+- **FR-023**: No event alfabeta writes MAY be all-day. A posting, a due date without a time, and an
+  exam sit in their subject's session that day; when the subject has no session that day (weekends
+  and holidays included), at break time, 10:00–10:25. A due date with a time sits in a 30-minute
+  event that ends at that time. Warnings sit at the home slot (FR-008).
 - **FR-024**: The student's checklist MUST be Classroom's «Tareas pendientes» in his school account,
   ticked with his own «Marcar como completada». alfabeta never marks anything (constitution:
   read-only on Classroom) and writes no task anywhere. Google Tasks and any new surface are out
-  (Clarifications).
+  (Clarifications). Each due-date event's title MUST say whether Classroom reads the work as
+  handed in: «Entrega · …» while it does not, «Entregado · …» once it does.
 
   Measured 2026-10-27 in the school account, read only:
   - Classroom keeps a calendar per class with every item that has a due date. The school account
@@ -381,8 +402,8 @@ with what «Tareas pendientes» shows the student the same day.
 - **Exam**: subject, date, source (stream post or family), placed session if any.
 - **Home slot**: one time of day for every day (16:00).
 - **Reader**: an account that reads the calendar, and the date its delivery was seen, if ever.
-- **Daily event**: one per day at 16:00 — that day's warnings, then the assignments not handed in,
-  in Classroom's three groups, each line a Classroom fact, then exams and inferred dates apart.
+- **Placement**: where an event is drawn — its subject's session that day, else break time, or the
+  home slot for warnings, or the due time for a timed due date. Never all-day.
 
 ## Success Criteria *(mandatory)*
 
@@ -393,10 +414,10 @@ with what «Tareas pendientes» shows the student the same day.
 - **SC-002**: Replaying the capture day by day, every dated item not handed in gets at least one
   warning before its due instant, except items posted and due with no home slot between (2
   measured), which the run names.
-- **SC-003**: Replaying the capture from 7 September to 26 October gives one event per day, and the
-  weekly count of days with a warning is reported; the operator accepts it before warnings are
-  switched on (the panel measured about 3 a week with a draft rule set that had no
-  half-window warning).
+- **SC-003**: Replaying the capture from 7 September to 26 October gives at most one warning event
+  per day, and the weekly counts of warning days and of all events are reported; the operator
+  accepts them before warnings are switched on (measured 2026-10-27 on that capture with these
+  rules: 3.1 warning days a week).
 - **SC-004**: Inference over the 37 undated items of the capture yields exactly one due date, the
   Physics «Ostegunerako» one, at that Thursday's Physics session, and nothing else.
 - **SC-005**: A second run with no change creates, moves and deletes 0 events.
@@ -407,9 +428,10 @@ with what «Tareas pendientes» shows the student the same day.
   gets warnings on Saturday 10 and Monday 12 October at 16:00 and none on or after 13 October. Only a
   replay can test it: the capture of 2026-10-26 already reads it «Calificado». In live use the same
   outcome depends on a daily sync (julioarguello/alfabeta#13).
-- **SC-009**: The daily list built from a capture has, group by group, the same items that
-  Classroom's «Tareas pendientes» shows the student on the same day. The count of each group is
-  reported, and no item Classroom reads as handed in appears.
+- **SC-009**: The due-date events titled «Entrega ·» are, item by item, the dated work that
+  Classroom's «Tareas pendientes» shows as pending («Asignado» with a date, and «Sin entregar») on
+  the same day.
+- **SC-010**: A replay of the capture writes 0 all-day events and 0 events that cross midnight.
 
 ## Assumptions
 
@@ -418,9 +440,13 @@ with what «Tareas pendientes» shows the student the same day.
 - The timetable holds for the whole school year; a change means editing the configuration.
 - One home slot, 16:00 every day, by the operator's choice. On Monday and Tuesday classes end at
   16:00, so those warnings arrive as he leaves school.
+- Break time is 10:00–10:25 every day, as the timetable gives it. No subject has two sessions on one
+  day in the timetable of 2026–2027, so "its session that day" is never ambiguous.
+- Classroom's own class calendars in the school account keep showing a due date without a time as
+  all-day; alfabeta cannot change them.
 - Of the 31 pending assignments with no due date in the capture of 2026-10-26, 21 were posted before
   12 October. Some of them may have been done on paper and never marked in Classroom, which the
-  daily list cannot tell unless someone ticks them (FR-024).
+  calendar cannot tell unless the student ticks them in Classroom (FR-024).
 - Classroom may already send the student its own "due within 24 hours" notification (Classroom Help
   6141557); whether it is on for his account has not been measured. Its existence does not change
   what this spec writes.
