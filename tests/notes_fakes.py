@@ -41,6 +41,7 @@ class MemoryDrive:
     shared: list[tuple[str, str]] = field(default_factory=lambda: [])
     fail_writes: bool = False
     made: int = 0
+    downloads: list[str] = field(default_factory=lambda: [])
 
     @classmethod
     def topic(cls) -> MemoryDrive:
@@ -76,6 +77,7 @@ class MemoryDrive:
         return item_id in self.files or item_id == self.root.id
 
     def content(self, file_id: str) -> bytes:
+        self.downloads.append(file_id)
         return self.bodies[file_id]
 
     def made_for(self, folder_id: str, properties: dict[str, str]) -> DriveFile | None:

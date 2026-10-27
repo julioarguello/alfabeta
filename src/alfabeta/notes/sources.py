@@ -34,6 +34,7 @@ class Source:
 
     id: str
     title: str
+    url: str = ""  # for a Drive source, unmeasured whether it carries the file id
 
 
 class NotebookSources(Protocol):
@@ -86,4 +87,4 @@ class NlmSources:
     def list_sources(self, notebook: str) -> list[Source]:
         """Every source, in the order `nlm` lists them."""
         listed = cast("list[dict[str, Any]]", self._json("source", "list", notebook))
-        return [Source(str(s.get("id", "")), str(s.get("title", ""))) for s in listed]
+        return [Source(str(s.get("id", "")), str(s.get("title", "")), str(s.get("url") or "")) for s in listed]

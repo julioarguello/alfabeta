@@ -91,6 +91,7 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
     record = topics.setdefault(folder.id, {"name": name})
     living = cast("dict[str, Any]", record.setdefault("living", {}))
     outcome: dict[str, str] = {}
+    present = sources.list_sources(notebook)
     for kind in (LivingKind.NOTES, LivingKind.CLASSROOM):
         current = living_of(folder.id, kind, living.get(kind))
         if not current.waiting_setup:
@@ -104,7 +105,13 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         data, pages = _build(deps, state, folder.id, name, kind)
         file = _living_file(deps, folder.id, Topic(folder.id, name).living_file_name(kind), data, kind)
         drive.share_reader(file.id, setting.owner)
-        source = sources.add_drive_source(notebook, file.id, file.name.removesuffix(".pdf"))
+        title = file.name.removesuffix(".pdf")
+        # A setup stopped after adding the source (nlm failed on the next one, or another writer
+        # changed state.json) runs again: the source is found, never added twice (FR-009).
+        again = next((s for s in present if file.id in s.url), None) or next(
+            (s for s in present if s.title == title), None
+        )
+        source = again.id if again else sources.add_drive_source(notebook, file.id, title)
         built, _ = current.set_up(file.id, source).built(hashlib.md5(data).hexdigest(), pages)
         living[kind] = living_record(built)
         files = cast("dict[str, dict[str, Any]]", state.setdefault("files", {}))
@@ -112,7 +119,7 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         outcome[kind] = "created"
     deps.store.save(state)
     recorded = {living_of(folder.id, k, living.get(k)).source_id for k in LivingKind}
-    plain = [s for s in sources.list_sources(notebook) if s.title.startswith(LIVING_TITLES) and s.id not in recorded]
+    plain = [s for s in present if s.title.startswith(LIVING_TITLES) and s.id not in recorded]
     return {
         "ok": True,
         "notes_source": outcome[LivingKind.NOTES],

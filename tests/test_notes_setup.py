@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from alfabeta.notes.setup import Setting, SetupError, setup_topic
-from alfabeta.notes.sources import Source
+from alfabeta.notes.sources import Source, SourcesError
 from alfabeta.notes.state import STATE
 from tests.notes_fakes import TOPIC, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
 
@@ -27,14 +27,19 @@ class FakeNotebook:
         default_factory=lambda: [Source("viejo-1", "Apuntes · Tema 01 (copia a mano)"), Source("libro", "libro.pdf")]
     )
     added: list[tuple[str, str]] = field(default_factory=lambda: [])
+    fail_on_add: int = 0  # the nth add fails once, as nlm can
 
     def find_notebook(self, title: str) -> str | None:
         return self.notebooks.get(title)
 
     def add_drive_source(self, notebook: str, file_id: str, title: str) -> str:
+        if self.fail_on_add and len(self.added) + 1 == self.fail_on_add:
+            self.fail_on_add = 0
+            raise SourcesError(signed_out=False)
         self.added.append((file_id, title))
-        self.sources.append(Source(f"src-{file_id}", title))
-        return f"src-{file_id}"
+        source = f"src-{len(self.added)}"  # like nlm: a new id on every add
+        self.sources.append(Source(source, title))
+        return source
 
     def list_sources(self, notebook: str) -> list[Source]:
         return list(self.sources)
@@ -112,3 +117,37 @@ def test_the_owner_address_is_in_no_output():
     out = setup(drive, nb, [["foto-1"]])
     assert OWNER not in json.dumps(out)
     assert all(OWNER.encode() not in body for body in drive.bodies.values())
+
+
+def test_a_setup_stopped_after_one_source_adds_each_source_once_when_run_again():
+    drive, nb = drive_with_photo(), FakeNotebook(fail_on_add=2)
+    with pytest.raises(SourcesError):
+        setup(drive, nb, [["foto-1"]])
+    out = setup(drive, nb)
+    assert [t for _, t in nb.added] == [
+        "Apuntes · Tema 01 - Materia inventada",
+        "Classroom · Tema 01 - Materia inventada",
+    ]
+    assert out["plain_sources_to_remove"] == 1
+    assert len(drive.named("Apuntes · Tema 01 - Materia inventada.pdf")) == 1
+
+
+def test_a_setup_whose_save_lost_a_race_adds_nothing_when_run_again():
+    from alfabeta.notes.state import ConcurrentWriteError
+
+    drive, nb = drive_with_photo(), FakeNotebook()
+    made = deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber())
+    save = made.store.save
+    calls: list[int] = []
+
+    def lose_the_second(state: dict[str, Any]) -> bool:
+        calls.append(1)
+        if len(calls) == 2:  # the pass saved; setup's own save meets another writer
+            raise ConcurrentWriteError
+        return save(state)
+
+    made.store.save = lose_the_second  # type: ignore[method-assign]
+    with pytest.raises(ConcurrentWriteError):
+        setup_topic(made, drive, nb, SETTING)
+    setup(drive, nb)
+    assert len(nb.added) == 2

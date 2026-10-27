@@ -91,11 +91,18 @@ _PHOTO_TRANSITIONS: Mapping[PhotoState, frozenset[PhotoState]] = {
             PhotoState.FAILED,
             PhotoState.FAILED_FINAL,
             PhotoState.BUDGET_WAIT,
+            PhotoState.DUPLICATE,  # a copy of it got its page meanwhile
         }
     ),
     # A refused budget holds every pending photo, a failed one too, day after day (research R5).
     PhotoState.BUDGET_WAIT: frozenset(
-        {PhotoState.TRANSCRIBED, PhotoState.UNREADABLE, PhotoState.FAILED, PhotoState.BUDGET_WAIT}
+        {
+            PhotoState.TRANSCRIBED,
+            PhotoState.UNREADABLE,
+            PhotoState.FAILED,
+            PhotoState.BUDGET_WAIT,
+            PhotoState.DUPLICATE,
+        }
     ),
     PhotoState.IN_LIVING_FILE: frozenset(),
     PhotoState.DUPLICATE: frozenset(),

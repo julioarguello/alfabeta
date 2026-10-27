@@ -230,3 +230,32 @@ def test_helpers():
     assert topic_name("20260915 - Tema 01 - Materia") == "Tema 01 - Materia"
     assert topic_name("Sin tema") == "Sin tema"
     assert adopted_section("## A\n\n![](x.jpg)\n", "y.jpg") is None
+
+
+def test_a_failed_photo_whose_copy_got_a_page_becomes_a_duplicate_not_a_crash():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"misma")
+    tr = ScriptedTranscriber([Transcription(PhotoState.FAILED)] * 2)
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), tr))  # foto-1 fails
+    drive.put("foto-2", "a copia.jpg", "image/jpeg", b"misma")
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), tr))  # foto-1 fails again; its copy gets the page
+    report = run_notes(deps(drive, ScriptedFeed(drive, []), tr))  # foto-1, still failed, meets its copy
+    files = state_of(drive)["files"]
+    assert report["ok"]
+    assert (files["foto-1"]["state"], files["foto-2"]["state"]) == ("duplicate", "transcribed")
+
+
+def test_one_budget_refusal_holds_every_other_photo_without_a_call():
+    drive = MemoryDrive.topic()
+    for n in (1, 2, 3):
+        drive.put(f"foto-{n}", f"{n}.jpg", "image/jpeg", str(n).encode())
+    tr = ScriptedTranscriber([Transcription(PhotoState.BUDGET_WAIT)])
+    report = run_notes(deps(drive, ScriptedFeed(drive, [["foto-1", "foto-2", "foto-3"]]), tr))
+    assert (tr.calls, report["budget_wait"]) == (1, 3)
+
+
+def test_with_no_key_no_photo_is_downloaded():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), None))
+    assert "foto-1" not in drive.downloads

@@ -141,6 +141,7 @@ class Pass:
     counts: dict[str, Counter[str]] = field(default_factory=lambda: {})
     dirty: set[str] = field(default_factory=lambda: set())
     budget_wait: int = 0
+    budget_refused: bool = False  # once refused, this pass makes no other call (research R5)
     no_key: bool = False
     write_failed: bool = False
 
@@ -362,7 +363,6 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
         record["state"] = str(photo.moved_to(PhotoState.DUPLICATE).state)
         work.count(topic, "duplicates")
         return
-    image = deps.drive.content(photo_id)
     markdown, source, usage = _adopted(deps, work, topic, folder, item.name), PageSource.ADOPTED, None
     if markdown is None:
         source = PageSource.CLAUDE
@@ -370,11 +370,16 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
         if recovered is not None and recovered.prop(VERSION) == record["version"]:
             markdown = deps.drive.content(recovered.id).decode()  # a crashed pass already paid for it
         elif deps.transcriber is None:
-            work.no_key = True
+            work.no_key = True  # nothing downloaded: the photo waits for a key
+            return
+        elif work.budget_refused:
+            moved = photo.moved_to(PhotoState.BUDGET_WAIT)
+            record |= {"state": str(moved.state), "tried_on": work.today}
+            work.budget_wait += 1
             return
         else:
             record["tried_on"] = work.today
-            done = deps.transcriber.transcribe(image, item.mime_type)
+            done = deps.transcriber.transcribe(deps.drive.content(photo_id), item.mime_type)
             if done.usage is not None:
                 ledger = spend(work.state).add(work.today[:7], done.usage)
                 work.state["spend"] = {m: {"in": u.tokens_in, "out": u.tokens_out} for m, u in ledger.months.items()}
@@ -383,12 +388,14 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
                 record |= {"state": str(moved.state), "retries": moved.retries}
                 if moved.state == PhotoState.BUDGET_WAIT:
                     work.budget_wait += 1
+                    work.budget_refused = True
                 else:
                     work.count(
                         topic, {"unsupported": "unsupported", "unreadable": "unreadable"}.get(moved.state, "failed")
                     )
                 return
             markdown, usage = done.markdown, done.usage
+    image = deps.drive.content(photo_id)
     if photo_id in work.pages:
         order = int(work.pages[photo_id]["order"])  # a new version keeps the page's place (research R7)
     else:
