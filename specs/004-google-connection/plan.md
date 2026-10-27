@@ -56,7 +56,7 @@ once.
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.* Checked against
-constitution 1.3.0, amended in this pull request.
+constitution 1.5.0, amended in this pull request.
 
 | Principle | How the plan meets it | Status |
 |---|---|---|
@@ -66,7 +66,7 @@ constitution 1.3.0, amended in this pull request.
 | IV. Read-only on school platforms | The school account is refused at linking; nothing here touches Classroom | Pass |
 | V. Idempotent, incremental | Deterministic event ids; patch only on difference; uploads keyed by path with size and md5; migration adopts before uploading and deletes nothing | Pass |
 | VI. One isolated, tested provider | Google sits behind one transport port and three adapters (OAuth, Calendar, Drive), tested against recorded shapes | Pass |
-| VII. Outputs degrade on their own (1.3.0) | A broken link stops only the outputs that need it; Drive counts a file only when Drive confirms it; the folder on the Mac stays the base output | Pass |
+| VII. Outputs degrade on their own (1.5.0) | A broken link stops only the outputs that need it; Drive counts a file only when Drive confirms it; the folder on the Mac stays the base output | Pass |
 | VIII. `Europe/Madrid` | Events are written with `timeZone: "Europe/Madrid"`; the reminders' minutes are computed by spec 003 from zone-aware instants | Pass |
 | IX. Simplicity | Standard library only; one transport, three adapters; no generated clients | Pass, with one justified exception (Complexity Tracking) |
 

@@ -189,7 +189,8 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   or changes (an already confirmed match). Decisions go to `data/decisions.json`, tied to the
   Classroom identifier. A confirmed decision is not proposed again (FR-021b); changing it moves it to
   `superseded` and creates the new one.
-- **Unconfirmed**: the items of an unmatched topic go to their month folder; a detected exam enters
+- **Unconfirmed**: the items of an unmatched topic go to the teacher's topic's own
+  `<YYYYMMDD> - <teacher's title>` folder (constitution 1.3.0; it was the month folder); a detected exam enters
   the agenda marked `detected` until the family confirms or corrects it.
 
 ### R8. Tests against synthetic pages

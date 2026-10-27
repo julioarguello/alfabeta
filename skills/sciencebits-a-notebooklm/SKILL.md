@@ -9,15 +9,20 @@ Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project.
 
 ## Configuration
 Read `~/.alfabeta/config.json` (see the repo's `config.example.json`) with Desktop Commander. It provides:
-`student.name`, `student.grade`, `storage.base_dir`, `storage.tools_dir` (`$H`), `storage.topic_folder_pattern`,
-`subjects` (Science Bits class → short name), `languages`, `notebook.enabled`, `notebook.title_pattern`.
+`student.name`, `student.grade`, `storage.base_dir` (the master folder), `storage.mirrors` (list), `storage.tools_dir`
+(`$H`), `storage.topic_folder_pattern`, `subjects` (Science Bits class → short name), `languages`, `notebook.enabled`,
+`notebook.title_pattern`, `notebook.share_with` (list).
+The lists may be `[]`; a missing key is a configuration error (ask for it once, as below). Never print a mirror's path or a `share_with` address: say "mirror 2" or
+"2 accounts" (the paths carry the account's email).
 If it does not exist, ask for that data once and create it. Never write personal data outside that file.
 
 Result per topic:
-- `TemaNN_<LANG>.pdf` and `.md` in `base_dir/<topic_folder_pattern>`. Each PDF: cover, clickable table of contents
+- `TemaNN_<LANG>.pdf` and `.md` in the topic folder (see Names). Each PDF: cover, clickable table of contents
   (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content) and
   the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
-- If `notebook.enabled`: a Gemini Notebook notebook with those files as sources.
+- The same files in every folder of `storage.mirrors`, one-way copies of `base_dir`.
+- If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, shared as viewer with every account
+  in `notebook.share_with`.
 
 Work from start to finish without asking for confirmation at each step. Only ask if the topic is ambiguous or
 someone has to sign in (Science Bits or Google).
@@ -36,8 +41,15 @@ Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs
 ## Names
 - School year from `school_year_starts_month` → e.g. `2026-2027`.
 - Subject: `subjects[<class in Science Bits>]`; if missing, ask for the short name once and save it in the config.
-- "The next topic" = the one after the highest existing `Tema NN` in that subject (and the order of units in
-  the Science Bits class).
+- Topic folder: `base_dir/<topic_folder_pattern>`, e.g. `2026-2027/FiQui/20261001 - Tema 01 - Sustancias puras y
+  mezclas`. Every topic folder starts with a `YYYYMMDD - ` date (the posting date of the topic's first Classroom
+  material), and that date is never changed. To find the folder of topic NN, look in `<year>/<subject>/` for a
+  folder matching `*Tema NN - *` (two-digit `NN`), whatever its date, and reuse it. Only if none matches, create
+  one with `{date}` = today as `YYYYMMDD`. Never create a second folder for a topic that already has one: an
+  undated or re-dated duplicate splits the topic in two.
+- Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - Sin tema`) are Classroom's; leave them alone.
+- "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *`, ignoring
+  the date prefix (and the order of units in the Science Bits class).
 
 ## Steps
 
@@ -66,16 +78,28 @@ Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs
    In `device_bash`: `python3 tools/build.py raw out --config unit.json <captured languages>`.
 7. **Verify.** pypdf: pages, bookmarks, table-of-contents links, extractable text. Review the `.md`. If a lesson
    has few screens compared with its index (`menu` in meta.json), capture it again.
-8. **Save.** `mkdir -p` the topic folder and copy `out/*`.
+8. **Save.** Find the topic folder by `*Tema NN - *` (see Names); only if there is none, `mkdir -p` it with
+   today's date. Copy `out/*` into it. Write only in `base_dir`, never in a mirror.
+   **Mirrors.** Then, for each folder in `storage.mirrors`, bring it up to date from the whole master, on the Mac:
+   `rsync -rlt --exclude .DS_Store "<base_dir>/" "<mirror>/"` (trailing slashes; never `--delete`; never the other
+   way round). It copies only what is new or changed, so a repeat writes nothing. If a mirror is not mounted or
+   `rsync` fails, note it, go on with the others and the notebook, and report it at the end; the next run catches
+   it up. Measured on the family Mac on 2026-10-26, both folders mounted by Google Drive for desktop.
 9. **Gemini Notebook** (if `notebook.enabled`):
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
      profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**.
    - `nlm notebook list`; reuse the topic's notebook or create it with `title_pattern` (`--json`).
    - `nlm source add <id> --file "<file>" --wait --wait-timeout 300` for each PDF and `.md`.
+   - **Share.** `nlm share status <id> --json`; for each account in `notebook.share_with` not yet listed:
+     `nlm share invite <id> <account> --role viewer`. Never `nlm share public`. A failed invite does not undo the
+     notebook: note it and report it. Measured 2026-10-26: the school domain allows a notebook owned by a personal
+     Gmail account to be shared with the school account as viewer, and it opens there; if the school's admin
+     changes that, the invite fails and the summary says so.
    - Test: `nlm notebook query <id> "<short question>"`.
    - If `nlm` fails: `uv tool upgrade notebooklm-mcp-cli` once; if it still fails, leave the files and tell the user.
-10. **Close.** Stop the collector, `resize_window preset desktop`, and summarise: folder, notebook link,
-    screens per language and what was left out.
+10. **Close.** Stop the collector, `resize_window preset desktop`, and summarise: folder, mirrors up to date and
+    failed (by count), notebook link, accounts it is shared with (by count) and any failed invite, screens per
+    language and what was left out.
 
 ## Limits
 - Do not decrypt the `/seculogged/` XML files or force the disabled "Versión PDF" (PDF version): capture what the student sees.

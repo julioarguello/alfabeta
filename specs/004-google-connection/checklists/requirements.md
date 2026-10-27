@@ -36,4 +36,4 @@
   layout stay out.
 - FR-009 was settled on 2026-10-27: the whole Drive, adopting the existing tree. alfabeta limits
   itself to its folder, enforced in its own adapter and by a test (FR-009a).
-- Principle VII of the constitution was amended to 1.3.0 in the same pull request.
+- Principle VII of the constitution was amended to 1.5.0 in the same pull request.
