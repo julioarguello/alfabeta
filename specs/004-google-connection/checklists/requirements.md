@@ -1,0 +1,41 @@
+# Specification Quality Checklist: alfabeta's own Google connection (Calendar and Drive)
+
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-10-27
+**Feature**: [spec.md](../spec.md)
+
+## Content Quality
+
+- [x] No implementation details (languages, frameworks, APIs)
+- [x] Focused on user value and business needs
+- [x] Written for non-technical stakeholders
+- [x] All mandatory sections completed
+
+## Requirement Completeness
+
+- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] Requirements are testable and unambiguous
+- [x] Success criteria are measurable
+- [x] Success criteria are technology-agnostic (no implementation details)
+- [x] All acceptance scenarios are defined
+- [x] Edge cases are identified
+- [x] Scope is clearly bounded
+- [x] Dependencies and assumptions identified
+
+## Feature Readiness
+
+- [x] All functional requirements have clear acceptance criteria
+- [x] User scenarios cover primary flows
+- [x] Feature meets measurable outcomes defined in Success Criteria
+- [x] No implementation details leak into specification
+
+## Notes
+
+- This spec is about a connection to Google. Google's own terms are therefore its subject matter,
+  not implementation choices: app, scope, refresh token, keychain. Language, libraries and code
+  layout stay out.
+- One marker remains, FR-009: which Drive permission to ask for. Either `drive.file`, which means
+  rebuilding the tree, or the whole Drive, which takes over the existing tree but is a restricted
+  scope over a minor's Drive.
+- The constitution's principle VII ("alfabeta only writes in the folder") must be amended before
+  `/speckit-plan`.
