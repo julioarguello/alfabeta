@@ -38,6 +38,9 @@
   const DATE = `(?:\\d{1,2} (?:${MONTHS})(?:, \\d{1,2}:\\d{2})?|\\d{1,2}:\\d{2}|Hoy|Ayer)`;
   const POSTED = new RegExp(`^(${DATE})(?:\\s*\\(Última modificación:\\s*(${DATE})\\))?$`);
   const NOTICE = /^(Tarea|Material|Pregunta): /;
+  // An attachment's aria-label is «Archivo adjunto: <tipo>: <name>»; the name is the file's
+  // (measured 2026-10-27 on the real pages, where every download would otherwise go unmatched).
+  const ATTACHMENT_LABEL = /^Archivo adjunto: [^:]+: /;
 
   const clean = (text) => (text || "").replace(/\s+/g, " ").trim();
 
@@ -123,7 +126,7 @@
     try { url = new URL(href, "https://classroom.google.com/"); } catch (_) { return null; }
     const host = url.hostname;
     const parts = url.pathname.split("/");
-    const name = clean(anchor.getAttribute("aria-label") || anchor.getAttribute("title") || anchor.textContent);
+    const name = clean(anchor.getAttribute("aria-label") || anchor.getAttribute("title") || anchor.textContent).replace(ATTACHMENT_LABEL, "");
     if (host === "classroom.google.com" || (host === "drive.google.com" && parts[2] === "folders")) return null;
     if (host === "drive.google.com" && parts[1] === "file" && parts[2] === "d") return { id: parts[3], kind: "file", name };
     if (host === "drive.google.com" && url.searchParams.get("id")) return { id: url.searchParams.get("id"), kind: "file", name };

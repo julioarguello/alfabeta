@@ -111,3 +111,10 @@ def test_structure_the_extractor_reads_is_kept():
     assert synthetic.isdigit() and len(synthetic) == 10 and f'data-draggable-item-id="{synthetic}"' in out
     assert NUMERIC_ID not in out
     assert "(Última modificación: " in out and "24 sept" not in out and "<span>Calificado</span>" in out
+
+
+def test_an_attachment_label_keeps_its_prefix_and_kind():
+    out = anonymize.anonymize(
+        '<a href="https://drive.google.com/file/d/x/view" aria-label="Archivo adjunto: PDF: Ficha de Iñigo.pdf">a</a>'
+    )
+    assert 'aria-label="Archivo adjunto: PDF: texto ' in out and "Iñigo" not in out

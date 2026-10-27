@@ -61,6 +61,14 @@ LABELS = frozenset(
         "Completada",
         "El profesor ha indicado que falta esto",
         "Fecha de creación",
+        # An attachment's aria-label, «Archivo adjunto: <tipo>: <name>»: the prefix and the kinds the
+        # real pages showed on 2026-10-27, so a synthetic page keeps the shape the extractor reads.
+        "Archivo adjunto",
+        "PDF",
+        "Imagen",
+        "Microsoft Word",
+        "Microsoft PowerPoint",
+        "vídeo de YouTube",
     }
 )
 _MONTHS = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")
