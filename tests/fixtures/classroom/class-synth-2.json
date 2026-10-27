@@ -1,0 +1,49 @@
+{
+ "version": 1,
+ "type": "class",
+ "run": "run-sintetico",
+ "captured_at": "2026-10-27T16:24:00+01:00",
+ "complete": true,
+ "class": {
+  "id": "synth-2",
+  "title": "English Synthetic 3A"
+ },
+ "topics": [
+  {
+   "id": "synth-12",
+   "title": "Module 1 - Invented games",
+   "order": 1
+  }
+ ],
+ "items": [
+  {
+   "id": "synth-26",
+   "topic": "synth-12",
+   "type": "assignment",
+   "title": "Invented essay",
+   "listing_date_text": "Fecha de entrega: 30 oct",
+   "detail": {
+    "posted_text": "16 oct",
+    "modified_text": null,
+    "due_text": "Fecha de entrega: 30 oct",
+    "points": null,
+    "description": "Write an invented essay.",
+    "status_text": "Asignado",
+    "status_notice_text": null,
+    "grade_text": null,
+    "returned_text": null,
+    "teacher_comment": null,
+    "attachments": [],
+    "submission": []
+   }
+  }
+ ],
+ "stream": [
+  {
+   "id": "synth-32",
+   "created_text": "Fecha de creación: 24 oct",
+   "text": "The invented Unit 1 test will be next Thursday, 12 November.",
+   "attachments": []
+  }
+ ]
+}
