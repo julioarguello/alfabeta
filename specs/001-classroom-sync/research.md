@@ -191,6 +191,11 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   now drops the prefix. The synthetic pages had not shown it because the anonymiser replaced the
   whole label; it now keeps the prefix and the kinds seen («PDF», «Imagen», «Microsoft Word»,
   «Microsoft PowerPoint», «vídeo de YouTube»).
+- **First apply, measured 2026-10-27** (FiQui, with the family's go-ahead): the 26 October import's
+  `classroom/` folders were moved to a local quarantine, then 16 replicas were placed and a second
+  `apply` reported 0 added, 0 changed. The 9 downloaded files are byte-identical to the imported
+  ones. The descriptions had lost their line breaks: the extractor read `textContent`, which joins
+  the lines a `<br>` separates; it now ends a line at a `<br>` or a block element.
 
 ### R5. Dates without a year, and relative dates
 
