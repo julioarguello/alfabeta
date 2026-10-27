@@ -225,6 +225,10 @@ def test_missing_home_is_not_created(tmp_path: Path):
     assert not (tmp_path / "nope").exists()
 
 
+def test_drive_root_is_read_for_scoped_drive(home: Path):
+    assert config.load(home, "s9", ("drive",)).drive_root == "alfabeta"  # spec 004 R6
+
+
 def test_notes_and_notebook_keys_of_spec_005(home: Path):
     cfg = config.load(home, "s9", ("notes", "notebook"))
     assert cfg.notes_model == "claude-sonnet-5-5"

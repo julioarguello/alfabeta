@@ -111,3 +111,10 @@ def test_an_error_status_is_a_drive_error(tmp_path: Path):
     with pytest.raises(DriveError) as err:
         drive.upload("tema-1", "a.pdf", b"abc", "application/pdf")
     assert err.value.status == 403
+
+
+def test_a_reply_without_a_file_is_a_drive_error(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses.append(Response(200, b""))
+    with pytest.raises(DriveError, match="without a file"):
+        drive.upload("tema-1", "a.pdf", b"abc", "application/pdf")

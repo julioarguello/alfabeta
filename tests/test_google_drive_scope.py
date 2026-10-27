@@ -89,7 +89,7 @@ def test_positive_control_inside_ids_are_accepted(tmp_path: Path):
 
 def test_the_allowlist_is_rebuilt_on_every_run(tmp_path: Path):
     first, _ = opened(tmp_path)
-    assert json.loads((tmp_path / "drive.json").read_text()) == {"root_id": "raiz"}
+    assert json.loads((tmp_path / "drive.json").read_text()) == {"root_id": "raiz", "root_path": "alfabeta"}
     # The next run reads the cached root and lists again; a file added in between is now inside.
     t = FakeTransport(
         [
@@ -105,10 +105,34 @@ def test_the_allowlist_is_rebuilt_on_every_run(tmp_path: Path):
 
 
 def test_a_trashed_root_fails_the_run(tmp_path: Path):
-    (tmp_path / "drive.json").write_text(json.dumps({"root_id": "raiz"}))
+    (tmp_path / "drive.json").write_text(json.dumps({"root_id": "raiz", "root_path": "alfabeta"}))
     t = FakeTransport([json_response(200, {**folder("raiz", "root", "alfabeta"), "trashed": True})])
     with pytest.raises(DriveError, match="trash"):
         ScopedDrive.open(t, "acceso", "alfabeta", tmp_path / "drive.json")
+
+
+def test_a_changed_root_path_is_resolved_again_not_taken_from_the_cache(tmp_path: Path):
+    # The cache names a wider folder than the configuration now does: it must not be trusted.
+    (tmp_path / "drive.json").write_text(json.dumps({"root_id": "familia", "root_path": "Familia"}))
+    t = FakeTransport(tree_responses())
+    drive = ScopedDrive.open(t, "acceso", "alfabeta", tmp_path / "drive.json")
+    assert drive.root.id == "raiz"
+    assert "name+%3D+%27alfabeta%27" in t.calls[0][1]
+    assert not drive.contains("familia")
+    assert json.loads((tmp_path / "drive.json").read_text())["root_id"] == "raiz"
+
+
+def test_a_listing_follows_every_page(tmp_path: Path):
+    t = FakeTransport(
+        [
+            listing(folder("raiz", "root", "alfabeta")),
+            json_response(200, {"files": [file("ficha-a", "raiz")], "nextPageToken": "p2"}),
+            listing(file("ficha-b", "raiz")),
+        ]
+    )
+    drive = ScopedDrive.open(t, "acceso", "alfabeta", tmp_path / "drive.json")
+    assert "pageToken=p2" in t.calls[2][1]
+    assert drive.contains("ficha-a") and drive.contains("ficha-b")
 
 
 @pytest.mark.parametrize("found", [0, 2])

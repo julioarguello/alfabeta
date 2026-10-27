@@ -66,6 +66,8 @@ class DriveFile:
     @classmethod
     def of(cls, data: dict[str, Any]) -> DriveFile:
         """From a Drive v3 file resource; `size` arrives as a string."""
+        if not data.get("id"):
+            raise DriveError("Drive answered without a file")
         size = data.get("size")
         return cls(
             id=str(data["id"]),
@@ -102,8 +104,8 @@ class ScopedDrive:
     def open(cls, transport: HttpTransport, token: str, root_path: str, cache: Path) -> ScopedDrive:
         """Resolve the root (cached in `cache`), then list the tree under it for this run's allowlist."""
         probe = cls(transport, token, DriveFile("", "", FOLDER), {})
-        root = probe._cached_root(cache) or probe._resolve(root_path)
-        write_atomic(cache, json.dumps({"root_id": root.id}, indent=1) + "\n")
+        root = probe._cached_root(cache, root_path) or probe._resolve(root_path)
+        write_atomic(cache, json.dumps({"root_id": root.id, "root_path": root_path}, indent=1) + "\n")
         tree = {root.id: root}
         pending = [root.id]
         while pending:
@@ -114,10 +116,13 @@ class ScopedDrive:
                     pending.append(child.id)
         return cls(transport, token, root, tree)
 
-    def _cached_root(self, cache: Path) -> DriveFile | None:
+    def _cached_root(self, cache: Path, root_path: str) -> DriveFile | None:
         if not cache.is_file():
             return None
-        root_id = str(json.loads(cache.read_text())["root_id"])
+        cached = json.loads(cache.read_text())
+        if cached.get("root_path") != root_path:
+            return None  # the configured folder changed: resolve it again, never keep the old one
+        root_id = str(cached["root_id"])
         data = self._call("GET", f"{API}/{root_id}?{urllib.parse.urlencode({'fields': FIELDS})}")
         if data.get("trashed"):
             raise DriveError("the alfabeta folder is in the trash")
