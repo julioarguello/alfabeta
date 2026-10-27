@@ -178,6 +178,30 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - The spec is approved in a documentation-only pull request. Then the issues for its tasks are
   opened, and each issue goes on its own branch from `main` and in its own pull request.
 - Nothing is built before the spec is approved.
+- **Approval is delegated to the agent.** The operator does not review pull requests. The agent
+  that opened a pull request records its approval in it and squash-merges it when, and only when:
+  - every gate is green in CI (a skipped gate is not green);
+  - for a spec, `/speckit-analyze` run by an agent that did not write it reports no critical or
+    high finding;
+  - for anything else, code, documentation or an amendment to this constitution, a review by an
+    agent that did not write it reports no blocking finding.
+
+  After merging, the agent checks that the change reached `main` by its content, not by the
+  merged badge. The pull request records what was verified and what was not.
+- These wait for the operator, and no agent merges them without the operator's explicit request:
+  - a change that weakens a NON-NEGOTIABLE principle (I, III, IV) or the personal-data guardrail;
+  - an amendment that removes or loosens a merge condition above, this list, or Governance,
+    including a CI change that removes or skips a gate;
+  - a pull request that no agent of the operator opened (an outside contributor, an automated
+    dependency update).
+
+  Whether a change falls in this list is decided by the independent reviewer, not by the agent
+  that opened it. The operator's request is his own words, in the pull request or in the session
+  that prepared it; the pull request quotes them with their date before the agent merges. The agent
+  acts through the operator's GitHub account, so that quote is the agent's record, not proof.
+- A merged change that breaks something is fixed forward in a new pull request, never by rewriting
+  `main`, except to purge personal data or a secret from the history (II, III), which only the
+  operator does.
 - Each spec's plan MUST pass the Constitution Check against these principles. Any exception MUST be
   justified in the plan's complexity table.
 - Gates before every pull request: `ruff`, `pyright`, `pytest` and the personal-data guardrail
@@ -193,7 +217,8 @@ Rationale: an unofficial tool must not leave the student without their notes.
   - MAJOR: a principle is removed or redefined.
   - MINOR: a principle or a section is added, or what one allows is materially broadened.
   - PATCH: clarifications.
-- Pull request reviews MUST verify compliance. Complexity that departs from IX MUST be justified in
-  writing.
+- Each pull request's review, by an agent that did not write the change (Development workflow),
+  MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
+  in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 1.6.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
+**Version**: 1.7.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
