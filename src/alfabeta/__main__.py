@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, config, guardrail, state
+from alfabeta import __version__, anonymize, config, guardrail, state
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
@@ -207,6 +207,10 @@ def build_parser() -> argparse.ArgumentParser:
     unlink = google.add_parser("unlink", help="revoke an account's link")
     unlink.add_argument("--account", required=True)
 
+    anon = groups.add_parser("anonymize", help="a synthetic page from a saved Classroom page")
+    anon.add_argument("input")
+    anon.add_argument("output")
+
     guard = groups.add_parser("guardrail", help="look for personal data before it is published")
     scope = guard.add_mutually_exclusive_group()
     scope.add_argument("--staged", dest="scope", action="store_const", const="staged", help="the staged change")
@@ -243,6 +247,12 @@ def main(argv: list[str] | None = None) -> int:
     """Run the command."""
     args = build_parser().parse_args(argv)
     home = Path(args.home).expanduser()
+    if args.group == "anonymize":
+        try:
+            _emit({"ok": True, "written": anonymize.run(Path(args.input), Path(args.output), home)})
+        except anonymize.AnonymizeError as err:
+            return _fail("would_leak", EXIT_INVALID, str(err))
+        return EXIT_OK
     if args.group == "guardrail":
         # No configuration folder (CI, another contributor) only means no named detectors.
         return guardrail.run(Path.cwd(), home, args.scope)

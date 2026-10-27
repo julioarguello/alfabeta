@@ -45,7 +45,9 @@ _B64_TOKEN = re.compile(
     r"(?<![A-Za-z0-9+=_-])[A-Za-z0-9+_-]{12,24}={0,2}(?![A-Za-z0-9+=_-])"
 )  # "/" separates URL parts
 _NUMERIC_ID = re.compile(r"(?<![0-9A-Za-z.])[0-9]{11,15}(?![0-9A-Za-z.])")
-_PLACEHOLDER = re.compile(r"<[^<>\n]{1,60}>|\bsynth-\d+\b")
+# `<student>`, `<school account>`, `<YYYYMMDD>`: letters, digits, spaces, "-" and "_" only, so an HTML tag
+# such as `<span class="…">` is never taken for a placeholder and stays scanned.
+_PLACEHOLDER = re.compile(r"<[A-Za-z][A-Za-z0-9 _-]{0,58}>|\bsynth-\d+\b")
 
 # Keys whose values identify the student or their accounts in a real configuration. `drive.root` is not
 # one: since spec 004 it is a folder name inside My Drive ("alfabeta"), and it would match every file here.
