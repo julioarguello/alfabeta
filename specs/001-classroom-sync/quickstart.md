@@ -108,3 +108,40 @@ Ask Claude «sincroniza alfabeta para <student>, solo <subject>» ("sync alfabet
   nothing (SC-009).
 - With the book: `book place` leaves the Science Bits topic in `<topic>/sciencebits/` next to
   `classroom/` (SC-005).
+
+## 10. Spikes S4 to S6: the unattended runner (User Story 7)
+
+Before anything of User Story 7 is built, and recording each result in research R15 to R18 with no
+title, name or identifier:
+
+- S4 (token route, primary): seed a first-party sign-in token by hand, and from a test job exchange
+  it for a read-only access token and make one read-only Classroom call. Pass if it returns the
+  student's work; record whether the device shows as new and whether a home address differs from the
+  cloud one. On pass, this is the route and S5/S6 are not needed to build.
+- S5 (web route, fallback): for 14 days, read the to-do page twice a day from the cloud project and,
+  with a second session, from a home address, behind a minimal guard (page-load allowlist, zero
+  presses). Record each «Demuestra que eres tú» with the session's age. Pass if it reads without
+  evasion and the family would sign in at most once a week (SC-012).
+- S6 (web route): record the background requests of a to-do read and a detail read (method, host,
+  path, call name; never bodies or cookies), and check that the browser-level guard blocks a planted
+  press (one fired by the page's own `extract.js` included) and a planted call on a local fake page.
+
+## 11. The runner with nobody present (no Classroom, then one real week)
+
+With the local fake Classroom of the runner's tests, run `runner read --student sample` and check:
+
+- The agenda lists every item of the synthetic «Tareas pendientes» and «Sin entregar», each with the
+  due date of its detail page resolved against that page's `seen_at` (SC-011).
+- A planted form link, a planted «Entregar» and a planted unknown call are blocked and counted in
+  the log's `blocked`, and the fake server received none of them (SC-013).
+- Serving the fake sign-in page the web route cannot clear ends the run with `session_expired`
+  within one page's time limit and exit 1; a second run with the same secret version exits 0 without
+  reaching Classroom (SC-014). A fake CAPTCHA ends it with `challenge`.
+- A `click` on the planted «Entregar» and a `submit()` fired by the page's own `extract.js` are both
+  cancelled by the browser-level guard, not by the driver (SC-013).
+- An address planted in a sign-in redirect URL and in the account button appears in no log, stdout,
+  stderr or the notice (SC-009).
+
+Then, with the runner enabled for the real student and the operator's Mac off, for one school week:
+every assignment «Tareas pendientes» showed before each scheduled run is in the agenda in Drive after
+it (SC-011), and «Tu trabajo» of every assignment is unchanged (SC-008).
