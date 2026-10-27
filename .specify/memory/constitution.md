@@ -96,9 +96,14 @@ cannot be undone.
 
 ### VII. Every output is optional and degrades on its own
 
-- The student's folder on the Mac's disk is the base output. Which cloud it syncs with (the
-  family's Drive through Google Drive for desktop, or another) and who it is shared with is
-  configuration; alfabeta only writes in the folder. The Gemini Notebook notebook and the calendar
+- The student's master folder on the Mac's disk is the base output. Which cloud it syncs with (the
+  family's Drive through Google Drive for desktop, or another) is configuration. alfabeta writes in
+  the master folder and then brings each configured mirror up to date from it, one-way: a mirror is
+  another account's Drive folder mounted on the same Mac, it is never read back into the master, and
+  nothing is deleted from it. A failed mirror MUST NOT undo or block the master or the other outputs.
+- Every output reaches every account the configuration lists for it: the mirrors for the folder,
+  and a list of accounts the calendar and each notebook are shared with. alfabeta shares nothing
+  with an account the configuration does not list. The Gemini Notebook notebook and the calendar
   are outputs enabled by configuration.
 - Gemini Notebook has no public API and is used through `notebooklm-mcp-cli`, which can break. If one
   output fails, the others MUST complete and the failure MUST show in the log.
@@ -127,7 +132,8 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
-- **Storage**: one folder per student on disk, synced with the cloud their configuration sets.
+- **Storage**: one master folder per student on disk, synced with the cloud their configuration
+  sets, plus zero or more one-way mirrors with the same content in the student's other accounts.
   Structure shared by every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/<source>/`
   (`classroom`, `sciencebits`…). Every topic folder starts with a date, the posting date of its
@@ -170,4 +176,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - Pull request reviews MUST verify compliance. Complexity that departs from IX MUST be justified in
   writing.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-26
+**Version**: 1.4.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-26

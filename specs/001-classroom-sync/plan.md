@@ -55,9 +55,9 @@ year.
 | II. Three layers that never mix | `config/template.toml` in the repo; `config.toml` outside it; decisions, state and other data in `data/`; keys validated against the template; guardrail in pre-commit and CI with a self-test | Pass |
 | III. Minors' data | Nothing personal in URLs (the account is located by its `/u/<n>` index, comparing the email locally), in the log (opaque ids, relative paths, never the absolute path of the root) or in the repository: test pages are synthetic (only the structure of the real ones; every text and attribute invented). Classmates' comments and names are not stored. The student's grades, gradings and submissions are stored because they are study material, and they go to a family folder, not to third parties | Pass |
 | IV. Read-only on the school's platforms | The extractor only reads the DOM; it navigates only to the home page, «Trabajo de clase» (Classwork), the stream and the detail page; it never follows forms or quizzes and never clicks the «Tu trabajo» (Your work) panel (a `jsdom` test checks this); it detects anti-bot challenges and stops; at least 2 s between pages. Reading a question's detail page is not opening a quiz: opening one means answering it or following its form, and S3 checks that reading it changes nothing (if it did, questions are read from the listing only) | Pass |
-| V. Idempotent, incremental sync | Classroom identifier per item, hash per replica, comparison before writing (the agenda too, which does not depend on the day), previous versions kept, nothing deleted, a per-student lock and a lock on the Mac's browser with `fcntl.flock` for the whole run, renewed at every step and released only on idle. A run's captures, plan and log line are its own record (the exception V allows); state and decisions are not rewritten unless they change, and the date of the last full review is taken from the log, not from the state | Pass |
+| V. Idempotent, incremental sync | Classroom identifier per item, hash per replica, comparison before writing (the agenda too, which does not depend on the day), previous versions kept, nothing deleted (the mirrors are never pruned: `rsync` without `--delete`, which writes nothing to a mirror already up to date), a per-student lock and a lock on the Mac's browser with `fcntl.flock` for the whole run, renewed at every step and released only on idle. A run's captures, plan and log line are its own record (the exception V allows); state and decisions are not rewritten unless they change, and the date of the last full review is taken from the log, not from the state | Pass |
 | VI. One source, one isolated and tested provider | A shared `Source` port: `ClassroomSource` (captures) and `BookSource` (a book provider's directory); the subfolder comes from the source's name; adding another book touches neither `placement` nor `replicas`. Classroom extractor tested with `jsdom` on synthetic pages and the logic with `pytest`. Recorded exception: Science Bits' existing extractors remain untested (Complexity Tracking) | Pass with recorded exception |
-| VII. Every output is optional and degrades on its own | The Drive folder is the base output; the calendar is left for epic 2. The Science Bits notebook stays as it is today (enabled or not by configuration), and its result, a failure included, is logged with `log notebook`; if it fails, what was placed in the Drive is not touched | Pass |
+| VII. Every output is optional and degrades on its own | The Drive folder is the base output and the master of its mirrors; a mirror that fails is counted in the summary and the log and stops neither the master nor the other mirrors (FR-011a). The calendar is left for epic 2, with its `shared_with` list already in the template (FR-011b). The Science Bits notebook stays as it is today (enabled or not by configuration), and its result, a failure included, is logged with `log notebook`; if it fails, what was placed in the Drive is not touched | Pass |
 | VIII. Local time, always `Europe/Madrid` | A single date resolver with `zoneinfo`; year inferred from the school year; tests across clock changes and year changes | Pass |
 | IX. Simplicity | No runtime dependencies (runtime capture validation checks keys by hand); files instead of a database; `jsonschema`, Node and `jsdom` only in development (see Complexity Tracking); `uv`, already adopted for the environment, only prepares the environment and launches the command on the Mac, with no new libraries | Pass with justification |
 
@@ -190,15 +190,16 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 6. Claude downloads each requested attachment (the method from spike S1), in the plan's batches and
    with at least 2 s between downloads; `downloads collect` after each batch verifies them.
 7. `apply --student <id>`: recomputes the targets with the decisions in force, places replicas,
-   updates state and log, regenerates the agenda if it changes and prints the summary for the
-   family. `lock release` at the end; if the run dies, the lock is released on idle.
+   updates state and log, regenerates the agenda if it changes, brings each mirror up to date
+   from the root (`rsync -rlt --exclude .DS_Store <root>/ <mirror>/`, no `--delete`; FR-011a) and
+   prints the summary for the family, mirrors included by count. `lock release` at the end; if the run dies, the lock is released on idle.
 
 ## Science Bits in the same structure (FR-022, FR-023)
 
 - The skill reads `~/.alfabeta/<student>/config.toml` instead of `~/.alfabeta/config.json`:
   `[[subjects]]` with `book = "sciencebits"` and `book_class`, the school year from `[student]`,
-  `[sciencebits] url`, `[tools] folder` (instead of the tools folder in Dropbox) and `[notebook]`
-  (instead of `notebook.*`). No key outside the template, and the skill never writes to the
+  `[sciencebits] url`, `[tools] folder` (instead of the tools folder in Dropbox), `[drive] mirrors`
+  (instead of `storage.mirrors`) and `[notebook]` (instead of `notebook.*`, `share_with` included). No key outside the template, and the skill never writes to the
   configuration: if it is missing or invalid, `config check` and stop.
 - It takes the student's and the browser's lock (`lock take --mode interactive`, or `scheduled` if a
   scheduled task launches it) before opening Science Bits and releases it when done, so it never
@@ -209,14 +210,19 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 - Its result (`TemaNN_<LANG>.pdf` and `.md`) is still generated as today in the working folder under
   Downloads, and `book place` moves it through `BookSource` to
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title>/<book>/` inside the Drive root (the subfolder is
-  the value of `book`), with the same hash and previous-version rules as Classroom. It reuses the
+  the value of `book`), with the same hash and previous-version rules as Classroom, and then brings the
+  mirrors up to date as `apply` does. It reuses the
   existing folder whose name contains `Tema NN - `, whatever its date; only if there is none does it
   create one dated today.
 - It neither reads nor writes Dropbox; what was captured there before stays as it is.
 - The Gemini Notebook notebook stays as today, enabled or not with `[notebook] enabled`, until
   epic 3. In the `nlm` step the skill lists the notebook's sources and adds only the missing ones
-  (constitution V: repeating a topic does not duplicate sources). After that step, the skill calls
-  `log notebook` with its result (`created`, `unchanged`, `failed` with a reason, or `disabled`): a
+  (constitution V: repeating a topic does not duplicate sources). It then shares the notebook as
+  viewer with each account in `[notebook] share_with` that `nlm share status` does not already list
+  (`nlm share invite <id> <account> --role viewer`; FR-011b). Measured 2026-10-26: the school domain
+  allows a notebook owned by a personal Gmail account to be shared with the school account as
+  viewer, and it opens there. After that step, the skill calls
+  `log notebook` with its result and the sharing counts (`created`, `unchanged`, `failed` with a reason, or `disabled`): a
   notebook failure does not undo what was placed and shows in the log (constitution VII).
 
 ## Spikes before the implementation tasks
