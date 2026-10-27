@@ -20,7 +20,8 @@ Result of the test: the API is blocked for under-age students (see [classroom-in
 ## Calendar
 
 - Source: assignments, exams and posted material from `classroom-sync`.
-- Output: events in one calendar per student, owned by a parent and shared with the student. Only
+- Output: events in one calendar per student, owned by a parent and shared with every account in
+  `calendar.shared_with` (the student's personal and school accounts), each able to see event details. Only
   objective facts from Classroom; study time is planned by hand.
 
 ## Study pack
@@ -29,6 +30,9 @@ Result of the test: the API is blocked for under-age students (see [classroom-in
 - Output: a few pieces per topic in its notebook — explainer videos, a glossary, practice in the
   exam's language — and a guide for the parent in the Drive.
 - Design and evidence: [About preparing study material in advance](explanation/study-material.md).
+- From [#20](https://github.com/julioarguello/alfabeta/issues/20) on, the
+  [`study-pack` skill](../skills/study-pack/SKILL.md) runs it on request; starting it by itself when
+  Classroom moves to a new topic waits for `classroom-sync`.
 
 ## Other ideas
 

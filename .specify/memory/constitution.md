@@ -96,9 +96,18 @@ cannot be undone.
 
 ### VII. Every output is optional and degrades on its own
 
-- The student's folder on the Mac's disk is the base output. Which cloud it syncs with (the
-  family's Drive through Google Drive for desktop, or another) and who it is shared with is
-  configuration; alfabeta only writes in the folder. The Gemini Notebook notebook and the calendar
+- The student's master folder on the Mac's disk is the base output. Which cloud receives it is
+  configuration. When that cloud is the family's Drive, alfabeta MUST write it through its own
+  Google connection and count a file as uploaded only when the cloud confirms it; it MUST NOT rely
+  for it on a sync client whose result it cannot read.
+- alfabeta then brings each configured mirror up to date from the master, one-way. A mirror is the
+  Drive folder of an account alfabeta's own connection cannot reach (the school account), mounted on
+  the same Mac. It is never read back into the master, and nothing is deleted from it. Its upload
+  belongs to the sync client, so alfabeta reports it as written on the Mac, never as confirmed. A
+  failed mirror MUST NOT undo or block the master or the other outputs.
+- Every output reaches every account the configuration lists for it: the mirrors for the folder,
+  and a list of accounts the calendar and each notebook are shared with. alfabeta shares nothing
+  with an account the configuration does not list. The Gemini Notebook notebook and the calendar
   are outputs enabled by configuration.
 - Gemini Notebook has no public API and is used through `notebooklm-mcp-cli`, which can break. If one
   output fails, the others MUST complete and the failure MUST show in the log.
@@ -127,10 +136,17 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
-- **Storage**: one folder per student on disk, synced with the cloud their configuration sets.
+- **Storage**: one master folder per student on disk, uploaded to the cloud their configuration
+  sets, plus zero or more one-way mirrors with the same content in the student's other accounts.
   Structure shared by every source:
-  `<school-year>/<subject>/<Tema NN - title | Tema PNN - teacher's title | YYYY-MM>/<source>/`
-  (`classroom`, `sciencebits`…); `Tema PNN` is a teacher's topic that is not in the textbook.
+  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/<source>/`
+  (`classroom`, `sciencebits`…). Every topic folder starts with a date, the posting date of its
+  first Classroom material, so the student places each topic in time; the date is set when the
+  folder is created and never changes, and a folder is found by the part of its name after the
+  date. `Tema NN - title` is a topic that matches the textbook; a teacher's topic that is not in
+  the textbook carries the teacher's title alone; `Sin tema` holds what Classroom posts with no
+  topic. There are no month folders. Every Classroom item starts with its posting date,
+  `YYYYMMDD - <title>`.
 - **Notebooks**: one per topic, named `<grade level>. <Subject>. Tema NN - <title>` (`<grade level>`
   is the student's grade level, not the school year of the folder); only new sources are added.
 - **Language**: everything technical is written in English: code, identifiers, CLI, configuration
@@ -164,4 +180,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - Pull request reviews MUST verify compliance. Complexity that departs from IX MUST be justified in
   writing.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-25
+**Version**: 1.5.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
