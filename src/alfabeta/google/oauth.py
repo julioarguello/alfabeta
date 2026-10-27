@@ -176,9 +176,12 @@ class _CallbackHandler(http.server.BaseHTTPRequestHandler):
 
 
 def receive_code(
-    open_browser: Any, client: Client, scopes: tuple[str, ...], timeout: float = 300.0
+    open_browser: Any, client: Client, scopes: tuple[str, ...], timeout: float = 900.0
 ) -> tuple[str, str, str]:
-    """Open Google's sign-in and wait for the redirect. Returns (code, verifier, redirect_uri)."""
+    """Open Google's sign-in and wait for the redirect. Returns (code, verifier, redirect_uri).
+
+    The wait allows 15 minutes: a supervised account needs a parent to approve the sign-in first.
+    """
     done = threading.Event()
     result: dict[str, str] = {}
     handler = type("Handler", (_CallbackHandler,), {"result": result, "done": done})
