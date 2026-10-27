@@ -38,7 +38,8 @@ class FakeNotebook:
             raise SourcesError(signed_out=False)
         self.added.append((file_id, title))
         source = f"src-{len(self.added)}"  # like nlm: a new id on every add
-        self.sources.append(Source(source, title))
+        # Like NotebookLM, measured 2026-10-27: the title is the Drive file's name, `.pdf` included.
+        self.sources.append(Source(source, f"{title}.pdf"))
         return source
 
     def list_sources(self, notebook: str) -> list[Source]:
