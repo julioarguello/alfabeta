@@ -207,3 +207,13 @@ test("«Ayer» is a posting date", () => {
   posted.textContent = "Ayer";
   assert.equal(dom.window.alfabetaExtract.readDetail(doc).posted_text, "Ayer");
 });
+
+test("an attachment is named by its file, without the label's prefix", () => {
+  const doc = new JSDOM(
+    '<a href="https://drive.google.com/file/d/synth-1/view" aria-label="Archivo adjunto: Microsoft Word: ficha inventada.docx">x</a>' +
+    '<a href="https://www.youtube.com/watch?v=synth-2" aria-label="Archivo adjunto: vídeo de YouTube: Vídeo inventado">y</a>',
+  ).window.document;
+  const [file, video] = [...doc.querySelectorAll("a")].map((a) => extract.attachmentOf(a));
+  assert.equal(file.name, "ficha inventada.docx");
+  assert.equal(video.name, "Vídeo inventado");
+});

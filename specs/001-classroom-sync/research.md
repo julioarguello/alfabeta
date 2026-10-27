@@ -184,6 +184,13 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   - The lock was released as `idle` after 30 minutes without a renewal during the browser part. The
     watcher worked as designed; the skill must call `lock renew` between browser steps.
   - An item posted the day before shows «Ayer» as its date; the extractor accepts «Hoy» and «Ayer».
+- **Second real run, measured 2026-10-27** (same class, same bench): the whole class (13 items and
+  the stream) was captured in 75 s, the session still valid, `complete: true`. A dry plan in a
+  scratch copy showed every attachment named «Archivo adjunto: <tipo>: <name>»: that is the
+  anchor's aria-label, and with it no download would ever match its expected name. The extractor
+  now drops the prefix. The synthetic pages had not shown it because the anonymiser replaced the
+  whole label; it now keeps the prefix and the kinds seen («PDF», «Imagen», «Microsoft Word»,
+  «Microsoft PowerPoint», «vídeo de YouTube»).
 
 ### R5. Dates without a year, and relative dates
 
