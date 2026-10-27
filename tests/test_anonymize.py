@@ -19,6 +19,7 @@ NAME = "Iñigo Inventado"
 # Built at run time, like the guardrail's own planted values: a literal would trip the commit hook.
 CLASS_ID = base64.b64encode(("9912" + "34567890").encode()).decode()
 ITEM_ID = base64.b64encode(("8776" + "65544332").encode()).decode()
+NUMERIC_ID = "8776" + "65544332"
 LEAK = 'class="' + "persona.real" + "@" + 'colegio-real.es"'
 PAGE = f"""<!DOCTYPE html>
 <html><head><style>.YVvGBb {{ color: red }}</style><script>var data = ["{NAME}", "{TITLE}"];</script></head>
@@ -42,7 +43,7 @@ def test_keeps_structure_and_labels_and_invents_the_rest():
     assert 'class="item YVvGBb"' in out and '<nav class="tab-bar">' in out and "<style></style>" in out
     assert 'aria-label="Trabajo de clase">Trabajo de clase</a>' in out
     assert "Fecha de entrega: " in out and "13 oct" not in out
-    assert "https://classroom.google.com/u/synth-" in out and "/c/synth-" in out and "/a/synth-" in out
+    assert "https://classroom.google.com/u/5/c/synth-" in out and "/a/synth-" in out  # the account index stays
     assert out.count("/details") == 1 and "ha publicado</span>" in out
     assert "hl=es" not in out and "lh3.googleusercontent.com" not in out
 
@@ -95,9 +96,18 @@ def test_command_writes_nothing_on_refusal(tmp_path: Path):
 
 def test_structure_the_extractor_reads_is_kept():
     page = (
-        '<li data-stream-item-type="2" data-visibility="1" aria-current="page">'
-        f'<a href="/u/0/c/{CLASS_ID}/mc/{ITEM_ID}/details">{TITLE}</a><span>100 puntos</span></li>'
+        '<li role="listitem" jsname="rymPhb" jsaction="click:cOuCgd; mousedown:UX7yZ" '
+        f'jscontroller="{ITEM_ID}" data-stream-item-type="2" data-visibility="1" aria-current="page" '
+        f'data-stream-item-id="{NUMERIC_ID}" data-draggable-item-id="{NUMERIC_ID}">'
+        f'<a href="/u/0/c/{CLASS_ID}/mc/{ITEM_ID}/details">{TITLE}</a><span>100 puntos</span>'
+        "<span>24 sept (Última modificación: 25 sept)</span><span>Calificado</span></li>"
     )
     out = anonymize.anonymize(page)
     assert 'data-stream-item-type="2"' in out and 'data-visibility="1"' in out and 'aria-current="page"' in out
     assert "/mc/synth-" in out and "/details" in out and "100 puntos" in out and TITLE not in out
+    assert 'role="listitem"' in out and 'jsname="rymPhb"' in out and 'jsaction="click:cOuCgd; mousedown:UX7yZ"' in out
+    assert ITEM_ID not in out  # a token long enough to be an id is not code
+    synthetic = out.split('data-stream-item-id="', 1)[1].split('"', 1)[0]
+    assert synthetic.isdigit() and len(synthetic) == 10 and f'data-draggable-item-id="{synthetic}"' in out
+    assert NUMERIC_ID not in out
+    assert "(Última modificación: " in out and "24 sept" not in out and "<span>Calificado</span>" in out

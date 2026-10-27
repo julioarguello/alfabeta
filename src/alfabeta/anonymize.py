@@ -52,10 +52,21 @@ LABELS = frozenset(
         "ha publicado",
         "publicado una nueva tarea",
         "Hoy",
+        # The status vocabulary of data-model.md «Status from the detail texts», and the labels of the
+        # stream's creation date; added 2026-10-27, when the real assignment page showed «Calificado».
+        "Falta",
+        "Calificado",
+        "Devuelto",
+        "Entregado con retraso",
+        "Completada",
+        "El profesor ha indicado que falta esto",
+        "Fecha de creación",
     }
 )
 _MONTHS = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")
 _DATE = re.compile(r"(?:\d{1,2} (?:" + "|".join(_MONTHS) + r")(?:, \d{1,2}:\d{2})?|\d{1,2}:\d{2})")
+_NUMERIC_ID = re.compile(r"\d{8,}")
+_EDITED = re.compile(r"(" + _DATE.pattern + r")\s*\(Última modificación:\s*(" + _DATE.pattern + r")\)")
 _LABELLED = re.compile(
     r"^(" + "|".join(re.escape(label) for label in sorted(LABELS, key=len, reverse=True)) + r")(: ?)(.+)$"
 )
@@ -110,6 +121,10 @@ _SUFFIXED = re.compile(
 # An opaque id in an attribute (`data-id`): no spaces, at least 8 characters, letters and digits.
 _ID_TOKEN = re.compile(r"(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{8,}={0,2}")
 _MIN_CHECKED = 4
+# The ARIA role and the names of the page's own components (`jsname`, `jsaction`…): structure, never data.
+_CODE_ATTRS = frozenset({"role", "jsname", "jscontroller", "jsmodel", "jsaction"})
+_CODE_TOKEN = re.compile(r"[A-Za-z0-9_.-]{1,12}")
+_ARIA_ROLE = re.compile(r"[a-z]+(?: [a-z]+)*")
 # Enumerations the page uses for structure (`data-stream-item-type="1"`, `aria-current="page"`), never data.
 _ENUM = re.compile(r"\d{1,3}|true|false|page")
 _ID_IN_NAME = re.compile(r"\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}", re.IGNORECASE)
@@ -126,12 +141,17 @@ class _Inventor:
     texts: dict[str, str] = field(default_factory=dict[str, str])
     ids: dict[str, str] = field(default_factory=dict[str, str])
     dates: dict[str, str] = field(default_factory=dict[str, str])
+    numbers: dict[str, str] = field(default_factory=dict[str, str])
 
     def text(self, original: str) -> str:
         return self.texts.setdefault(original, f"texto {len(self.texts) + 1}")
 
     def ident(self, original: str) -> str:
         return self.ids.setdefault(original, f"synth-{len(self.ids) + 1}")
+
+    def number(self, original: str) -> str:
+        """A numeric id (`data-stream-item-id`) as another number: 10 digits, below the guardrail's 11 to 15."""
+        return self.numbers.setdefault(original, str(9_000_000_000 + len(self.numbers) + 1))
 
     def date(self, original: str) -> str:
         if original not in self.dates:
@@ -146,7 +166,10 @@ class _Inventor:
             scheme, rest = "", original
         host, slash, path = rest.partition("/") if sep else ("", "/", rest.lstrip("/"))
         path = path.split("?", 1)[0].split("#", 1)[0]
-        parts = [part if (not part or part in _ROUTES) else self.ident(part) for part in path.split("/")]
+        parts = [
+            part if (not part or part in _ROUTES or _ENUM.fullmatch(part)) else self.ident(part)
+            for part in path.split("/")
+        ]
         if sep:
             return f"{scheme}://{host if host in _HOSTS else 'example.org'}{slash}{'/'.join(parts)}"
         return ("/" if original.startswith("/") else "") + "/".join(parts)
@@ -158,6 +181,12 @@ class _Inventor:
             return original
         if _DATE.fullmatch(stripped):
             return original.replace(stripped, self.date(stripped))
+        edited = _EDITED.fullmatch(stripped)
+        if edited:  # «24 sept (Última modificación: 25 sept)»
+            posted, modified = edited.groups()
+            return original.replace(stripped, f"{self.date(posted)} (Última modificación: {self.date(modified)})")
+        if _NUMERIC_ID.fullmatch(stripped):
+            return original.replace(stripped, self.number(stripped))
         if _ID_TOKEN.fullmatch(stripped):
             return original.replace(stripped, self.ident(stripped))
         suffixed = _SUFFIXED.match(stripped)
@@ -172,6 +201,17 @@ class _Inventor:
 
 def _looks_like_url(value: str) -> bool:
     return value.startswith(("http://", "https://", "//")) or (value.startswith("/") and " " not in value)
+
+
+def _is_code(value: str) -> bool:
+    """A value made of short code tokens (`click:cOuCgd; mousedown:UX7yZ`), none long enough to be an id.
+
+    An ARIA role is lowercase words only (`complementary`, `tab list`), whatever their length.
+    """
+    if _ARIA_ROLE.fullmatch(value):
+        return True
+    tokens = [t for t in re.split(r"[\s;:(),]+", value) if t]
+    return bool(tokens) and all(_CODE_TOKEN.fullmatch(t) for t in tokens)
 
 
 def _is_label(text: str) -> bool:
@@ -196,7 +236,7 @@ class _Rewriter(HTMLParser):
             if value is None:
                 rendered.append(f" {name}")
                 continue
-            if name == "class":
+            if name == "class" or (name in _CODE_ATTRS and _is_code(value)):
                 kept = value
             elif _looks_like_url(value):
                 kept = self.inventor.url(value)
@@ -247,9 +287,10 @@ def _pieces(text: str) -> set[str]:
         allowed = (
             _is_label(stripped)
             or _DATE.fullmatch(stripped)
+            or _EDITED.fullmatch(stripped)
             or stripped in _ROUTES
             or _ENUM.fullmatch(stripped)
-            or (suffixed is not None and _ENUM.fullmatch(suffixed.group(1)))  # «100 puntos»
+            or (suffixed is not None and (_ENUM.fullmatch(suffixed.group(1)) or _is_label(suffixed.group(1))))
         )
         if len(stripped) >= _MIN_CHECKED and not allowed:
             found.add(stripped)
