@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from alfabeta.config import AccountConfig, StudentConfig
     from alfabeta.google.keychain import TokenStore
 
-STATUSES = ("ok", "revoked", "expired", "missing_scope", "no_token", "network")
+STATUSES = ("ok", "revoked", "expired", "missing_scope", "no_token", "no_client", "network")
 _TESTING_WINDOW_DAYS = 8
 
 
@@ -156,7 +156,10 @@ def check_accounts(
             access_token(config, alias, store, transport)
             statuses.append(AccountStatus(alias, "ok"))
         except LinkError as err:
-            status = err.reason if err.reason in STATUSES else "network"
+            # Only an HTTP error without an OAuth reason (http_<status>) counts as a network problem.
+            status = (
+                err.reason if err.reason in STATUSES else "network" if err.reason.startswith("http_") else err.reason
+            )
             linked_on = records.get(alias, {}).get("linked_on")
             recent = linked_on is not None and (today - dt.date.fromisoformat(linked_on)).days < _TESTING_WINDOW_DAYS
             statuses.append(AccountStatus(alias, status, testing_suspected=status == "expired" and recent))

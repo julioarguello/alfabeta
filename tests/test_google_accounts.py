@@ -128,3 +128,8 @@ def test_unlink_revokes_and_forgets(cfg: config.StudentConfig, store: MemoryStor
     accounts.unlink_account(cfg, "student", store, t)
     assert store.get("s9/student") is None
     assert t.calls[0][1] == oauth.REVOKE_URL
+
+
+def test_check_without_client_says_so(cfg: config.StudentConfig):
+    [status] = accounts.check_accounts(cfg, MemoryStore(), FakeTransport(), TODAY)
+    assert status == accounts.AccountStatus("student", "no_client")
