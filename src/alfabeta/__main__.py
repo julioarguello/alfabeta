@@ -159,10 +159,11 @@ def main(argv: list[str] | None = None) -> int:
     """Run the command."""
     args = build_parser().parse_args(argv)
     home = Path(args.home).expanduser()
+    if args.group == "guardrail":
+        # No configuration folder (CI, another contributor) only means no named detectors.
+        return guardrail.run(Path.cwd(), home, args.scope)
     if not home.is_dir():
         return _fail("no_home", EXIT_INVALID, "the configuration folder does not exist")
-    if args.group == "guardrail":
-        return guardrail.run(Path.cwd(), home, args.scope)
     store = KeychainStore()
     try:
         if args.group == "google" and args.verb == "client":
