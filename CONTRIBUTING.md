@@ -11,7 +11,9 @@ You need [uv](https://docs.astral.sh/uv/) and [Node.js](https://nodejs.org/) 23 
 make setup-python setup-node
 ```
 
-`uv` installs Python 3.12 if it is missing and creates `.venv/` from `uv.lock`. `npm ci` installs
+`make setup-python` also installs the pre-commit hook (`.githooks/pre-commit`), which runs the
+personal-data guardrail on every commit. `uv` installs Python 3.12 if it is missing and creates
+`.venv/` from `uv.lock`. `npm ci` installs
 `jsdom`, which the browser extractor's tests use.
 
 ## The gate
@@ -27,14 +29,19 @@ It runs, in this order:
 3. strict `pyright`;
 4. `pytest`, which fails if it collects no tests;
 5. `node --test` for the browser JavaScript;
-6. the personal-data guardrail. Until spec 001 T014 adds it, the gate prints it as skipped.
+6. the personal-data guardrail over every tracked file (`python -m alfabeta guardrail --all`).
+
+Outside CI, `make ci` also fails if the pre-commit hook is missing or stale.
 
 GitHub runs the same `make ci` on every pull request (`.github/workflows/ci.yml`). The `autofix`
 job beside it only reports what ruff would change and never blocks.
 
 - Pyright in strict mode is the only type checker. Do not add mypy.
-- A gate that inspected nothing is not green. pytest exits non-zero when it collects zero tests,
-  and the guardrail checks itself before it scans.
+- A gate that inspected nothing is not green. pytest exits non-zero when it collects zero tests.
+  The guardrail plants one defect per detector in memory before it scans, and exits 3 if a
+  detector misses it.
+- The guardrail names `file:line: detector` and never the value. An invented value that reached
+  the published history goes in `.guardrail-allow`, with a comment; a real one never does.
 
 ## What may go into the repository
 

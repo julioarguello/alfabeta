@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, config
+from alfabeta import __version__, config, guardrail
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
@@ -137,6 +137,13 @@ def build_parser() -> argparse.ArgumentParser:
     unlink = google.add_parser("unlink", help="revoke an account's link")
     unlink.add_argument("--account", required=True)
 
+    guard = groups.add_parser("guardrail", help="look for personal data before it is published")
+    scope = guard.add_mutually_exclusive_group()
+    scope.add_argument("--staged", dest="scope", action="store_const", const="staged", help="the staged change")
+    scope.add_argument("--all", dest="scope", action="store_const", const="all", help="every tracked file")
+    scope.add_argument("--history", dest="scope", action="store_const", const="history", help="every published commit")
+    guard.set_defaults(scope="staged")
+
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
     probe = cal.add_parser("probe", help="a test event with one reminder at its start")
     probe.add_argument("--minutes", type=int, default=10)
@@ -154,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
     home = Path(args.home).expanduser()
     if not home.is_dir():
         return _fail("no_home", EXIT_INVALID, "the configuration folder does not exist")
+    if args.group == "guardrail":
+        return guardrail.run(Path.cwd(), home, args.scope)
     store = KeychainStore()
     try:
         if args.group == "google" and args.verb == "client":

@@ -1,0 +1,3 @@
+# Invented values the guardrail may accept. Each one reached the published history before
+# the guardrail existed and cannot be removed without rewriting it. Never add a real value.
+familia-inventada@group.calendar.google.com  # invented calendar id in tests/conftest.py of #33

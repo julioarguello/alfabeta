@@ -15,8 +15,8 @@ import pytest
 from alfabeta.google.transport import Response
 
 STUDENT_ADDRESS = "estudiante.inventado@example.com"
-SCHOOL_ADDRESS = "alumno.inventado@colegio-inventado.example"
-CALENDAR_ID = "familia-inventada@group.calendar.google.com"
+SCHOOL_ADDRESS = "alumno.inventado@colegio.example.org"
+CALENDAR_ID = "familia-inventada@calendar.example.org"
 
 CONFIG = f"""
 [classroom]
