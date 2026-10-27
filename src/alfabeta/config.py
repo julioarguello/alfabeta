@@ -17,13 +17,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from alfabeta.model import Subject
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "template.toml"
 # A template table whose only child is this table holds one table per name the operator chooses.
 DYNAMIC = "changeme"
-READERS = frozenset({"_str", "_strs", "_int", "_names"})
+READERS = frozenset({"_str", "_strs", "_int", "_names", "_count"})
 
 _NAME = re.compile(r"[a-z][a-z0-9_-]*")
 # Google Drive for desktop mounts every account under this folder (spec 004 R7).
@@ -62,6 +64,9 @@ def _at(data: Mapping[str, Any], path: str, names: tuple[str, ...]) -> Any:
     pending = list(names)
     for part in path.split("."):
         step = pending.pop(0) if part == "*" else part
+        if isinstance(node, list) and step.isdigit() and int(step) < len(cast("list[Any]", node)):
+            node = cast("list[Any]", node)[int(step)]
+            continue
         if not isinstance(node, dict) or step not in node:
             raise ConfigError(f"key {path} was not loaded")
         node = cast("dict[str, Any]", node)[step]
@@ -87,6 +92,13 @@ def _int(data: Mapping[str, Any], path: str, *names: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 1:
         raise ConfigError(f"key {path} must be a whole number of at least 1")
     return value
+
+
+def _count(data: Mapping[str, Any], path: str, *names: str) -> int:
+    value = _at(data, path, names)
+    if not isinstance(value, list):
+        raise ConfigError(f"key {path} is not a list")
+    return len(cast("list[Any]", value))
 
 
 def _names(data: Mapping[str, Any], path: str, *names: str) -> tuple[str, ...]:
@@ -118,6 +130,34 @@ class StudentConfig:
     def calendar_id(self) -> str:
         """The family calendar alfabeta writes to."""
         return _str(self.data, "calendar.id")
+
+    @property
+    def school_year(self) -> str:
+        """The school year, `YYYY-YYYY`."""
+        return _str(self.data, "student.school_year")
+
+    @property
+    def base(self) -> Path:
+        """The student's base folder on the Mac."""
+        return Path(_str(self.data, "storage.base")).expanduser()
+
+    @property
+    def full_review_days(self) -> int:
+        """Every how many days every attachment is downloaded again."""
+        return _int(self.data, "sync.full_review_days")
+
+    @property
+    def subjects(self) -> tuple[Subject, ...]:
+        """The configured subjects, in order."""
+        return tuple(
+            Subject(
+                folder=_str(self.data, "subjects.*.folder", str(i)),
+                classroom_class=_str(self.data, "subjects.*.classroom_class", str(i)),
+                book=_str(self.data, "subjects.*.book", str(i), allow_empty=True),
+                book_class=_str(self.data, "subjects.*.book_class", str(i), allow_empty=True),
+            )
+            for i in range(_count(self.data, "subjects"))
+        )
 
     @property
     def downloads_folder(self) -> str:
@@ -237,6 +277,11 @@ def _read(home: Path, student: str) -> tuple[Path, dict[str, Any]]:
             return root, tomllib.load(handle)
     except tomllib.TOMLDecodeError as err:
         raise ConfigError(f"config.toml is not valid TOML ({err})") from None
+
+
+def load_all(home: Path, student: str, template: Path = TEMPLATE) -> StudentConfig:
+    """Load and validate every table of the template (the commands that act on the student's folder)."""
+    return load(home, student, tuple(load_template(template)), template)
 
 
 def load(home: Path, student: str, tables: Iterable[str], template: Path = TEMPLATE) -> StudentConfig:

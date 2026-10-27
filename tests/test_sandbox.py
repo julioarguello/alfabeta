@@ -9,6 +9,8 @@ import sys
 from typing import TYPE_CHECKING
 
 from alfabeta import config, placement, sandbox
+from alfabeta.decisions import DecisionStore
+from alfabeta.model import DecisionType
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -61,8 +63,23 @@ def test_download_carries_the_run_in_name_and_field(tmp_path: Path):
     assert "alfabeta-capture-r42-synth-1-20261027-162200.json" in written
 
 
-def test_attachments_are_not_built_yet(tmp_path: Path):
+def test_prepare_leaves_attachments_and_decisions(tmp_path: Path):
     home = tmp_path / "box"
     cli("--home", str(home), "sandbox", "prepare")
-    done = cli("--home", str(home), "sandbox", "download", "--student", "sample", "--batch", "1", run="r42")
-    assert done.returncode == 1 and "T039" in done.stderr
+    names = sorted(p.name for p in (home / "sandbox-attachments").iterdir())
+    assert "ficha-inventada.pdf" in names and "Plantilla inventada.pdf" in names
+    assert not any(n.startswith("Vídeo") or n.startswith("Página") for n in names)  # never downloaded
+    store = DecisionStore.open(home / "sample" / "data")
+    assert {d.origin for d in store.decisions() if d.type == DecisionType.CLASS_LINK and d.counts} == {
+        "synth-1",
+        "synth-2",
+    }
+    exam = store.in_force(DecisionType.DETECTED_EXAM, "synth-30#exam-1")
+    assert exam is not None and exam.decision.counts
+
+
+def test_download_batch_needs_a_plan(tmp_path: Path):
+    home = tmp_path / "box"
+    cli("--home", str(home), "sandbox", "prepare")
+    done = cli("--home", str(home), "sandbox", "download", "--student", "sample", "--batch", "0", run="r42")
+    assert done.returncode == 1 and "no plan" in done.stderr

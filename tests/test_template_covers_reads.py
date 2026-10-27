@@ -37,6 +37,8 @@ def declared(template: dict[str, Any], path: str) -> bool:
     for part in path.split("."):
         if isinstance(node, list) and node:
             node = cast("list[Any]", node)[0]
+            if part == "*":  # the element of an array of tables, such as [[subjects]]
+                continue
         if not isinstance(node, dict):
             return False
         step = config.DYNAMIC if part == "*" else part

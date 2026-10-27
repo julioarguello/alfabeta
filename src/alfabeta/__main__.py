@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, anonymize, config, decisions, guardrail, sandbox, state
+from alfabeta import __version__, anonymize, config, decisions, downloads, guardrail, plan, sandbox, state
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
@@ -155,6 +155,57 @@ def _cmd_decisions(args: argparse.Namespace, home: Path) -> int:
     return EXIT_OK
 
 
+def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        lease = lock.renew(run)
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    cfg = config.load_all(home, args.student)
+    store = decisions.DecisionStore.open(lock.data_dir)
+    planner = plan.Planner(
+        school_year=cfg.school_year,
+        subjects=cfg.subjects,
+        base=cfg.base,
+        decisions=store,
+        state=state.StateStore(lock.data_dir).load(),
+        full_review_days=cfg.full_review_days,
+        today=decisions.today(),
+        last_review=plan.last_full_review(lock.data_dir / "log.jsonl"),
+    )
+    if args.subject:
+        wanted = set(args.subject)
+        scope = [c for c, s in planner.linked_classes().items() if s.folder in wanted]
+    else:
+        scope = list(lease.get("classes", []))
+    try:
+        result = planner.plan(plan.latest_captures(lock.data_dir / "captures"), scope, str(run))
+    except plan.PlanError as err:
+        state.StateStore(lock.data_dir).log(state.stopped_line(run, StopReason(err.reason), lease))
+        with contextlib.suppress(state.LockError):
+            lock.release(run)
+        return _fail(err.reason, EXIT_INVALID, str(err))
+    plan.write(result, lock.data_dir)
+    _emit(result)
+    return EXIT_OK
+
+
+def _cmd_collect(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        lock.renew(run)
+        cfg = config.load(home, args.student, ("downloads",))
+        inbox = downloads.DownloadsInbox(Path(cfg.downloads_folder).expanduser(), lock.data_dir)
+        result = downloads.collect(inbox, str(run), args.wait)
+        lock.record_classes(run, result["classes"])
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    _emit({"collected": result["collected"], "pending": result["pending"], "classes": result["classes"]})
+    return EXIT_INVALID if result["pending"] else EXIT_OK
+
+
 def _cmd_sandbox(args: argparse.Namespace) -> int:
     try:
         home = sandbox.require_explicit_home(args.home)
@@ -163,7 +214,7 @@ def _cmd_sandbox(args: argparse.Namespace) -> int:
             sandbox.prepare(home, args.student)
             _emit({"ok": True, "student": args.student})
         elif args.batch is not None:
-            return _fail("not_built", EXIT_INVALID, "invented attachments arrive with spec 001 T039")
+            _emit({"ok": True, "written": sandbox.download_batch(home, args.student, args.batch)})
         else:
             _emit({"ok": True, "written": sandbox.download_captures(home, args.student, os.environ.get(state.RUN_ENV))})
     except (sandbox.SandboxError, config.ConfigError) as err:
@@ -270,6 +321,14 @@ def build_parser() -> argparse.ArgumentParser:
     unlink = google.add_parser("unlink", help="revoke an account's link")
     unlink.add_argument("--account", required=True)
 
+    plan_cmd = groups.add_parser("plan", help="what this run downloads, places and asks")
+    plan_cmd.add_argument("--subject", action="append", default=[])
+    dl = groups.add_parser("downloads", help="the browser's downloads folder").add_subparsers(
+        dest="verb", required=True
+    )
+    collect = dl.add_parser("collect", help="move this run's captures and the planned attachments to data/")
+    collect.add_argument("--wait", type=int, default=0)
+
     dec = groups.add_parser("decisions", help="Claude's proposals and the family's decisions").add_subparsers(
         dest="verb", required=True
     )
@@ -348,6 +407,8 @@ def build_parser() -> argparse.ArgumentParser:
         confirm,
         correct,
         change,
+        plan_cmd,
+        collect,
     ):
         sub.add_argument("--student", required=True)
     return parser
@@ -380,6 +441,10 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_log_stop(args, home)
         if args.group == "decisions":
             return _cmd_decisions(args, home)
+        if args.group == "plan":
+            return _cmd_plan(args, home)
+        if args.group == "downloads":
+            return _cmd_collect(args, home)
         if args.group == "config":
             return _cmd_config_check(home, args.student)
         cfg = config.load(home, args.student, TABLES[args.group])

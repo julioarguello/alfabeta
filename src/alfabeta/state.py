@@ -167,6 +167,15 @@ class Lock:
         write_atomic(self.lease_path, _dumps(lease))
         return lease
 
+    def record_classes(self, run: str | None, classes: list[str]) -> dict[str, Any]:
+        """Add to the lease the classes whose captures `downloads collect` moved, and renew it."""
+        lease = self.require(run)
+        known = list(lease.get("classes", []))
+        lease["classes"] = known + [c for c in classes if c not in known]
+        lease["renewed_at"] = _now().isoformat()
+        write_atomic(self.lease_path, _dumps(lease))
+        return lease
+
     def take(self, mode: RunMode, idle_minutes: int) -> str:
         """Start a watcher that takes both flocks; the new run's id, or LockError(lock_busy)."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
