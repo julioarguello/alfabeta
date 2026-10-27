@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, anonymize, config, decisions, downloads, guardrail, plan, sandbox, state
+from alfabeta import __version__, anonymize, config, decisions, downloads, guardrail, plan, replicas, sandbox, state
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
@@ -191,6 +191,96 @@ def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
     return EXIT_OK
 
 
+def _summary(applier: replicas.Applier, pending: list[dict[str, Any]], stopped: dict[str, str]) -> list[str]:
+    """What the family reads after a sync, in Spanish (T043, FR-008)."""
+    if not (applier.added or applier.changed or applier.not_fetched or pending or stopped or applier.unknown_statuses):
+        return ["sin cambios"]
+    lines = [f"{applier.added} nuevos, {applier.changed} cambiados, {len(applier.not_fetched)} sin traer"]
+    unlinked = [p for p in pending if p["type"] == "class_link" and p.get("visibility") == "visible"]
+    hidden = [p for p in pending if p["type"] == "class_link" and p.get("visibility") != "visible"]
+    matches = [p for p in pending if p["type"] == "topic_match"]
+    if unlinked:
+        lines.append("clases sin vincular: " + ", ".join(str(p["title"]) for p in unlinked))
+    if hidden:
+        lines.append(f"clases ocultas o archivadas: {len(hidden)}")
+    if matches:
+        lines.append(f"temas por confirmar: {len(matches)}")
+    if applier.unknown_statuses:
+        lines.append(f"estados desconocidos: {applier.unknown_statuses}")
+    if applier.unreadable:
+        lines.append(f"capturas ilegibles: {len(applier.unreadable)}")
+    lines += [f"clase sin aplicar: {reason}" for reason in stopped.values()]
+    return lines
+
+
+def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        lease = lock.renew(run)
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    cfg = config.load_all(home, args.student)
+    store_log = state.StateStore(lock.data_dir)
+    if not cfg.base.is_dir():
+        store_log.log(state.stopped_line(run, StopReason.DRIVE_NOT_MOUNTED, lease))
+        with contextlib.suppress(state.LockError):
+            lock.release(run)
+        return _fail(
+            str(StopReason.DRIVE_NOT_MOUNTED), EXIT_INVALID, "the base folder is not there; nothing was written"
+        )
+    store = decisions.DecisionStore.open(lock.data_dir)
+    links = plan.linked_classes(store, cfg.subjects)
+    plan_path = lock.data_dir / "plan.json"
+    planned: dict[str, Any] = json.loads(plan_path.read_text()) if plan_path.is_file() else {}
+    current = store_log.load()
+    applier = replicas.Applier(
+        base=cfg.base,
+        data_dir=lock.data_dir,
+        school_year=cfg.school_year,
+        subjects=list(cfg.subjects),
+        decisions=store,
+        state=json.loads(json.dumps(current)),
+        today=decisions.today(),
+        downloads=list(planned.get("downloads", [])),
+    )
+    if args.subject:
+        scope = [c for c, s in links.items() if s.folder in set(args.subject)]
+    else:
+        scope = list(lease.get("classes", []))
+    stopped = plan.run_stops(lock.data_dir / "captures", str(run))
+    captures = plan.latest_captures(lock.data_dir / "captures")
+    applied = applier.apply(captures, [c for c in scope if c not in stopped], links)
+    if applier.state != current:
+        store_log.save(applier.state)
+    partial = bool(stopped)
+    line = {
+        "run": run,
+        "started_at": lease.get("started_at"),
+        "ended_at": dt.datetime.now(MADRID).isoformat(),
+        "mode": lease.get("mode"),
+        "result": "partial" if partial else "ok",
+        "reason": next(iter(stopped.values())) if partial else None,
+        "account_index": captures["classes"]["account_index"] if "classes" in captures else None,
+        "classes": applied,
+        "added": applier.added,
+        "changed": applier.changed,
+        "withdrawn": 0,
+        "not_fetched": applier.not_fetched,
+        "unknown_statuses": applier.unknown_statuses,
+        "pending_decisions": len(planned.get("pending_decisions", [])),
+        "full_review": bool(planned.get("full_review")),
+    }
+    store_log.log(line)
+    for text in _summary(applier, list(planned.get("pending_decisions", [])), stopped):
+        print(f"alfabeta: {text}", file=sys.stderr)
+    _emit(
+        {k: line[k] for k in ("result", "reason", "added", "changed", "unknown_statuses")}
+        | {"not_fetched": len(applier.not_fetched)}
+    )
+    return EXIT_OK
+
+
 def _cmd_collect(args: argparse.Namespace, home: Path) -> int:
     lock = _lock(home, args.student)
     run = os.environ.get(state.RUN_ENV)
@@ -323,6 +413,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     plan_cmd = groups.add_parser("plan", help="what this run downloads, places and asks")
     plan_cmd.add_argument("--subject", action="append", default=[])
+    apply_cmd = groups.add_parser("apply", help="place what this run collected in the student's base folder")
+    apply_cmd.add_argument("--subject", action="append", default=[])
     dl = groups.add_parser("downloads", help="the browser's downloads folder").add_subparsers(
         dest="verb", required=True
     )
@@ -408,6 +500,7 @@ def build_parser() -> argparse.ArgumentParser:
         correct,
         change,
         plan_cmd,
+        apply_cmd,
         collect,
     ):
         sub.add_argument("--student", required=True)
@@ -443,6 +536,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_decisions(args, home)
         if args.group == "plan":
             return _cmd_plan(args, home)
+        if args.group == "apply":
+            return _cmd_apply(args, home)
         if args.group == "downloads":
             return _cmd_collect(args, home)
         if args.group == "config":

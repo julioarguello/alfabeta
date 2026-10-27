@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from alfabeta.model import (
     Attachment,
+    AttachmentKind,
     Decision,
     DecisionState,
     DecisionType,
@@ -70,6 +71,17 @@ def summary(text: str) -> str:
     if words[SUMMARY_CHARS] != " " and " " in cut:
         cut = cut[: cut.rindex(" ")]
     return cut.rstrip(" .,;-")
+
+
+def downloaded_name(name: str, kind: str) -> str:
+    """The name a file has once downloaded: Google files arrive as PDF (research R3, S1)."""
+    if kind == AttachmentKind.GOOGLE_DOC and PurePosixPath(name).suffix.lower() != ".pdf":
+        return f"{name}.pdf"
+    return name
+
+
+def _file_name(attachment: Attachment) -> str:
+    return clean(downloaded_name(attachment.name, attachment.kind))
 
 
 def _day(date: dt.date) -> str:
@@ -179,12 +191,12 @@ class Placer:
         if item.type in (ItemType.ASSIGNMENT, ItemType.QUESTION):
             folder = f"{where}/{self._unique(where, fit(f'{day} - {title}'), item.id, is_folder=True)}"
             targets = [
-                Target(ReplicaRole.STATEMENT, a.id, f"{folder}/{fit('enunciado - ' + clean(a.name))}") for a in files
+                Target(ReplicaRole.STATEMENT, a.id, f"{folder}/{fit('enunciado - ' + _file_name(a))}") for a in files
             ]
             if item.description:
                 targets.append(Target(ReplicaRole.DESCRIPTION, "", f"{folder}/enunciado.md"))
             targets += [
-                Target(ReplicaRole.SUBMISSION, a.id, f"{folder}/{fit('entrega - ' + clean(a.name))}")
+                Target(ReplicaRole.SUBMISSION, a.id, f"{folder}/{fit('entrega - ' + _file_name(a))}")
                 for a in item.submission
                 if a.downloaded
             ]
@@ -200,7 +212,7 @@ class Placer:
             return [Target(ReplicaRole.DESCRIPTION, "", f"{where}/{self._unique(where, name, item.id)}")]
         if len(files) == 1 and not links and not item.description:
             [only] = files
-            name = fit(f"{day} - {title}{PurePosixPath(clean(only.name)).suffix}")
+            name = fit(f"{day} - {title}{PurePosixPath(_file_name(only)).suffix}")
             return [Target(ReplicaRole.MATERIAL, only.id, f"{where}/{self._unique(where, name, item.id)}")]
         folder = f"{where}/{self._unique(where, fit(f'{day} - {title}'), item.id, is_folder=True)}"
         targets = self._inside(folder, files, links)
@@ -212,7 +224,7 @@ class Placer:
         """The files of a material or announcement folder under their own names, and `enlaces.md`."""
         targets: list[Target] = []
         for attachment in files:
-            name = self._unique(folder, fit(clean(attachment.name) or attachment.id), attachment.id)
+            name = self._unique(folder, fit(_file_name(attachment) or attachment.id), attachment.id)
             targets.append(Target(ReplicaRole.MATERIAL, attachment.id, f"{folder}/{name}"))
         if links:
             targets.append(Target(ReplicaRole.LINKS, "", f"{folder}/enlaces.md"))
