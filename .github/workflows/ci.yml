@@ -1,0 +1,40 @@
+# The same gate as `make ci` (spec 001 T007). Two jobs with no `needs:` between them and no
+# `paths:` filter: autofix only reports, quality-gate blocks.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: ruff --fix (report only)
+        run: uv run --locked ruff check --fix --diff
+      - name: ruff format (report only)
+        run: uv run --locked ruff format --diff
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version-file: .python-version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "23"
+          cache: npm
+      - name: make setup-python setup-node ci
+        run: make setup-python setup-node ci

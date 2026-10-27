@@ -1,0 +1,12 @@
+{
+  "name": "alfabeta-extractor-tests",
+  "private": true,
+  "description": "Tests for the browser JavaScript that extracts Classroom pages (spec 001).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/js/**/*.test.mjs\""
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

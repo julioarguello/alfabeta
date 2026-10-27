@@ -1,12 +1,15 @@
-# Quality gate. Every recipe uses the project's .venv through uv.
-# Node (spec 001 T004) and the guardrail (spec 001 T014) join `ci` when they exist.
-.PHONY: setup-python ci lint format-check typecheck test
+# Quality gate (spec 001 T006). Every Python recipe uses the project's .venv through uv.
+# The guardrail joins `ci` with spec 001 T014; until then the gate names it as skipped.
+.PHONY: setup-python setup-node ci lint format-check typecheck test test-js guardrail
 
 setup-python:
 	@echo "==> uv lock --check"; uv lock --check
 	@echo "==> uv sync --locked"; uv sync --locked
 
-ci: lint format-check typecheck test
+setup-node:
+	@echo "==> npm ci"; npm ci --no-audit --no-fund
+
+ci: lint format-check typecheck test test-js guardrail
 
 lint:
 	@echo "==> ruff check"; uv run --locked ruff check
@@ -20,3 +23,9 @@ typecheck:
 # pytest exits 5 when it collects nothing: a gate that inspected nothing is not green.
 test:
 	@echo "==> pytest"; uv run --locked pytest
+
+test-js:
+	@echo "==> node --test"; npm test --silent
+
+guardrail:
+	@echo "==> guardrail: SKIPPED until spec 001 T014 adds it"
