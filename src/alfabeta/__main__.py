@@ -14,14 +14,14 @@ import os
 import sys
 import webbrowser
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, anonymize, config, guardrail, sandbox, state
+from alfabeta import __version__, anonymize, config, decisions, guardrail, sandbox, state
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
-from alfabeta.model import RunMode, StopReason
+from alfabeta.model import AgendaCategory, DecisionType, RunMode, StopReason
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -105,6 +105,53 @@ def _cmd_log_stop(args: argparse.Namespace, home: Path) -> int:
         with contextlib.suppress(state.LockError):
             lock.release(run)
     _emit({"ok": True})
+    return EXIT_OK
+
+
+def _cmd_decisions(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    on = decisions.today()
+    try:
+        lock.renew(os.environ.get(state.RUN_ENV))
+        store = decisions.DecisionStore.open(lock.data_dir)
+        if args.verb == "propose":
+            try:
+                raw = json.loads(Path(args.file).read_text())
+            except (OSError, ValueError):
+                return _fail("invalid_proposal", EXIT_INVALID, "the proposals file is not readable JSON")
+            items: list[object] = cast("list[object]", raw) if isinstance(raw, list) else [raw]
+            proposals = [decisions.Proposal.parse(p, on) for p in items]
+            recorded, ignored = store.propose(proposals, on)
+            store.save()
+            _emit(
+                {
+                    "ok": True,
+                    "recorded": [{"type": str(d.type), "origin": d.origin} for d in recorded],
+                    "ignored": [{"type": str(d.type), "origin": d.origin} for d in ignored],
+                }
+            )
+            return EXIT_OK
+        kind = DecisionType(args.type) if getattr(args, "type", None) else DecisionType.DETECTED_EXAM
+        if args.verb == "confirm":
+            decision = store.confirm(kind, args.origin, on, reject=args.reject)
+        elif args.verb == "correct":
+            target = (
+                {"date": args.date}
+                if args.date
+                else {"category": args.category}
+                if args.category
+                else {"discarded": "true"}
+            )
+            decision = store.correct(args.origin, target, on)
+        else:
+            key = "subject" if kind == DecisionType.CLASS_LINK else "topic"
+            decision = store.change(kind, args.origin, {key: args.target}, on)
+        store.save()
+        _emit({"ok": True, "type": str(decision.type), "origin": decision.origin, "state": str(decision.state)})
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    except decisions.DecisionError as err:
+        return _fail("invalid_decision", EXIT_INVALID, str(err))
     return EXIT_OK
 
 
@@ -223,6 +270,26 @@ def build_parser() -> argparse.ArgumentParser:
     unlink = google.add_parser("unlink", help="revoke an account's link")
     unlink.add_argument("--account", required=True)
 
+    dec = groups.add_parser("decisions", help="Claude's proposals and the family's decisions").add_subparsers(
+        dest="verb", required=True
+    )
+    propose = dec.add_parser("propose", help="record Claude's proposals from a JSON file")
+    propose.add_argument("--file", required=True)
+    confirm = dec.add_parser("confirm", help="confirm or reject a proposal")
+    confirm.add_argument("--type", required=True, choices=[str(t) for t in decisions.PROPOSABLE])
+    confirm.add_argument("--origin", required=True)
+    confirm.add_argument("--reject", action="store_true")
+    correct = dec.add_parser("correct", help="correct a detected exam")
+    correct.add_argument("--origin", required=True)
+    fix = correct.add_mutually_exclusive_group(required=True)
+    fix.add_argument("--date", type=lambda v: dt.date.fromisoformat(v).isoformat())
+    fix.add_argument("--category", choices=[str(c) for c in AgendaCategory])
+    fix.add_argument("--discard", action="store_true")
+    change = dec.add_parser("change", help="change a confirmed or rejected match")
+    change.add_argument("--type", required=True, choices=[str(t) for t in decisions.PROPOSABLE])
+    change.add_argument("--origin", required=True)
+    change.add_argument("--target", required=True)
+
     box = groups.add_parser("sandbox", help="an invented student to try a run").add_subparsers(
         dest="verb", required=True
     )
@@ -265,7 +332,23 @@ def build_parser() -> argparse.ArgumentParser:
     clean = cal.add_parser("probe-clean", help="delete a probe event")
     clean.add_argument("--event", required=True)
 
-    for sub in (setter, link, google.choices["check"], unlink, probe, clean, cfg_check, take, renew, release, stop):
+    for sub in (
+        setter,
+        link,
+        google.choices["check"],
+        unlink,
+        probe,
+        clean,
+        cfg_check,
+        take,
+        renew,
+        release,
+        stop,
+        propose,
+        confirm,
+        correct,
+        change,
+    ):
         sub.add_argument("--student", required=True)
     return parser
 
@@ -295,6 +378,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_lock(args, home)
         if args.group == "log":
             return _cmd_log_stop(args, home)
+        if args.group == "decisions":
+            return _cmd_decisions(args, home)
         if args.group == "config":
             return _cmd_config_check(home, args.student)
         cfg = config.load(home, args.student, TABLES[args.group])

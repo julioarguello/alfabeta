@@ -250,7 +250,14 @@ class Decision:
 
     def moved_to(self, state: DecisionState, on: dt.date) -> Decision:
         """The same decision in `state`, if the transition is allowed."""
-        if state not in _TRANSITIONS[self.state]:
+        # A detected exam or dismissed candidate counts while proposed, so a change in its source text
+        # supersedes it straight from there (contracts/cli.md, `decisions propose`).
+        reopened = (
+            self.state == DecisionState.PROPOSED
+            and state == DecisionState.SUPERSEDED
+            and self.type in _COUNT_WHEN_PROPOSED
+        )
+        if state not in _TRANSITIONS[self.state] and not reopened:
             raise ValueError(f"a decision cannot go from {self.state} to {state}")
         return replace(self, state=state, date=on)
 
