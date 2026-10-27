@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "template.toml"
 # A template table whose only child is this table holds one table per name the operator chooses.
 DYNAMIC = "changeme"
-READERS = frozenset({"_str", "_strs", "_names"})
+READERS = frozenset({"_str", "_strs", "_int", "_names"})
 
 _NAME = re.compile(r"[a-z][a-z0-9_-]*")
 # Google Drive for desktop mounts every account under this folder (spec 004 R7).
@@ -82,6 +82,13 @@ def _strs(data: Mapping[str, Any], path: str, *names: str, allow_empty: bool = F
     return tuple(cast("list[str]", value))
 
 
+def _int(data: Mapping[str, Any], path: str, *names: str) -> int:
+    value = _at(data, path, names)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise ConfigError(f"key {path} must be a whole number of at least 1")
+    return value
+
+
 def _names(data: Mapping[str, Any], path: str, *names: str) -> tuple[str, ...]:
     value = _at(data, path, names)
     if not isinstance(value, dict):
@@ -111,6 +118,11 @@ class StudentConfig:
     def calendar_id(self) -> str:
         """The family calendar alfabeta writes to."""
         return _str(self.data, "calendar.id")
+
+    @property
+    def lock_idle_minutes(self) -> int:
+        """Minutes without renewal after which a dead run's lock is released."""
+        return _int(self.data, "sync.lock_idle_minutes")
 
     @property
     def accounts(self) -> dict[str, AccountConfig]:
@@ -200,10 +212,18 @@ def validate(
     return list(dict.fromkeys(problems))
 
 
-def _read(home: Path, student: str) -> tuple[Path, dict[str, Any]]:
+def student_root(home: Path, student: str) -> Path:
+    """The student's folder in `home`, without reading their configuration."""
     if not _NAME.fullmatch(student):
         raise ConfigError("the student id must be lowercase ASCII")
     root = home / student
+    if not root.is_dir():
+        raise ConfigError(f"no configuration for student {student!r}")
+    return root
+
+
+def _read(home: Path, student: str) -> tuple[Path, dict[str, Any]]:
+    root = student_root(home, student)
     path = root / "config.toml"
     if not path.is_file():
         raise ConfigError(f"no configuration for student {student!r}")
