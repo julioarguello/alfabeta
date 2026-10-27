@@ -6,6 +6,10 @@
 
 **Status**: Draft
 
+**Amended**: 2026-10-27 — reading Classroom with nobody present, without the operator's Mac or
+browser (User Story 7, julioarguello/alfabeta#2): a token route (primary) or a scripted web sign-in
+(fallback), using a vault; constitution 2.0.0 (principle III redefined).
+
 **Input**: User description (translated from Spanish): "alfabeta epic 1: classroom-sync + folder structure + per-student configuration. Problem: a secondary-school student's study material is spread between Google Classroom (materials, assignment attachments, links, announcements and assignments with dates, organised by each teacher into topics inside «Trabajo de clase» (Classwork)) and the digital textbook (Science Bits). Nothing is where the student studies, and the family cannot see at a glance what is pending. (1) Per-student configuration: template in the repo → private configuration outside the repo → data and secrets in a local data folder and the keychain; a second student only needs another configuration; a guardrail that prevents pushing real data. (2) Access path: the desktop app's built-in browser, read-only, with the student's session; the API is ruled out. (3) Rules: read-only on Classroom, the minor's data kept to the minimum, no tool types credentials." Operator's change of approach (2026-10-25): "We do not sync Classroom, we sync the subject's content: first level the school year, then the subject and then topic or month; inside, `classroom` or `sciencebits`, and the Classroom file name includes the date. The scraper walks Classroom; what I care about most is reminders of what is pending, and that the problems and exercises they keep assigning get downloaded and placed in the right spot of the Drive. I want a replica of the document the teacher posts in our Drive, to combine it with the books we download (Science Bits for now) and have it all go to the notebook together. We do it with the family Drive; the student has a personal Gmail account."
 
 ## Context and scope
@@ -22,8 +26,9 @@ This epic is the first of three:
 3. **«Prepárame el tema»** ("prepare the topic for me"): everything in a topic's folder, from every
    source, goes to its Gemini Notebook notebook.
 
-Out of this epic: reminders, notebooks, syncing without the Claude app (local MCP, issue #2) and
-book providers other than Science Bits.
+Out of this epic: reminders, notebooks, replicating material without the family's Mac, and book
+providers other than Science Bits. Reading Classroom with nobody present is in (User Story 7): it
+replaces the local MCP design of julioarguello/alfabeta#2.
 
 ## Clarifications
 
@@ -88,6 +93,77 @@ book providers other than Science Bits.
   - Today's `config.example.json`, read by the Science Bits skill until it moves to this template
     (FR-022), carries the same lists as `storage.mirrors`, `calendar.shared_with` and
     `notebook.share_with`.
+
+### Session 2026-10-27
+
+- Q: How is Classroom read with nobody present, without the operator's Mac and without the
+  operator's browser? The operator's evidence: a manual read on 2026-10-27 found two assignments
+  of one subject, posted that morning, that the capture of 2026-10-26 had missed. The operator does
+  not want their own browser used, wants the read to run without their Mac, asks for it to be
+  specified now and built later, and left the mechanism to the team («no te quiero condicionar,
+  dime tú»). Their proposal: a browser alfabeta drives by itself (headless, not their Chrome) with
+  the student's credentials kept in a vault; and, on the constitution, «me da igual que rompa la
+  constitución, pues la cambiamos». → A: an **unattended runner** (User Story 7): a job scheduled in
+  the family's cloud project that reads Classroom for the student, never Claude and never the
+  operator's Chrome or Mac. It signs in with a secret the family placed in a **vault** once, and
+  constitution III is amended (MAJOR, 2.0.0) to permit that. Two routes, because the first may not
+  work and is proven by a spike before anything is built (research R15 to R17):
+  - **Primary — the token route.** The family signs in by hand once to seed a long-lived sign-in
+    token for the school account into the vault; the runner exchanges it for short-lived access
+    tokens and reads Classroom as a Google first-party client would. The school's block on the
+    Classroom API hits third-party developer clients (`docs/classroom-investigacion.md`); the
+    student's school account works in the Classroom app on an Android phone (operator, 2026-10-27),
+    so a first-party client may reach it where our own client cannot. It escapes the web session's
+    short life. Its risks, which the family accepts in this review: it poses as a first-party app,
+    which is against Google's terms; it shows as a new device on the account; the stored token is
+    account-wide and bypasses the second factor (read-only is only the scope requested from the
+    derived tokens), so the stored secret is at least as sensitive as the password and a vault read
+    exposes the whole account; and the API may be blocked for a minor's account at the policy level,
+    not just for third-party clients, in which case the route fails. Spike S4 decides it with one
+    read-only call.
+  - **Fallback — the scripted web sign-in.** The vault holds the password and the second-factor
+    seed; when the stored browser session has expired, a deterministic script signs in and the
+    runner reads the to-do pages in a headless browser (FR-034). Its risks, which the family
+    accepts: Google refuses sign-in from automated browsers, so it may never work without evasion,
+    which is barred (constitution IV); and repeated sign-ins on a minor's account risk a lockout.
+    Spike S5 decides whether it works at all without evasion.
+  - Two hard limits hold on both routes, whatever the constitution says (research R15): Claude never
+    runs a sign-in and never types a credential — it writes the deterministic script, the scheduled
+    job runs it; and no stealth tooling, debug-port hiding, fingerprint spoofing or CAPTCHA solving
+    is used — a sign-in that needs any of that stops and the family is told (FR-033, FR-037).
+  - **Last resort** if both routes fail: the guardian email summaries (`docs/roadmap.md`, route 2).
+- Q: What does the runner read? → The student's pending work and its dates. The token route reads it
+  from the API; the web route reads the to-do pages that the operator's manual read of 2026-10-27
+  found enough: «Tareas pendientes» (`/u/<n>/a/not-turned-in/all`, sections «Sin fecha», «Esta
+  semana», «Próxima semana» and «Más tarde», each collapsed behind its header button), «Sin
+  entregar» (`/u/<n>/a/missing/all`, with a «Ver todo» button), and the detail page of each
+  assignment they list (`/u/<n>/c/<class>/a/<item>/details`), for its instructions and its
+  due date («Fecha de entrega: Mañana, 8:00»). Not the stream, the materials or the attachments,
+  which stay in the full sync (FR-034).
+- Q: What does it write, with no Mac? → Its data home and the agenda, written to Drive through
+  alfabeta's own Google connection (spec 004), and the calendar once spec 003 is built. No replica:
+  material keeps reaching the Drive through the master folder on the Mac (FR-036).
+- Q: How long does the school session last, and what about «Demuestra que eres tú» ("verify it's
+  you")? → The operator says the school's web session lasts «como máximo una hora» (not measured);
+  a session a school shortens shows that page (`accounts.google.com/…/confirmidentifier`, seen
+  2026-10-27 before Classroom opened) when it ends (research R16). A session that short is why the
+  web route needs a stored credential to sign in again, and why the token route (not tied to the
+  web session) is preferred. In the web route a sign-in page is where the scripted sign-in runs; a
+  challenge that needs a human (CAPTCHA, «unusual traffic», a check that the browser is automated)
+  stops the run, and the family is told once (FR-037). How often each happens, and whether a cloud
+  address makes it worse, is measured by spikes S4 and S5 before anything is built (SC-012).
+- Q: Against what moment are relative dates resolved? → Against the moment the page that shows
+  them was read, not the start of the capture: a read can cross midnight, and the manual capture
+  of 2026-10-26 placed a bare «8:00» (which means today at 8:00) on the wrong day. Each detail page
+  carries its own read instant (FR-021).
+- Q: Does the family accept the risks this amendment asks them to carry — custody of the vault
+  secret by the cloud project's administrators (II), the terms-of-service risk of automated access
+  to a minor's account (R15), and that the token-route secret is account-wide and bypasses the
+  second factor, so a vault read exposes the whole account (FR-032a)? → A: Yes. The operator
+  accepted all three on 2026-10-27, knowing the stored token is at least as sensitive as the
+  password, and asked for the amendment to be merged. This is the explicit, eyes-open request the
+  constitution's Development workflow requires to merge a change that weakens NON-NEGOTIABLE
+  principles III and IV; it is quoted with its date in the pull request.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -286,6 +362,64 @@ saved.
 4. **Given** an assignment the student turned in again, **When** it is synced, **Then** the new
    submission is the `entrega` and the earlier one is kept as previous.
 
+---
+
+### User Story 7 - Classroom read with nobody present, without the operator's Mac or browser (Priority: P2)
+
+On every scheduled day, with nobody at a computer, alfabeta reads what the student has pending in
+Classroom and brings the agenda up to date (and the calendar, once spec 003 builds it), so an
+assignment posted in the morning is known that day. It runs in the family's cloud project: the
+operator's Mac can be off and their Chrome is never used. It signs in with a secret the family
+placed in a vault once. It reads Classroom one of two ways, settled by a spike before anything is
+built: the **token route**, reading as a first-party client with a sign-in token in the vault
+(primary); or the **web route**, a headless browser that signs in with a scripted step when the
+stored session has expired, using the password and second-factor seed in the vault (fallback). When
+it needs a sign-in it cannot complete without a person or without evasion, it stops and tells the
+family once.
+
+**Why this priority**: it is the operator's need of 2026-10-27: two assignments posted that morning
+were missed because reading Classroom depended on someone being at the Mac. It builds on stories 1
+to 3 (capture, state, agenda) and on spec 004's Google connection. It depends on a MAJOR amendment
+of constitution III (the vault) and is built only if its spikes pass: S4 (the token route) decides
+the primary route, and S5 (the web route) the fallback; if both fail, the runner is not built and
+the family keeps the Mac route and the guardian email summaries (research R15 to R17).
+
+**Independent Test**: for the web route, a local fake Classroom that serves the synthetic to-do and
+detail pages, a fake sign-in page and a fake «Demuestra que eres tú» page: the runner reads the
+to-do pages, the agenda matches them, no page load or press leaves the allowlist, a fake CAPTCHA
+stops the run with one notice, and the scripted sign-in types the vault's test credential only into
+the fake sign-in form. For the token route, a fake token endpoint and a fake read-only API: the
+agenda matches the API's items and only read-only scope is requested. No real account is used in a
+test.
+
+**Acceptance Scenarios**:
+
+1. **Given** the token route in force and assignments pending for the student, **When** the
+   scheduled run fires, **Then** each one is in the agenda with its due date and status read from the
+   API, only read-only scope was requested, and nobody was asked anything.
+2. **Given** the web route in force, a stored session that is still valid and assignments in
+   «Tareas pendientes» and «Sin entregar», **When** the run fires, **Then** each one is in the
+   agenda with the due date read from its detail page, and no sign-in was attempted.
+3. **Given** the web route and a stored session that has expired (the run lands on a Google sign-in
+   page), **When** the run fires, **Then** the scripted sign-in runs once with the vault's
+   credential, the read continues, and the renewed session is stored; if the sign-in needs a
+   challenge a human would clear, the run stops with `challenge` and the family is told once.
+4. **Given** the web route, a detail page reading «Fecha de entrega: Mañana, 8:00» read at 23:59 and
+   another reading «Fecha de entrega: 8:00» read at 00:01 in the same run, **When** they are
+   applied, **Then** each date is resolved against the instant its own page was read.
+5. **Given** an assignment pending in the previous read that is in neither list (web route) or no
+   longer returned by the API (token route), **When** the runner reads, **Then** it takes that
+   assignment's status from its detail or the API once, or marks it withdrawn if it no longer exists.
+6. **Given** a page or a call without the expected shape, or one that passes its time limit, **When**
+   the runner reaches it, **Then** the run stops with `unexpected_ui` or `timeout`, applies only what
+   it read completely, and never waits indefinitely.
+7. **Given** the web route, **When** a run ends, **Then** the browser loaded only the pages and
+   pressed only the controls of the allowlist (FR-038); every other attempt was blocked before it
+   reached Classroom and is counted in the log; no evasion tooling ran.
+8. **Given** the runner enabled for a student, **When** it runs, **Then** no step uses the
+   operator's Mac or Chrome, Claude runs no sign-in and types no credential, and the vault holds
+   only the minimum for the route in force (a token, or the password and its second-factor seed).
+
 ### Edge Cases
 
 - A Classroom class that matches no configured subject: it is not synced, and the
@@ -322,6 +456,23 @@ saved.
 - Two syncs of the same student at once: the second does not start while the first is still running.
 - Dates around the summer and winter daylight-saving changes: the date shown is the one Classroom
   shows.
+- The runner has no secret in the vault yet, or the family removed it: the run stops with
+  `session_expired` before reaching Classroom, and the family is told once.
+- The token route's token is rejected, or the API answers that the account is not allowed: the run
+  stops with `session_expired` (a dead token) or `account_blocked` (the account is not allowed,
+  FR-037), tells the family once, and tries no other client or address.
+- Google answers the runner with a CAPTCHA, an «unusual traffic» page, an «unusual traffic» block
+  or a «this browser may not be secure» page during the scripted sign-in: `challenge`, stop and one
+  notice; no stealth tooling, no proxy and no other address is tried (constitution IV).
+- The web route's scripted sign-in needs a second factor beyond the stored seed (a device prompt, a
+  code to a phone): it cannot be completed unattended, so the run stops with `challenge` and the
+  family is told.
+- The runner and an interactive sync on the Mac want the same student at once: the lease in the
+  single data home stops the second one (FR-035).
+- A to-do section that is already open, or that Classroom stops collapsing (web route): the runner
+  reads it as is; a section header or a «Ver todo» it cannot find by its label is `unexpected_ui`.
+- A run whose job platform kills it at its time limit: the next run finds the lease idle and
+  writes the dead run's `stopped` line, as on the Mac (FR-030).
 
 ## Requirements *(mandatory)*
 
@@ -334,7 +485,10 @@ saved.
   current `config.example.json`.
 - **FR-002**: Each student's configuration MUST live outside the repository, and their data and
   secrets (log, sync state, sessions, identifiers) in a local data folder of the student and in the
-  system keychain, outside the shared folder.
+  system keychain, outside the shared folder. For a student read by the unattended runner (User
+  Story 7), the secrets live in the secret store of the operator's cloud project (the vault, FR-033)
+  and the data home in a state folder in the student's Drive (FR-035), each outside the shared
+  folder.
 - **FR-003**: On start-up, alfabeta MUST validate the configuration against the template: a key that
   is missing, extra, changes type or contains `changeme` (anywhere in the value) stops the
   run with a message that names the key and does not show its value.
@@ -352,12 +506,21 @@ saved.
 
 - **FR-006**: alfabeta MUST read Classroom with the session the student starts in Chrome with the
   Claude extension. The app's built-in browser is left for a later epic, once attachment download is
-  tested in it. No tool MUST type credentials.
+  tested in it. For a student with the unattended runner enabled (User Story 7), the scheduled read
+  is the runner's — the token route's API calls, or the web route's headless browser (FR-032a,
+  FR-032b) — with the secret the family placed in the vault (FR-033); the full sync keeps this
+  paragraph. On this interactive route, no tool types credentials; the runner's sign-in is governed
+  by the amended constitution III and FR-033.
 - **FR-007**: alfabeta MUST NOT turn in, comment, mark as done, change any status or open
   a quiz or a form in Classroom. The only pages it navigates to are: the home
   page (class list), «Trabajo de clase», the stream and the detail page of each assignment,
-  material or question, which is only read. It never follows a link to a form or a quiz
-  (Google Forms or similar) and never presses a button in the «Tu trabajo» (Your work) panel. If
+  material or question, which is only read, and, for the runner's web route, the to-do pages
+  «Tareas pendientes» (`/u/<n>/a/not-turned-in/all`) and «Sin entregar» (`/u/<n>/a/missing/all`).
+  The only controls the runner's web route presses are, on those two to-do pages, the header button
+  that opens a collapsed section and the «Ver todo» (see all) button, each found by its label (and,
+  on a Google sign-in page, the web route's own scripted sign-in, FR-032b); any other press by the
+  runner is a defect. No route follows a link to a form or a quiz
+  (Google Forms or similar) or presses a button in the «Tu trabajo» (Your work) panel. If
   Classroom's interface does not show the expected labels (for example, because it is in another
   language), it stops and says so instead of guessing.
 - **FR-008**: alfabeta MUST read the class list (visible, hidden and archived) and, for each active
@@ -378,22 +541,32 @@ saved.
   (CAPTCHA, intermediate verification page, too-many-requests error), the sync of
   that source stops navigating and the family is told; the run ends `stopped` with reason
   `challenge` if it had not yet captured any class, or `partial` with that reason, applying the
-  classes already captured, if it had (data-model, "Run").
+  classes already captured, if it had (data-model, "Run"). On the full sync and the Mac routes, a
+  Google sign-in or identity page («Demuestra que eres tú», any page of `accounts.google.com`) is an
+  expired session (`session_expired`), not a challenge, and nothing is typed or pressed on it; the
+  unattended runner's web route is the one exception, where its allowlisted scripted sign-in may run
+  on that page (FR-032b, FR-038), and only a challenge a human would clear stops it. A page that
+  passes its time limit stops the run the same way with reason `timeout` (FR-037).
 
 **Structure of the student's folder**
 
-- **FR-011**: Each student MUST have their own alfabeta root folder inside the family's
-  Drive, never the root of «Mi unidad» (My Drive), which already holds the student's content. It
-  lives in the folder Google Drive for desktop mounts on the Mac; alfabeta only writes to that folder
-  on disk and Google Drive for desktop does the sync with the cloud.
-- **FR-011a**: The root is the master. After every sync that reaches `apply`, and after a book
-  provider places a topic (`book place`), alfabeta MUST bring each folder in `drive.mirrors` up to
-  date from the master, one-way: it copies what is new or changed in the master, never deletes
-  anything from a mirror and never copies from a mirror into the master. A mirror already up to date
-  MUST receive zero writes (FR-025). A mirror that is not mounted or fails MUST NOT stop the sync,
-  the master or the other mirrors: it is reported and brought up to date by the next sync. The
-  summary for the family MUST say how many mirrors are up to date and how many failed, never their
-  paths (FR-031). An empty list means no mirrors.
+- **FR-011**: Each student MUST have their own alfabeta root folder in the family's Drive, never the
+  root of «Mi unidad» (My Drive), which already holds the student's content. The master is a folder
+  on the Mac's disk (`storage.base`, data-model), outside the Google Drive for desktop mount.
+  (Note: spec 004 moves the upload of the master to Drive from Google Drive for desktop to
+  alfabeta's own Google connection, confirmed by checksum, amending constitution VII; spec 001's
+  Mac upload path is rewritten when spec 004's Drive slice is built, julioarguello/alfabeta#30. This
+  amendment does not rewrite it, and the runner (FR-036) already writes only through that
+  connection.)
+- **FR-011a**: The master is the source of the mirrors. After every sync **on the Mac** that reaches
+  `apply`, and after a book provider places a topic (`book place`), alfabeta MUST bring each folder
+  in `drive.mirrors` up to date from the master, one-way: it copies what is new or changed in the
+  master, never deletes anything from a mirror and never copies from a mirror into the master. A
+  mirror already up to date MUST receive zero writes (FR-025). A mirror that is not mounted or fails
+  MUST NOT stop the sync, the master or the other mirrors: it is reported and brought up to date by
+  the next sync. The summary for the family MUST say how many mirrors are up to date and how many
+  failed, never their paths (FR-031). An empty list means no mirrors. The unattended runner does not
+  touch the master or the mirrors (FR-036): its `apply` skips both.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
   permission to see all event details (built by the reminders epic), and each topic notebook a skill
@@ -557,8 +730,11 @@ Example of the resulting structure (invented names):
   Classroom does not show the year and uses relative dates («Mañana, 8:00» (Tomorrow, 8:00)): the
   year is inferred from the school year (September to December, the first year; January to August,
   the second; a capture taken outside that school year stops the run with `invalid_config`)
-  and relative dates are resolved against the moment the page was captured, not that of the run that
-  applies it. The posting date MUST come from the creation date (stream or detail), never from the
+  and relative dates are resolved against the moment the page that shows them was read, not the
+  start of its capture nor that of the run that applies it: each detail page carries its own read
+  instant (`seen_at`), and a page without one uses its capture's. A bare time («8:00»,
+  «Fecha de entrega: 23:59») is on the day that page was read. The posting date MUST come from the
+  creation date (stream or detail), never from the
   «última modificación» (last modified) the listing sometimes shows.
 
 **Repeatable and schedulable**
@@ -573,7 +749,12 @@ Example of the resulting structure (invented names):
   app, plus a line in the log. If a scheduled task cannot use the
   browser or download files without approval (spike S2), the scheduled run is limited to that
   notice («toca sincronizar», "time to sync") and the family launches the sync with the single
-  request; that reduced mode also meets this requirement.
+  request; that reduced mode also meets this requirement. For a student with the unattended runner
+  enabled, `[schedule]` drives the runner's to-do read (FR-032), not a desktop task, so the full
+  sync — which still needs the Mac for attachments and replicas — is launched on demand with the
+  single request, or scheduled on the Mac for a time `[schedule]` does not name; the runner keeps
+  the agenda current between full syncs. The runner's notice reaches the family with the Mac off
+  (FR-037).
 - **FR-021b**: What needs no judgement (state, identifiers, names, structure, agenda,
   collecting downloads) MUST give the same result on every repetition. What does need it
   (proposing topic matches, detecting exams in a text) MUST be recorded with its
@@ -598,7 +779,10 @@ Example of the resulting structure (invented names):
   entry changes list (FR-020c) and that is a change. It writes only that run's own
   records: its log line, its captures, its plan, its lock file, the attachments it
   collects into the data folder (which `apply` deletes once placed or found identical) and the
-  deletion of its captures older than `kept_captures` (never in the student's folder).
+  deletion of its captures older than `kept_captures` (never in the student's folder). An unattended
+  runner run without changes writes only the same own records in its data home; it stores a new
+  secret version only if the token or session actually changed (FR-033), and uploads the agenda only
+  if its hash changed (FR-036).
 - **FR-026**: alfabeta MUST detect and apply new items, edited attachments, new or
   repeated submissions, returns and moved dates. An already replicated attachment is downloaded again
   only if Classroom shows its item was modified after the last replica, if its name or its type
@@ -623,7 +807,10 @@ Example of the resulting structure (invented names):
   browser and one downloads folder, the browser part and the downloads of two students, or of
   two alfabeta skills (the Classroom one and a book's), MUST NOT run at once either. If the Drive
   folder is not available, alfabeta MUST stop without
-  writing replicas anywhere else (only its log line, FR-021a).
+  writing replicas anywhere else (only its log line, FR-021a). For a student with the unattended
+  runner enabled, the student's lock is the lease in the single data home (FR-035) and binds the
+  runner and any family session alike; the runner runs off the Mac, so it takes no lock on the
+  Mac's browser.
 
 **Privacy**
 
@@ -632,11 +819,136 @@ Example of the resulting structure (invented names):
   relative to the student's root folder, and the absolute path of the root or of a mirror is never
   shown, because the Google Drive for desktop mount path carries the account's email.
 
+**Reading Classroom with nobody present (User Story 7)**
+
+- **FR-032**: alfabeta MUST be able to read Classroom for a student with nobody present and without
+  the operator's Mac or browser: a job scheduled at the weekday times of `[schedule]`, in the
+  operator's Google Cloud project for alfabeta (the one spec 004 and spec 005 use; constitution IX),
+  driven by alfabeta's own code (never Claude, never the Claude extension, never the operator's
+  Chrome), in one of two routes decided by a spike (FR-032a, FR-032b; research R15 to R17). It is
+  enabled per student by configuration; while it is off, FR-006 and FR-021a apply unchanged. It is
+  built only once its spikes pass; if both routes fail, it is not built and the family keeps the Mac
+  route (FR-021a) and the guardian email summaries.
+- **FR-032a**: The **token route** (primary) MUST read Classroom as a Google first-party client:
+  the family signs in by hand once to seed a long-lived sign-in token for the school account into
+  the vault (FR-033), and the runner exchanges it for short-lived access tokens and makes read-only
+  calls. Read-only MUST be enforced by requesting read-only scope only (constitution IV). Spike S4
+  MUST prove, with one read-only call for the real account, that this reaches the student's
+  Classroom despite the school's block on third-party clients (`docs/classroom-investigacion.md`);
+  if it does not, the token route is not built. The spec records its accepted risks: it poses as a
+  first-party app (against Google's terms); shows as a new device on the account; may be blocked at
+  the account-policy level; and its stored token is **account-wide and bypasses the second factor**
+  (read-only is only the scope requested from the derived short-lived tokens, not a property of the
+  stored secret), so the stored secret is at least as sensitive as the password and a vault read —
+  by the project's administrators (FR-033, constitution II) or in a breach — exposes the whole
+  account, not read-only Classroom.
+- **FR-032b**: The **web route** (fallback) MUST read the to-do pages (FR-034) in a headless browser
+  with the read-only guard of FR-038, using the browser session the family started by hand, kept in
+  the vault (FR-033). When a run lands on a Google sign-in page because the session has expired, a
+  deterministic script MUST sign in once with the password and second-factor seed in the vault, then
+  continue; a sign-in that needs a challenge a human would clear MUST stop (FR-037), never evade it.
+  Spike S5 MUST measure whether this route signs in and reads at all without evasion, and how often
+  the school session expires; if it cannot without evasion, the web route is not built.
+- **FR-033**: The runner MUST sign in only with secrets the family placed in the vault, and MUST
+  hold the minimum for the route in force: the sign-in token for the token route; for the web route,
+  the stored browser session and, separately, the password and its second-factor seed used only to
+  sign in again when the session has expired. Two limits hold whatever the route: Claude MUST NOT
+  run a sign-in or type a credential (it writes the deterministic sign-in script; the scheduled job
+  runs it), and no stealth tooling, debug-port hiding, fingerprint spoofing or CAPTCHA solving is
+  used. The vault is the secret store of the family's cloud project; each secret is readable by the
+  runner's identity, the family, and the project's administrators (constitution II), with versions,
+  and never in the repository, the configuration, a log, an error message or Claude's context. The
+  secret the runner renews is the one it mints — the token, or the web route's stored session — and
+  only when it actually changed (FR-025); the password and second-factor seed are seeded by the
+  family and the runner never rewrites them. Only the configured school account is used. The family
+  can revoke any of them at any moment by changing the credential or signing the account out, and
+  the run stops when the secret it needs stops working. Because the token-route secret is as
+  sensitive as the password (FR-032a), the cloud project MUST keep an audit log of every read of a
+  vault secret, and the family MUST be told the first time a new device or first-party sign-in is
+  registered on the student's account, so a misuse of the stored token is visible.
+- **FR-033a**: Every secret the runner holds MUST be named as a separate vault entry, with where it
+  lives, who seeds it, who can read it and how it is refreshed:
+  - **token route**: the first-party sign-in token (seeded once by `runner session login`, renewed
+    by the runner when the exchange returns a new one);
+  - **web route**: the stored browser session (seeded and renewed by the runner, destroyed when
+    superseded, FR-033); the account password and the second-factor seed (each seeded once by the
+    family directly into the vault — never by `runner session login`, which stores no password —
+    and never rewritten by the runner);
+  - **both**: the credential the runner writes the agenda to Drive with — a token for the student's
+    Drive, in the vault, scoped as narrowly as spec 004 allows (ideally the alfabeta folder, not the
+    whole Drive, which may amend spec 004 FR-007, julioarguello/alfabeta#30);
+  - **on the Mac**: the cloud-project machine identity a Mac session uses for `runner home
+    pull`/`push` and `runner session login`, kept in the Mac keychain, with access only to that
+    student's vault secrets and its state folder in Drive. It is the only runner secret on the Mac.
+- **FR-034**: The web route MUST read: «Tareas pendientes» (`/u/<n>/a/not-turned-in/all`), opening
+  each collapsed section («Sin fecha», «Esta semana», «Próxima semana», «Más tarde») by its header
+  button; «Sin entregar» (`/u/<n>/a/missing/all`), following its «Ver todo»; the detail page of
+  every assignment or question those lists show, for its instructions, due date, status and
+  points; and, once, the detail page of each item that was pending in the previous read and is in
+  neither list now, to take its status (FR-008a) or learn that it was withdrawn (FR-027). The token
+  route reads the same pending items and their dates and statuses from the API. A read is complete
+  only if both lists (or the API's pages) were read to the end and every detail was read; an
+  incomplete one marks nothing turned in or withdrawn. The runner MUST NOT read the stream, the
+  materials of «Trabajo de clase» or the attachments, nor download anything: exams detected in a
+  text (FR-020b) and the replicas stay with the full sync. The web route checks the account locally
+  against `classroom.account` as the full sync does (FR-006, research R2), never putting the address
+  in a URL (FR-031); the token route is already bound to the one account its token belongs to.
+- **FR-035**: A student MUST have a single data home (configuration, state, decisions, log,
+  captures, lease). With the runner enabled it lives in a state folder inside the alfabeta folder of
+  the student's Drive (constitution II and VII: in Drive, reached through spec 004's connection,
+  never part of the master and never mirrored), and any run for that student — the runner's, or a
+  family session's on the Mac — takes the student's lease there before reading or writing it. Two
+  copies of a student's state that can both be written MUST NOT exist. A Mac session reaches the
+  home with `runner home pull`/`push` (research R19).
+- **FR-036**: The runner's outputs MUST be only its data home; the agenda (FR-020), written to the
+  school-year folder in Drive through alfabeta's own Google connection (spec 004, with the
+  credential of FR-033a) and counted as written only when Drive confirms it; and the calendar, once
+  spec 003 builds it. Its `apply` MUST skip the master folder and the mirrors, which stay with the
+  full sync on the Mac. The data home keeps the hash of the agenda last written to Drive; any run,
+  on the Mac or the runner, that is about to upload `agenda.*` MUST first regenerate it from the
+  shared data home and upload only if that hash changed, so no path (a Mac `apply`, `book place`, a
+  spec 004 upload) ever pushes a stale agenda over a newer one.
+- **FR-037**: The runner MUST never wait for a person and never hang: a per-page (or per-call) and a
+  per-run time limit (`[runner]` keys, data-model), and the job platform ends a run that outlives the
+  per-run one. It stops with `session_expired` when the stored secret is gone or rejected (a dead
+  token, or a sign-in page the web route cannot clear with the vault alone), `challenge` on a
+  CAPTCHA, an «unusual traffic» or «this browser may not be secure» page, or a second factor beyond
+  the stored seed, `account_blocked` on an API answer that the account is not allowed,
+  `drive_write_failed` when the agenda upload is not confirmed, `store_unavailable` when the vault or
+  the data home cannot be reached, `unexpected_ui` on a missing label or an unexpected response
+  shape, and `timeout` past a time limit; in every case without evasion and applying only what it
+  read completely (FR-010). The family gets a notice that gives the reason and never names the
+  student, through a channel that works with the Mac off (research R17). A stopped run MUST NOT store
+  a new secret version. The family gets one notice per stored-secret version per reason: the run
+  fails (exit 1) only the first time a reason appears for the version in use, and a later run that
+  stops the same way with the same version logs `stopped` and ends 0, so no new notice fires until
+  the family refreshes the vault. On a `challenge` the run records a `cooldown_until` in the data
+  home, `[runner] challenge_cooldown_minutes` ahead, and a run that starts before it stops at once
+  without reaching Classroom; the job platform's own retries are off, so a challenge is never
+  re-hit inside the same scheduled slot (research R17, plan).
+- **FR-038**: The web route's browser MUST enforce the read-only rule by construction (FR-007,
+  constitution IV), not by trusting the code that drives it: a script installed before any page
+  script runs cancels every click, form submit and key event, and every `submit()`/`requestSubmit()`,
+  whose target is not an allowlisted control (a to-do section header, «Ver todo», or the scripted
+  sign-in's own fields on a Google sign-in page); and it blocks, before they leave the browser,
+  every document load outside the exact set `/u/<n>/h`, `/u/<n>/a/not-turned-in/all`,
+  `/u/<n>/a/missing/all`, `/u/<n>/c/<class>/a/<item>/details` and `/u/<n>/c/<class>/mc/<item>/details`
+  (the other pages of FR-007 are for the full sync, not the runner), and every request to a form or
+  quiz host (`docs.google.com/forms`, `forms.gle`) or a download host (`drive.usercontent.google.com`,
+  any `/export`) — the runner downloads nothing (FR-034). Every blocked load, press or request is
+  counted in the run's log. This holds even
+  though the page's own `extract.js` tries the presses. The background requests Classroom makes to
+  show those pages are allowed only as spike S6 measures them (research R18). The token route needs
+  no such guard: read-only is the scope
+  it requests (FR-032a).
+
 ### Key Entities *(include if feature involves data)*
 
 - **Student**: a *tenant*. Their private configuration (display name, school year, master folder in
   the family's Drive and its mirrors, subjects, Classroom account, the accounts the calendar and the
-  notebooks are shared with) and their local data folder (log, sync state, the family's decisions).
+  notebooks are shared with) and their single data home (log, sync state, the family's decisions),
+  on the Mac or, with the runner enabled, in a state folder in the student's Drive (FR-035), the
+  secrets in the cloud project's vault (FR-033).
 - **Mirror**: a folder in another of the student's accounts' Drive, mounted on the same Mac, kept
   up to date one-way from the master folder.
 - **Subject**: a course of the student, with its folder name and the Classroom class that
@@ -654,6 +966,16 @@ Example of the resulting structure (invented names):
   quiz, material, announcement); if it is something pending, its status; if it was inferred from a
   text, the detected mark, its origin and the family's correction if there is one.
 - **Sync**: a run for one student, with its log and its summary.
+- **Unattended runner**: a scheduled job in the operator's Google Cloud project for alfabeta
+  (FR-032) that reads a student's pending work and updates the agenda, with nobody present (User
+  Story 7), by the token route or the web route (FR-032a, FR-032b).
+- **Vault**: the secret store of the family's cloud project, holding the student's secrets with
+  versions (FR-033a): the token (token route) or the stored session (web route), which the runner
+  mints and renews; the password and second-factor seed the family seeds directly for the web route;
+  and the Drive-write token. The newest version of the minted secret is the one in use.
+- **Data home**: where a student's state, decisions, log, captures and lease live; one per student,
+  on the Mac (`~/.alfabeta/<student>/data/`) or, with the runner enabled, in a state folder inside
+  the alfabeta folder of the student's Drive (FR-035).
 
 ## Success Criteria *(mandatory)*
 
@@ -682,17 +1004,69 @@ Example of the resulting structure (invented names):
 - **SC-008a**: In the test set, in 100 % of the assignment folders the name tells apart
   what is the teacher's, what the student turned in and what is the grading.
 - **SC-009**: Searching the student's name and email in the log and in the messages of a
-  full sync gives zero matches. The command never prints `display_name`: only Claude
-  uses it when talking with the family in the chat.
+  full sync gives zero matches, and likewise in everything the unattended runner emits — its log,
+  its stdout and stderr (which go to the project's logging that administrators can read), and the
+  notice email — including a Google sign-in redirect URL and the account button, which can carry the
+  address. The runner never logs an `accounts.google.com` URL. The command never prints
+  `display_name`: only Claude uses it when talking with the family in the chat.
 - **SC-010**: After a sync in which every mirror is mounted, every file in the master is in every
   mirror with the same size and modification time (a `rsync -rlt --dry-run` from the master lists
   nothing to copy).
+- **SC-011**: With the runner enabled and the operator's Mac off, an assignment the student has
+  pending before a scheduled run is in the agenda in Drive after that run, with its due date, and
+  nobody was at any computer.
+- **SC-012**: The family refreshes the vault by hand at most once every 7 days. The token route, if
+  S4 proves it, needs this only when the token is revoked. For the web route, spike S5 measures how
+  often the school session expires and whether the scripted sign-in renews it; if the family would
+  have to sign in more often than every 7 days, the web route is not built, and if the token route
+  also failed, User Story 7 is not built and the family keeps the Mac route and the guardian email
+  summaries (research R17).
+- **SC-013**: In the web route's tests and every real run, zero page loads, presses or form
+  requests outside the allowlist reach Classroom or a form host, no evasion tooling runs, and zero
+  status changes happen in Classroom (SC-008). In the token route, only read-only scope is ever
+  requested.
+- **SC-014**: A sign-in the runner cannot complete (the web route hits a human challenge, or the
+  token is dead) ends the run within its time limit, and the family gets exactly one notice until
+  the vault is refreshed.
+- **SC-015**: Claude runs no sign-in and types no credential in any run; the vault holds only the
+  minimum for the route in force (a token, or the stored session with the password and its
+  second-factor seed) plus the Drive-write token (FR-033a), checked in the tests and in a review of
+  what the runner stores.
 
 ## Assumptions
 
-- The sync runs on the family's Mac from the Claude desktop app, on demand or
-  scheduled (FR-021a), with the Classroom session the student starts in the browser. A
-  sync without the Claude app is the local MCP epic (issue #2).
+- The full sync runs on the family's Mac from the Claude desktop app, on demand or
+  scheduled (FR-021a), with the Classroom session the student starts in the browser. Reading
+  Classroom with nobody present runs in the family's cloud project (User Story 7), which replaces
+  the local MCP design of julioarguello/alfabeta#2.
+- The runner's cloud project is the operator's Google Cloud project for alfabeta, the one spec 004
+  created and spec 005 also runs in (constitution IX), reused for the vault (its secret store) and
+  the scheduled job; the data home is a state folder in the student's Drive (FR-035), as the
+  constitution sets for a cloud run. Its OAuth client and personal-Gmail link (spec 004) are for
+  Calendar and Drive on the personal account; the runner's Classroom read of the school account is a
+  separate mechanism (the token or web route), which spec 004 explicitly left out. The project
+  belongs to an organisation the operator administers, and that organisation's administrators can
+  read its secrets, the student's stored sign-in among them (research R17). The family accepts or
+  refuses that custody in the review of this amendment.
+- The two routes carry risks the family accepts in this review (research R15 to R17): the token
+  route poses as a Google first-party app (against Google's terms), shows as a new device on the
+  account, and stores a token that is account-wide and bypasses the second factor — as sensitive as
+  the password, so a vault read exposes the whole account, not read-only Classroom; the web route
+  signs a minor's account in by script, which Google blocks for automated browsers and which risks a
+  lockout. Both read-only in the scope the runner requests, both the student's own account, both
+  without evasion; a spike proves each before it is built.
+- Reading Classroom by program, today through the Claude extension and with User Story 7 with
+  nobody present, is automated access to pages whose `robots.txt` disallows it, and Google's terms
+  forbid automated access that violates those instructions; the account at stake is the student's
+  school account (research R15). The family decides in the review of this amendment whether to
+  accept that risk; the runner reads less than today's route, once per scheduled time.
+- The student's school account works in the Classroom app on an Android phone (operator,
+  2026-10-27), and the operator believes no device-management app was required. This is why the
+  token route may reach the account where our own OAuth client was refused (research R16); spike S4
+  confirms or refutes it. It is an inference, not a test of the token route.
+- The school's web session is short — the operator says «como máximo una hora», not measured. It is
+  why the token route (not tied to the web session) is preferred and why the web route needs a
+  stored credential to sign in again (research R16).
 - Observed on 2026-10-25 in the student's Classroom, read-only: the teacher's topics do not
   match the book's (one teacher's topic groups material from several book topics and another
   does not exist in the book), some subjects have numbered topics and a folder of saved exams,
@@ -706,8 +1080,11 @@ Example of the resulting structure (invented names):
   by Google Drive for desktop on the same Mac and its folder is listed in `drive.mirrors`. alfabeta
   does not manage Drive permissions, except the one share of each living file that spec 005 adds
   (FR-011b).
-- The Classroom API is not available for the student's school account
-  (`docs/classroom-investigacion.md`); everything is read from what the student sees.
+- alfabeta's own OAuth client is not available for the student's school account
+  (`docs/classroom-investigacion.md`), so the full sync reads everything from what the student sees
+  in the browser. The unattended runner's token route (FR-032a) tries the API as a first-party
+  client instead, which may or may not reach the account — spike S4 decides, and if it does not,
+  the web route reads from the browser as the full sync does.
 - Topic and item titles are kept in the language the teacher writes them in.
 - What goes into each topic's notebook is decided by epic 3; the proposal is the teacher's material
   and the books, without the student's submissions or gradings.
@@ -736,3 +1113,8 @@ Example of the resulting structure (invented names):
   account of each mirror mounted too.
 - The `sciencebits-a-notebooklm` skill, which moves to reading the per-student configuration and
   writing to the common structure (FR-022).
+- For User Story 7: the family's cloud project with a scheduled job, a secret store (the vault) and
+  a private store (the data home); spec 004's connection, able to write Drive for the agenda; and,
+  to seed the vault, a computer with a screen where the family signs in by hand once (to mint the
+  token for the token route, or the browser session for the web route). A MAJOR amendment of
+  constitution III, in this same pull request, permits the vault.

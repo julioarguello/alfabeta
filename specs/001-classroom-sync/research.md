@@ -27,6 +27,19 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
 | The student's personal Drive already has folders of their own in the root of «Mi unidad» (My Drive) | Root of «Mi unidad» |
 | Google Drive for desktop is installed, but the student's personal account is not mounted | `~/Library/CloudStorage/` |
 
+Observed on 2026-10-27 in a manual, read-only read of the school account (no title, name or
+identifier recorded here):
+
+| Fact | Observed in |
+|---|---|
+| Two assignments of one subject, posted that morning, were not in the capture of 2026-10-26 | «Tareas pendientes», compared with that capture |
+| «Tareas pendientes» is `/u/<n>/a/not-turned-in/all`, with the sections «Sin fecha», «Esta semana», «Próxima semana» and «Más tarde», each collapsed and opened by its header button | To-do page |
+| «Sin entregar» is `/u/<n>/a/missing/all`, with a «Ver todo» (see all) button | To-do page, «Sin entregar» tab |
+| An assignment's detail page `/u/<n>/c/<class>/a/<item>/details` gives its instructions and «Fecha de entrega: Mañana, 8:00» | Detail page |
+| The to-do pages and the detail pages were enough to know what is pending and when it is due | The manual read as a whole |
+| The capture of 2026-10-26 placed a bare «8:00» (today at 8:00) on the wrong day | That capture, compared with the detail page in the read of 2026-10-27 |
+| Google showed «Demuestra que eres tú» (`accounts.google.com/…/confirmidentifier`) before Classroom opened, in a browser where the school account was already signed in | Address bar |
+
 ## Decisions
 
 ### R1. How it repeats: skill + deterministic scripts + scheduled task
@@ -66,6 +79,11 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   iframe as «session expired» and stop with that reason. Whether this is a school policy, and how
   long a session lasts, was not measured; a daily unattended run depends on it. The next session,
   opened at 10:38 the same day, was still alive at 13:25, so the lifetime varies.
+- **2026-10-27: the operator excludes their Mac and their browser from the unattended read.** The
+  scheduled task of the desktop app needs the Mac on, the app open and the operator's Chrome with
+  the student's session. For a student with the runner enabled, the scheduled read moves to the
+  unattended runner (R15 to R19); this decision stays for the full sync and for students without
+  the runner.
 
 ### R2. Browser: Chrome with the Claude extension
 
@@ -76,7 +94,11 @@ list, «Trabajo de clase» (Classwork) of two subjects, one task detail page, th
   `authuser=<email>` in a URL (FR-031). The index found is stored in the run's log, not in the
   configuration or the state.
 - **Alternative**: the app's built-in browser. The extractor would be the same JavaScript, but the
-  direct download already failed in it (issue #1); it is left for a later epic that tests it.
+  direct download already failed in it (issue #1); it is left for a later epic that tests it. It
+  also lives on the Mac, so it cannot be the browser of a read without the Mac (R17).
+- **The unattended runner (2026-10-27)**: its own headless Chromium, driven by alfabeta's code with
+  Playwright, runs the same `extract.js` in a `todo` mode (R15 to R19). Its profile holds only the
+  school account, so `/u/0` is expected, and the account button is still compared locally.
 
 ### R3. Extraction: a JavaScript extractor over the viewing pages
 
@@ -115,7 +137,9 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 | The assignment detail page shows a modification mark with the shape «(Última modificación: N oct)» | Text of one assignment's detail page |
 | Reading a question's detail page does not change «Tu trabajo»: the student's work page gave the same text hash before and after | Hash of `/sp/<student>/all/default` around one question's detail load |
 | A page in the hidden iframe was ready in 1.0–1.2 s (classwork, material, question, stream); one question load timed out at 25 s and succeeded on the retry | `performance.now()` around each iframe load |
-| 12 classes and 93 items in total; the largest class has 21 items | Classwork of every class, through the iframe | Downloading Drive attachments (spike S1, first technical risk)
+| 12 classes and 93 items in total; the largest class has 21 items | Classwork of every class, through the iframe |
+
+### R4. Downloading Drive attachments (spike S1, first technical risk)
 
 - **Problem**: the direct download `drive.google.com/uc?export=download` failed in the built-in
   browser (issue #1). Attachments link to `drive.google.com`.
@@ -154,6 +178,12 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   stream or the detail page, never from «Última modificación».
 - **Tests**: a table of cases, including the year change (December/January), clock changes and a
   capture applied the next day.
+- **Per page, not per capture (2026-10-27)**: the capture of 2026-10-26 placed a bare «8:00» on the
+  wrong day, and a read that crosses midnight would resolve «Mañana» against the wrong day if it
+  used the capture's single `captured_at`. Each detail page now carries its own `seen_at`, and the
+  resolver uses it; `captured_at` is only the fallback for a page without one. The resolver on
+  `main` already reads a bare time as the day of the instant it is given (`src/alfabeta/dates.py`);
+  what changes is which instant `capture.py` gives it.
 
 ### R6. State, lock and idempotency
 
@@ -314,7 +344,9 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   download from Classroom is an unattended transport, in one file per run or one per attachment.
   Rejected: downloading with `curl` outside the browser, because it needs the school session's
   cookies, a secret no tool may handle (constitution, minors' data). Still open: large Drive files
-  (the confirmation page).
+  (the confirmation page). Constitution 2.0.0 lets the unattended runner keep the sign-in secret as a
+  secret inside its own browser (R15); the runner downloads nothing (spec FR-034), so this
+  rejection still holds for attachments.
 
 ### R13. Personal-data guardrail
 
@@ -343,6 +375,240 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 
 - **Keychain**: no secret of its own. The Classroom session lives in Chrome and the Gemini Notebook
   session in `nlm`; alfabeta stores no cookies or tokens. The secrets layer is planned for and left
-  empty.
+  empty. The unattended runner (R15) is the exception: its stored session is alfabeta's first
+  Classroom secret, kept in the cloud project's secret store, not in the keychain.
 - **Numeric grade**: not seen in a graded task's detail; `grading` stores the grading state, the
   grade if Classroom shows it to the student, and the comment (spec, story 6).
+
+### R15. Signing in for a run with nobody present: a vault, and two routes
+
+- **Proposal (operator, 2026-10-27)**: a browser alfabeta drives by itself, headless and not the
+  operator's Chrome, with the student's credentials kept in a vault so that it can sign in alone.
+  On the constitution: «me da igual que rompa la constitución, pues la cambiamos». On the
+  mechanism: «no te quiero condicionar, dime tú», and «no me importa hacer esa prueba» to the
+  recommendation below.
+- **Decision**: a vault, and constitution III amended (MAJOR, 2.0.0) to allow it. Two routes,
+  because the session the operator pictured is too short to reuse (R16) and the thing he pictured —
+  scripted web sign-in from a password — is what Google refuses:
+  - **Primary, the token route.** The family signs in by hand once to mint a long-lived sign-in
+    token for the school account; the vault holds the token, and the runner exchanges it for
+    short-lived access tokens and reads Classroom read-only, as a Google first-party client. It is
+    not tied to the web session, so it escapes R16.
+  - **Fallback, the scripted web sign-in.** The vault holds the password and the second-factor
+    seed; a deterministic script signs the headless browser in when the stored session has expired,
+    and the runner reads the to-do pages (R18). Documented with its risks; built only if the token
+    route fails and the spike shows it works without evasion.
+- **The two hard limits, which hold whatever the constitution says**:
+  1. Claude never runs a sign-in and never types a credential. The login is a deterministic script
+     (Playwright for the web route; a token exchange for the token route) that Claude writes and
+     the scheduled job runs. This is a limit of the tool, not of the constitution.
+  2. No evasion: no stealth tooling, no debug-port hiding, no fingerprint spoofing, no CAPTCHA
+     solving (constitution IV). A sign-in that cannot succeed without any of these stops, and the
+     family is told. `puppeteer-extra-plugin-stealth` has been unmaintained since 2023 and is
+     reported detected; debug-mode browsers are reported detected. The spec does not plan around
+     them.
+- **Why the password alone was not enough, and the session alone was not enough**: Google blocks
+  sign-in from automated browsers and says the browser must not offer automation features (Google
+  Developers Blog, "Guidance to developers affected by our effort to block less secure browsers and
+  applications", August 2020; the block started on 2021-01-04; Google account help lists "being
+  controlled through software automation" among the reasons it refuses a sign-in). So a scripted
+  web sign-in may never work without the evasion limit 2 forbids: the web route is a fallback, and
+  its spike (S5) may kill it. A hand-signed session, with no re-login, is ruled out because the
+  school session is «como máximo una hora» (operator; R16): the family cannot sign in hourly. The
+  token route avoids both the automated sign-in page and the short session, which is why it leads.
+- **The token route, in more detail** (research only; untested against the account):
+  - The known technique is `gpsoauth`: a one-time human sign-in at Google's embedded-setup page
+    yields a master token for the account, from which short-lived access tokens are drawn, as the
+    Android first-party clients do (used by `gkeepapi`, Home Assistant). The vault holds the master
+    token, not the password.
+  - Why it may reach Classroom where our own client did not: the school's blocks recorded in
+    `docs/classroom-investigacion.md` (OAuth Playground «Servicio no permitido»; our own OAuth
+    client `access_not_configured`) target developer tools and third-party clients. The student's
+    account works in the Classroom app on an Android phone (operator, 2026-10-27), believed
+    unmanaged, which is the first-party-client case. This is an inference, not a test.
+  - Why it may fail: the API block may be at the account-policy level (the admin message was «El
+    administrador de tu institución debe revisar»), which a first-party token would hit too; mobile
+    management may reject an unmanaged sign-in; the Classroom Android app may call a private
+    endpoint, not `classroom.googleapis.com`. Spike S4 settles it with one read-only call.
+  - Accepted risks (the family decides in the review): it poses as a Google first-party app, which
+    is against Google's terms; the sign-in shows as a new Android device on the account; and the
+    stored master token is **account-wide and bypasses the second factor** — read-only is only the
+    scope the runner requests from the short-lived tokens it derives, not a property of the stored
+    secret. So the stored token is at least as sensitive as the password: if the vault is read (by
+    the project's administrators, R17, or in a breach) the exposure is the whole account, not
+    read-only Classroom. The family accepts custody of a secret as sensitive as the password.
+- **What the vault stores**: the student's secrets in the family's cloud project's secret store
+  (R17), encrypted at rest, with versions; the newest is in use. For the token route, the sign-in
+  token; for the web route, the stored session plus the password and second-factor seed the family
+  seeds (FR-033a). The runner's identity may read them and add versions to the one it mints; the
+  family may read and revoke all of them; and — unavoidably — the project's administrators can read
+  them too (constitution II, R17), which is why the family picks a project they trust. None of it
+  enters the repository, the configuration, a log, an error message or Claude's context. The minted
+  secret's renewed value is stored as a new version and the older ones destroyed; the password and
+  seed are never rewritten by the runner.
+- **How the family seeds it (spike S4/S5)**: `runner session login` on a computer with a screen —
+  for the token route, it runs the embedded-setup sign-in and stores the master token; for the web
+  route, it starts the runner's Chromium with a fresh profile and no automation attached, the family
+  signs in, and it stores the browser's storage state. Not: copying the session out of the family's
+  everyday Chrome, which Chrome may bind to that device (R16).
+- **Terms of service, the family's decision**: Google's terms (effective 2026-07-30, read
+  2026-10-27) forbid automated access that violates a page's machine-readable instructions, naming
+  `robots.txt`; `classroom.google.com/robots.txt` (read 2026-10-27) allows only the home pages.
+  This applies to today's extension route too; an unattended job is plainly automated access, and
+  the token route additionally poses as a first-party app. The account is the student's school
+  account, which the school manages. The family accepts or refuses these risks in the review; this
+  research does not decide them.
+
+### R16. «Demuestra que eres tú»: how often, from where, and what the run does
+
+- **Observed**: on 2026-10-25 and 2026-10-26, three times at `/u/<n>` (R1); on 2026-10-27, once
+  before Classroom opened, in a browser where the school account was already signed in. Two
+  lifetimes were seen: one session was gone within about 1 h 20 min, another was still alive after
+  2 h 47 min.
+- **What Google documents** (read 2026-10-27):
+  - Workspace admin help, "Set session length for Google services": the web session lasts 14 days
+    by default; administrators of the Education editions can change it per organisational unit or
+    remove the limit; when it ends, the user sees a "Verify it's you" page and must sign in again.
+    Native mobile apps and OAuth apps are exempt, not the Classroom web pages.
+  - Workspace Updates blog, October 2022: Google re-challenges sessions it judges risky, with
+    cookie theft as the example; the signals are not published.
+  - Google's blog, 2026-04-09: Chrome now binds a session to a key that cannot leave the device
+    (Device Bound Session Credentials, with the TPM on Windows and the Secure Enclave on macOS);
+    public on Windows from Chrome 146, macOS "in an upcoming release". A third-party post of
+    2026-08-11 reads Chrome 147 on macOS, rolled out gradually and off by default. A bound session
+    copied to another machine stops being renewed, so the family signs in in the runner's own
+    browser (R15).
+- **Why this matters per route**: the token route is not tied to the web session, so R16 barely
+  touches it — a master token lives for months (the family refreshes only on revocation). The web
+  route lives or dies by it: a ≤1 h session means a scripted sign-in on almost every run, which is
+  both the automated-sign-in wall (R15) and a lockout risk on a minor's account.
+- **Not measured, so asked of the spikes**:
+  1. (S5, web route) How long does the school account's session last, and how often would the
+     scripted sign-in have to run? Either the school states its setting, or the family seeds a
+     session and the read runs twice a day until «Demuestra que eres tú», over 14 days.
+  2. (S4/S5) Does a cloud project's address meet more challenges or sign-in refusals than a home
+     address? Google documents no rule about datacenter addresses, but its sign-in refusal is known
+     to key on new locations.
+  3. (S5, web route) Does the scripted sign-in itself clear, or does Google answer it with "this
+     browser may not be secure" or a second factor beyond the stored seed?
+  4. (S4, token route) Does the master-token exchange succeed for this account from the runner's
+     environment, and does one read-only Classroom call return the student's work?
+- **What a stop does (decided)**: a dead or rejected token, or a web-route load that lands on
+  `accounts.google.com` the scripted sign-in cannot clear, is `session_expired`; a human challenge
+  is `challenge`. The runner evades nothing, applies what it read completely and ends (spec FR-037).
+  The family gets one notice until it refreshes the vault: the run records the secret version it
+  used, and a later run that stops the same way with the same version logs `stopped` without a new
+  notice.
+- **Gate**: SC-012 asks that the family refresh the vault by hand at most once every 7 days. The
+  token route meets it trivially if S4 proves it. For the web route, if S5 shows the session expires
+  so often that a human sign-in is needed more than weekly, or the scripted sign-in cannot clear
+  without evasion, the web route is not built. If both routes fail, User Story 7 is not built and
+  the family keeps the scheduled task on the Mac (R1) and the guardian email summaries
+  (`docs/roadmap.md`, route 2). The runner runs in the operator's cloud project (constitution IX);
+  S4/S5 compare its address with a home one only to understand what Google does, not to add a home
+  host.
+
+### R17. Where the runner runs
+
+- **Requirement**: no operator Mac, no operator browser; scheduled at the `[schedule]` times; a
+  vault with versions (the token, or the session); the data home in the student's Drive (constitution
+  II/VII); read-only by scope (token route) or by the browser guard (web route, R18); a notice that
+  reaches the family with the Mac off. The host is settled by the constitution, not chosen here:
+  spec 005 and IX commit the cloud run to the operator's Google Cloud project. Size: one student,
+  about 22 runs a month. The token route is a handful of API calls, seconds each. The web route is
+  heavier: two list pages plus one detail per pending item (35 pending on 2026-10-26, spec 003) at
+  about 4 s each (R8), so about 300 s with the browser's start — well inside the free tier.
+- **Shape and services** (prices read 2026-10-27 on each provider's page): a Cloud Run job started by
+  Cloud Scheduler, the secret in Secret Manager, the data home a state folder in the student's Drive
+  (R19), all in the operator's Google Cloud project for alfabeta (the one spec 004 and spec 005 use).
+  Even the web route's compute (about 6,600 vCPU-seconds and 13,200 GiB-seconds at 1 vCPU / 2 GiB)
+  sits under the 240,000 and 450,000 free a month for jobs (200,000 and 375,000 in Tier 2 regions);
+  the token route is far less; Scheduler gives 3 jobs free per billing account, then $0.10 a job;
+  Secret Manager 6 active versions and 10,000 accesses free. Custody: the project's organisation (the
+  operator's work org) administers it, so its administrators can read the secret (constitution II
+  names them; the family accepts, or moves to a personal-account project).
+- **Rejected hosts**:
+  - **Cloudflare Browser Rendering** (Workers Paid $5, 10 browser hours then $0.09/h): a new provider
+    would hold a minor's credential (constitution III), and whether its browser announces itself as a
+    bot was not verified.
+  - **A Claude routine** (Claude Code on a schedule in Anthropic's cloud): against the plan; research
+    preview with a 1 h minimum and a daily cap; no writable secret store for the renewed secret; the
+    run would sit in a model-driven environment.
+  - **GitHub Actions**: the repository is public, and so are its workflow logs — one slip publishes a
+    minor's data; scheduled workflows of a public repo also pause after 60 days.
+  - **A home device**: constitution IX (2.0.0, set by spec 005) commits the cloud run to the
+    operator's Google Cloud project, so a home host is out of scope here; a later spec could name it
+    as its own need. The Mac route (R1) stays for the full sync, excluded by the operator for this
+    read.
+- **Region**: a European region of the project, to keep the student's data in the EU; whether the
+  region changes how Google treats the account is part of S4/S5.
+- **Notice with the Mac off**: an alert policy of the project's monitoring on the runner job's
+  failed executions, with an email notification channel to the family's address, set in the
+  project and never in the repository. It needs no new Google scope. `runner read` fails (exit 1)
+  only the first time a stop reason appears for a stored session version; a later run that stops
+  for the same reason with the same version logs its `stopped` line and ends with 0 (R16,
+  `contracts/cli.md`), so the alert fires once. The notice carries the reason and the student's
+  opaque `id`, and its documentation field says how to sign in again.
+  Rejected: an event in the student's calendar, which holds only facts from Classroom (spec 003);
+  an email through the Gmail API, which needs a scope spec 004 does not grant.
+- **Custody, for the family to accept or refuse in the review of this amendment**: the cloud project
+  lives in an organisation the operator administers for work. Moving the runner to a project owned
+  by a family account changes nothing else in this design.
+
+### R18. Read-only as a property of the web route's browser (the token route uses scope)
+
+- **Today (the Mac route)**: the extractor only reads, Claude follows `SKILL.md`, and a `jsdom` test
+  checks that the extractor presses nothing (R11). That relies on whoever drives the browser.
+- **Token route**: there is no browser and no guard to build — read-only is the scope the access
+  token is requested with (FR-032a). The constitution's "read-only by construction" (IV) is met by
+  never asking for a write scope.
+- **Web route (decided)**: the guard is part of the browser, installed before any page script runs,
+  not a discipline the driver follows (constitution IV). Playwright adds it with a capture-phase
+  init script and request routing:
+  - **presses**: the init script, on every frame before its own scripts load, adds capture-phase
+    listeners that `preventDefault()`/`stopImmediatePropagation()` on every `click`, `submit`,
+    `keydown` and `pointerdown`, and wraps `HTMLFormElement.submit`/`requestSubmit`, **unless** the
+    target is an allowlisted control — a to-do section header or «Ver todo», by label, or the
+    scripted sign-in's own fields on a Google sign-in page. So even the page's own `extract.js`, or
+    an injected «Entregar», cannot press. Each blocked press is counted.
+  - **document loads**, in the page and its iframes, are allowed only on `classroom.google.com` and
+    only for `/u/<n>/h`, `/u/<n>/a/not-turned-in/all`, `/u/<n>/a/missing/all`,
+    `/u/<n>/c/<class>/a/<item>/details` and `/u/<n>/c/<class>/mc/<item>/details` (the exact FR-034
+    set; the other FR-007 pages are the full sync's, not the runner's — FR-038, resolving the
+    wider wording); a load to `accounts.google.com` the scripted sign-in cannot clear ends the run
+    `session_expired` (R16); any other load is blocked and counted;
+  - **requests** to form or quiz hosts (`docs.google.com/forms`, `forms.gle`) and to download hosts
+    (`drive.usercontent.google.com`, any `/export`) are blocked and counted;
+  - **background requests**: Classroom draws its pages with JavaScript and fetches data with `POST`
+    calls, so the method alone cannot tell a read from a write.
+- **Not measured, so asked of spike S6**: which background requests do a to-do read and a detail
+  read make (method, host, path and call name; never bodies or cookies)? If reads and writes can be
+  told apart by call name, the guard allows only the names S6 records and blocks the rest. If they
+  cannot, the plan records the weaker guarantee (document loads and presses only) before anything is
+  built.
+- **The spikes run read-only**: S5 reads the real account behind this guard's parts that do not need
+  S6 — the document-load allowlist and zero presses — since the full guard is built only after the
+  spikes (C2). S4 (token route) only ever requests a read-only scope.
+- **Test**: offline, a local fake server serves the synthetic to-do and detail pages with a planted
+  form link, planted «Entregar» and «Marcar como completado» buttons and a planted unknown call, and
+  a planted `extract.js`-style press; all are blocked and counted, and none reaches the server.
+
+### R19. One data home per student
+
+- **Decision**: with the runner enabled, the student's data home is a state folder inside the
+  alfabeta folder of the student's Drive (constitution II and VII, as spec 005 sets for a cloud run),
+  reached through spec 004's Google connection over the Drive REST API with the standard library. It
+  is a hidden subfolder of `drive.root` that no mirror receives (VII). The runner works on a local
+  copy under `--home` and writes changed files back, so the commands do not change. The Mac holds no
+  second copy that can be written.
+- **Lock**: `fcntl.flock` does not work over Drive, so the student's lock becomes the lease of R6: a
+  lock file in the state folder, created only if absent and renewed by every step with Drive's
+  conditional update (the file's version/etag, which also fences a stale writer), and taken over
+  after `lock_idle_minutes` with the dead run's `stopped` line. The runner reads by its route, so it
+  takes no browser lock on the Mac.
+- **A family session on the Mac** for that student (a full sync, a decision, `book place`) takes
+  the lease, copies the home down, works on the copy with `--home`, writes it back and releases the
+  lease; while it holds the lease, a scheduled run stops with `lock_busy`.
+- **Rejected**: two homes with separate outputs, since both need the class links and the statuses
+  and would drift apart; a separate Cloud Storage bucket for the state, which the constitution rules
+  out for a cloud run (II and VII place the state folder in the student's Drive).

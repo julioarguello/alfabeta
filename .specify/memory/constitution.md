@@ -4,7 +4,8 @@ alfabeta gathers the study material of a secondary-school student that today is 
 school's digital textbook and Google Classroom. It files it by subject and topic in the student's
 folder, which syncs with their cloud, creates a Gemini Notebook notebook per topic, and takes
 assignments and exams to a calendar the student and their family share. A family runs it on its own
-Mac with the Claude desktop app. The repository is public.
+Mac with the Claude desktop app; reading Classroom with nobody present can also run as a job in the
+family's own cloud project (IX). The repository is public.
 
 ## Core Principles
 
@@ -25,18 +26,21 @@ Rationale: the first student is the first *tenant*, not the product.
 |---|---|---|---|
 | **Template** | Structure and example values (`changeme`) documenting every key | Repo (`template.*`) | Yes, the only one |
 | **Student configuration** | Name, school year, school, subjects, paths, calendar, accounts | Outside the repo or ignored by git | Never |
-| **Data and secrets** | Downloads, captures, PDFs, sessions and cookies, tokens, notebook and event ids | Local data folder and the system keychain; for a cloud run a spec names (IX), that project's secret store and one state folder inside the alfabeta folder of the student's Drive | Never |
+| **Data and secrets** | Downloads, captures, PDFs, sessions and cookies, tokens, notebook and event ids | Local data folder and the system keychain; for a cloud run a spec names (IX), that project's secret store (the vault of III) and one state folder inside the alfabeta folder of the student's Drive | Never |
 
 - The template MUST mirror every real configuration line by line (*template mirroring*): every key
   the code reads MUST be declared in the template, and an undeclared key is an error at start-up,
   not a silent default.
-- Secrets (cookies, tokens) MUST live in the system keychain or in the data folder with user-only
-  permissions, never in the configuration. A cloud run a spec names (IX) holds its own secrets in
-  its project's secret store, readable only by that run. A secret kept on the Mac never leaves it,
-  and the cloud's secrets are never stored on the Mac; a secret minted on the Mac for the cloud goes
-  straight to the cloud's store without touching the Mac's disk or keychain. The one exception is an
-  OAuth client file downloaded from Google, read once by the command that links an account and
-  deleted right after, the same way spec 004 loads the Mac's own client.
+- Secrets (cookies, tokens, and the stored credential or sign-in token of III) MUST live in the
+  system keychain or in the data folder with user-only permissions, never in the configuration. A
+  cloud run a spec names (IX) holds its own secrets in its project's secret store (the vault of III),
+  readable by that run, the family, and — unavoidably — the administrators of that project; the
+  family therefore runs it in a project they administer or whose administrators they trust, and the
+  plan names the project and the organisation whose administrators can read it. A secret kept on the
+  Mac never leaves it, and the cloud's secrets are never stored on the Mac; a secret minted on the
+  Mac for the cloud goes straight to the cloud's store without touching the Mac's disk or keychain.
+  The one exception is an OAuth client file downloaded from Google, read once by the command that
+  links an account and deleted right after, the same way spec 004 loads the Mac's own client.
 - An automatic guardrail (pre-commit hook and CI test) MUST prevent pushing real names, emails,
   personal paths or ids. The guardrail MUST have cases that prove it fires.
 
@@ -54,10 +58,31 @@ minor's data.
   family's Google account, their cloud, the operator's Google Cloud project for alfabeta, Claude
   through the app or the operator's API workspace). No other third party.
 - Test data MUST be invented. No fixture holds material or data of a real student.
-- The student or their family signs in to each platform. No tool MUST type credentials.
+- The student or their family performs the first sign-in that authorises alfabeta for an account; no
+  tool decides on its own to grant itself access. A tool MAY then sign in again on the student's
+  behalf, with nobody present, only under all of these conditions:
+  - it uses a credential or token the family stored, for that one account, in a vault (II);
+  - the vault holds as little as the route needs: a sign-in token in preference to the password, and
+    the password with its second-factor seed only for the documented fallback route. The preference
+    for the token rests on its being revocable on its own and not reused on other services, not on
+    its being narrower in power: a first-party sign-in token can be account-wide and bypass the
+    second factor, so the stored secret is at least as sensitive as the password. Read-only is the
+    scope alfabeta's code requests from the short-lived tokens it derives, not a property of the
+    stored secret. Whoever can read the vault (II names them) can reach the whole account, so the
+    family accepts custody of a secret as sensitive as the password;
+  - a deterministic script that alfabeta's own code runs does the sign-in. Claude writes that
+    script but MUST NOT itself type a credential or run the login by hand;
+  - no evasion is used (IV): if a sign-in cannot succeed without defeating a bot or human check, it
+    stops and the family is told, instead of trying to get past it;
+  - it reads only the student's own material.
+  The family can revoke it at any time by changing the credential or signing the account out, and
+  the run stops when the stored secret stops working.
 
 Rationale: the school account belongs to a minor and the school manages it; the family answers for
-what alfabeta does with it.
+what alfabeta does with it. Storing a credential for that account is a real risk — a lockout, a
+breach of the platform's terms — so it is the minimum, for the student's own account, used without
+evasion, and the family accepts that risk in the amendment that turns the route on. This principle
+changed in 2.0.0: before it, no tool ever typed credentials.
 
 ### IV. Read-only on the school's platforms (NON-NEGOTIABLE)
 
@@ -69,10 +94,20 @@ what alfabeta does with it.
 - Only what the platform already shows the student with their account is captured, for their study.
   The material belongs to its authors: personal and educational use, no redistribution.
 - Access MUST be that of a student browsing: one platform at a time, no bursts. Evasion MUST NOT be
-  used: no CAPTCHA solving, proxies or fingerprint spoofing. If a platform answers with a challenge,
-  the sync of that source stops and the family is told.
-- The Classroom API stays out until the school authorises an OAuth client for alfabeta
-  (`docs/classroom-investigacion.md`).
+  used: no CAPTCHA solving, proxies, fingerprint spoofing or stealth tooling. If a platform answers
+  with a challenge that a human would have to clear — a CAPTCHA, an "unusual traffic" page, a check
+  that the browser is not automated — the sync of that source stops and the family is told; nothing
+  is typed to get past it. The scheduled sign-in that III permits is the exception, and only while
+  it needs none of this evasion.
+- A run with nobody present MUST enforce read-only by construction, not by trusting the code that
+  drives it: a browser that blocks every page load and press outside an allowlist before it reaches
+  the platform, or a connection asked for with read-only scope only.
+- No OAuth client of alfabeta's own is used against the Classroom API for a school account the
+  school has not authorised (`docs/classroom-investigacion.md`). The one exception is the
+  first-party token route that III permits for a run with nobody present: it reads the API read-only
+  as a first-party client with a token the family seeded, and is built only once a spike proves it
+  reaches the account. Its added risk (posing as a first-party app, against the platform's terms)
+  is the family's to accept, with the rest of III's conditions.
 
 Rationale: one click too many can turn in a blank assignment or spend an exam attempt, and that
 cannot be undone.
@@ -111,6 +146,10 @@ cannot be undone.
   master, so the mirrors receive it too. This is the only Drive-to-master direction; it never
   applies to a mirror. A cloud run's state folder and its reports live only in Drive: they are not
   part of the master and never reach a mirror.
+- A cloud run that only reads a platform (spec 001's Classroom read) writes no replicas and no topic
+  material: it writes only what it derives — the agenda (regenerated from the shared state by any Mac
+  run, so a mirror still receives it through the master) and the calendar — straight through that
+  connection and confirmed the same way.
 - alfabeta then brings each configured mirror up to date from the master, one-way. A mirror is the
   Drive folder of an account alfabeta's own connection cannot reach (the school account), mounted on
   the same Mac. It is never read back into the master, and nothing is deleted from it. Its upload
@@ -138,15 +177,21 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - Everything runs on the family's Mac unless a spec names a need the Mac cannot meet. Such a need
   runs in the operator's Google Cloud project for alfabeta, within its free tier, and the spec
   names what stays on the Mac. The first is spec 005: the student's notes reach the notebook while
-  the Mac is off, because the desktop app's scheduled tasks run only while the app is open.
+  the Mac is off, because the desktop app's scheduled tasks run only while the app is open. The
+  second is spec 001's User Story 7: reading Classroom with nobody present — measured 2026-10-27,
+  when a read missed two assignments posted that morning because it needed the Mac — with
+  attachments and replicas staying on the Mac.
 - A new dependency MUST justify in the plan why the standard library or what is already there is
   not enough.
 
 ## Technical constraints
 
 - **Environment**: the Claude desktop app with access to the Mac, and a browser with the student's
-  session (Chrome with the Claude extension, or the app's built-in browser). Python 3.12 for the
-  scripts; JavaScript only inside the browser, to extract pages.
+  session (Chrome with the Claude extension, or the app's built-in browser). For reading Classroom
+  with nobody present (IX), a scheduled job of the operator's Google Cloud project for alfabeta that
+  reads either as a first-party client with a token, or with a headless browser whose session the
+  family started by hand — using a secret in the vault (II). Python 3.12 for the scripts; JavaScript
+  only inside the browser, to extract pages.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
@@ -221,4 +266,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 1.7.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
+**Version**: 2.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27

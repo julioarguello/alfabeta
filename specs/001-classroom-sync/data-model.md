@@ -66,7 +66,13 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `notebook.enabled` | boolean | Whether each topic's notebook is created |
 | `notebook.share_with` | list of email addresses | Accounts each topic notebook is shared with as viewer (FR-011b); may be empty; never goes in a URL or the log |
 | `subjects` | list of `Subject` | At least one |
-| `schedule.monday` … `schedule.sunday` | time `HH:MM` or empty | Time of the scheduled task on that weekday; empty = no run that day, all empty = on demand only |
+| `schedule.monday` … `schedule.sunday` | time `HH:MM` or empty | Time of the scheduled task on that weekday; empty = no run that day, all empty = on demand only. With `runner.enabled`, the times of the runner's job instead (FR-032) |
+| `runner.enabled` | boolean | Whether the unattended runner reads this student's pending work (User Story 7); `false` leaves FR-006 and FR-021a unchanged. A local pointer so the Mac finds the job; the job gets its project and secret names from its environment, not this file. These `[runner]` keys are added to the config contract and the template by T087 when User Story 7 is built; they are not in the template yet, so an existing config is unaffected |
+| `runner.route` | `token` · `web` · empty | The route the spike settled (FR-032a, FR-032b); `""` when disabled |
+| `runner.session_secret` | text | Base name of the student's vault secrets; the runner derives one entry per purpose (FR-033a: the token or stored session, `-password`, `-totp`, `-drive`); never a value; `""` when disabled |
+| `runner.state_folder` | text | Name of the state folder inside the alfabeta Drive folder that holds the single data home (FR-035; constitution II/VII — in Drive, not a separate store, never mirrored); `""` when disabled |
+| `runner.page_timeout_seconds` / `runner.run_timeout_seconds` | integer ≥ 1 | Per-page and whole-run time limits (FR-037); the job timeout is set above `run_timeout_seconds` |
+| `runner.challenge_cooldown_minutes` | integer ≥ 1 | After a `challenge`, how long before a run reaches Classroom again; the run records a `cooldown_until` in the data home (FR-037) |
 
 ## Subject
 
@@ -116,7 +122,8 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | `title` | text | As the teacher writes it |
 | `posted_at` | date | From «Fecha de creación» (creation date); never from «Última modificación» (last modified) |
 | `modified_at` | date or empty | From «Última modificación»; triggers a new download of its attachments |
-| `due_at` | date-time or empty | Resolved by `DateResolver` relative to the capture instant |
+| `due_at` | date-time or empty | Resolved by `DateResolver` relative to the instant its detail page was read (`seen_at`), or to the capture instant if the page has none (FR-021) |
+| `seen_at` | date-time or empty | When its detail page was read; from the capture's `detail.seen_at` |
 | `status` | `pending` · `turned_in` · `turned_in_late` · `returned` · `overdue` · `missing_per_teacher` · empty | From the detail (table below); assignments and questions only |
 | `description` | text | Instructions or the announcement's text |
 | `attachments` | list of `Attachment` | |
@@ -135,7 +142,17 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | any | «El profesor ha indicado que falta esto» (the teacher marked this as missing) | `missing_per_teacher` (overrides everything above) |
 | other text | — | the run records it as unknown and leaves `status` empty |
 
-The "past/future" comparison uses the capture instant.
+The "past/future" comparison uses the instant that detail page was read (`seen_at`), or the
+capture instant if it has none — the same instant the due date is resolved against (FR-021), so an
+item read at 00:01 whose due is «8:00» is not judged overdue against the previous day.
+
+A `todo` capture (the unattended runner, FR-034) updates only `status`, `due_at`, `seen_at` and
+`description` of an item, and may create an item it had not seen; it never sets `topic_id`,
+`attachments`, `submission` or `grading`, and never withdraws an item except one on its `recheck`
+list whose detail says it no longer exists. Topic, attachments and withdrawal from the listing stay
+with the full sync. For FR-020c's "a capture of its class later than its date", a `todo` capture
+counts as a capture of the item's class (it read that item's detail). The `partial`/`complete` rule
+of a `todo` capture is the capture's own `complete` flag, not per class.
 
 ## Attachment
 
@@ -195,13 +212,20 @@ Contract: [agenda.schema.json](contracts/agenda.schema.json).
 
 ## Run (in `data/log.jsonl`)
 
-One line per run: `started_at`, `ended_at`, `mode` (`interactive` · `scheduled`, from `lock take --mode`), the `/u/<n>` index used (`account_index`, from the classes capture),
+One line per run: `started_at`, `ended_at`, `mode` (`interactive` · `scheduled` · `unattended`, from `lock take --mode`; `unattended` is the runner of User Story 7, with no Claude in the run, so it proposes nothing), the `/u/<n>` index used (`account_index`, from the classes capture),
 `classes` visited, counters `added`, `changed`, `withdrawn`, `not_fetched` (with a reason per
 item, without student data), `unknown_statuses`, `pending_decisions`, `full_review`
 (boolean: the next full review is counted from the last line that has it), `result` (`ok` ·
 `partial` · `stopped`) and `reason` (of the stop or of a `partial` one. A stop in the browser —session expired, challenge or unexpected interface— before capturing any class leaves the run `stopped` without writing to the student's folder; after capturing at least one, `apply` applies those already captured, leaves the class of the `stop` capture unapplied and the result is `partial` with that reason. The same in both modes. Drive not mounted, lock busy or invalid configuration always stop before writing) (`session_expired`, `challenge`,
-`unexpected_ui`, `drive_not_mounted`, `lock_busy`, `lock_not_held`,
-`invalid_config`, `idle`). Each line carries the `run` of its lock. The `apply` line also carries
+`unexpected_ui`, `timeout`, `drive_not_mounted`, `lock_busy`, `lock_not_held`,
+`invalid_config`, `idle`, and, for the unattended runner, `account_blocked` (the API refuses the
+account), `drive_write_failed` (the agenda upload was not confirmed) and `store_unavailable` (the
+vault or the data home could not be reached)). A runner's line also carries `session_version` (the
+number of the stored secret's version it used, never its value; a later run that stops with the
+same reason and the same version ends 0 without reaching Classroom and without a new notice, and a
+stopped run stores no new version, FR-037) and `blocked` (the count of page loads, presses and
+requests the web-route guard blocked, FR-038; absent on the token route). Each line carries the
+`run` of its lock. The `apply` line also carries
 `mirrors`: `{up_to_date, failed}`, counts of the configured mirrors (FR-011a), never their paths.
 `book place` writes a shorter
 line: `type: book`, `at`, `run`, `source`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`.
