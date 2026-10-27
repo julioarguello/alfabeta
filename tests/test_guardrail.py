@@ -20,6 +20,8 @@ MUST_FIRE = {
     "drive-id": "file/d/" + "1" + "QwErTyUiOpAsDfGhJkLzXcVbNm0987654" + "/view",
     "classroom-id": "/c/" + base64.b64encode(("9123" + "45678901").encode()).decode() + "/a/x",
 }
+# Inside an HTML tag, which once matched the placeholder pattern and hid its content.
+IN_A_TAG = '<span class="' + _at("persona.real", "colegio-real.es") + '">x</span>'
 
 MUST_NOT_FIRE = [
     "contact " + _at("someone", "example.org"),
@@ -46,6 +48,11 @@ def test_detector_fires(detector: str, line: str):
 @pytest.mark.parametrize("line", MUST_NOT_FIRE)
 def test_detector_stays_quiet(line: str):
     assert guardrail.scan_lines("f.md", [(1, line)], []) == []
+
+
+def test_a_value_inside_an_html_tag_is_scanned():
+    assert [f.detector for f in guardrail.scan_lines("f.html", [(1, IN_A_TAG)], [])] == ["email"]
+    assert guardrail.scan_lines("f.md", [(1, "write to <school account> or <YYYYMMDD>")], []) == []
 
 
 def test_finding_never_shows_the_value():
