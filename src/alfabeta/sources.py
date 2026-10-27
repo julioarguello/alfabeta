@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
+    from alfabeta.capture import ClassCapture
     from alfabeta.model import Item
 
 CLASSROOM = "classroom"
@@ -38,6 +39,11 @@ class ClassroomSource:
 
     items_seen: tuple[Item, ...] = ()
     topics: Mapping[str, str] = field(default_factory=dict[str, str])
+
+    @classmethod
+    def from_capture(cls, capture: ClassCapture) -> ClassroomSource:
+        """The source of a normalized class capture."""
+        return cls(capture.items, dict(capture.topics))
 
     @property
     def name(self) -> str:
