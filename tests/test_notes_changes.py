@@ -21,9 +21,9 @@ def fixture(name: str) -> dict[str, Any]:
     return json.loads((FIXTURES / name).read_text())
 
 
-def drive(*responses: dict[str, Any]) -> tuple[ScopedDrive, FakeTransport]:
-    """A ScopedDrive whose listing is the fixture tree; the transport serves the given pages."""
-    tree = {f["id"]: DriveFile.of(f) for f in fixture("tree.json")["files"]}
+def drive(*responses: dict[str, Any], extra: tuple[DriveFile, ...] = ()) -> tuple[ScopedDrive, FakeTransport]:
+    """A ScopedDrive whose listing is the fixture tree (plus `extra`); the transport serves the given pages."""
+    tree = {f["id"]: DriveFile.of(f) for f in fixture("tree.json")["files"]} | {f.id: f for f in extra}
     t = FakeTransport([json_response(200, r) for r in responses])
     return ScopedDrive(t, "acceso", tree["raiz"], tree), t
 
@@ -107,9 +107,8 @@ def test_a_deep_path_under_informes_is_never_read_as_a_topic():
     folder = "application/vnd.google-apps.folder"
     # Informes/<a>/<b>/apuntes/ has a topic's shape one level down: only the skip keeps it out.
     deep = [("i1", "2026-2027", "inf"), ("i2", "FyQ", "i1"), ("i4", "apuntes", "i2")]
-    d, t = drive({"startPageToken": "1"})
-    for item_id, name, parent in deep:
-        d._tree[item_id] = DriveFile(item_id, name, folder, (parent,))  # noqa: SLF001
-    d._tree["img"] = DriveFile("img", "foto.jpg", "image/jpeg", ("i4",), md5="z1")  # noqa: SLF001
+    folders = tuple(DriveFile(item_id, name, folder, (parent,)) for item_id, name, parent in deep)
+    image = DriveFile("img", "foto.jpg", "image/jpeg", ("i4",), md5="z1")
+    d, t = drive({"startPageToken": "1"}, extra=(*folders, image))
     assert "img" not in {a.file_id for a in DriveChangeFeed(d).read(None, {}).arrivals}
     assert t.responses == []
