@@ -28,7 +28,7 @@ UPLOAD = "https://www.googleapis.com/upload/drive/v3/files"
 FOLDER = "application/vnd.google-apps.folder"
 # Up to this size an upload is one multipart request; above it, a resumable session (research R6).
 MULTIPART_LIMIT = 5 * 1024 * 1024
-FIELDS = "id,name,mimeType,parents,size,md5Checksum,modifiedTime,trashed"
+FIELDS = "id,name,mimeType,parents,size,md5Checksum,modifiedTime,trashed,properties"
 # Spec 005 research R2: only what the feed needs; a name is read only for a change the adapter keeps.
 CHANGE_FIELDS = "nextPageToken,newStartPageToken,changes(fileId,removed,file(name,mimeType,parents,md5Checksum,modifiedTime,trashed))"
 _BOUNDARY = "alfabeta-part"
@@ -62,6 +62,11 @@ class DriveFile:
     md5: str | None = None
     modified: str | None = None
     trashed: bool = False
+    properties: tuple[tuple[str, str], ...] = ()
+
+    def prop(self, key: str) -> str | None:
+        """A public property's value."""
+        return dict(self.properties).get(key)
 
     @property
     def version(self) -> str:
@@ -88,6 +93,7 @@ class DriveFile:
             md5=cast("str | None", data.get("md5Checksum")),
             modified=cast("str | None", data.get("modifiedTime")),
             trashed=bool(data.get("trashed", False)),
+            properties=tuple(sorted(cast("dict[str, str]", data.get("properties") or {}).items())),
         )
 
 
@@ -181,6 +187,11 @@ class ScopedDrive:
         return found
 
     # --- reads ------------------------------------------------------------------------------------
+
+    def listed(self, item_id: str) -> DriveFile:
+        """The item as this run's listing holds it, with no request."""
+        self._inside(item_id)
+        return self._tree[item_id]
 
     def contains(self, item_id: str) -> bool:
         """True if the id is the root or anything under it, as listed this run."""
@@ -318,19 +329,52 @@ class ScopedDrive:
         self._tree[made.id] = made
         return made
 
-    def upload(self, parent_id: str, name: str, content: bytes, mime_type: str) -> DriveFile:
-        """A new file; done only when Drive confirms its size and checksum (FR-012)."""
+    def upload(
+        self, parent_id: str, name: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
+    ) -> DriveFile:
+        """A new file; done only when Drive confirms its size and checksum (FR-012).
+
+        `properties` are Drive's public ones, which every OAuth client of the account can read (spec 005
+        research R4: the Mac and the cloud are two clients).
+        """
         self._folder(parent_id)
-        made = self._send("POST", UPLOAD, {"name": name, "parents": [parent_id]}, content, mime_type)
+        metadata: dict[str, Any] = {"name": name, "parents": [parent_id]}
+        if properties:
+            metadata["properties"] = properties
+        made = self._send("POST", UPLOAD, metadata, content, mime_type)
         self._tree[made.id] = made
         return made
 
-    def update(self, file_id: str, content: bytes, mime_type: str) -> DriveFile:
+    def made_for(self, folder_id: str, properties: dict[str, str]) -> DriveFile | None:
+        """The file in the folder carrying all these public properties, asked of Drive now (research R4)."""
+        self._folder(folder_id)
+        has = " and ".join(
+            f"properties has {{ key={_quote(k)} and value={_quote(v)} }}" for k, v in sorted(properties.items())
+        )
+        q = f"{_quote(folder_id)} in parents and trashed = false and {has}"
+        found = sorted(self._query(q), key=lambda f: f.id)
+        for item in found:
+            self._tree[item.id] = item
+        return found[0] if found else None
+
+    def share_reader(self, file_id: str, address: str) -> None:
+        """Let one account read one file, without mailing it (spec 005 FR-011, research R9)."""
+        self._inside(file_id)
+        if self._tree[file_id].is_folder:
+            raise DriveError("only a file is shared, never a folder")
+        body = json.dumps({"role": "reader", "type": "user", "emailAddress": address}).encode()
+        self._call("POST", f"{API}/{file_id}/permissions?sendNotificationEmail=false", body, "application/json")
+
+    def update(
+        self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
+    ) -> DriveFile:
         """New content on the same Drive id, never a second file; confirmed like an upload."""
         self._inside(file_id)
         if self._tree[file_id].is_folder:
             raise DriveError("a folder has no content to update")
-        made = self._send("PATCH", f"{UPLOAD}/{file_id}", {}, content, mime_type)
+        made = self._send(
+            "PATCH", f"{UPLOAD}/{file_id}", {"properties": properties} if properties else {}, content, mime_type
+        )
         self._tree[file_id] = made
         return made
 

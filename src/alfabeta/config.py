@@ -145,6 +145,11 @@ class StudentConfig:
         return _str(self.data, "calendar.id")
 
     @property
+    def grade_level(self) -> str:
+        """The student's grade, as the notebook titles name it (spec 005 `{grade}`)."""
+        return _str(self.data, "student.grade_level")
+
+    @property
     def school_year(self) -> str:
         """The school year, `YYYY-YYYY`."""
         return _str(self.data, "student.school_year")

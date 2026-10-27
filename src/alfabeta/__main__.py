@@ -22,6 +22,7 @@ from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
 from alfabeta.model import AgendaCategory, DecisionType, RunMode, StopReason
+from alfabeta.notes import cli as notes_cli
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -42,7 +43,12 @@ def _fail(reason: str, code: int, message: str) -> int:
 
 
 # The configuration tables each command group reads; the others are not validated for it.
-TABLES = {"google": ("classroom", "google"), "calendar": ("classroom", "calendar", "google")}
+TABLES = {
+    "google": ("classroom", "google"),
+    "calendar": ("classroom", "calendar", "google"),
+    "notes": ("google", "drive", "notes"),
+    "notebook": ("student", "google", "drive", "notes", "notebook"),
+}
 
 
 def _cmd_config_check(home: Path, student: str) -> int:
@@ -477,6 +483,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cfg_check = cfg_group.add_parser("check", help="compare the configuration with the template")
 
+    notes = groups.add_parser("notes", help="class notes into the topic's notebook (spec 005)").add_subparsers(
+        dest="verb", required=True
+    )
+    notes_run = notes.add_parser("run", help="one pass: new photos become pages of the living file")
+    notebook = groups.add_parser("notebook", help="the topic's notebook (spec 005)").add_subparsers(
+        dest="verb", required=True
+    )
+    notebook_setup = notebook.add_parser("setup", help="the topic's two living files, added as sources")
+    notebook_setup.add_argument("--topic", required=True, help="<subject>/<topic folder>")
+    claude = groups.add_parser("claude", help="this place's Claude API key").add_subparsers(dest="verb", required=True)
+    claude_key = claude.add_parser("key", help="the key of the workspace alfabeta").add_subparsers(
+        dest="action", required=True
+    )
+    claude_set = claude_key.add_parser("set", help="store the key read from standard input in the keychain")
+
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
     probe = cal.add_parser("probe", help="a test event with one reminder at its start")
     probe.add_argument("--minutes", type=int, default=10)
@@ -502,6 +523,9 @@ def build_parser() -> argparse.ArgumentParser:
         plan_cmd,
         apply_cmd,
         collect,
+        notes_run,
+        notebook_setup,
+        claude_set,
     ):
         sub.add_argument("--student", required=True)
     return parser
@@ -528,6 +552,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.group == "google" and args.verb == "client":
             return _cmd_client_set(args, store)
+        if args.group == "claude":
+            return notes_cli.cmd_claude_key_set(args.student, store, sys.stdin.read())
         if args.group == "lock":
             return _cmd_lock(args, home)
         if args.group == "log":
@@ -543,6 +569,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.group == "config":
             return _cmd_config_check(home, args.student)
         cfg = config.load(home, args.student, TABLES[args.group])
+        if args.group == "notes":
+            return notes_cli.cmd_notes_run(cfg, store)
+        if args.group == "notebook":
+            return notes_cli.cmd_notebook_setup(cfg, store, args.topic)
         if args.group == "google":
             if args.verb == "link":
                 return _cmd_link(args, cfg, store)
