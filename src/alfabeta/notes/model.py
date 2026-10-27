@@ -85,9 +85,18 @@ _PHOTO_TRANSITIONS: Mapping[PhotoState, frozenset[PhotoState]] = {
     ),
     PhotoState.TRANSCRIBED: frozenset({PhotoState.IN_LIVING_FILE}),
     PhotoState.FAILED: frozenset(
-        {PhotoState.TRANSCRIBED, PhotoState.UNREADABLE, PhotoState.FAILED, PhotoState.FAILED_FINAL}
+        {
+            PhotoState.TRANSCRIBED,
+            PhotoState.UNREADABLE,
+            PhotoState.FAILED,
+            PhotoState.FAILED_FINAL,
+            PhotoState.BUDGET_WAIT,
+        }
     ),
-    PhotoState.BUDGET_WAIT: frozenset({PhotoState.TRANSCRIBED, PhotoState.UNREADABLE, PhotoState.FAILED}),
+    # A refused budget holds every pending photo, a failed one too, day after day (research R5).
+    PhotoState.BUDGET_WAIT: frozenset(
+        {PhotoState.TRANSCRIBED, PhotoState.UNREADABLE, PhotoState.FAILED, PhotoState.BUDGET_WAIT}
+    ),
     PhotoState.IN_LIVING_FILE: frozenset(),
     PhotoState.DUPLICATE: frozenset(),
     PhotoState.UNSUPPORTED: frozenset(),
@@ -271,9 +280,20 @@ class NotesPage:
         """The page after the student renamed its PDF."""
         return replace(self, review=review)
 
-    def corrected(self, photo_id: str, photo_version: str, markdown: str) -> NotesPage:
-        """The page after a correction: same place, new text, automatic again (research R7)."""
-        return replace(self, photo_id=photo_id, photo_version=photo_version, markdown=markdown, review=Review.AUTOMATIC)
+    def corrected(self, photo_id: str, photo_version: str, markdown: str, *, markdown_version: str) -> NotesPage:
+        """The page after a correction: same place, new text, automatic again (research R7).
+
+        `markdown_version` is the version of the Markdown alfabeta wrote back, so the next run does not
+        read its own write as the student's correction.
+        """
+        return replace(
+            self,
+            photo_id=photo_id,
+            photo_version=photo_version,
+            markdown=markdown,
+            markdown_version=markdown_version,
+            review=Review.AUTOMATIC,
+        )
 
     @property
     def heading(self) -> str:
@@ -362,18 +382,29 @@ class RunLog:
     page_token: str | None = None
 
     def next(
-        self, started: dt.datetime, ended: dt.datetime, result: RunResult, ran_on: RanOn, page_token: str | None
+        self,
+        started: dt.datetime,
+        ended: dt.datetime,
+        result: RunResult,
+        ran_on: RanOn,
+        page_token: str | None,
+        *,
+        writes_ok: bool,
     ) -> RunLog:
-        """The log a later run writes: a failed run keeps the cursor; only the cloud's success moves the clock."""
-        succeeded = result != RunResult.FAILED
-        moves_ok = succeeded and ran_on == RanOn.CLOUD
+        """The log a later run writes: only a run whose writes all succeeded moves the cursor (data-model.md).
+
+        A partial run moves the clock, but its cursor only if none of its writes failed, so the next run
+        reads again the changes a failed write left behind. Only the cloud's success moves the clock.
+        """
+        moves_cursor = result != RunResult.FAILED and writes_ok
+        moves_ok = result != RunResult.FAILED and ran_on == RanOn.CLOUD
         return RunLog(
             started=started,
             ended=ended,
             result=result,
             ran_on=ran_on,
             last_ok_ended=ended if moves_ok else self.last_ok_ended,
-            page_token=page_token if succeeded else self.page_token,
+            page_token=page_token if moves_cursor else self.page_token,
         )
 
 

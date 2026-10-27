@@ -109,6 +109,12 @@ def test_each_part_kind_becomes_its_pages(builder: ReportlabPdfBuilder):
     assert again == pdf
 
 
+def test_overlapping_marks_become_plain_text_not_a_failed_file(builder: ReportlabPdfBuilder):
+    page = NotesPage("foto-3", "v1", "**a ~~b** c~~ PALABRA-SOLAPADA", order=1)
+    text = text_of(builder.notes(TOPIC, [(page, drawn("tres"))])[0])
+    assert "PALABRA-SOLAPADA" in text
+
+
 def test_a_missing_font_is_a_clear_error(tmp_path: Path):
     from alfabeta.notes.pdf import _register_font
 

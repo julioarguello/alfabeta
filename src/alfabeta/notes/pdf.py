@@ -95,6 +95,14 @@ def _markup(line: str) -> str:
     return _NOTE.sub(r'<font color="#666666"><i>[\1]</i></font>', text)
 
 
+def _paragraph(line: str, style: ParagraphStyle, bullet: str | None = None) -> Paragraph:
+    """A paragraph with markup; plain text when the marks overlap, so one bad line never stops a file."""
+    try:
+        return Paragraph(_markup(line), style, bulletText=bullet)
+    except ValueError:
+        return Paragraph(html.escape(line, quote=False), style, bulletText=bullet)
+
+
 class ReportlabPdfBuilder:
     """`PdfBuilder` with reportlab for the pages it draws and pypdf for the pages it copies."""
 
@@ -122,7 +130,7 @@ class ReportlabPdfBuilder:
 
     def _cover(self, title: str, lines: Sequence[str]) -> list[Flowable]:
         story: list[Flowable] = [Paragraph(html.escape(title), self._title), Spacer(1, 0.6 * cm)]
-        story += [Paragraph(_markup(line), self._body) for line in lines]
+        story += [_paragraph(line, self._body) for line in lines]
         return [*story, PageBreak()]
 
     def _text(self, markdown: str) -> list[Flowable]:
@@ -132,15 +140,15 @@ class ReportlabPdfBuilder:
             if not line:
                 story.append(Spacer(1, 0.25 * cm))
             elif line.startswith("#"):
-                story.append(Paragraph(_markup(line.lstrip("#").strip()), self._heading))
+                story.append(_paragraph(line.lstrip("#").strip(), self._heading))
             elif line.lstrip().startswith(("- ", "* ")):
                 depth = (len(line) - len(line.lstrip())) // 2
                 style = ParagraphStyle(
                     f"li{depth}", parent=self._body, leftIndent=12 + 12 * depth, bulletIndent=12 * depth
                 )
-                story.append(Paragraph(_markup(line.lstrip()[2:]), style, bulletText="•"))
+                story.append(_paragraph(line.lstrip()[2:], style, bullet="•"))
             else:
-                story.append(Paragraph(_markup(line), self._body))
+                story.append(_paragraph(line, self._body))
         return story
 
     def _photo(self, image: bytes) -> Image:

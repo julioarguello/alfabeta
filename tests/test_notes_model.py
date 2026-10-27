@@ -75,6 +75,11 @@ def test_budget_wait_is_retried():
     assert photo(PhotoState.BUDGET_WAIT).moved_to(PhotoState.TRANSCRIBED).state == PhotoState.TRANSCRIBED
 
 
+def test_a_refused_budget_holds_a_failed_photo_day_after_day():
+    held = photo().moved_to(PhotoState.FAILED).moved_to(PhotoState.BUDGET_WAIT)
+    assert held.moved_to(PhotoState.BUDGET_WAIT).state == PhotoState.BUDGET_WAIT
+
+
 def test_a_classroom_item_goes_in_once():
     item = ClassroomItem(Arrival("item-1", "tema-1", Kind.CLASSROOM_ITEM, "md5-b"))
     assert item.moved_to(ItemState.IN_LIVING_FILE).state == ItemState.IN_LIVING_FILE
@@ -120,8 +125,13 @@ def test_a_page_keeps_its_place_through_marks_and_corrections():
     assert page.heading == "Transcripción automática"
     wrong = page.marked(Review.WRONG)
     assert wrong.heading == "En corrección"
-    fixed = wrong.corrected("foto-2", "md5-c", "texto corregido")
-    assert (fixed.order, fixed.review, fixed.photo_id) == (3, Review.AUTOMATIC, "foto-2")
+    fixed = wrong.corrected("foto-2", "md5-c", "texto corregido", markdown_version="md5-d")
+    assert (fixed.order, fixed.review, fixed.photo_id, fixed.markdown_version) == (
+        3,
+        Review.AUTOMATIC,
+        "foto-2",
+        "md5-d",
+    )
     assert page.marked(Review.CHECKED).heading == "Revisada por el alumno"
 
 
@@ -162,16 +172,23 @@ def test_a_links_only_entry_is_its_cover():
 def test_a_failed_run_keeps_the_cursor_and_the_last_cloud_success():
     first = RunLog(T0, T0, RunResult.OK, RanOn.CLOUD, last_ok_ended=T0, page_token="100")
     later = T0 + dt.timedelta(minutes=15)
-    failed = first.next(later, later, RunResult.FAILED, RanOn.CLOUD, page_token="120")
+    failed = first.next(later, later, RunResult.FAILED, RanOn.CLOUD, page_token="120", writes_ok=False)
     assert (failed.page_token, failed.last_ok_ended) == ("100", T0)
-    ok = failed.next(later, later, RunResult.PARTIAL, RanOn.CLOUD, page_token="120")
+    ok = failed.next(later, later, RunResult.PARTIAL, RanOn.CLOUD, page_token="120", writes_ok=True)
     assert (ok.page_token, ok.last_ok_ended) == ("120", later)
+
+
+def test_a_partial_run_with_a_failed_write_keeps_the_cursor():
+    first = RunLog(T0, T0, RunResult.OK, RanOn.CLOUD, last_ok_ended=T0, page_token="100")
+    later = T0 + dt.timedelta(minutes=15)
+    partial = first.next(later, later, RunResult.PARTIAL, RanOn.CLOUD, page_token="120", writes_ok=False)
+    assert (partial.page_token, partial.last_ok_ended) == ("100", later)
 
 
 def test_a_mac_run_does_not_count_as_the_clouds():
     first = RunLog(T0, T0, RunResult.OK, RanOn.CLOUD, last_ok_ended=T0, page_token="100")
     later = T0 + dt.timedelta(hours=3)
-    mac = first.next(later, later, RunResult.OK, RanOn.MAC, page_token="130")
+    mac = first.next(later, later, RunResult.OK, RanOn.MAC, page_token="130", writes_ok=True)
     assert (mac.last_ok_ended, mac.page_token) == (T0, "130")
 
 
