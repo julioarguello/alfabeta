@@ -55,6 +55,26 @@
     return out;
   }
 
+  // A description as the page lays it out: a <br> or a block ends a line, inline marks do not
+  // (textContent ran «etxerako.Koadernoak» together on the real page, 2026-10-27).
+  function blockText(el) {
+    let out = "";
+    const walk = (node) => {
+      for (const child of node.childNodes) {
+        if (child.nodeType === 3) out += child.nodeValue;
+        else if (child.nodeName === "BR") out += "\n";
+        else if (child.nodeType === 1) {
+          const block = /^(DIV|P|LI|UL|OL)$/.test(child.nodeName);
+          if (block) out += "\n";
+          walk(child);
+          if (block) out += "\n";
+        }
+      }
+    };
+    walk(el);
+    return out.split("\n").map((line) => line.replace(/\s+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
   function hasLabel(doc, label) {
     if (!doc.body) return false;
     if (texts(doc.body).some((t) => t.text === label)) return true;
@@ -212,7 +232,7 @@
     }
     const notice = own.find((t) => /falta esto/i.test(t.text));
     const grade = panelTexts.find((t) => /^\d+([.,]\d+)?\s*\/\s*\d+$/.test(t.text));
-    const description = [...main.querySelectorAll(".nGi02b")].map((e) => clean(e.textContent)).join("\n");
+    const description = [...main.querySelectorAll(".nGi02b")].map(blockText).join("\n");
     const bodyNodes = [...main.children].filter((e) => !(panel && (e === panel || e.contains(panel) || panel.contains(e))));
     const attachmentNodes = bodyNodes.length ? bodyNodes : [main];
     const commentsStart = own.length < texts(main).length ? texts(main)[own.length].node : null;

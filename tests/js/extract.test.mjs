@@ -217,3 +217,10 @@ test("an attachment is named by its file, without the label's prefix", () => {
   assert.equal(file.name, "ficha inventada.docx");
   assert.equal(video.name, "Vídeo inventado");
 });
+
+test("a description keeps its line breaks and joins its inline marks", () => {
+  const doc = new JSDOM(
+    '<div role="main"><div class="nGi02b"><span>Ejercicios 1 y 2.<br>Mañana <b>los</b> corrijo.<br><br>Saludos</span></div></div>',
+  ).window.document;
+  assert.equal(extract.readDetail(doc).description, "Ejercicios 1 y 2.\nMañana los corrijo.\n\nSaludos");
+});
