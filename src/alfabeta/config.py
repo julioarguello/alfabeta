@@ -120,6 +120,11 @@ class StudentConfig:
         return _str(self.data, "calendar.id")
 
     @property
+    def downloads_folder(self) -> str:
+        """Where the browser leaves its downloads."""
+        return _str(self.data, "downloads.folder")
+
+    @property
     def lock_idle_minutes(self) -> int:
         """Minutes without renewal after which a dead run's lock is released."""
         return _int(self.data, "sync.lock_idle_minutes")

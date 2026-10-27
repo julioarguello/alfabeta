@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alfabeta/capture.schema.json",
+  "title": "Classroom capture (output of extract.js)",
+  "description": "Texts exactly as shown; Python does the interpretation (dates, statuses, categories). No names of people. A capture is the class list, one class, or a stop.",
+  "oneOf": [
+    { "$ref": "#/$defs/classes" },
+    { "$ref": "#/$defs/class" },
+    { "$ref": "#/$defs/stop" }
+  ],
+  "$defs": {
+    "classes": {
+      "type": "object",
+      "required": ["version", "type", "run", "captured_at", "account_index", "classes"],
+      "properties": {
+        "version": { "const": 1 },
+        "type": { "const": "classes" },
+        "run": { "type": "string", "description": "Opaque identifier of the run that made the capture (from lock take)" },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "account_index": { "type": "integer", "minimum": 0, "description": "The <n> of /u/<n> for the school account; it goes to the log, never the email address" },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "visibility"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "visibility": { "enum": ["visible", "hidden", "archived"] }
+            }
+          }
+        }
+      }
+    },
+    "class": {
+      "type": "object",
+      "required": ["version", "type", "run", "captured_at", "complete", "class", "topics", "items", "stream"],
+      "properties": {
+        "version": { "const": 1 },
+        "type": { "const": "class" },
+        "run": { "type": "string", "description": "Opaque identifier of the run that made the capture (from lock take)" },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "complete": { "type": "boolean", "description": "false if the capture was cut short; then nothing is withdrawn" },
+        "class": {
+          "type": "object",
+          "required": ["id", "title"],
+          "properties": {
+            "id": { "type": "string" },
+            "title": { "type": "string" }
+          }
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "order"],
+            "properties": {
+              "id": { "type": ["string", "null"], "description": "null for «Sin tema» (no topic)" },
+              "title": { "type": "string" },
+              "order": { "type": "integer" }
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "topic", "type", "title", "listing_date_text"],
+            "properties": {
+              "id": { "type": "string" },
+              "topic": { "type": ["string", "null"] },
+              "type": { "enum": ["assignment", "material", "question"] },
+              "title": { "type": "string" },
+              "listing_date_text": { "type": "string", "description": "e.g. «Fecha de entrega: 13 oct» (due date), «Publicado: 22 oct» (posted), «Última modificación: 1 oct» (last modified)" },
+              "detail": {
+                "type": ["object", "null"],
+                "properties": {
+                  "posted_text": { "type": "string" },
+                  "modified_text": { "type": ["string", "null"], "description": "Edit mark, if the detail or the listing shows one" },
+                  "due_text": { "type": ["string", "null"] },
+                  "points": { "type": ["string", "null"] },
+                  "description": { "type": "string" },
+                  "status_text": { "type": ["string", "null"], "description": "From the «Tu trabajo» (your work) panel, e.g. «Asignado» (assigned), «Entregado» (turned in), «Calificado» (graded)" },
+                  "status_notice_text": { "type": ["string", "null"], "description": "e.g. «El profesor ha indicado que falta esto» (the teacher marked this as missing)" },
+                  "grade_text": { "type": ["string", "null"] },
+                  "returned_text": { "type": ["string", "null"], "description": "Date the assignment was returned, if shown" },
+                  "teacher_comment": { "type": ["string", "null"] },
+                  "attachments": { "$ref": "#/$defs/attachments" },
+                  "submission": { "$ref": "#/$defs/attachments" }
+                }
+              }
+            }
+          }
+        },
+        "stream": {
+          "type": "array",
+          "description": "Announcements only; the stream's notifications of new items are ignored (they are already in «Trabajo de clase», classwork)",
+          "items": {
+            "type": "object",
+            "required": ["id", "created_text", "text"],
+            "properties": {
+              "id": { "type": "string" },
+              "created_text": { "type": "string", "description": "«Fecha de creación: 22 sept» (creation date)" },
+              "text": { "type": "string" },
+              "attachments": { "$ref": "#/$defs/attachments" }
+            }
+          }
+        }
+      }
+    },
+    "stop": {
+      "type": "object",
+      "required": ["version", "type", "run", "captured_at", "reason"],
+      "properties": {
+        "version": { "const": 1 },
+        "type": { "const": "stop" },
+        "run": { "type": "string", "description": "Opaque identifier of the run that made the capture (from lock take)" },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "reason": { "enum": ["session_expired", "challenge", "unexpected_ui"] },
+        "class": { "type": "string", "description": "Id of the class whose capture was cut short; absent if the stop came before entering a class" }
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["file", "google_doc", "video", "link", "form"] },
+          "google_type": { "enum": ["document", "presentation", "spreadsheet", null] },
+          "name": { "type": "string" }
+        }
+      }
+    }
+  }
+}

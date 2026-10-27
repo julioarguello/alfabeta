@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alfabeta/agenda.schema.json",
+  "title": "agenda.json for one school year (input to the reminders epic)",
+  "description": "Its content depends only on what was synced and on the family's decisions, never on the day it is generated; that is why it carries no timestamp (the log does).",
+  "type": "object",
+  "required": ["version", "school_year", "entries"],
+  "properties": {
+    "version": { "const": 1 },
+    "school_year": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{4}$" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["item", "subject", "category", "title", "date", "date_only", "status", "list", "detected", "origin", "corrected", "classroom_link", "folder"],
+        "properties": {
+          "item": { "type": "string", "description": "Id of the item; a detected exam is «<item>#exam-<k>»" },
+          "list": { "enum": ["pending", "done", "posted"], "description": "Sections «Pendiente», «Hecho» and «Publicado» of agenda.md, per FR-020c" },
+          "subject": { "type": "string" },
+          "category": { "enum": ["exam", "assignment", "quiz", "material", "announcement"] },
+          "title": { "type": "string" },
+          "date": { "type": ["string", "null"], "description": "ISO 8601 in Europe/Madrid; null = no date" },
+          "date_only": { "type": "boolean", "description": "true if Classroom gives no time" },
+          "status": { "enum": ["pending", "turned_in", "returned", "overdue", "missing_per_teacher", null] },
+          "detected": { "type": "boolean" },
+          "origin": { "type": ["string", "null"] },
+          "corrected": { "type": "boolean" },
+          "classroom_link": { "type": "string", "description": "Classroom URL without /u/<n> or any student data; the readable agenda says to open it with the school account" },
+          "folder": { "type": ["string", "null"], "description": "Path relative to the student's root; null if the item has no replica" }
+        }
+      }
+    }
+  }
+}

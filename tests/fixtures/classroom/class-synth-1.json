@@ -1,0 +1,230 @@
+{
+ "version": 1,
+ "type": "class",
+ "run": "run-sintetico",
+ "captured_at": "2026-10-27T16:22:00+01:00",
+ "complete": true,
+ "class": {
+  "id": "synth-1",
+  "title": "Física y Química sintética 3ºA"
+ },
+ "topics": [
+  {
+   "id": "synth-10",
+   "title": "1. Materia inventada",
+   "order": 1
+  },
+  {
+   "id": "synth-11",
+   "title": "2. Repaso inventado",
+   "order": 2
+  },
+  {
+   "id": null,
+   "title": "Sin tema",
+   "order": 3
+  }
+ ],
+ "items": [
+  {
+   "id": "synth-20",
+   "topic": "synth-10",
+   "type": "assignment",
+   "title": "Ficha inventada de mezclas",
+   "listing_date_text": "Fecha de entrega: 13 oct, 8:00",
+   "detail": {
+    "posted_text": "6 oct",
+    "modified_text": null,
+    "due_text": "Fecha de entrega: 13 oct, 8:00",
+    "points": "10 puntos",
+    "description": "Resolved los ejercicios inventados.",
+    "status_text": "Entregado",
+    "status_notice_text": null,
+    "grade_text": null,
+    "returned_text": null,
+    "teacher_comment": null,
+    "attachments": [
+     {
+      "id": "synth-40",
+      "kind": "file",
+      "name": "ficha-inventada.pdf"
+     }
+    ],
+    "submission": [
+     {
+      "id": "synth-41",
+      "kind": "file",
+      "name": "respuestas-inventadas.pdf"
+     }
+    ]
+   }
+  },
+  {
+   "id": "synth-21",
+   "topic": "synth-10",
+   "type": "assignment",
+   "title": "Informe inventado de laboratorio",
+   "listing_date_text": "Fecha de entrega: 20 oct",
+   "detail": {
+    "posted_text": "9 oct",
+    "modified_text": null,
+    "due_text": "Fecha de entrega: 20 oct",
+    "points": "10 puntos",
+    "description": "Entregad el informe inventado.",
+    "status_text": "Calificado",
+    "status_notice_text": null,
+    "grade_text": "8/10",
+    "returned_text": "24 oct",
+    "teacher_comment": "Comentario inventado.",
+    "attachments": [
+     {
+      "id": "synth-42",
+      "kind": "google_doc",
+      "name": "Plantilla inventada",
+      "google_type": "document"
+     }
+    ],
+    "submission": [
+     {
+      "id": "synth-43",
+      "kind": "file",
+      "name": "informe-inventado.pdf"
+     }
+    ]
+   }
+  },
+  {
+   "id": "synth-22",
+   "topic": "synth-10",
+   "type": "assignment",
+   "title": "Cuestionario inventado",
+   "listing_date_text": "Fecha de entrega: 15 oct",
+   "detail": {
+    "posted_text": "10 oct",
+    "modified_text": null,
+    "due_text": "Fecha de entrega: 15 oct",
+    "points": null,
+    "description": "",
+    "status_text": "Asignado",
+    "status_notice_text": "El profesor ha indicado que falta esto",
+    "grade_text": null,
+    "returned_text": null,
+    "teacher_comment": null,
+    "attachments": [
+     {
+      "id": "synth-44",
+      "kind": "form",
+      "name": "Formulario inventado"
+     }
+    ],
+    "submission": []
+   }
+  },
+  {
+   "id": "synth-23",
+   "topic": "synth-10",
+   "type": "material",
+   "title": "Apuntes inventados",
+   "listing_date_text": "Publicado: 1 oct (Última modificación: 8 oct)",
+   "detail": {
+    "posted_text": "1 oct",
+    "modified_text": "Última modificación: 8 oct",
+    "due_text": null,
+    "points": null,
+    "description": "Leed los apuntes inventados.",
+    "status_text": null,
+    "status_notice_text": null,
+    "grade_text": null,
+    "returned_text": null,
+    "teacher_comment": null,
+    "attachments": [
+     {
+      "id": "synth-45",
+      "kind": "file",
+      "name": "apuntes-inventados.pdf"
+     },
+     {
+      "id": "synth-46",
+      "kind": "video",
+      "name": "Vídeo inventado"
+     },
+     {
+      "id": "synth-47",
+      "kind": "google_doc",
+      "name": "Presentación inventada",
+      "google_type": "presentation"
+     }
+    ],
+    "submission": []
+   }
+  },
+  {
+   "id": "synth-24",
+   "topic": "synth-11",
+   "type": "question",
+   "title": "¿Pregunta inventada?",
+   "listing_date_text": "Sin fecha de entrega",
+   "detail": {
+    "posted_text": "21 oct",
+    "modified_text": null,
+    "due_text": null,
+    "points": null,
+    "description": "Responde a la pregunta inventada.",
+    "status_text": "Asignado",
+    "status_notice_text": null,
+    "grade_text": null,
+    "returned_text": null,
+    "teacher_comment": null,
+    "attachments": [],
+    "submission": []
+   }
+  },
+  {
+   "id": "synth-25",
+   "topic": null,
+   "type": "material",
+   "title": "Enlace inventado",
+   "listing_date_text": "Publicado: 22 oct",
+   "detail": {
+    "posted_text": "22 oct",
+    "modified_text": null,
+    "due_text": null,
+    "points": null,
+    "description": "",
+    "status_text": null,
+    "status_notice_text": null,
+    "grade_text": null,
+    "returned_text": null,
+    "teacher_comment": null,
+    "attachments": [
+     {
+      "id": "synth-48",
+      "kind": "link",
+      "name": "Página inventada"
+     }
+    ],
+    "submission": []
+   }
+  }
+ ],
+ "stream": [
+  {
+   "id": "synth-30",
+   "created_text": "Fecha de creación: 23 oct",
+   "text": "El examen del tema 1 inventado será el jueves 5 de noviembre.",
+   "attachments": []
+  },
+  {
+   "id": "synth-31",
+   "created_text": "Fecha de creación: 26 oct",
+   "text": "Recordad traer la bata inventada al laboratorio.",
+   "attachments": [
+    {
+     "id": "synth-49",
+     "kind": "file",
+     "name": "normas-inventadas.pdf"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+{
+ "version": 1,
+ "type": "stop",
+ "run": "run-sintetico",
+ "captured_at": "2026-10-27T16:25:00+01:00",
+ "reason": "session_expired",
+ "class": "synth-2"
+}

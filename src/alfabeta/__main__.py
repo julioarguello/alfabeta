@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, anonymize, config, guardrail, state
+from alfabeta import __version__, anonymize, config, guardrail, sandbox, state
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
@@ -108,6 +108,22 @@ def _cmd_log_stop(args: argparse.Namespace, home: Path) -> int:
     return EXIT_OK
 
 
+def _cmd_sandbox(args: argparse.Namespace) -> int:
+    try:
+        home = sandbox.require_explicit_home(args.home)
+        if args.verb == "prepare":
+            home.mkdir(parents=True, exist_ok=True)
+            sandbox.prepare(home, args.student)
+            _emit({"ok": True, "student": args.student})
+        elif args.batch is not None:
+            return _fail("not_built", EXIT_INVALID, "invented attachments arrive with spec 001 T039")
+        else:
+            _emit({"ok": True, "written": sandbox.download_captures(home, args.student, os.environ.get(state.RUN_ENV))})
+    except (sandbox.SandboxError, config.ConfigError) as err:
+        return _fail("invalid_sandbox", EXIT_INVALID, str(err))
+    return EXIT_OK
+
+
 def _student_account(cfg: config.StudentConfig) -> str:
     for alias, account in sorted(cfg.accounts.items()):
         if account.role == "student":
@@ -192,7 +208,7 @@ def build_parser() -> argparse.ArgumentParser:
     """The command's arguments."""
     parser = argparse.ArgumentParser(prog="alfabeta")
     parser.add_argument("--version", action="version", version=f"alfabeta {__version__}")
-    parser.add_argument("--home", default="~/.alfabeta", help="folder of student configurations")
+    parser.add_argument("--home", help="folder of student configurations (default ~/.alfabeta)")
     groups = parser.add_subparsers(dest="group", required=True)
 
     google = groups.add_parser("google", help="alfabeta's own Google connection").add_subparsers(
@@ -206,6 +222,17 @@ def build_parser() -> argparse.ArgumentParser:
     google.add_parser("check", help="refresh and report every linked account")
     unlink = google.add_parser("unlink", help="revoke an account's link")
     unlink.add_argument("--account", required=True)
+
+    box = groups.add_parser("sandbox", help="an invented student to try a run").add_subparsers(
+        dest="verb", required=True
+    )
+    box_prepare = box.add_parser("prepare", help="create the invented student in an explicit --home")
+    box_prepare.add_argument("--student", default=sandbox.DEFAULT_STUDENT)
+    box_download = box.add_parser("download", help="copy the sandbox captures to the downloads folder")
+    box_download.add_argument("--student", required=True)
+    what = box_download.add_mutually_exclusive_group(required=True)
+    what.add_argument("--captures", action="store_true")
+    what.add_argument("--batch", type=int)
 
     anon = groups.add_parser("anonymize", help="a synthetic page from a saved Classroom page")
     anon.add_argument("input")
@@ -246,7 +273,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run the command."""
     args = build_parser().parse_args(argv)
-    home = Path(args.home).expanduser()
+    home = Path(args.home or "~/.alfabeta").expanduser()
+    if args.group == "sandbox":
+        return _cmd_sandbox(args)
     if args.group == "anonymize":
         try:
             _emit({"ok": True, "written": anonymize.run(Path(args.input), Path(args.output), home)})
