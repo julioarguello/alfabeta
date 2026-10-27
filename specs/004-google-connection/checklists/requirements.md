@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -34,8 +34,7 @@
 - This spec is about a connection to Google. Google's own terms are therefore its subject matter,
   not implementation choices: app, scope, refresh token, keychain. Language, libraries and code
   layout stay out.
-- One marker remains, FR-009: which Drive permission to ask for. Either `drive.file`, which means
-  rebuilding the tree, or the whole Drive, which takes over the existing tree but is a restricted
-  scope over a minor's Drive.
+- FR-009 was settled on 2026-10-27: the whole Drive, adopting the existing tree. alfabeta limits
+  itself to its folder, enforced in its own adapter and by a test (FR-009a).
 - The constitution's principle VII ("alfabeta only writes in the folder") must be amended before
   `/speckit-plan`.

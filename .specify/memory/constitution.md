@@ -96,10 +96,11 @@ cannot be undone.
 
 ### VII. Every output is optional and degrades on its own
 
-- The student's folder on the Mac's disk is the base output. Which cloud it syncs with (the
-  family's Drive through Google Drive for desktop, or another) and who it is shared with is
-  configuration; alfabeta only writes in the folder. The Gemini Notebook notebook and the calendar
-  are outputs enabled by configuration.
+- The student's folder on the Mac's disk is the base output. Which cloud receives it, and who it is
+  shared with, is configuration. When that cloud is the family's Drive, alfabeta MUST write it
+  through its own Google connection and count a file as uploaded only when the cloud confirms it.
+  It MUST NOT rely on a sync client whose result it cannot read. The Gemini Notebook notebook and
+  the calendar are outputs enabled by configuration.
 - Gemini Notebook has no public API and is used through `notebooklm-mcp-cli`, which can break. If one
   output fails, the others MUST complete and the failure MUST show in the log.
 
@@ -127,7 +128,7 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
-- **Storage**: one folder per student on disk, synced with the cloud their configuration sets.
+- **Storage**: one folder per student on disk, uploaded to the cloud their configuration sets.
   Structure shared by every source:
   `<school-year>/<subject>/<Tema NN - title | Tema PNN - teacher's title | YYYY-MM>/<source>/`
   (`classroom`, `sciencebits`…); `Tema PNN` is a teacher's topic that is not in the textbook.
@@ -164,4 +165,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - Pull request reviews MUST verify compliance. Complexity that departs from IX MUST be justified in
   writing.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-25
+**Version**: 1.3.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27

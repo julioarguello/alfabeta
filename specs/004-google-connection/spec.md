@@ -48,6 +48,15 @@ Out of this spec:
 amends that sentence. The folder stays the base output; Drive becomes an output alfabeta writes and
 checks itself (FR-012). The amendment goes through the constitution's own process before the plan.
 
+## Clarifications
+
+### Session 2026-10-27
+
+- Q: Which Drive permission? → A: The whole Drive (`drive`), so alfabeta adopts the tree that Drive
+  for desktop already created instead of rebuilding it. Accepted cost: it is a restricted scope, and
+  it grants access to everything in a minor's Drive. alfabeta limits itself to the alfabeta folder
+  (FR-009a); Google does not enforce that limit.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - The family links the student's Gmail once (Priority: P1)
@@ -195,13 +204,17 @@ run.
 
 **Drive**
 
-- **FR-009**: Drive access MUST be [NEEDS CLARIFICATION: which Drive permission? (a) only the files
-  alfabeta itself creates (`drive.file`, not sensitive): the tree Drive for desktop made is
-  invisible to it, so alfabeta rebuilds its own tree from the folder on the Mac and the old tree is
-  retired; (b) the whole Drive (`drive`, restricted): it can take over the existing tree as it is,
-  under the personal-use allowance, but it can read everything in a minor's Drive].
-- **FR-010**: Switching Drive on MUST NOT duplicate or lose a file: a one-off migration lists the
-  files on each side, uploads or adopts each one once, and reports both lists.
+- **FR-009**: Drive access MUST be the whole Drive (`drive`, a restricted scope; Google Cloud help
+  13464325, read 2026-10-27), under the personal-use allowance of FR-003. alfabeta adopts the
+  existing tree as it is.
+- **FR-009a**: Every Drive read and write MUST stay inside the alfabeta folder that the student's
+  configuration names (its id, resolved once). A call outside it is refused by alfabeta's own Drive
+  adapter, and a test asserts that no call leaves the folder. The scope allows more; alfabeta does
+  not use it.
+- **FR-010**: Switching Drive on MUST NOT duplicate or lose a file. A one-off migration matches each
+  file in the folder on the Mac with the file Drive already holds at the same path, by size and
+  checksum. It adopts the matches, uploads what Drive lacks, and reports both lists plus any file
+  that differs. Nothing is deleted by the migration.
 - **FR-011**: Drive for desktop MUST stop syncing the student's alfabeta folder once the migration
   is reported clean; the operator does it by hand, and the run checks that it is no longer syncing.
 - **FR-012**: A file MUST count as uploaded only when Drive confirms it with the same size and
