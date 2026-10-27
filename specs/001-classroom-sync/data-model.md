@@ -51,8 +51,9 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `student.grade_level` | text | For notebook names (epic 3): it is the `<grade level>` of «`<grade level>. <Subject>. Tema NN - <title>`» |
 | `student.languages` | list | Languages that titles and announcements may come in |
 | `classroom.account` | email address | Compared locally with the account button; never goes in a URL |
-| `drive.root` | path | alfabeta's own folder inside the mounted Drive, the master; must exist and must not be the root of «Mi unidad» (My Drive); never shown |
-| `drive.mirrors` | list of paths | One-way mirrors of the root in the student's other accounts' mounted Drives (FR-011a); may be empty; none may be inside the root, contain it, or be the root of «Mi unidad»; never shown |
+| `storage.base` | path | The student's base folder on the Mac, the master; must exist and stay outside the Google Drive for desktop mount (spec 004 R7); never shown |
+| `drive.root` | text | The alfabeta folder's path inside the student's My Drive (spec 004); never the root of «Mi unidad» (My Drive) |
+| `drive.mirrors` | list of paths | One-way mirrors of the base folder in the student's other accounts' mounted Drives (FR-011a); may be empty; none may be inside the base folder, contain it, or be the root of «Mi unidad»; never shown |
 | `calendar.shared_with` | list of email addresses | Accounts the calendar is shared with, each with permission to see all event details (FR-011b); may be empty; never goes in a URL or the log |
 | `downloads.folder` | path | Where Chrome leaves its downloads |
 | `sync.full_review_days` | integer ≥ 1 | Every how many days all attachments are downloaded again |
@@ -151,7 +152,7 @@ The "past/future" comparison uses the capture instant.
 | `source` | source name | `classroom` or the book's |
 | `item`, `attachment` | ids | Unique key |
 | `role` | `statement` · `submission` · `grading` · `links` · `description` · `material` · `announcement` | Name prefix in assignment folders |
-| `path` | path relative to `drive.root` | Computed by `Placer`; name of 255 UTF-8 bytes at most |
+| `path` | path relative to `storage.base` | Computed by `Placer`; name of 255 UTF-8 bytes at most |
 | `hash` | SHA-256 | Changes → new version; the previous one becomes `<name> (anterior YYYY-MM-DD)` |
 | `version` | integer | Starts at 1 |
 | `modified_seen` | date or empty | The item's modification mark when the replica was made |
