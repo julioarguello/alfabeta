@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -61,7 +62,7 @@ CALLS: dict[str, Callable[[ScopedDrive], object]] = {
     "lookup": lambda d: d.lookup(OUTSIDE, "state.json"),
 }
 # These take no id, or only answer: the feed drops what is outside instead of refusing (tests below).
-NO_ID = {"contains", "items", "start_page_token", "changes"}
+NO_ID = {"contains", "items", "relist", "start_page_token", "changes"}
 
 
 def test_every_public_method_is_in_the_table():
@@ -175,7 +176,9 @@ def test_the_feed_keeps_inside_and_recorded_changes_only(tmp_path: Path, caplog:
     drive, t = opened(tmp_path)
     t.responses.append(page("changes-mixed.json"))
     with caplog.at_level("DEBUG"):
+        logging.getLogger("alfabeta.google.drive").debug("control")  # caplog does see this module's logger
         kept, cursor = drive.changes("200", frozenset({"ficha-1"}))
+    assert "control" in caplog.text
     assert [(c.file_id, c.left) for c in kept] == [("foto-1", False), ("ficha-1", True)]
     assert cursor == "201"
     assert drive.contains("foto-1") and not drive.contains("ficha-1")
@@ -230,3 +233,34 @@ def test_lookup_asks_drive_now_and_joins_the_answer(tmp_path: Path):
     assert found is not None and found.id == "nuevo-1"
     assert drive.contains("nuevo-1")
     assert "name+%3D+%27state.json%27" in t.calls[-1][1]
+
+
+def test_a_change_to_the_root_itself_keeps_the_tree(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    renamed = {"name": "alfabeta (compartida)", "mimeType": FOLDER, "parents": ["mi-unidad"], "trashed": False}
+    t.responses.append(
+        json_response(
+            200,
+            {
+                "changes": [{"fileId": "raiz", "removed": False, "file": renamed}, {"changeType": "drive"}],
+                "newStartPageToken": "9",
+            },
+        )
+    )
+    assert drive.changes("8", frozenset({"ficha-1"})) == ([], "9")
+    assert drive.contains("ficha-1")
+
+
+def test_a_trashed_root_in_the_feed_fails_the_run(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    trashed = {"name": "alfabeta", "mimeType": FOLDER, "parents": ["mi-unidad"], "trashed": True}
+    t.responses.append(json_response(200, {"changes": [{"fileId": "raiz", "removed": False, "file": trashed}]}))
+    with pytest.raises(DriveError, match="trash"):
+        drive.changes("8", frozenset())
+
+
+def test_two_items_with_one_name_are_an_error_not_a_guess(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses.append(listing(file("a", "tema-1", "state.json"), file("b", "tema-1", "state.json")))
+    with pytest.raises(DriveError, match="more than one"):
+        drive.lookup("tema-1", "state.json")

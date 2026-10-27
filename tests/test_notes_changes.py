@@ -6,10 +6,14 @@ The tree and the feed pages are in `tests/fixtures/notes/`, with invented ids an
 from __future__ import annotations
 
 import json
+import re
+import urllib.parse
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from alfabeta.google.drive import DriveFile, ScopedDrive
+from alfabeta.google.transport import Response
 from alfabeta.notes.changes import DriveChangeFeed, Known
 from alfabeta.notes.model import Kind
 from tests.conftest import FakeTransport, json_response
@@ -39,13 +43,45 @@ OWN = {
 SEEN = {"f1": Known(Kind.NOTES_PHOTO, "a001"), "p1": Known(Kind.CLASSROOM_ITEM, "a005")}
 
 
-def test_the_first_run_takes_the_cursor_first_then_the_whole_tree():
-    d, t = drive({"startPageToken": "300"})
+@dataclass
+class TreeTransport:
+    """Answers listings from a tree it holds, so a test can change Drive between two requests."""
+
+    files: list[dict[str, Any]]
+    token: str = "300"
+    calls: list[str] = field(default_factory=lambda: [])
+
+    def request(
+        self, method: str, url: str, *, headers: dict[str, str] | None = None, body: bytes | None = None
+    ) -> Response:
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        if url.endswith("/changes/startPageToken"):
+            self.calls.append("token")
+            return json_response(200, {"startPageToken": self.token})
+        parent = re.match(r"'([^']+)' in parents", query["q"][0])
+        assert parent is not None
+        self.calls.append("list")
+        name = re.search(r"name = '([^']+)'", query["q"][0])
+        found = [f for f in self.files if parent.group(1) in f["parents"] and (not name or f["name"] == name.group(1))]
+        return json_response(200, {"files": found})
+
+
+def test_the_first_run_takes_the_cursor_first_then_the_whole_tree(tmp_path: Path):
+    files = fixture("tree.json")["files"]
+    t = TreeTransport([f for f in files if f["id"] != "raiz"] + [files[0]])
+    d = ScopedDrive.open(t, "acceso", "alfabeta", tmp_path / "drive.json")
+    # Uploaded after the run listed the tree but before it took its cursor: in neither, unless the
+    # run lists again after the cursor (research R2).
+    t.files.append(
+        {"id": "tarde", "name": "IMG_0002.jpg", "mimeType": "image/jpeg", "parents": ["ap"], "md5Checksum": "a010"}
+    )
+    t.calls.clear()
     result = DriveChangeFeed(d).read(None, {})
-    assert "/changes/startPageToken" in t.calls[0][1]
+    assert t.calls[0] == "token" and set(t.calls[1:]) == {"list"}
     assert result.cursor == "300"
     assert {(a.file_id, a.topic, a.kind) for a in result.arrivals} == {
         ("f1", "t1", Kind.NOTES_PHOTO),
+        ("tarde", "t1", Kind.NOTES_PHOTO),
         ("tp1", "t1", Kind.NOTES_TRANSCRIPT),
         ("tm1", "t1", Kind.NOTES_TEXT),
         ("u1", "t1", Kind.UNEXPECTED),
@@ -103,12 +139,29 @@ def test_a_trashed_recorded_file_is_gone():
     assert (result.gone, result.arrivals) == (["it2"], [])
 
 
-def test_a_deep_path_under_informes_is_never_read_as_a_topic():
+def test_a_deep_path_under_informes_is_never_read_as_a_topic(tmp_path: Path):
     folder = "application/vnd.google-apps.folder"
     # Informes/<a>/<b>/apuntes/ has a topic's shape one level down: only the skip keeps it out.
     deep = [("i1", "2026-2027", "inf"), ("i2", "FyQ", "i1"), ("i4", "apuntes", "i2")]
-    folders = tuple(DriveFile(item_id, name, folder, (parent,)) for item_id, name, parent in deep)
-    image = DriveFile("img", "foto.jpg", "image/jpeg", ("i4",), md5="z1")
-    d, t = drive({"startPageToken": "1"}, extra=(*folders, image))
+    files = fixture("tree.json")["files"]
+    files += [{"id": i, "name": n, "mimeType": folder, "parents": [p]} for i, n, p in deep]
+    files.append({"id": "img", "name": "foto.jpg", "mimeType": "image/jpeg", "parents": ["i4"], "md5Checksum": "z1"})
+    t = TreeTransport(files)
+    d = ScopedDrive.open(t, "acceso", "alfabeta", tmp_path / "drive.json")
+    assert d.contains("img")
     assert "img" not in {a.file_id for a in DriveChangeFeed(d).read(None, {}).arrivals}
-    assert t.responses == []
+
+
+def test_a_recorded_file_moved_to_another_topic_arrives_there():
+    folder = "application/vnd.google-apps.folder"
+    other = (
+        DriveFile("t2", "20261020 - Tema 02 - Otra", folder, ("fyq",)),
+        DriveFile("ap2", "apuntes", folder, ("t2",)),
+    )
+    tree = {f["id"]: f for f in fixture("tree.json")["files"]}
+    moved = {**{k: v for k, v in tree["f1"].items() if k != "id"}, "parents": ["ap2"]}
+    d, _ = drive(
+        {"changes": [{"fileId": "f1", "removed": False, "file": moved}], "newStartPageToken": "9"}, extra=other
+    )
+    result = DriveChangeFeed(d).read("8", {"f1": Known(Kind.NOTES_PHOTO, "a001", topic="t1")})
+    assert [(a.file_id, a.topic) for a in result.arrivals] == [("f1", "t2")]

@@ -128,9 +128,14 @@ class ScopedDrive:
         root = probe._cached_root(cache, root_path) or probe._resolve(root_path)
         write_atomic(cache, json.dumps({"root_id": root.id, "root_path": root_path}, indent=1) + "\n")
         drive = cls(transport, token, root, {root.id: root})
-        for item in drive._walk(root.id):
-            drive._tree[item.id] = item
+        drive.relist()
         return drive
+
+    def relist(self) -> None:
+        """List the tree under the root again; spec 005's first run does, after taking its cursor."""
+        self._tree = {self.root.id: self.root}
+        for item in self._walk(self.root.id):
+            self._tree[item.id] = item
 
     def _walk(self, folder_id: str) -> list[DriveFile]:
         """Everything under a folder, listed from Drive."""
@@ -208,6 +213,8 @@ class ScopedDrive:
         self._folder(folder_id)
         q = f"{_quote(folder_id)} in parents and name = {_quote(name)} and trashed = false"
         found = sorted(self._query(q), key=lambda f: f.id)
+        if len(found) > 1:
+            raise DriveError("more than one item with that name in the folder")
         for item in found:
             self._tree[item.id] = item
         return found[0] if found else None
@@ -255,7 +262,8 @@ class ScopedDrive:
             }
             page = self._call("GET", f"{CHANGES}?{urllib.parse.urlencode(params)}")
             for raw in cast("list[dict[str, Any]]", page.get("changes", [])):
-                kept += self._keep(raw, known_ids)
+                if raw.get("fileId"):  # a change of a shared drive has none
+                    kept += self._keep(raw, known_ids)
             token = cast("str | None", page.get("nextPageToken"))
             new_start = cast("str", page.get("newStartPageToken", new_start))
         return kept, new_start
@@ -263,6 +271,12 @@ class ScopedDrive:
     def _keep(self, raw: dict[str, Any], known_ids: frozenset[str]) -> list[Change]:
         file_id = str(raw["fileId"])
         data = cast("dict[str, Any] | None", raw.get("file"))
+        if file_id == self.root.id:
+            # Its parent is outside by definition: a rename, a star or a share of the folder changes
+            # nothing here, and losing it fails the run (spec 004 T023).
+            if raw.get("removed") or data is None or data.get("trashed"):
+                raise DriveError("the alfabeta folder is in the trash")
+            return []
         parents = cast("list[str]", (data or {}).get("parents", []))
         inside = data is not None and any(p in self._tree for p in parents)
         if raw.get("removed") or data is None or data.get("trashed") or not inside:

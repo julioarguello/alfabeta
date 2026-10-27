@@ -35,6 +35,7 @@ class Known:
     version: str
     own: bool = False
     name: str | None = None  # a transcription PDF's recorded name, to see the student's mark
+    topic: str | None = None  # the topic folder it was recorded under; a move to another arrives
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,10 @@ class FeedSource(Protocol):
 
     def items(self) -> list[DriveFile]:
         """Everything listed under the root this run."""
+        ...
+
+    def relist(self) -> None:
+        """List the tree again from Drive."""
         ...
 
     def ancestors(self, item_id: str) -> list[DriveFile]:
@@ -113,6 +118,7 @@ class DriveChangeFeed:
         """With no cursor, take the new cursor first and then the whole tree once (FR-004)."""
         if cursor is None:
             new_cursor = self._drive.start_page_token()
+            self._drive.relist()  # after the cursor: what arrives in between is in one or the other
             changes = [Change(item.id, left=False, file=item) for item in self._drive.items()]
         else:
             changes, new_cursor = self._drive.changes(cursor, frozenset(known))
@@ -142,8 +148,8 @@ class DriveChangeFeed:
             elif record.kind == Kind.NOTES_TEXT and item.version != record.version:
                 result.corrections.append(Correction(item.id, item.version))
             return
-        if record is not None and record.version == item.version:
-            return  # renamed or moved inside the folder, same content: nothing new
+        if record is not None and record.version == item.version and record.topic in (None, topic):
+            return  # renamed, or moved within its topic, same content: nothing new
         arrivals[arrival_id] = Arrival(arrival_id, topic, kind, item.version)
 
     def _place(self, item: DriveFile) -> tuple[str, Kind, str] | None:
