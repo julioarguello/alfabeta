@@ -541,7 +541,7 @@ Example of the resulting structure (invented names):
   | Status or case | List |
   |---|---|
   | `pending`, `overdue`, `missing_per_teacher` | Pendiente |
-  | `turned_in`, `returned` | Hecho |
+  | `turned_in`, `turned_in_late`, `returned` | Hecho |
   | assignment, quiz or exam without `status` (unknown status text, or nothing to turn in on Classroom) | Pendiente |
   | detected exam, while no capture of its class later than its date exists | Pendiente |
   | detected exam without a date, until the family corrects or dismisses it | Pendiente |
