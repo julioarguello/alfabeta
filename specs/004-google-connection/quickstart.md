@@ -72,8 +72,10 @@ Within 10 minutes the student's phone shows «Prueba alfabeta · ignorar».
 1. Record the date the family saw it (spec 003, FR-019).
 2. Open the same event as the owner: it shows no reminder of the student's.
 3. Patch the reminder of one **existing** event the same way and read it as both accounts. This is
-   research R5's open question.
-4. Clean up:
+   research R5's first open question.
+4. Delete the probe event, then insert one with the same id. Record whether the API returns a
+   conflict and whether reading the id shows it `cancelled`. This is R5's second open question.
+5. Clean up:
 
    ```bash
    uv run python -m alfabeta calendar probe-clean --student <id> --event <id>
@@ -110,5 +112,12 @@ ones, under `tests/fixtures/google/`, each named with its call and capture date.
 
 ## 9. The token survives a week (SC-001)
 
-Eight days or more after step 3, `google check` still returns `ok` with no new sign-in. That proves
-the app is published, not in Testing. SC-001 asks for 30 consecutive daily runs.
+The schedule of julioarguello/alfabeta#13 runs this, not a person at the keyboard: a keychain
+prompt only shows when nobody is there to answer it.
+
+Eight days or more after step 3, the scheduled `google check` still returns `ok`:
+
+- with no new sign-in, which proves the app is published, not in Testing;
+- with 0 keychain prompts.
+
+SC-001 counts 30 consecutive scheduled runs.

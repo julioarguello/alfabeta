@@ -25,7 +25,7 @@ the template keys.
 
 Validation at link time:
 
-1. The granted account's address equals `address`.
+1. The `email` claim of the token response's `id_token` equals `address`.
 2. Its domain is not the school account's domain (`accounts.school`).
 3. The granted scopes include every scope in `scopes`.
 

@@ -215,8 +215,11 @@ run.
   file in the folder on the Mac with the file Drive already holds at the same path, by size and
   checksum. It adopts the matches, uploads what Drive lacks, and reports both lists plus any file
   that differs. Nothing is deleted by the migration.
-- **FR-011**: Drive for desktop MUST stop syncing the student's alfabeta folder once the migration
-  is reported clean; the operator does it by hand, and the run checks that it is no longer syncing.
+- **FR-011**: Once the migration is reported clean, alfabeta MUST stop writing inside the folder
+  Google Drive for desktop mounts. Drive for desktop cannot exclude one folder in streaming mode
+  (research R7), so the operator moves the student's base folder out of the mount, and every run
+  refuses a base folder inside it. The mount keeps showing the Drive copy; anything written there
+  by hand bypasses alfabeta's upload records.
 - **FR-012**: A file MUST count as uploaded only when Drive confirms it with the same size and
   checksum as on the Mac. An upload is idempotent: a second run with nothing new uploads nothing.
 

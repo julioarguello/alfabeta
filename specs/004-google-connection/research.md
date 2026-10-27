@@ -41,10 +41,14 @@ the family's accounts the same day.
   A one-shot local server receives the code, checks `state`, and exchanges it for tokens.
 - **No `login_hint`**: it would put the student's address in a URL (constitution III). The operator
   picks the account on Google's own screen.
-- **Which account was linked** is checked after the exchange. `calendarList.get("primary")`
-  returns the account's address. alfabeta compares it locally with the address the private
-  configuration holds for that alias, and with the school account's domain (FR-006). On a mismatch
-  it revokes the new token and stores nothing.
+- **Which account was linked** is checked after the exchange, from the `id_token` the token
+  response carries when `openid email` are granted. Its `email` claim is the account's address,
+  with no further call. alfabeta compares it locally with the address the private configuration
+  holds for that alias, and with the school account's domain (FR-006). On a mismatch it revokes the
+  new token and stores nothing.
+- `calendarList.get` was considered and rejected: it needs `calendar`, `calendar.readonly` or a
+  `calendar.calendarlist*` scope, not `calendar.events` (Calendar API reference, read 2026-10-27).
+  The check would fail with 403 on the first real link.
 - **Alternatives**: the out-of-band copy-paste flow, which Google retired; the device-code flow,
   which does not offer Calendar or Drive scopes.
 
@@ -60,6 +64,10 @@ the family's accounts the same day.
   only long-lived credential. The client secret of a Desktop app is not truly secret (Google says
   so for installed apps), but it is kept the same way so nothing in the configuration needs
   protecting.
+- **Unattended access**: an item created by the `security` tool is readable by that same tool
+  without a prompt. The keychain may still ask once when a scheduled process first reads it, and a
+  prompt nobody answers hangs the run. The measure is quickstart step 9, run by the schedule, with
+  0 prompts expected.
 - **Alternatives**:
   - the `keyring` package: a runtime dependency for one platform call;
   - a file with mode 0600 in the data folder: the constitution allows it, but the keychain is
@@ -71,8 +79,8 @@ the family's accounts the same day.
   - `https://www.googleapis.com/auth/calendar.events`, to write events and the student's own
     reminders;
   - `https://www.googleapis.com/auth/drive`, decided in clarify;
-  - plus `openid` and `email`, only to read which account was linked. If `email` alone is enough
-    once `calendarList.get` is used, it is dropped.
+  - plus `openid` and `email`, which put the linked account's address in the `id_token` (R2). They
+    are needed, not optional.
 - **Rationale**: the narrowest set that does the job. Adding a scope later means linking again
   (FR-005).
 
@@ -87,9 +95,15 @@ the family's accounts the same day.
 - **The family calendar keeps its owner** (the operator's Gmail). The operator shares it with the
   student's Gmail as "Make changes to events", by hand, once (quickstart). Then the chat
   connector's account is removed from the calendar's sharing (FR-008b).
-- **Risk to measure**: whether an event created by another writer (the existing events) can carry
-  reminders set by the student's account. The quickstart's probe also patches one existing event,
-  then reads it as both accounts.
+- **Risks to measure** (quickstart step 5):
+  - Whether an event created by another writer, such as the existing events, can carry reminders
+    set by the student's account. The probe also patches one existing event, then reads it as both
+    accounts.
+  - Whether a deleted event's id can be inserted again. The reference says an id "must be unique
+    per calendar" and that deleted events stay as `cancelled` for a while; it does not say what an
+    insert with that id does. The design therefore treats a conflict on insert as "the event
+    exists, possibly cancelled": it reads it and updates it with `status: confirmed`. The probe
+    measures this by deleting the probe event and inserting the same id again.
 
 ## R6 — Drive: whole-Drive scope, self-limited to the alfabeta folder
 
