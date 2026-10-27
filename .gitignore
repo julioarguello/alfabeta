@@ -7,3 +7,6 @@ work/
 *.zip
 .DS_Store
 __pycache__/
+.venv/
+node_modules/
+.pytest_cache/

@@ -1,0 +1,12 @@
+{
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict",
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": ["src", "tests"],
+  "reportMissingTypeStubs": false,
+  "executionEnvironments": [
+    { "root": "src" },
+    { "root": "tests", "extraPaths": [".", "src"], "reportPrivateUsage": "none" }
+  ]
+}
