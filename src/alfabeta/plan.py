@@ -13,18 +13,18 @@ import datetime as dt
 import json
 from collections import Counter
 from dataclasses import dataclass, field
-from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, cast
 
 from alfabeta import capture
 from alfabeta.dates import MADRID
 from alfabeta.model import AttachmentKind, DecisionState, DecisionType, Item, ReplicaRole, Subject
-from alfabeta.placement import Placer, book_topics
+from alfabeta.placement import Placer, book_topics, downloaded_name
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
+    from pathlib import Path
 
     from alfabeta.capture import ClassCapture
     from alfabeta.decisions import DecisionStore
@@ -60,10 +60,8 @@ def download_url(attachment: dict[str, Any], account_index: int) -> str | None:
 
 
 def expected_name(name: str, kind: str) -> str:
-    """The name the browser gives the download: Google files arrive as PDF."""
-    if kind == AttachmentKind.GOOGLE_DOC and PurePosixPath(name).suffix.lower() != ".pdf":
-        return f"{name}.pdf"
-    return name
+    """The name the browser gives the download; the placer names the replica the same way."""
+    return downloaded_name(name, kind)
 
 
 def latest_captures(captures_dir: Path) -> dict[str, dict[str, Any]]:
@@ -113,13 +111,7 @@ class Planner:
 
     def linked_classes(self) -> dict[str, Subject]:
         """Class id → subject, from the confirmed class links."""
-        by_folder = {s.folder: s for s in self.subjects}
-        links: dict[str, Subject] = {}
-        for d in self.decisions.decisions():
-            subject = by_folder.get(d.target.get("subject", ""))
-            if d.type == DecisionType.CLASS_LINK and d.state == DecisionState.CONFIRMED and subject:
-                links[d.origin] = subject
-        return links
+        return linked_classes(self.decisions, self.subjects)
 
     @property
     def full_review(self) -> bool:
@@ -237,6 +229,30 @@ class Planner:
             "changes": changes,
             "pending_decisions": pending,
         }
+
+
+def linked_classes(decisions: DecisionStore, subjects: Sequence[Subject]) -> dict[str, Subject]:
+    """Class id → subject, from the confirmed class links."""
+    by_folder = {s.folder: s for s in subjects}
+    links: dict[str, Subject] = {}
+    for d in decisions.decisions():
+        subject = by_folder.get(d.target.get("subject", ""))
+        if d.type == DecisionType.CLASS_LINK and d.state == DecisionState.CONFIRMED and subject:
+            links[d.origin] = subject
+    return links
+
+
+def run_stops(captures_dir: Path, run: str) -> dict[str, str]:
+    """Class id → stop reason, for the `stop` captures of this run that name a class."""
+    stops: dict[str, str] = {}
+    for path in sorted(captures_dir.glob(f"alfabeta-capture-{run}-*.json")):
+        try:
+            data = capture.read(path)
+        except capture.CaptureError:
+            continue
+        if data["type"] == "stop" and data.get("class") and data["run"] == run:
+            stops[str(data["class"])] = str(data["reason"])
+    return stops
 
 
 def _raw_attachments(raw: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
