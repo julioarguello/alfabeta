@@ -39,7 +39,7 @@ def test_keeps_structure_and_labels_and_invents_the_rest():
     out = anonymize.anonymize(PAGE)
     for planted in (TITLE, NAME, CLASS_ID, ITEM_ID, "Inventado"):
         assert planted not in out
-    assert 'class="item YVvGBb"' in out and '<nav class="tab-bar">' in out and ".YVvGBb { color: red }" in out
+    assert 'class="item YVvGBb"' in out and '<nav class="tab-bar">' in out and "<style></style>" in out
     assert 'aria-label="Trabajo de clase">Trabajo de clase</a>' in out
     assert "Fecha de entrega: " in out and "13 oct" not in out
     assert "https://classroom.google.com/u/synth-" in out and "/c/synth-" in out and "/a/synth-" in out
@@ -91,3 +91,13 @@ def test_command_writes_nothing_on_refusal(tmp_path: Path):
     source.write_text(PAGE.replace('class="due"', LEAK))
     done = cli()
     assert done.returncode == 1 and not target.exists()
+
+
+def test_structure_the_extractor_reads_is_kept():
+    page = (
+        '<li data-stream-item-type="2" data-visibility="1" aria-current="page">'
+        f'<a href="/u/0/c/{CLASS_ID}/mc/{ITEM_ID}/details">{TITLE}</a><span>100 puntos</span></li>'
+    )
+    out = anonymize.anonymize(page)
+    assert 'data-stream-item-type="2"' in out and 'data-visibility="1"' in out and 'aria-current="page"' in out
+    assert "/mc/synth-" in out and "/details" in out and "100 puntos" in out and TITLE not in out
