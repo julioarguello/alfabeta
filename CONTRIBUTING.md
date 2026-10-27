@@ -58,3 +58,8 @@ The repository is public. It holds code and templates only, never a student's da
 
 The work follows Spec Kit: spec, plan, tasks, then one branch from `main` and one pull request per
 issue. Branches are named `<type>/<issue>-<summary>`, and commits follow Conventional Commits.
+Pull requests are merged by the agent that opened them, once CI is green and an agent that did not
+write the change finds nothing blocking: `/speckit-analyze` for a spec, a review for anything else
+(constitution, *Development workflow*). Changes that touch principles I, III or IV, the
+personal-data guardrail, these merge rules or Governance, and pull requests from anyone else, wait
+for the operator's explicit request; the operator can also stop or revert any of them.
