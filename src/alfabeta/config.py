@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "template.toml"
 # A template table whose only child is this table holds one table per name the operator chooses.
 DYNAMIC = "changeme"
-READERS = frozenset({"_str", "_strs", "_int", "_names", "_count"})
+READERS = frozenset({"_str", "_strs", "_int", "_float", "_names", "_count"})
 
 _NAME = re.compile(r"[a-z][a-z0-9_-]*")
 # Google Drive for desktop mounts every account under this folder (spec 004 R7).
@@ -101,6 +101,13 @@ def _count(data: Mapping[str, Any], path: str, *names: str) -> int:
     return len(cast("list[Any]", value))
 
 
+def _float(data: Mapping[str, Any], path: str, *names: str) -> float:
+    value = _at(data, path, names)
+    if not isinstance(value, float) or value <= 0:
+        raise ConfigError(f"key {path} must be a number above 0")
+    return value
+
+
 def _names(data: Mapping[str, Any], path: str, *names: str) -> tuple[str, ...]:
     value = _at(data, path, names)
     if not isinstance(value, dict):
@@ -168,6 +175,41 @@ class StudentConfig:
     def lock_idle_minutes(self) -> int:
         """Minutes without renewal after which a dead run's lock is released."""
         return _int(self.data, "sync.lock_idle_minutes")
+
+    @property
+    def notebook_title_pattern(self) -> str:
+        """The name of each topic's notebook, with `{grade}`, `{subject}` and `{topic}`."""
+        return _str(self.data, "notebook.title_pattern")
+
+    @property
+    def nlm_profile(self) -> str:
+        """The `nlm` profile of the account that owns the notebooks."""
+        return _str(self.data, "notebook.nlm_profile")
+
+    @property
+    def notebook_owner(self) -> str:
+        """The address each living file is shared with, as reader; never shown."""
+        return _str(self.data, "notebook.owner")
+
+    @property
+    def notes_model(self) -> str:
+        """The Claude model that transcribes the student's notes."""
+        return _str(self.data, "notes.model")
+
+    @property
+    def notes_prices(self) -> tuple[float, float]:
+        """The model's price in USD per million tokens, in and out."""
+        return _float(self.data, "notes.price_in"), _float(self.data, "notes.price_out")
+
+    @property
+    def notes_warn_pages(self) -> int:
+        """Pages a living file may hold before the family is warned."""
+        return _int(self.data, "notes.warn_pages")
+
+    @property
+    def cloud_stale_hours(self) -> int:
+        """Hours without a successful cloud run after which the Mac warns."""
+        return _int(self.data, "notes.cloud_stale_hours")
 
     @property
     def accounts(self) -> dict[str, AccountConfig]:

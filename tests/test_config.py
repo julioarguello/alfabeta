@@ -54,6 +54,16 @@ languages = []
 [notebook]
 enabled = false
 share_with = []
+title_pattern = "{{grade}}. {{subject}}. {{topic}}"
+nlm_profile = "prueba"
+owner = "familia@example.com"
+
+[notes]
+model = "claude-sonnet-5-5"
+price_in = 2.0
+price_out = 10.0
+warn_pages = 100
+cloud_stale_hours = 2
 
 [schedule]
 monday = "16:15"
@@ -213,3 +223,25 @@ def test_missing_home_is_not_created(tmp_path: Path):
     done = _cli("--home", str(tmp_path / "nope"), "config", "check", "--student", "s9")
     assert done.returncode == 1 and '"no_home"' in done.stdout
     assert not (tmp_path / "nope").exists()
+
+
+def test_notes_and_notebook_keys_of_spec_005(home: Path):
+    cfg = config.load(home, "s9", ("notes", "notebook"))
+    assert cfg.notes_model == "claude-sonnet-5-5"
+    assert cfg.notes_prices == (2.0, 10.0)
+    assert (cfg.notes_warn_pages, cfg.cloud_stale_hours) == (100, 2)
+    assert cfg.notebook_title_pattern == "{grade}. {subject}. {topic}"
+    assert cfg.nlm_profile == "prueba"
+    assert cfg.notebook_owner == "familia@example.com"
+
+
+@pytest.mark.parametrize("bad", ["price_in = 0.0", "price_in = -1.0"])
+def test_a_price_of_zero_or_less_is_refused(home: Path, bad: str):
+    write(home, text(home).replace("price_in = 2.0", bad, 1))
+    with pytest.raises(config.ConfigError, match=r"notes\.price_in must be a number above 0"):
+        _ = config.load(home, "s9", ("notes",)).notes_prices
+
+
+def test_an_integer_price_is_a_type_problem(home: Path):
+    write(home, text(home).replace("price_in = 2.0", "price_in = 2", 1))
+    assert ("notes.price_in", "type") in keys(config.check(home, "s9")[0])
