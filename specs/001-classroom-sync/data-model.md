@@ -213,7 +213,8 @@ no source was missing.
 ## Transitions
 
 - Decision: `proposed` → `confirmed` | `rejected`; `confirmed` or `rejected` → `superseded`
-  when the family changes it. A rejected one generates a new proposal only if its origin shows a
+  when the family changes it. A `detected_exam` or `dismissed_candidate` counts while `proposed`, so
+  it also goes `proposed` → `superseded` when the text it came from changes (contracts/cli.md). A rejected one generates a new proposal only if its origin shows a
   modification after the rejection; for a topic, if its title changes or a new book topic
   appears in the Drive.
 - Replica: `new` → `current` → (`superseded` → `previous`) | (`withdrawn`). Never `deleted`. A
