@@ -21,7 +21,7 @@
           "title": { "type": "string" },
           "date": { "type": ["string", "null"], "description": "ISO 8601 in Europe/Madrid; null = no date" },
           "date_only": { "type": "boolean", "description": "true if Classroom gives no time" },
-          "status": { "enum": ["pending", "turned_in", "returned", "overdue", "missing_per_teacher", null] },
+          "status": { "enum": ["pending", "turned_in", "turned_in_late", "returned", "overdue", "missing_per_teacher", null] },
           "detected": { "type": "boolean" },
           "origin": { "type": ["string", "null"] },
           "corrected": { "type": "boolean" },

@@ -41,7 +41,9 @@ _NO_DUE = "sin fecha de entrega"
 # Nothing turned in yet: pending until the due date passes, overdue after it. «Sin entregar» is what a
 # question shows (seen on 2026-10-25); the operator set its meaning on 2026-10-27.
 _WAITING = frozenset({"asignado", "falta", "sin entregar"})
-_TURNED_IN = frozenset({"entregado", "entregado con retraso"})
+_TURNED_IN = frozenset({"entregado"})
+# Its own status since 2026-10-27 (operator): late and on time are not the same thing to the family.
+_TURNED_IN_LATE = frozenset({"entregado con retraso"})
 _RETURNED = frozenset({"calificado", "devuelto"})
 _MISSING_NOTICE = "falta esto"
 _TITLE_CHARS = 100
@@ -135,6 +137,8 @@ def status_of(detail: dict[str, Any], due: dt.datetime | dt.date | None, now: dt
         return ItemStatus.OVERDUE if _is_past(due, now) else ItemStatus.PENDING
     if text in _TURNED_IN:
         return ItemStatus.TURNED_IN
+    if text in _TURNED_IN_LATE:
+        return ItemStatus.TURNED_IN_LATE
     if text in _RETURNED:
         return ItemStatus.RETURNED
     return None

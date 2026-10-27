@@ -23,7 +23,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Agenda `list` `done` | «Hecho» |
 | Agenda `list` `posted` | «Publicado» |
 | Agenda `category` `exam` · `assignment` · `quiz` · `material` · `announcement` | «examen» · «entrega» · «cuestionario» · «material» · «aviso» |
-| Item `status` `pending` · `turned_in` · `returned` · `overdue` · `missing_per_teacher` | «pendiente» · «entregada» · «devuelta» · «vencida» · «falta según el profesor» |
+| Item `status` `pending` · `turned_in` · `turned_in_late` · `returned` · `overdue` · `missing_per_teacher` | «pendiente» · «entregada» · «entregada tarde» · «devuelta» · «vencida» · «falta según el profesor» |
 | Agenda entry `detected: true` | «detectado» |
 | Agenda entry `date: null` | «sin fecha» |
 | Attachment not fetched, noted in `enlaces.md` | «no traído» |
@@ -117,7 +117,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | `posted_at` | date | From «Fecha de creación» (creation date); never from «Última modificación» (last modified) |
 | `modified_at` | date or empty | From «Última modificación»; triggers a new download of its attachments |
 | `due_at` | date-time or empty | Resolved by `DateResolver` relative to the capture instant |
-| `status` | `pending` · `turned_in` · `returned` · `overdue` · `missing_per_teacher` · empty | From the detail (table below); assignments and questions only |
+| `status` | `pending` · `turned_in` · `turned_in_late` · `returned` · `overdue` · `missing_per_teacher` · empty | From the detail (table below); assignments and questions only |
 | `description` | text | Instructions or the announcement's text |
 | `attachments` | list of `Attachment` | |
 | `submission` | list of `Attachment` | Files the student turned in |
@@ -129,7 +129,8 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 |---|---|---|
 | «Asignado» (assigned), «Falta» (missing) or «Sin entregar» (not turned in) and a future due date or no date | — | `pending` |
 | «Asignado», «Falta» or «Sin entregar» and a past due date | — | `overdue` |
-| «Entregado» (turned in) or «Entregado con retraso» (turned in late) | — | `turned_in` |
+| «Entregado» (turned in) | — | `turned_in` |
+| «Entregado con retraso» (turned in late; its own status since 2026-10-27) | — | `turned_in_late` |
 | «Calificado» (graded) or «Devuelto» (returned) | — | `returned` |
 | any | «El profesor ha indicado que falta esto» (the teacher marked this as missing) | `missing_per_teacher` (overrides everything above) |
 | other text | — | the run records it as unknown and leaves `status` empty |

@@ -72,6 +72,7 @@ class ItemStatus(StrEnum):
 
     PENDING = "pending"
     TURNED_IN = "turned_in"
+    TURNED_IN_LATE = "turned_in_late"
     RETURNED = "returned"
     OVERDUE = "overdue"
     MISSING_PER_TEACHER = "missing_per_teacher"

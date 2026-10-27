@@ -37,7 +37,7 @@ def load(name: str) -> dict[str, Any]:
         ("Asignado", None, dt.date(2026, 10, 27), ItemStatus.PENDING),  # due today is not past
         ("Asignado", None, dt.datetime(2026, 10, 27, 8, 0, tzinfo=MADRID), ItemStatus.OVERDUE),
         ("Entregado", None, PAST, ItemStatus.TURNED_IN),
-        ("Entregado con retraso", None, PAST, ItemStatus.TURNED_IN),
+        ("Entregado con retraso", None, PAST, ItemStatus.TURNED_IN_LATE),
         ("Calificado", None, PAST, ItemStatus.RETURNED),
         ("Devuelto", None, PAST, ItemStatus.RETURNED),
         ("Calificado", "El profesor ha indicado que falta esto", PAST, ItemStatus.MISSING_PER_TEACHER),
