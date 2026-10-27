@@ -106,7 +106,9 @@ own table is the subset the requirements rest on; this one is the full list.
   `notebook setup` on the Mac, and `notes run` started by hand on the Mac. All three read
   `headRevisionId` at start, re-read it immediately before writing, and on a difference stop without
   writing and retry once from the start.
-- **Look up before create**: every file a run creates carries `properties.alfabeta_for = <the
+- **Look up before create** (public `properties`, not `appProperties`, which Drive keeps private to
+  one app, and the Mac and the cloud are two OAuth clients): every file a run creates carries
+  `properties.alfabeta_for = <the
   photo's or item's Drive id>`. Before creating a transcription or a conversion, a run looks for a
   file with that property in the same folder and updates it instead. A run that crashed after an
   upload, or two overlapping runs, therefore never leave two transcriptions of one photo
