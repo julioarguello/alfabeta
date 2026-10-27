@@ -130,6 +130,11 @@ class StudentConfig:
         return self.root / "data"
 
     @property
+    def drive_root(self) -> str:
+        """The alfabeta folder's path inside the student's My Drive (spec 004 R6)."""
+        return _str(self.data, "drive.root")
+
+    @property
     def school_account(self) -> str:
         """The school account's address."""
         return _str(self.data, "classroom.account")
