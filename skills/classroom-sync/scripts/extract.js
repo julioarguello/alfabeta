@@ -40,7 +40,8 @@
   const NOTICE = /^(Tarea|Material|Pregunta): /;
   // An attachment's aria-label is «Archivo adjunto: <tipo>: <name>»; the name is the file's
   // (measured 2026-10-27 on the real pages, where every download would otherwise go unmatched).
-  const ATTACHMENT_LABEL = /^Archivo adjunto: [^:]+: /;
+  // An image on the stream came without the type: «Archivo adjunto: <name>» (2026-10-28).
+  const ATTACHMENT_LABEL = /^Archivo adjunto: (?:[^:]+: )?/;
   // A class with nothing in «Trabajo de clase» shows only this, and no rows (measured 2026-10-28).
   const EMPTY_CLASSWORK = /^Aún no hay tareas/;
   // And a class with no announcements shows this on its stream (measured 2026-10-28).
@@ -395,16 +396,33 @@
     return !!doc.querySelector("[data-stream-item-id]") || texts(doc.body).some((t) => EMPTY_STREAM.test(t.text));
   }
 
+  // While the tab is not on screen Chrome all but stops its frames: a page took minutes and most
+  // timed out, until the session itself expired (2026-10-28). So nothing loads while it is hidden.
+  function whileHidden(win) {
+    const doc = win.document;
+    return new Promise((resolve) => {
+      if (doc.visibilityState !== "hidden") return resolve();
+      const shown = () => {
+        if (doc.visibilityState === "hidden") return;
+        doc.removeEventListener("visibilitychange", shown);
+        resolve();
+      };
+      doc.addEventListener("visibilitychange", shown);
+    });
+  }
+
   // The default loader: a hidden same-origin iframe, so the injected script is never lost. It polls
-  // from the start; a frame that leaves Classroom (Google's sign-in) is an expired session.
+  // from the start; a frame that leaves Classroom (Google's sign-in) is an expired session. It waits
+  // while the tab is hidden, and time spent hidden does not count towards the timeout.
   function iframeLoader(win, { timeoutMs = 40000, attempts = 2 } = {}) {
     const once = (path) => new Promise((resolve, reject) => {
       const frame = win.document.createElement("iframe");
       frame.style.cssText = "position:absolute;left:-10000px;width:1200px;height:800px;visibility:hidden";
       frame.src = path;
       win.document.body.appendChild(frame);
-      const started = Date.now();
+      let started = Date.now();
       const poll = win.setInterval(() => {
+        if (win.document.visibilityState === "hidden") { started = Date.now(); return; }
         let doc = null;
         try { doc = frame.contentDocument; } catch (_) { doc = null; }
         if (doc === null || (doc.location && /accounts\.google\.com/.test(doc.location.host))) {
@@ -421,6 +439,7 @@
     return async (path) => {
       let last;
       for (let i = 0; i < attempts; i++) {
+        await whileHidden(win);
         try { return await once(path); } catch (err) { if (err && err.name === "SessionExpired") throw err; last = err; }
       }
       throw last;

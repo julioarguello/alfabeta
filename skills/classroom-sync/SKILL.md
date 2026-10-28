@@ -44,7 +44,9 @@ Below, `alfabeta <command>` stands for that line.
    the hash of each address in the page's `aria-label`s, returning only true or false. If it does
    not match, try the next `<n>` with `location.assign("/u/<n>/h")` run in the page. A page already
    on screen proves nothing about the session: a tab left overnight still shows last night's page.
-   The first load in step 4 is the proof.
+   The first load in step 4 is the proof. Ask the family to keep that Chrome window on screen until the
+   capture ends: not minimised, not covered by another window, and that tab the active one in it.
+   Hidden, its pages hardly load (see «Measured»); the extractor then waits instead of loading.
 3. **Inject the extractor.** Read `<tools.repository>/skills/classroom-sync/scripts/extract.js` and
    pass its whole source to `javascript_tool` in that tab. It loads every page in a hidden iframe and
    never moves the tab; inject again only if the tab itself reloaded.
@@ -129,6 +131,9 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | The school session lasted between 54 and 83 minutes after sign-in (2026-10-28) | sign-in again is the family's; a sync that runs longer stops `partial` |
 | Eleven classes took 14 minutes; the session was still alive 50 minutes after the family signed in (2026-10-28) | a whole sync fits in one sign-in |
 | On the stream, «Fecha de creación: » and its date are two text nodes, and every post hides a teacher-only notice longer than any line of its text (2026-10-28) | the extractor reads the label's whole element and the post's own text block |
+| With the Classroom tab hidden (its window covered), a class took 4–12 minutes and came back incomplete, and later classes timed out until the session expired; on screen, a page loaded in about 10 s and a class in 12–123 s (2026-10-28) | step 2 asks for the window on screen; the loader waits while the tab is hidden |
+| A family may have two windows with the same tab group name; only the tab `tabs_context` returns is the one being read (2026-10-28) | to point the family at it, change that tab's `document.title` for the run and restore it after |
+| An image posted on the stream was labelled «Archivo adjunto: <name>», with no type (2026-10-28) | the extractor strips the prefix with or without the type |
 
 ## Never
 
