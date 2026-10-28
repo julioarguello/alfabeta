@@ -1,4 +1,4 @@
-"""`notes run`, `notebook setup`, `notebook refresh` and `claude key set` (spec 005 contracts/cli.md).
+"""`notes run`, `notebook setup|refresh|agent` and `claude key set` (spec 005 contracts/cli.md).
 
 JSON on stdout, one line for people on stderr; no output names an address, a key, a Drive id, a
 source id, a checksum or a path. Exit codes: 0 ok · 1 usage or validation (`no_nlm` too) · 2 a Google
@@ -18,6 +18,7 @@ from alfabeta.google import accounts
 from alfabeta.google.drive import DriveError, ScopedDrive, cache_path
 from alfabeta.google.notify import MacNotifier
 from alfabeta.google.transport import TransportError, UrllibTransport
+from alfabeta.notes.agent import AgentError, AgentSpec, system_agent
 from alfabeta.notes.changes import DriveChangeFeed
 from alfabeta.notes.model import RanOn
 from alfabeta.notes.pdf import ReportlabPdfBuilder
@@ -30,9 +31,11 @@ from alfabeta.notes.transcribe import TIMEOUT_SECONDS, ClaudeTranscriber, claude
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
     from alfabeta.config import StudentConfig
     from alfabeta.google.keychain import TokenStore
+    from alfabeta.notes.agent import LaunchdAgent
 
 EXIT_OK, EXIT_INVALID, EXIT_LINK, EXIT_PARTIAL, EXIT_SIGNED_OUT = 0, 1, 2, 3, 5
 MADRID = ZoneInfo("Europe/Madrid")
@@ -184,6 +187,33 @@ def cmd_notebook_refresh(
     if not report["ok"]:
         print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
         return EXIT_PARTIAL
+    return EXIT_OK
+
+
+_AGENT_REFUSALS = {
+    "no_nlm": "nlm was not found on this PATH: install it, then install the agent again",
+    "no_uv": "uv was not found on this PATH: install it, then install the agent again",
+    "no_repository": "[tools] repository is not a folder on this Mac",
+    "invalid_refresh_minutes": "[notebook] refresh_minutes must divide 60",
+    "launchctl_failed": "launchd did not load the agent; nothing was left installed",
+}
+
+
+def cmd_notebook_agent(cfg: StudentConfig, home: Path, action: str, agent: LaunchdAgent | None = None) -> int:
+    """`notebook agent install|remove`: the launchd agent of `notebook refresh` (research R14)."""
+    made = agent or system_agent()  # looked up now, so a test can hand in its own folder
+    try:
+        if action == "install":
+            spec = AgentSpec(
+                cfg.student, home.resolve(), cfg.tools_repository, cfg.data_dir.resolve(), cfg.notebook_refresh_minutes
+            )
+            out = made.install(spec)
+        else:
+            out = made.remove(cfg.student)
+    except AgentError as err:
+        return _fail(err.reason, EXIT_INVALID, _AGENT_REFUSALS[err.reason])
+    print(f"alfabeta: notebook agent {out['agent']}", file=sys.stderr)
+    _emit(out)
     return EXIT_OK
 
 

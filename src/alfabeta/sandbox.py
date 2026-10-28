@@ -82,6 +82,7 @@ share_with = []
 title_pattern = "{{grade}}. {{subject}}. {{topic}}"
 nlm_profile = "prueba"
 owner = "familia@example.com"
+refresh_minutes = 15
 
 [notes]
 model = "claude-sonnet-5-5"
