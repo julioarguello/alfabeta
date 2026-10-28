@@ -548,6 +548,19 @@ def test_an_item_moved_into_reports_is_gone_though_the_feed_says_nothing():
     assert body(drive, living) == f"classroom:{TEMA_01}:"
 
 
+@pytest.mark.parametrize("into", [TOPIC_2, NOTES])  # another topic's root; this topic's notes/
+def test_an_item_moved_out_of_classroom_into_a_topic_leaves_its_file(into: str):
+    drive = MemoryDrive.subject()
+    living = classroom_set_up(drive)
+    drive.put("ficha", "20261001 - Ficha.pdf", PDF_MIME, b"%PDF ficha", parent=CLASSROOM)
+    run(drive)
+    drive.files["ficha"] = replace(drive.files["ficha"], parents=(into,))
+    drive.touch("ficha")
+    report = run(drive)
+    assert body(drive, living) == f"classroom:{TEMA_01}:"
+    assert {"gone": 1} in [{k: v for k, v in t.items() if k == "gone"} for t in nonzero(report)]
+
+
 def test_a_file_removed_alone_from_an_item_folder_is_seen_with_no_change_reported():
     drive = MemoryDrive.subject()
     living = classroom_set_up(drive)

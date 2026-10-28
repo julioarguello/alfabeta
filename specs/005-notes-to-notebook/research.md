@@ -123,8 +123,9 @@ own table is the subset the requirements rest on; this one is the full list.
 - **Look up before create** (public `properties`, not `appProperties`, which Drive keeps private to
   one app, and the Mac and the cloud are two OAuth clients): every file a run creates carries
   `properties.alfabeta_for = <the
-  photo's or item's Drive id>`. Before creating a transcription or a conversion, a run looks for a
-  file with that property in the same folder and updates it instead. A run that crashed after an
+  photo's, topic's or file's Drive id>`. Before creating a transcription, a run looks for a file with
+  that property in the same folder and updates it instead; before copying an Office file for its
+  conversion, it puts any copy of that file a stopped run left in the trash. A run that crashed after an
   upload, or two overlapping runs, therefore never leave two transcriptions of one photo
   (constitution V). Living files are updated by file id and never created by a run.
 - **Overlap**: the job has one task, task retries set to 0, and a 10-minute timeout, shorter than the
@@ -169,8 +170,8 @@ own table is the subset the requirements rest on; this one is the full list.
   - Notes: a cover page, then per page, in the order pages were first seen, the photo and its
     transcription, headed «Transcripción automática», «Revisada por el alumno» or «En corrección».
   - Classroom: a cover page, then per item (a file, a `.md` note or a folder, first table) one entry:
-    a cover page with title, posting date, the text of `descripcion.md` and the addresses of
-    `enlaces.md`, then each file's pages. A PDF is copied page by page; a Google-native file is
+    a cover page with title, posting date, the text of `descripcion.md` (or an assignment's
+    `enunciado.md`) and the addresses of `enlaces.md`, then each file's pages. A PDF is copied page by page; a Google-native file is
     exported to PDF through Drive; an Office file is copied by Drive into the Google type in
     `.alfabeta/conversions/`, exported, and that copy put in Drive's trash at once (it was never the
     family's); a Markdown is set as text; an image is one page; anything else is named on the cover

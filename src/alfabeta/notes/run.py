@@ -373,7 +373,9 @@ def _record(deps: NotesDeps, work: Pass, arrival: Arrival) -> None:
     if arrival.topic not in work.topics:
         work.topics[arrival.topic] = {"name": topic_name(deps.drive.listed(arrival.topic).name)}
     record = work.files.setdefault(arrival.file_id, {})
-    before = record.get("topic")
+    before, was = record.get("topic"), record.get("kind")
+    if was == Kind.CLASSROOM_ITEM and arrival.kind != Kind.CLASSROOM_ITEM and record.get("state") != ItemState.GONE:
+        _item_gone(work, arrival.file_id, record)  # out of `classroom/`, into another part of a topic
     record |= {"kind": str(arrival.kind), "topic": arrival.topic, "version": arrival.version, "own": False}
     if arrival.kind == Kind.NOTES_PHOTO:
         record |= {"name": deps.drive.listed(arrival.file_id).name, "state": str(PhotoState.SEEN), "retries": 0}
@@ -384,8 +386,9 @@ def _record(deps: NotesDeps, work: Pass, arrival: Arrival) -> None:
         if before not in (None, arrival.topic):
             _touch(work, record)  # moved: it leaves the first file, and `_item` files it in the second
             record.pop("living", None)
-        if record.get("state") in (None, ItemState.GONE):
-            record |= {"state": str(ItemState.SEEN), "retries": 0}  # new, or back: its entry is built again
+        if was != Kind.CLASSROOM_ITEM or record.get("state") == ItemState.GONE:
+            # New, back, or a file of `notes/` moved here: its entry is built again, from `seen`.
+            record |= {"state": str(ItemState.SEEN), "retries": 0}
             record.pop("item_version", None)
     elif arrival.kind == Kind.UNEXPECTED:
         work.count(arrival.topic, "unexpected")
