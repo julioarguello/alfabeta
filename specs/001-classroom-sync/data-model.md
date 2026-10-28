@@ -13,7 +13,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Technical name | Name the student sees |
 |---|---|
 | Attachment `role` `statement` | `enunciado - <name>` |
-| Attachment `role` `submission` | `entrega/<name>`: the file's own name, in the assignment's `entrega/` subfolder |
+| Attachment `role` `submission` | `submission/<name>`: the file's own name, in the assignment's `submission/` subfolder |
 | Attachment `role` `grading` | `correccion.md` |
 | Attachment `role` `links` | `enlaces.md` |
 | Attachment `role` `description` | `descripcion.md` |
@@ -30,7 +30,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Summary for the family (stderr of `apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
 | Book topic folder | `YYYYMMDD - Tema NN - <title>` |
 | Teacher's topic folder with no book equivalent, or with its match not yet confirmed | `YYYYMMDD - <teacher's title>` |
-| Folder for what Classroom posts with no topic | `YYYYMMDD - Sin tema` |
+| Folder for what Classroom posts with no topic | `YYYYMMDD - No topic` |
 | Classroom item in `classroom/` | `YYYYMMDD - <title>` |
 | Previous version of a replica | `<name> (anterior YYYY-MM-DD)` |
 
@@ -118,7 +118,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 |---|---|---|
 | `id` | Classroom id | From the detail URL; stable |
 | `class_id` | Classroom id | |
-| `topic_id` | topic id or empty | Empty → `Sin tema` folder; without a confirmed match → the teacher's topic's own folder |
+| `topic_id` | topic id or empty | Empty → `No topic` folder; without a confirmed match → the teacher's topic's own folder |
 | `type` | `assignment` · `material` · `question` · `announcement` | |
 | `title` | text | As the teacher writes it |
 | `posted_at` | date | From «Fecha de creación» (creation date); never from «Última modificación» (last modified) |

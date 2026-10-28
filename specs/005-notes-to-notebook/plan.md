@@ -121,7 +121,7 @@ src/alfabeta/notes/
 ├── refresh.py        # notebook refresh: the owner's read of changed sources, and its record (Mac only)
 ├── agent.py          # notebook agent install|remove: the launchd agent's plist (Mac only)
 ├── watch.py          # the Mac's check that the cloud ran recently (FR-017)
-└── report.py         # RunReport → Informes/*.md, and "what it adds"
+└── report.py         # RunReport → reports/*.md, and "what it adds"
 deploy/notes-cloud-run/
 ├── Dockerfile
 └── README.md         # points to docs/how-to/notes-cloud-run.md
