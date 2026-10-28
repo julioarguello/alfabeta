@@ -22,7 +22,9 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
   the subject's `<YYYYMMDD> - Sin tema` folder (its FR-014).
 
 **What it does, in order.** Steps 1 to 4 ask the notebook for nothing; a refusal there prints
-nothing. From step 6 on, a report that fails does not stop the other.
+nothing. From step 5 on, a failure is code 3 and stops nothing after it: a refresh or a guide that
+fails still lets both sheets be asked for, and the output says the guide may be stale; a report
+that fails does not stop the other.
 
 1. Checks the configuration as `config check` does. With `notebook.enabled = false` it stops:
    `notebook_disabled`, code 1.
@@ -37,8 +39,9 @@ nothing. From step 6 on, a report that fails does not stop the other.
    `notebook.title_pattern`. No notebook is `no_notebook`, code 1.
 5. Brings the notebook's class-notes source up to date as `notebook refresh` does (spec 005
    FR-018): when the topic's living notes file's `built_md5` differs from the refresh record's
-   `read_md5`, it reads the source once and waits two minutes, since a Drive source took one to two
-   minutes to catch up (spec 005, measured 2026-10-27). Then it compares the time Drive gives for
+   `read_md5`, it reads the source once, which spec 005's research R14 has not shown to be enough,
+   and waits two minutes, since a Drive source took one to two minutes to catch up (spec 005,
+   measured 2026-10-27). Then it compares the time Drive gives for
    the living notes file's last revision with the study guide's creation time
    (`nlm studio status --full --json`). When the revision is later, or there is no guide, it
    generates one (`--format 'Study Guide' --language es`), waits for it, and deletes the previous

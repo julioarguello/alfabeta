@@ -64,7 +64,7 @@ close belongs to the unattended runner (spec 001 User Story 7) and is later work
   then Classroom, then the textbook. The teacher's material prioritises scope; it does not limit it.
 - Q: In which language is each piece? → A: Explanations, videos and the study guide in Spanish, with
   each key term also in the subject's language. Practice, quiz and flashcards in the subject's language.
-  Everything for the parent in Spanish.
+  Everything for the parent in Spanish. (The exam's problems sheet aside: FR-029.)
 - Q: How many notebooks per topic? → A: One. The parent's material does not go into it.
 - Q: What is a block, and how many videos? → A: A block is an idea the exam can ask, grouped so two
   ideas students confuse stay apart. Two or three blocks per topic, one video each, a few minutes
@@ -408,6 +408,7 @@ and cannot judge what the notebook writes.
 - **FR-005**: Videos and the study guide MUST be in Spanish, giving each key term also in the
   subject's language (the one it is taught and examined in) as the class material writes it.
   Practice sheet, quiz and flashcards MUST be in the subject's language, configured per subject.
+  The exam's problems sheet is the exception (FR-029).
 - **FR-006**: The practice sheet MUST go from a fully worked example to partly worked ones to
   problems without help, with the solutions in a separate section at the end, and MUST NOT reuse
   any numeric data of the teacher's sheets.

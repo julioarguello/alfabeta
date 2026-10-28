@@ -130,8 +130,8 @@ uv run --project <tools.repository> python -m alfabeta exam prep --student <stud
 It takes the scope from the teacher's announcement that `classroom-sync` captured, regenerates the
 topic's study guide when it was made before the class notes, asks the notebook for the two reports with the
 prompts «Theory sheet — for an exam» and «Problems sheet — for an exam» of [`prompts.md`](prompts.md),
-titles them `EXAMEN <weekday> 1 · Teoría para el examen · <topic>` and `… 2 · Problemas tipo · …`,
-and prints them into the topic folder as `Teoría para el examen · TNN (<D> <mmm>).pdf` and
+titles them `EXAMEN <weekday> <n> · Teoría para el examen · <topic>` and `… <n+1> · Problemas tipo · …`,
+numbered after the moment's existing pieces, rewrites the start note last, and prints them into the topic folder as `Teoría para el examen · TNN (<D> <mmm>).pdf` and
 `Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
 (`notebook.enabled = false`), `nlm` is signed out or failing, or the exam, its announcement or the
 notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
