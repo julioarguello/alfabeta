@@ -162,6 +162,11 @@ class StudentConfig:
         return _str(self.data, "student.school_year")
 
     @property
+    def languages(self) -> tuple[str, ...]:
+        """The languages titles and announcements may come in; exam hints are read in each (FR-020b)."""
+        return _strs(self.data, "student.languages")
+
+    @property
     def base(self) -> Path:
         """The student's base folder on the Mac."""
         return Path(_str(self.data, "storage.base")).expanduser()

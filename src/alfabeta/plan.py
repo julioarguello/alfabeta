@@ -5,8 +5,9 @@
 what changed name, or everything when the periodic full review is due (FR-026, research R3/S1).
 What a run cut before `apply` already collected into `data/inbox/` is listed under
 `already_collected` instead of being downloaded again (FR-029). Two attachments with the same
-expected name never share a batch, so each downloaded file has one owner. Exam candidates and the
-matches of topics that span several book topics arrive with US2.
+expected name never share a batch, so each downloaded file has one owner. The exam candidates of
+the `Classifier` join `pending_decisions` with the subject's language, for Claude to judge (T048);
+the matches of items whose topic spans several book topics are not planned yet.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from alfabeta.capture import ClassCapture
+    from alfabeta.classification import Classifier
     from alfabeta.decisions import DecisionStore
 
 # Where Drive serves each kind (research R3, spike S1, measured 2026-10-26).
@@ -117,6 +119,7 @@ class Planner:
     state: dict[str, Any]
     full_review_days: int
     today: dt.date
+    classifier: Classifier
     last_review: dt.date | None = None
     data_dir: Path | None = None
     _plan: dict[str, Any] = field(init=False, default_factory=dict[str, Any])
@@ -214,6 +217,10 @@ class Planner:
             subject_dir = self.base / self.school_year / subject.folder
             book = book_topics(subject_dir, subject.book)
             pending += self._pending_topics(normalized, subject, book)
+            pending += [
+                c | {"language": subject.language}
+                for c in self.classifier.candidates(normalized.items, self.decisions.decisions())
+            ]
             existing = [p.name for p in subject_dir.iterdir() if p.is_dir()] if subject_dir.is_dir() else []
             placer = Placer(self.school_year, subject, existing, self.decisions.decisions())
             items = sorted(normalized.items, key=lambda i: (i.posted_at, i.id))

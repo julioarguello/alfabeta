@@ -23,6 +23,7 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, cast
 
 from alfabeta import capture
+from alfabeta.dates import MADRID
 from alfabeta.model import (
     Attachment,
     AttachmentKind,
@@ -87,6 +88,7 @@ def item_to_json(item: Item, topic_title: str | None) -> dict[str, Any]:
         "title": item.title,
         "posted_at": item.posted_at.isoformat(),
         "modified_at": item.modified_at.isoformat() if item.modified_at else None,
+        "due_at": item.due_at.isoformat() if item.due_at else None,
         "status": str(item.status) if item.status else None,
         "description": item.description,
         "attachments": attachments(item.attachments),
@@ -124,6 +126,18 @@ def _grading_from_json(raw: object) -> Grading | None:
     )
 
 
+def due_from_json(raw: object) -> dt.datetime | dt.date | None:
+    """A due date kept in the state: a Madrid date-time when Classroom gave a time, else a date.
+
+    A state written before the agenda (#8) kept none; the next `apply` of its class writes it.
+    """
+    if not isinstance(raw, str) or not raw:
+        return None
+    if "T" in raw:
+        return dt.datetime.fromisoformat(raw).astimezone(MADRID)
+    return dt.date.fromisoformat(raw)
+
+
 def item_from_json(raw: dict[str, Any]) -> tuple[Item, str | None]:
     """An item back from the state, with its teacher's topic title."""
 
@@ -140,6 +154,7 @@ def item_from_json(raw: dict[str, Any]) -> tuple[Item, str | None]:
         title=raw["title"],
         posted_at=dt.date.fromisoformat(raw["posted_at"]),
         modified_at=dt.date.fromisoformat(raw["modified_at"]) if raw.get("modified_at") else None,
+        due_at=due_from_json(raw.get("due_at")),
         status=ItemStatus(raw["status"]) if raw.get("status") else None,
         description=raw.get("description", ""),
         attachments=attachments(raw.get("attachments", [])),

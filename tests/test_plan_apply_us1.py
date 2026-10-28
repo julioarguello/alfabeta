@@ -167,7 +167,9 @@ def test_an_unreadable_class_does_not_stop_the_other(box: Box):
 def test_subject_limits_what_is_applied(box: Box):
     box.collect_and_plan(drop_stop=True)
     box.apply("--subject", "Ingles")
-    assert box.files() and all(f.startswith("2026-2027/Ingles/") for f in box.files())
+    # The agenda is the school year's, recomputed from the state whatever the scope (contracts/cli.md, apply).
+    placed = [f for f in box.files() if f not in ("2026-2027/agenda.json", "2026-2027/agenda.md")]
+    assert placed and all(f.startswith("2026-2027/Ingles/") for f in placed)
 
 
 def test_apply_needs_the_lock(box: Box):
