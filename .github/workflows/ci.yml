@@ -32,9 +32,11 @@ jobs:
         with:
           enable-cache: true
           python-version-file: .python-version
+      # A major setup-node's manifest lists: one it lacks (23) is fetched from nodejs.org on every
+      # run, and that download hung for most of an hour more than once (issue #107).
       - uses: actions/setup-node@v4
         with:
-          node-version: "23"
+          node-version-file: .node-version
           cache: npm
       - name: make setup-python setup-node ci
         run: make setup-python setup-node ci
