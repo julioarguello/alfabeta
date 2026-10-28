@@ -1,0 +1,124 @@
+---
+name: classroom-sync
+description: Copies the teacher's material from Google Classroom into the student's Drive, one folder per subject and topic, reading only what the student already sees. Use with «sincroniza alfabeta para <alumno>» (sync alfabeta for <student>), «sincroniza alfabeta para <alumno>, solo <asignatura>» (only one subject) or «trae lo nuevo de Classroom» (bring what is new from Classroom).
+---
+
+# Classroom sync — the teacher's material in its topic folder
+
+Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project, spec 001 (User Story 1).
+What each piece does and why is in [the spec](../../specs/001-classroom-sync/spec.md) and its
+[research](../../specs/001-classroom-sync/research.md); the commands are in
+[contracts/cli.md](../../specs/001-classroom-sync/contracts/cli.md). This file says what to run.
+
+## Configuration
+
+`~/.alfabeta/<student>/config.toml` (template: the repo's `config/template.toml`):
+
+| Key | Used for |
+|---|---|
+| `tools.repository` | the clone every command runs from |
+| `classroom.account` | the school account, compared inside the page; never printed, never in a URL |
+| `downloads.folder` | where Chrome leaves captures and attachments |
+| `sync.lock_idle_minutes` | how long the run may go without renewing its lock |
+| `subjects` | the short name a class is linked to, and whether it has a book |
+
+Every command runs on the Mac through Bash, never in the app's virtual machine. Each tool call is a
+new shell, so the run id goes inline every time:
+
+```bash
+ALFABETA_RUN=<run> uv run --project <tools.repository> python -m alfabeta <command> --student <student>
+```
+
+Below, `alfabeta <command>` stands for that line.
+
+## Steps
+
+1. **Open the run.** `alfabeta config check`, then `alfabeta lock take --mode interactive`; keep its
+   `run`. `lock_busy` means another run holds the student: stop and say so.
+2. **Find the tab.** With `tabs_context`, find the Classroom tab the family left open. **Never open
+   or move a Google page with the extension's `navigate` or `tabs_create`**: in this Chrome it ends
+   the school session (research R16). A tab that is not on Classroom, or is on Google's sign-in, is a
+   person's job: ask the family to sign in there and leave it on the home page. Read `/u/<n>` from
+   `location.pathname` and check, with a script run in the page that returns only true or false,
+   that the account button carries `classroom.account`. If not, try the next `<n>` with
+   `location.assign("/u/<n>/h")` run in the page.
+3. **Inject the extractor.** Read `<tools.repository>/skills/classroom-sync/scripts/extract.js` and
+   pass its whole source to `javascript_tool` in that tab. It loads every page in a hidden iframe and
+   never moves the tab; inject again only if the tab itself reloaded.
+4. **Capture the class list.**
+   ```js
+   const X = alfabetaExtract, run = "<run>", now = () => new Date();
+   const classes = X.captureClasses({ run, doc: document, path: location.pathname, now });
+   X.save(classes, window); ({ type: classes.type, reason: classes.reason, n: classes.classes?.length })
+   ```
+   A `stop` (`challenge`, `unexpected_ui`) ends the run: `alfabeta log stop --reason <reason>`
+   (it writes the line and releases the lock; it sends nothing), and tell the family what to do.
+   Otherwise `alfabeta downloads collect --wait 10` and `alfabeta plan`.
+5. **Link the classes.** For each `class_link` in `plan.json`'s `pending_decisions`, propose the
+   subject's short name, with the reason and a confidence, in one file:
+   ```json
+   [{"type": "class_link", "origin": "<class id>", "target": {"subject": "<short name>"},
+     "reason": "<why>", "confidence": "high"}]
+   ```
+   `alfabeta decisions propose --file <file>`, then ask the family and record each answer with
+   `alfabeta decisions confirm --type class_link --origin <class id>` (add `--reject` for a class
+   that is not a subject). A hidden class is never linked; the summary lists it.
+6. **Capture each linked class** (or only the subject asked for), one at a time, in the background:
+   ```js
+   window.__ab = { status: "running" };
+   X.captureClass({ run, classId: "<class id>", title: "<title>", account: classes.account_index,
+     load: X.iframeLoader(window), sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now, random: Math.random })
+     .then((c) => { X.save(c, window); window.__ab = { status: "done", type: c.type, reason: c.reason, complete: c.complete }; })
+     .catch((e) => { window.__ab = { status: "error", error: String(e) }; });
+   ```
+   Poll in calls of at most 36 s — the tool call dies at 45 s:
+   `for (let i = 0; i < 9 && window.__ab.status === "running"; i++) await new Promise((r) => setTimeout(r, 4000)); window.__ab`.
+   Then `alfabeta downloads collect --wait 10`, which also renews the lock. A `stop` midway
+   (`session_expired`, `challenge`, `unexpected_ui`) is saved and collected like a capture: capture
+   no more classes and go on to step 7 with what you have; the run ends `partial` with that reason.
+   `complete: false` means some page did not load; the next run reads it again.
+7. **Match the topics.** `alfabeta plan` (with `--subject <short name>` when the family asked for one).
+   For each `topic_match` pending, propose the book topic it covers, copying the entry's `title` and
+   `book_topics` into the proposal, or a rejected match reopens on every run:
+   ```json
+   [{"type": "topic_match", "origin": "<topic id>", "target": {"topic": "Tema NN - <title>"},
+     "origin_title": "<title from plan.json>", "book_topics": ["<from plan.json>"],
+     "reason": "<why>", "confidence": "medium"}]
+   ```
+   Ask the family, then `decisions confirm --type topic_match --origin <topic id>` or, for a topic
+   that belongs to no book topic, the same with `--reject`: it keeps its own
+   `<YYYYMMDD> - <teacher's title>` folder. Then `alfabeta plan` again.
+8. **Download the attachments.** `plan.json`'s `downloads` hold `url`, `expected_name` and `batch`.
+   For each batch, starting at 0, load every `url` in a hidden iframe created in the Classroom tab,
+   2–3 s apart; they arrive with no dialog (research R4). Then `alfabeta downloads collect --wait 30`
+   before the next batch: a batch is how two files with the same name do not overwrite each other.
+9. **Before the first apply of a subject**, look at its topic folders in Drive. A `classroom/` folder
+   made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
+   other names. With the family's agreement, move it to
+   `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it.
+10. **Apply.** `alfabeta apply` (with the same `--subject`). On a subject's first run, apply once
+    more: it must report `added` 0 and `changed` 0. Then `alfabeta lock release`.
+11. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
+    classes, topics to confirm, attachments not fetched, each with its link), and why a run was
+    `partial`.
+
+## Measured on real runs
+
+Measured 2026-10-27 on one real class of the school account; details in research R3 and R16.
+
+| Behaviour | Consequence |
+|---|---|
+| One class capture took 75 s | poll in the background (step 6) |
+| A page's iframe `load` event came more than 30 s after its content | the extractor polls readiness instead |
+| An attachment's label reads «Archivo adjunto: <tipo>: <name>» | the extractor keeps only the name |
+| Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
+| A session signed in by the family lasted at least 18 minutes; how long it lasts was not measured | sign-in again is the family's, in the tab |
+| The second `apply` over the same captures changed nothing | step 10 is the check |
+
+## Never
+
+- Turn in, comment, mark done, or open a quiz or a form; never click the «Tu trabajo» panel.
+- Open or move a Google page with the extension's `navigate` or `tabs_create`.
+- Type a password, or sign in for the family.
+- Delete anything in Drive or in `data/`: what has to go is quarantined.
+- Put the student's name, email or any id into the repository, a URL, a log, an issue or a PR.

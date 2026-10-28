@@ -83,3 +83,11 @@ def test_download_batch_needs_a_plan(tmp_path: Path):
     cli("--home", str(home), "sandbox", "prepare")
     done = cli("--home", str(home), "sandbox", "download", "--student", "sample", "--batch", "0", run="r42")
     assert done.returncode == 1 and "no plan" in done.stderr
+
+
+def test_download_without_a_flag_is_batch_0(tmp_path: Path):
+    # contracts/cli.md: `(--captures | [--batch N])`; quickstart scenario 2 calls it with neither.
+    home = tmp_path / "box"
+    cli("--home", str(home), "sandbox", "prepare")
+    done = cli("--home", str(home), "sandbox", "download", "--student", "sample", run="r42")
+    assert done.returncode == 1 and "no plan" in done.stderr
