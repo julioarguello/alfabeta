@@ -88,9 +88,9 @@ channel that does not need that link.
 
 **Independent test**: quickstart step 6.
 
-- [ ] T014 [P] [US4] Write `tests/test_google_notify.py`. A non-`ok` status from `check_accounts` calls the `Notifier` once per failed alias, with text naming the alias only, and the CLI exits 2.
-- [ ] T015 [US4] Implement `src/alfabeta/google/notify.py`: a `Notifier` Protocol and `MacNotifier`, which calls `osascript -e 'display notification …'` with the alias, never the address. Call it from `check_accounts` (research R9, channels 1–2).
-- [ ] T016 [US4] Make `google check` refresh every linked token on every run, even when the run writes nothing to Google (FR-015, research R10). Spec 001's run entry calls it first; a status other than `ok` skips the Google outputs and lets the others finish (FR-013).
+- [x] T014 [P] [US4] Write `tests/test_google_notify.py`. A non-`ok` status from `check_accounts` calls the `Notifier` once per failed alias, with text naming the alias only, and the CLI exits 2.
+- [x] T015 [US4] Implement `src/alfabeta/google/notify.py`: a `Notifier` Protocol and `MacNotifier`, which calls `osascript -e 'display notification …'` with the alias, never the address. Call it from `check_accounts` (research R9, channels 1–2).
+- [x] T016 [US4] Make `google check` refresh every linked token on every run, even when the run writes nothing to Google (FR-015, research R10). Spec 001's run entry calls it first; a status other than `ok` skips the Google outputs and lets the others finish (FR-013).
 - [ ] T017 [US4] Run quickstart step 6. Revoke, check, see the notification, then link again. Save the `invalid_grant` response to `tests/fixtures/google/`.
 
 ---
