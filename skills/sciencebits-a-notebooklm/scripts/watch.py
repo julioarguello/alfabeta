@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Watch ~/Downloads for capture zips (named sb_*.zip or the Claude desktop app's temporary
-download files) and copy every finished capture into RAW_DIR as sb_<tag>.zip.
+"""Watch DOWNLOADS_DIR, the student's `downloads.folder`, for capture zips (named sb_*.zip or the
+Claude desktop app's temporary download files) and copy every finished capture into RAW_DIR as
+sb_<tag>.zip.
 
-Usage: python3 -u watch.py RAW_DIR [DOWNLOADS_DIR]
+Usage: python3 -u watch.py RAW_DIR DOWNLOADS_DIR
 Runs on the Mac (start it with Desktop Commander start_process); stop it when the capture is done.
 """
 import glob, json, os, shutil, sys, time, zipfile
 
-R = sys.argv[1]
-D = sys.argv[2] if len(sys.argv) > 2 else os.path.expanduser('~/Downloads')
+if len(sys.argv) != 3:
+    sys.exit('usage: watch.py RAW_DIR DOWNLOADS_DIR')
+R = os.path.expanduser(sys.argv[1])
+D = os.path.expanduser(sys.argv[2])
 os.makedirs(R, exist_ok=True)
 seen = {}
 for _ in range(20000):

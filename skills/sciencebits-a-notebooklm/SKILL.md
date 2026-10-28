@@ -1,6 +1,6 @@
 ---
 name: sciencebits-a-notebooklm
-description: Turns a topic of a Science Bits digital textbook (learning-bits.com) into navigable PDFs + Markdown (ES/EU/EN), saves them to the user's cloud storage and creates its notebook in Gemini Notebook (NotebookLM). Use with "el siguiente tema" (the next topic) or "hazme el tema N de física/bio" (do topic N of physics/bio for me).
+description: Turns a topic of a Science Bits digital textbook (learning-bits.com) into navigable PDFs + Markdown (one per configured language), saves them to the user's cloud storage and creates its notebook in Gemini Notebook (NotebookLM). Use with "el siguiente tema" (the next topic) or "hazme el tema N de física/bio" (do topic N of physics/bio for me).
 ---
 
 # Science Bits → PDF + Markdown → cloud storage → Gemini Notebook
@@ -8,19 +8,23 @@ description: Turns a topic of a Science Bits digital textbook (learning-bits.com
 Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project.
 
 ## Configuration
-Read `~/.alfabeta/config.json` (see the repo's `config.example.json`) with Desktop Commander. It provides:
-`student.name`, `student.grade`, `storage.base_dir` (the master folder), `storage.mirrors` (list), `storage.tools_dir`
-(`$H`), `storage.topic_folder_pattern`, `subjects` (Science Bits class → short name), `languages`, `notebook.enabled`,
-`notebook.title_pattern`, `notebook.share_with` (list).
-The lists may be `[]`; a missing key is a configuration error (ask for it once, as below). Never print a mirror's path or a `share_with` address: say "mirror 2" or
-"2 accounts" (the paths carry the account's email).
-If it does not exist, ask for that data once and create it. Never write personal data outside that file.
+Receive the student's id, or ask for it; never guess it. Read `~/.alfabeta/<student>/config.toml` (template: the
+repo's `config/template.toml`) with Desktop Commander, then check it on the Mac with
+`uv run --project <tools.repository> python -m alfabeta config check --student <student>`. If it fails, say which
+keys and stop. Never create the configuration or write to it. It provides:
+`student.display_name`, `student.grade_level`, `student.school_year`, `storage.base` (the master folder),
+`drive.mirrors` (list), `tools.folder` (`$H`), `tools.repository` (the clone), `downloads.folder`, the `[[subjects]]`
+with `book = "sciencebits"` (`folder` is the subject's short name, `book_class` its class in Science Bits),
+`sciencebits.url`, `sciencebits.languages` (the first one gives the topic folder's title), `notebook.enabled`,
+`notebook.title_pattern`, `notebook.nlm_profile` and `notebook.share_with` (list).
+The lists may be `[]`. Never print a mirror's path or a `share_with` address: say "mirror 2" or "2 accounts" (the
+paths carry the account's email).
 
 Result per topic:
 - `TemaNN_<LANG>.pdf` and `.md` in the topic folder (see Names). Each PDF: cover, clickable table of contents
   (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content) and
   the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
-- The same files in every folder of `storage.mirrors`, one-way copies of `base_dir`.
+- The same files in every folder of `drive.mirrors`, one-way copies of `storage.base`.
 - If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, shared as viewer with every account
   in `notebook.share_with`.
 
@@ -30,41 +34,46 @@ someone has to sign in (Science Bits or Google).
 ## Tools (in `$H`, copied from `scripts/`)
 - `discover_lessons.js` — on the unit page: `sem`, `rest` and `lessonId` of each lesson.
 - `orchestrator.js` — captures a queue of lessons/languages in the background; downloads one zip per lesson.
-- `watch.py` — on the Mac, copies each downloaded zip to `raw/` (the built-in browser's downloads sometimes
+- `watch.py` — on the Mac, copies each zip downloaded to `downloads.folder` into `raw/` (the built-in browser's downloads sometimes
   stay as hidden temporary files `.…claudefordesktop.…` that the app deletes within minutes).
 - `build.py` — generates PDF + `.md` per language from `raw/`.
 
 Environments: built-in browser (`…Claude_Browser__*`; load the `built-in-browser` skill first); Desktop
 Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs4, pypdf, DejaVu fonts) with
-`~/Downloads` connected, where `build.py` runs; the `nlm` CLI (`notebooklm-mcp-cli`) for the notebook.
+`downloads.folder` connected, where `build.py` runs; the `nlm` CLI (`notebooklm-mcp-cli`) for the notebook, every
+command with `--profile <notebook.nlm_profile>` (`login` included). Measured 2026-10-28 with nlm 0.15.8: only
+`nlm download` and `nlm config` take no profile, and nlm reads none from the environment.
 
 ## Names
-- School year from `school_year_starts_month` → e.g. `2026-2027`.
-- Subject: `subjects[<class in Science Bits>]`; if missing, ask for the short name once and save it in the config.
-- Topic folder: `base_dir/<topic_folder_pattern>`, e.g. `2026-2027/FiQui/20261001 - Tema 01 - Sustancias puras y
-  mezclas`. Every topic folder starts with a `YYYYMMDD - ` date (the posting date of the topic's first Classroom
-  material), and that date is never changed. To find the folder of topic NN, look in `<year>/<subject>/` for a
+- School year: `student.school_year`, e.g. `2026-2027`.
+- Subject: the `folder` of the `[[subjects]]` entry with `book = "sciencebits"` whose `book_class` is the class in
+  Science Bits. If none matches, say so and stop: the family adds it to the configuration.
+- Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>`, as the constitution names
+  it, with the title in the first of `sciencebits.languages`; e.g. `2026-2027/FyQ/20261001 - Tema 01 - Sustancias
+  puras y mezclas`. Every topic folder starts with a `YYYYMMDD - ` date (the posting date of the topic's first Classroom
+  material), and that date is never changed. To find the folder of topic NN, look in `<school_year>/<subject>/` for a
   folder matching `*Tema NN - *` (two-digit `NN`), whatever its date, and reuse it. Only if none matches, create
-  one with `{date}` = today as `YYYYMMDD`. Never create a second folder for a topic that already has one: an
+  one dated today. Never create a second folder for a topic that already has one: an
   undated or re-dated duplicate splits the topic in two.
 - Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - Sin tema`) are Classroom's; leave them alone.
-- "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *`, ignoring
-  the date prefix (and the order of units in the Science Bits class).
+- "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *` that already
+  hold `sciencebits/`, ignoring the date prefix (and the order of units in the Science Bits class).
 
 ## Steps
 
-1. **Prepare.** `WORK=~/Downloads/alfabeta_work/<Subject>_TemaNN` with `raw/`, `out/`, `tools/`. Copy `$H/*` to
-   `$WORK/tools`. Start the collector and leave it running:
-   `start_process("python3 -u $WORK/tools/watch.py $WORK/raw", timeout_ms=3000)`.
+1. **Prepare.** `WORK=<downloads.folder>/alfabeta_work/<Subject>_TemaNN` with `raw/`, `out/`, `tools/`. Copy `$H/*`
+   to `$WORK/tools`. Start the collector and leave it running:
+   `start_process("python3 -u $WORK/tools/watch.py $WORK/raw <downloads.folder>", timeout_ms=3000)`.
 2. **Open Science Bits.** `preview_start(sciencebits.url)` (if it asks for permission: `request_access` scope "site").
    If the login page or "Your session has expired" shows up: ask the user to sign in in the browser pane,
    ticking "Remember me on this device", and wait for their "ready". Never type credentials.
 3. **Find the topic.** `get_page_text` lists classes and units. With `find`, locate "Acceder a la unidad" (Go to the
-   unit) and navigate to that URL. Note the title in each language (same URL with `/intranet/eu/` and `/intranet/en/`).
+   unit) and navigate to that URL. Note the title in each of `sciencebits.languages` (same URL with
+   `/intranet/<language>/`).
 4. **Discover lessons.** On the unit page run `discover_lessons.js` with `javascript_tool`.
    Do it before capturing: do not navigate while the capture is running (`preview_start` may reuse the tab).
-5. **Capture.** Go back to the classes page and apply `resize_window(width=1280, height=800)`. Queue: languages in
-   order, ids `L1…Ln`, no assessment lessons. Run in a single call
+5. **Capture.** Go back to the classes page and apply `resize_window(width=1280, height=800)`. Queue:
+   `sciencebits.languages` in order, ids `L1…Ln`, no assessment lessons. Run in a single call
    `window.__SB={sem, rest, queue:[{lang, id, lessonId},…]};` + the contents of `orchestrator.js`.
    Poll `window.__orch` with short calls (<40 s): `results`, `current`, `stopped`,
    `document.getElementById('__fr')?.contentWindow.__job?.n`; between polls, `device_bash "sleep 170; ls …/raw"`.
@@ -74,21 +83,24 @@ Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs
    - **Assessments**: never open or start them; they are left out.
    - Other `n:0`/errors → relaunch them at the end. Check one zip with `items` per lesson and language.
 6. **Build.** `$WORK/unit.json`:
-   `{"prefix":"TemaNN","langs":{"es":{"unit":"Tema N · …","course":"Física y Química · <grade>"},"eu":{…},"en":{…}}}`.
+   `{"prefix":"TemaNN","langs":{"<language>":{"unit":"Tema N · …","course":"<the subject's full name> · <grade_level>"},…}}`, one
+   entry per captured language, each title in its language.
    In `device_bash`: `python3 tools/build.py raw out --config unit.json <captured languages>`.
 7. **Verify.** pypdf: pages, bookmarks, table-of-contents links, extractable text. Review the `.md`. If a lesson
    has few screens compared with its index (`menu` in meta.json), capture it again.
 8. **Save.** Find the topic folder by `*Tema NN - *` (see Names); only if there is none, `mkdir -p` it with
-   today's date. Copy `out/*` into it. Write only in `base_dir`, never in a mirror.
-   **Mirrors.** Then, for each folder in `storage.mirrors`, bring it up to date from the whole master, on the Mac:
-   `rsync -rlt --exclude .DS_Store "<base_dir>/" "<mirror>/"` (trailing slashes; never `--delete`; never the other
+   today's date. Copy `out/*` into it. Write only in `storage.base`, never in a mirror.
+   **Mirrors.** Then, for each folder in `drive.mirrors`, bring it up to date from the whole master, on the Mac:
+   `rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"` (trailing slashes; never `--delete`; never the other
    way round). It copies only what is new or changed, so a repeat writes nothing. If a mirror is not mounted or
    `rsync` fails, note it, go on with the others and the notebook, and report it at the end; the next run catches
    it up. Measured on the family Mac on 2026-10-26, both folders mounted by Google Drive for desktop.
 9. **Gemini Notebook** (if `notebook.enabled`):
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
      profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**.
-   - `nlm notebook list`; reuse the topic's notebook or create it with `title_pattern` (`--json`).
+   - `nlm notebook list`; reuse the topic's notebook or create it with `notebook.title_pattern` (`{grade}` is
+     `student.grade_level`, `{subject}` the subject's folder, `{topic}` the topic folder's name after its date;
+     `--json`).
    - `nlm source add <id> --file "<file>" --wait --wait-timeout 300` for each PDF and `.md`.
    - **Share.** `nlm share status <id> --json`; for each account in `notebook.share_with` not yet listed:
      `nlm share invite <id> <account> --role viewer`. Never `nlm share public`. A failed invite does not undo the

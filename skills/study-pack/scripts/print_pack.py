@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Print a topic's Gemini Notebook study material to A4 PDF.
 
-  print_pack.py report <notebook-id> <artifact-id> <out.pdf> [--profile P]
+  print_pack.py report <notebook-id> <artifact-id> <out.pdf> (--student S | --profile P)
       one report (study guide, practice sheet, parent guide…)
-  print_pack.py topic <notebook-id> <out.pdf> [--profile P]
+  print_pack.py topic <notebook-id> <out.pdf> (--student S | --profile P)
       the whole Studio in one document: an index first, then every report, quiz (answer key at the
       end), flashcards and mind map, in Studio order; videos appear in the index only
 
 Needs `nlm`, `pandoc`, Graphviz `dot` (mind maps) and Google Chrome (headless, prints the PDF).
-The profile defaults to `notebook.nlm_profile` in ~/.alfabeta/config.json, else nlm's default.
+With `--student`, the `nlm` profile is `notebook.nlm_profile` of `<home>/<student>/config.toml`
+(`--home`, default ~/.alfabeta), read through alfabeta's configuration loader, so run it from the
+clone: `uv run --project <tools.repository> python <this file> …`. `--profile` names one instead.
+`nlm download` takes no profile and reads nlm's default one, so the run stops unless that is it.
 """
 
 from __future__ import annotations
@@ -16,13 +19,14 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import os
 import re
 import subprocess
 import sys
 import tempfile
 import textwrap
 from pathlib import Path
+
+from alfabeta import config
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 KATEX = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/"
@@ -44,25 +48,38 @@ hr { border: 0; border-top: 1px solid #ddd; margin: 5mm 0; }
 .mindmap svg { display: block; margin: 0 auto; height: 225mm; width: auto; max-width: 100%; }
 .question { break-inside: avoid; margin-bottom: 4mm; }
 """
+# Measured 2026-10-28 with nlm 0.15.8: every command used here takes --profile but these two, which
+# read nlm's default profile (`auth.default_profile`); nlm reads no profile from the environment.
+UNPROFILED = frozenset({"download", "config"})
 LIST_ITEM = re.compile(r"\s*([*+-]|\d+[.)])\s")
 
 
-def profile_default() -> str:
+def profile_of(home: str, student: str) -> str:
+    """The student's `notebook.nlm_profile`; a missing or invalid configuration stops the run."""
     try:
-        cfg = json.loads(Path("~/.alfabeta/config.json").expanduser().read_text())
-    except OSError:
-        return "default"
-    return cfg.get("notebook", {}).get("nlm_profile", "default")
+        return config.load(Path(home).expanduser(), student, ("notebook",)).nlm_profile
+    except config.ConfigError as err:
+        sys.exit(f"print_pack: {err}")
 
 
 def nlm(profile: str, *args: str) -> str:
-    env = {**os.environ, "NLM_PROFILE": profile}
-    done = subprocess.run(["nlm", *args], env=env, capture_output=True, text=True)
+    extra = () if args[0] in UNPROFILED else ("--profile", profile)
+    done = subprocess.run(["nlm", *args, *extra], capture_output=True, text=True)
     if done.returncode:
         sys.exit(
             f"nlm {args[0]} {args[1]} failed: {done.stderr.strip() or done.stdout.strip()}"
         )
     return done.stdout
+
+
+def require_default(profile: str) -> None:
+    """Stop unless `profile` is nlm's default one, the profile `nlm download` reads."""
+    default = nlm(profile, "config", "get", "auth.default_profile").strip()
+    if default != profile:
+        sys.exit(
+            "print_pack: nlm download reads nlm's default profile, which is not the student's"
+            " notebook.nlm_profile; make it so with `nlm config set auth.default_profile <profile>`"
+        )
 
 
 def download(
@@ -297,7 +314,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
     render(md, Path(args.out).expanduser(), work)
 
 
-def main() -> None:
+def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("report")
@@ -305,8 +322,19 @@ def main() -> None:
     t = sub.add_parser("topic")
     t.add_argument("notebook"), t.add_argument("out")
     for s in (r, t):
-        s.add_argument("--profile", default=profile_default())
-    args = p.parse_args()
+        who = s.add_mutually_exclusive_group(required=True)
+        who.add_argument("--student", help="the student whose notebook.nlm_profile is used")
+        who.add_argument("--profile", help="an nlm profile, instead of the student's")
+        s.add_argument("--home", default="~/.alfabeta", help="folder of student configurations")
+    args = p.parse_args(argv)
+    if args.student:
+        args.profile = profile_of(args.home, args.student)
+    return args
+
+
+def main() -> None:
+    args = parse()
+    require_default(args.profile)
     with tempfile.TemporaryDirectory() as tmp:
         (report if args.cmd == "report" else topic)(args, Path(tmp))
     print(Path(args.out).expanduser())

@@ -1,5 +1,5 @@
 # alfabeta's configuration template (spec 001 FR-001; spec 004 adds [storage], [calendar] id and [google];
-# spec 005 adds [notes] and three [notebook] keys).
+# spec 005 adds [notes] and three [notebook] keys; spec 002 adds exam_language to [[subjects]]).
 # Each student copies this file to ~/.alfabeta/<student>/config.toml and changes the changeme values.
 # A key that is missing, extra, changes type or contains changeme stops alfabeta (FR-003);
 # `alfabeta --home <dir> config check --student <id>` lists every such key, never its value.
@@ -130,3 +130,6 @@ classroom_class = "changeme"
 book = "changeme"                   # e.g. "sciencebits"
 # Name of the class on the book's platform, or "" if there is no book.
 book_class = "changeme"             # e.g. "Matemáticas - 1º ESO"
+# Language the subject's exams are written in, a code as in [student] languages (spec 002 FR-005):
+# the study pack writes the practice sheet, the quiz and the flashcards in it.
+exam_language = "changeme"          # e.g. "en"

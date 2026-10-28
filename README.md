@@ -65,21 +65,22 @@ In the design, the notebooks belong to a parent's personal Google account and ar
 with every account the configuration lists (`notebook.share_with`), so the family can share them
 freely and the adult account avoids the platform's 18+ limit on cinematic video. The calendar is
 shared the same way (`calendar.shared_with`), and the topic folders reach the student's other
-accounts as one-way mirrors of the master folder (`storage.mirrors`). Measured 2026-10-26: a school
+accounts as one-way mirrors of the master folder (`drive.mirrors`). Measured 2026-10-26: a school
 Google Workspace for Education domain allowed a notebook and a calendar owned by a personal Gmail
 account to be shared with the school account and opened there.
 
 ## Get started
 
 > [!TIP]
-> **TL;DR** — clone the repository, install the notebook CLI, write your private configuration, add
-> the skill to Claude, then ask for a topic.
+> **TL;DR** — clone the repository, install the notebook CLI, write the student's private
+> configuration, add the skill to Claude, then ask for a topic.
 >
 > ```bash
 > git clone https://github.com/julioarguello/alfabeta && cd alfabeta
 > uv tool install notebooklm-mcp-cli
 > nlm login
-> mkdir -p ~/.alfabeta && cp config.example.json ~/.alfabeta/config.json
+> mkdir -p ~/.alfabeta/<student> && cp config/template.toml ~/.alfabeta/<student>/config.toml
+> uv run python -m alfabeta config check --student <student>
 > ```
 >
 > The configuration holds names and folders only; never put a password in it.
@@ -92,22 +93,26 @@ account to be shared with the school account and opened there.
 | The [Desktop Commander](https://github.com/wonderwhy-er/DesktopCommanderMCP) connector in Claude | The skill reads your configuration and runs commands on your Mac through it |
 | [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
 | [pandoc](https://pandoc.org/installing.html), [Graphviz](https://graphviz.org/download/) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports and mind maps to PDF with them |
-| A folder synced to your cloud storage | The skill writes each topic under `storage.base_dir` and copies it to each folder in `storage.mirrors`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
+| A folder synced to your cloud storage | The skills write each topic under `storage.base` and copy it to each folder in `drive.mirrors`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
 Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships `reportlab`,
 `beautifulsoup4` and `pypdf`.
 
 ### Set up
 
-1. Copy `config.example.json` to `~/.alfabeta/config.json` and fill in `student` (name, grade, month
-   the school year starts), `storage` (`base_dir`, `mirrors`, `tools_dir`), `subjects`,
-   `calendar.shared_with`, `notebook` (`title_pattern`, `share_with`, `nlm_profile`) and
-   `study_pack.exam_language`. It stays outside the repository.
-2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks. The Science
-   Bits skill uses `nlm`'s default profile; the study pack uses the one named in
-   `notebook.nlm_profile`, so write `default` there unless you keep a separate profile.
-3. Copy `skills/sciencebits-a-notebooklm/scripts/` and `skills/study-pack/scripts/` to the
-   `storage.tools_dir` folder of your configuration.
+1. Pick a short lowercase id for the student, never their name, and copy `config/template.toml` to
+   `~/.alfabeta/<student>/config.toml`. Change every `changeme` value; the comment above each key
+   says what it holds. `uv run python -m alfabeta config check --student <student>` lists every key
+   still missing or invalid, by name and never by value, and each skill runs that check before it
+   starts. The file stays outside the repository; a second student is a second folder with its own
+   `config.toml`.
+2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks. Both skills
+   pass `nlm` the profile named in `notebook.nlm_profile`, so write `default` there unless you keep a
+   separate profile. If you do, make it `nlm`'s default as well
+   (`nlm config set auth.default_profile <profile>`): `nlm download` takes no profile, and the study
+   pack stops before downloading from another account.
+3. Write the path of this clone in `tools.repository`, and copy `skills/sciencebits-a-notebooklm/scripts/`
+   to the `tools.folder` of the configuration. The study pack's scripts run from the clone.
 4. Add the skills to Claude by uploading `skills/sciencebits-a-notebooklm/` and
    `skills/study-pack/`, or ask Claude «instala la skill sciencebits-a-notebooklm de
    github.com/julioarguello/alfabeta» ("install the sciencebits-a-notebooklm skill from
@@ -132,7 +137,7 @@ Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships 
   file. Test data is invented.
 - **Gemini Notebook has no public API.** `nlm` uses internal endpoints and your account's session; it
   may break, and its use may not fit Google's terms. Use it at your own risk, or turn notebooks off
-  with `notebook.enabled: false` and add the files by hand.
+  with `notebook.enabled = false` and add the files by hand.
 - **Generated material is checked, not trusted.** The study pack recomputes every numeric answer
   before it reaches the student — a teacher's answer key has been wrong before
   ([example](docs/explanation/study-material.md#three-sources-one-order-of-trust)).

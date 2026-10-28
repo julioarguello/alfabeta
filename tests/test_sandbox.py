@@ -35,7 +35,7 @@ def test_prepare_builds_a_student_whose_configuration_is_valid(tmp_path: Path):
         p.name for p in sandbox.FIXTURES.glob("*.json")
     )
     assert list((home / "downloads").iterdir()) == []
-    subject = home / "drive" / sandbox.SCHOOL_YEAR / "FyQ"
+    subject = sandbox.base_folder(home, "sample") / sandbox.SCHOOL_YEAR / "FyQ"
     assert placement.book_topics(subject, "sciencebits") == ["Tema 01 - Materia inventada"]
     again = cli("--home", str(home), "sandbox", "prepare")
     assert again.returncode == 1 and "already exists" in again.stderr

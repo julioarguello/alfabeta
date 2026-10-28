@@ -6,8 +6,8 @@ untested prompt. `{placeholders}` come from the configuration or from the topic'
 
 | Placeholder | Source |
 |---|---|
-| `{grade}` | `student.grade` |
-| `{exam_language}` | the subject's exam language in words (`euskera`, `inglés`) |
+| `{grade}` | `student.grade_level` |
+| `{exam_language}` | the subject's `exam_language` in words (`euskera`, `inglés`) |
 | `{block}` | one confirmed block: what it covers, in Spanish |
 | `{terms}` | the block's key terms as the class material writes them, comma-separated |
 | `{exclude}` | what the video must not explain: the other blocks and anything out of the exam |
