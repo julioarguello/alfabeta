@@ -42,10 +42,11 @@ scheduled` when a scheduled task launches this skill); it answers `{"ok": true, 
 alfabeta command carries that run inline, `ALFABETA_RUN=<run> uv run …`, because each tool call is a new shell. The
 lock is the student's and the Mac's browser's: a Classroom sync and this skill never run at once, since they share
 the browser and the downloads folder. If `lock take` answers `lock_busy`, say another run is in progress and stop.
-Renew it with `alfabeta lock renew` on every poll of the capture, between the build steps and before each source
-`nlm` uploads: after `sync.lock_idle_minutes` without a renewal it is released and the run stops as `idle`. Release
-it with `alfabeta lock release` at the end. A run that stops before placing anything (the session expired and nobody
-signs in again, a challenge page, an interface the steps do not describe, a timeout) ends with
+Renew it with `alfabeta lock renew` on every poll of the capture, between the build steps, while waiting for
+someone to sign in, and before each source `nlm` uploads: after `sync.lock_idle_minutes` without a renewal it is
+released and the run stops as `idle`. Release it with `alfabeta lock release` at the end. A run that stops before
+placing anything (the session expired and nobody signs in again, a challenge page, an interface the steps do not
+describe, a timeout) stops the collector, `resize_window preset desktop`, and ends with
 `alfabeta log stop --reason session_expired|challenge|unexpected_ui|timeout`, which also releases the lock.
 
 ## Tools (in `$H`, copied from `scripts/`)
@@ -70,10 +71,11 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
   `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>`, as the constitution names it; e.g.
   `2026-2027/<subject>/20261001 - Tema 01 - <title>`. `book place` finds it and never changes its date: the folder
   of the subject named `Tema NN - <title>` after its date, whatever the date and the title (of two, the one that
-  already holds `sciencebits/`), and only if there is none, a new one dated today. Never create a topic folder by hand: an undated or re-dated duplicate splits the topic in two.
+  already holds `sciencebits/`), and only if there is none, a new one dated today. Never create a topic folder by
+  hand: an undated or re-dated duplicate splits the topic in two.
 - Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - No topic`) are Classroom's; leave them alone.
-- "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *` that already
-  hold `sciencebits/`, ignoring the date prefix (and the order of units in the Science Bits class).
+- "The next topic" = the one after the highest `NN` among the subject's topic folders (`Tema NN - <title>` after
+  the date) that already hold `sciencebits/` (not the order of units in the Science Bits class).
 
 ## Steps
 
@@ -109,21 +111,21 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
    has few screens compared with its index (`menu` in meta.json), capture it again. `alfabeta lock renew` between
    these steps.
 8. **Place.** `alfabeta book place --student <student> --subject <subject> --topic "Tema NN - <title>" --origin
-   "$WORK/out"`. It copies every file of `out/` into the topic folder's `sciencebits/` (see Names), never to its root
-   and never into a mirror; a file identical to the one there writes nothing, and a changed one keeps the previous
-   one beside it as `<name> (anterior YYYY-MM-DD)`. Then it brings every folder of `drive.mirrors` up to date from the
-   whole master, one way (`rsync -rlt --exclude .DS_Store`, never `--delete`), and writes its line in the run log. Its JSON gives the folder
-   (relative to `storage.base`), what it `placed` and what was `unchanged`, and `mirrors` as counts (`up_to_date`,
-   `failed`); a mirror that is not mounted or fails is caught up by the next run. It exits 1, writing nothing, with
-   `ambiguous_topic` when two folders of the subject are topic `Tema NN` and not exactly one holds `sciencebits/`:
-   tell the family, who merge them into one, and do not choose. Other refusals: `no_book` (the subject has no book),
-   `invalid_topic`, `no_origin`, `nothing_to_place`, `name_clash` (two files would get one name), `drive_not_mounted`,
-   `lock_not_held`; `write_failed` records what it copied before the failure, and running it again completes it. On any
-   refusal or failure, `alfabeta lock release`, say what happened, and stop: the notebook step needs the placed files.
+   "$WORK/out"` copies `out/` into the topic folder's `sciencebits/` (see Names), keeping a changed file's previous
+   version, brings the mirrors up to date and writes its line in the run log; what it does and refuses is its row in
+   the repository's `specs/001-classroom-sync/contracts/cli.md`. From its JSON keep the `folder` (relative to
+   `storage.base`), the files it `placed` (step 9 needs them) and `mirrors` (`up_to_date`, `failed`: a mirror that is
+   not mounted or fails is caught up by the next run). If it exits 1, stop the collector, `resize_window preset
+   desktop` and say what happened; then end with `alfabeta log stop --reason drive_not_mounted` (or
+   `lock_not_held`) for those two reasons, and with `alfabeta lock release` for the others: `ambiguous_topic` (two
+   folders of the subject are topic `Tema NN`: the family merges them, never you), `no_book` (no `[[subjects]]` entry
+   with that folder, or it has no book), `invalid_topic`, `no_origin`, `nothing_to_place`, `name_clash` (two files
+   would get one name), and `write_failed`, which records what it copied, so running it again completes it.
 9. **Gemini Notebook.** If `notebook.enabled` is false: `alfabeta log notebook --student <student> --topic "Tema NN -
    <title>" --result disabled`, and go to step 10. Otherwise:
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
-     profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**.
+     profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**;
+     `alfabeta lock renew` while you wait.
    - `nlm notebook list --json`; reuse the topic's notebook or create it with `notebook.title_pattern` (`{grade}` is
      `student.grade_level`, `{subject}` the subject's folder, `{topic}` the topic folder's name after its date;
      `--json`).
@@ -132,8 +134,11 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
      `alfabeta lock renew`, then `nlm source add <id> --file "<file>" --wait --wait-timeout 300`, without `--title`.
      A file step 8 placed again had changed: once its new source is added, remove the old one, the source with that
      title listed before the add, with `nlm source delete <source id> --confirm`, so the notebook answers from the
-     new version and holds it once. nlm 0.15.8 registers a `--file` source under the file's own name, and `--title`
-     renames it afterwards (read in its source, 2026-10-28); repeating the step therefore adds nothing.
+     new version and holds it once. If a run stopped between step 8 and that replacement, the next run's step 8
+     reports the file unchanged and the old source stays: delete it by hand and run this step again. Read in nlm
+     0.15.8's source on 2026-10-28, not yet measured against a notebook: `source add --file` registers the source
+     under the file's own name and `--title` renames it afterwards, and `source delete --confirm` skips its prompt;
+     repeating the step therefore adds nothing.
    - **Share.** `nlm share status <id> --json`; for each account in `notebook.share_with` not yet listed:
      `nlm share invite <id> <account> --role viewer`. Never `nlm share public`. A failed invite does not undo the
      notebook: note it and report it. Measured 2026-10-26: the school domain allows a notebook owned by a personal
@@ -141,11 +146,13 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
      changes that, the invite fails and the summary says so.
    - Test: `nlm notebook query <id> "<short question>"`.
    - `alfabeta log notebook --student <student> --topic "Tema NN - <title>" --result created|unchanged --shares
-     <invited>,<already>,<failed>`: `unchanged` when the notebook already existed and no source was missing,
-     `created` otherwise; the three counts are over `notebook.share_with` (invited now, already listed, failed).
+     <invited>,<already>,<failed>`: `unchanged` when the notebook already existed and no source was added or
+     replaced, `created` otherwise; the three counts are over `notebook.share_with` (invited now, already listed,
+     failed).
    - If `nlm` fails: `uv tool upgrade notebooklm-mcp-cli` once; if it still fails, `alfabeta log notebook … --result
-     failed --reason "<what failed, in a few words, with no id or address>"`, and tell the family the topic is in its
-     folder but the notebook step failed. What step 8 placed stays as it is.
+     failed --reason "<what failed, in a few words, with no id or address>" --shares <invited>,<already>,<failed>`
+     with the counts reached so far, and tell the family the topic is in its folder but the notebook step failed.
+     What step 8 placed stays as it is.
 10. **Close.** Stop the collector, `resize_window preset desktop`, `alfabeta lock release`, and summarise: folder,
     mirrors up to date and failed (by count), notebook link, accounts it is shared with (by count) and any failed
     invite, screens per language and what was left out.

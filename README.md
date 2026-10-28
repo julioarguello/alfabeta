@@ -117,8 +117,8 @@ Nothing extra is needed for Python: `build.py` and its `render.py` run in Claude
    separate profile. If you do, make it `nlm`'s default as well
    (`nlm config set auth.default_profile <profile>`): `nlm download` takes no profile, and the study
    pack stops before downloading from another account.
-3. Write the path of this clone in `tools.repository`, and copy `skills/sciencebits-a-notebooklm/scripts/`
-   to the `tools.folder` of the configuration. The study pack's scripts run from the clone.
+3. Write the path of this clone in `tools.repository`; the Science Bits skill copies its
+   `skills/sciencebits-a-notebooklm/scripts/` from it to the `tools.folder` of the configuration on each run. The study pack's scripts run from the clone.
 4. Add the skills to Claude by uploading `skills/sciencebits-a-notebooklm/` and
    `skills/study-pack/`, or ask Claude «instala la skill sciencebits-a-notebooklm de
    github.com/julioarguello/alfabeta» ("install the sciencebits-a-notebooklm skill from

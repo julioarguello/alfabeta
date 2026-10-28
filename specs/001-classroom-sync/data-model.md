@@ -171,7 +171,7 @@ of a `todo` capture is the capture's own `complete` flag, not per class.
 | Field | Type | Rule |
 |---|---|---|
 | `source` | source name | `classroom` or the book's |
-| `item`, `attachment` | ids | Unique key |
+| `item`, `attachment` | ids | Unique key; for a book, `Tema NN` and the file's name, with `role` `material` |
 | `role` | `statement` · `submission` · `grading` · `links` · `description` · `material` · `announcement` | Name prefix in assignment folders |
 | `path` | path relative to `storage.base` | Computed by `Placer`; name of 255 UTF-8 bytes at most |
 | `hash` | SHA-256 | Changes → new version; the previous one becomes `<name> (anterior YYYY-MM-DD)` |
@@ -235,12 +235,11 @@ requests the web-route guard blocked, FR-038; absent on the token route). Each l
 `book place` writes a shorter
 line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`;
 a placement cut short by a write error has `result: failed`, `reason: write_failed` and `placed` (how many files it copied) instead of `mirrors`.
-Its replicas are keyed `<book>|Tema NN|<file name>`, with `role` `material`.
 `log notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
 `unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data), and
 `shares`: `{invited, already, failed}`, counts of the accounts in `notebook.share_with` (FR-011b),
 never their addresses. `unchanged`: the notebook already existed and
-no source was missing.
+no source was added or replaced.
 
 ## Transitions
 

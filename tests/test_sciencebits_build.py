@@ -80,7 +80,7 @@ def test_a_complete_config_gives_each_language_its_own_texts(tmp_path: Path):
 
 STUB_RENDER = """
 import json, pathlib
-L10N = {"en": {"toc": "Contents"}}
+L10N = {"en": {"toc": "Contents"}, "es": {"toc": "Índice"}}
 def build(raw, out, lang, prefix):
     pathlib.Path(out).mkdir(exist_ok=True)
     (pathlib.Path(out) / f"{prefix}_{lang.upper()}.json").write_text(json.dumps([raw, L10N[lang]]))
@@ -104,7 +104,22 @@ def test_the_build_hands_each_language_its_texts_and_the_prefix(tmp_path: Path):
     assert done.returncode == 0, done.stderr
     for lang in ("es", "en"):
         raw, texts = json.loads((tmp_path / "out" / f"Tema04_{lang.upper()}.json").read_text())
-        assert raw == "raw" and texts == {"toc": "Contents"} | LANGS[lang]
+        assert raw == "raw" and texts == {"toc": {"es": "Índice", "en": "Contents"}[lang]} | LANGS[lang]
+
+
+def test_a_language_the_renderer_has_no_texts_for_is_refused(tmp_path: Path):
+    """Not drawn with another language's labels: the provider's languages are render.py's L10N."""
+    scripts = tmp_path / "tools"
+    scripts.mkdir()
+    shutil.copyfile(SCRIPTS / "build.py", scripts / "build.py")
+    (scripts / "render.py").write_text(STUB_RENDER)
+    unit = UNIT | {"langs": LANGS | {"fr": {"unit": "Unité 4 · inventée", "course": "Matière inventée"}}}
+    argv = ["raw", str(tmp_path / "out"), "--config", unit_file(tmp_path, unit), "es", "fr"]
+    done = subprocess.run(
+        [sys.executable, str(scripts / "build.py"), *argv], capture_output=True, text=True, check=False, cwd=tmp_path
+    )
+    assert done.returncode == 1 and "no interface texts for fr" in done.stderr
+    assert not (tmp_path / "out").exists()
 
 
 def test_the_renderer_names_no_topic_course_or_grade():

@@ -59,8 +59,11 @@ def main(argv):
     raw, out, prefix, texts = read_config(argv)
     import render  # only now: the libraries and the fonts it loads are not needed to report a key
 
+    for lang in texts:
+        if lang not in render.L10N:
+            sys.exit('build.py: render.py has no interface texts for %s\n%s' % (lang, USAGE))
     for lang, own in texts.items():
-        render.L10N.setdefault(lang, dict(render.L10N['en'])).update(own)
+        render.L10N[lang].update(own)
         render.build(raw, out, lang, prefix)
 
 
