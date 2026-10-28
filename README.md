@@ -140,11 +140,11 @@ What a family runs, from the clone: `uv run python -m alfabeta <command>`. Every
 | `google unlink --student <id> --account <alias>` | Revokes one account's link | to remove an account |
 | `claude key set --student <id>` | Stores the Claude API key that transcribes the photos of class notes | once per Mac |
 | `notebook setup --student <id> --topic <subject>/<folder>` | Adds the topic's two living files, class notes and Classroom, to its notebook | once per topic |
-| `notes run --student <id>` | Turns new photos of class notes into pages of the topic's living file | after photos are added; it also runs in the cloud |
+| `notes run --student <id>` | Turns the photos of class notes not yet transcribed into pages of the topic's living file | after photos are added; it also runs in the cloud |
 | `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM]` | Asks the topic's notebook for a theory sheet and a problems sheet for the exam, and prints both into the topic folder; refuses, saying why, when notebooks are off or `nlm` does not work | the day before an exam, from [#106](https://github.com/julioarguello/alfabeta/issues/106) on |
 
-The Classroom sync is a skill, not a command: ask Claude «trae lo nuevo de Classroom» ("bring what
-is new from Classroom"), and it runs the commands it needs.
+The Classroom sync is a skill, not a command: ask Claude «trae lo nuevo de Classroom» ("bring from
+Classroom what is not here yet"), and it runs the commands it needs.
 
 ## Ground rules
 

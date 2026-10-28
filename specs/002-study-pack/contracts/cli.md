@@ -31,9 +31,9 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
    topic folder (FR-023), saying so on stderr; then its notebook, by `notebook.title_pattern`. No
    notebook is `no_notebook`, code 1.
 5. Compares the newest `apuntes/* · transcripción.md` with the creation time of the topic's study
-   guide (`nlm studio status --full --json`). When the transcription is newer, or there is no
-   guide, it generates one (`--format 'Study Guide' --language es`), waits for it, and deletes the
-   old one, so one guide is live (FR-033).
+   guide (`nlm studio status --full --json`). When the transcription was made after the guide, or
+   there is no guide, it generates one (`--format 'Study Guide' --language es`), waits for it, and
+   deletes the previous one, so one guide is live (FR-033).
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and
    «Problems sheet — for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), every

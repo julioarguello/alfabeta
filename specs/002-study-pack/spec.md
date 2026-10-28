@@ -119,15 +119,15 @@ done that day; the last three, what the operator decided once it was done (User 
   after the solutions and under a neutral heading that names no one. Every other piece keeps the
   earlier rule; the practice sheet never reuses the teacher's data (FR-006), so it never shows a
   teacher's key.
-- Q: Who prepares the two sheets from now on? → A: alfabeta, by itself, through the topic's
+- Q: Who prepares the two sheets after that day? → A: alfabeta, by itself, through the topic's
   notebook. The operator does not want to prepare an exam in front of Claude, but to have their own
   tool do it unattended, and chose that alfabeta's command `exam prep` asks the notebook for the two
   sheets as reports with fixed prompts and prints them, with no Claude and no Claude API («Sí, haz
-  tu recomendación. Y actualiza el README con estos comandos que tendríamos en alfabeta»). The two sheets are
-  therefore pieces of the notebook, in the moment «EXAMEN» (FR-014), and each is also printed on
-  its own into the topic's Drive folder.
+  tu recomendación. Y actualiza el README con estos comandos que tendríamos en alfabeta»). The two
+  sheets are therefore pieces of the notebook, in the moment «EXAMEN» (FR-014), and each is also
+  printed on its own into the topic's Drive folder.
 - Q: Who computes the numbers, then? → A: The notebook, as an accepted risk. The operator accepted
-  it because the parent's guide of 2026-10-26 got right the three answers the teacher's sheet
+  it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
   printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
   `{corrections}` of the parent-guide prompt), so whether the notebook finds a wrong printed
   answer by itself has not been measured: the first run of `exam prep` measures it. A check by a
@@ -342,7 +342,7 @@ and cannot judge what the notebook writes.
    section, whose last step is a blank-page recall; a longer sheet is printed and reported.
 5. **Given** a term the class material writes in the subject's language, **When** it appears on
    either sheet, **Then** it is written first in that language, then in Spanish.
-6. **Given** a study guide older than the newest transcription of the class notes, **When** the
+6. **Given** a study guide made before the newest transcription of the class notes, **When** the
    command runs, **Then** the guide is regenerated before anything is printed.
 7. **Given** the teacher's photocopies, **When** the problems sheet is read, **Then** every
    exercise is in exactly one pattern, exercises printed on two photocopies are named as repeats,
@@ -512,7 +512,7 @@ and cannot judge what the notebook writes.
   material writes it, and then in Spanish. Where the notes, the teacher's sheets and the textbook
   use different words for one thing, or one word for two things, the theory sheet shows each and
   how to tell them apart.
-- **FR-033**: When the newest transcription of the topic's class notes is newer than the topic's
+- **FR-033**: When the newest transcription of the topic's class notes was made after the topic's
   study guide, the command MUST regenerate the guide (FR-004), even though the pack record
   (FR-024) holds it, before anything is printed. A guide made before the notes is never handed out
   for an exam.
@@ -528,7 +528,7 @@ and cannot judge what the notebook writes.
   Spanish translation. The sheet gives the order and about how long each pattern takes, and every
   solution comes after a page break, at the end.
 - **FR-036**: The notebook computes every number of both sheets. This is an accepted risk
-  (Clarifications, session 2026-10-28) and the one exception to FR-009 and SC-001. The
+  (see Clarifications) and the one exception to FR-009 and SC-001. The
   problems-sheet prompt MUST ask the notebook to recompute every answer the photocopies print and
   compare it at the printed precision, equal when within half a unit of the last digit printed,
   and to list after the solutions, in a table under a neutral heading that names no one, each
@@ -616,13 +616,13 @@ and cannot judge what the notebook writes.
 - The weekly review day defaults to Friday.
 - The study slot of an exam sheet is given on the command line each time: the configuration has no
   key for it (`[schedule]` holds the sync's times). Four pages for 90 minutes was measured once.
-- When the exam sheets are made, relative to the exam, is the family's call: the one run, observed
-  2026-10-28, made them on the morning of the day before, for that afternoon's slot.
+- When the exam sheets are made, relative to the exam, is the family's call: the one run,
+  observed 2026-10-28, made them on the morning of the day before, for that afternoon's slot.
 - Whether the notebook's reports follow the fixed prompts closely enough — every exercise in a
   pattern, the terms first in the subject's language, the page count, the table of wrong printed
-  answers — has not been measured: the 2026-10-28 sheets were written by an agent, not by the
-  notebook. The first run of `exam prep` is that measurement, and the prompts are unmeasured until
-  then.
+  answers — has not been measured: the sheets observed 2026-10-28 were written by an agent, not by
+  the notebook. The first run of `exam prep` is that measurement, and the prompts are unmeasured
+  until then.
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
   or added as sources); a photocopy that is not cannot be mapped.
 - An exam announced only in class has no captured text, so the command refuses it; how the family

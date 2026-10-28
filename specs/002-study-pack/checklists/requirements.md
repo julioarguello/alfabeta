@@ -54,7 +54,7 @@
   moves, the entities Exam sheet and Pattern, SC-010 to SC-012, and the command's contract in
   `contracts/cli.md` (code: julioarguello/alfabeta#106). The operator chose the same day that
   alfabeta's own command asks the notebook for both sheets, with no Claude: the notebook computes
-  their numbers, an accepted risk carved out of FR-009 and SC-001. The answer of 2026-10-26 on
+  their numbers, an accepted risk carved out of FR-009 and SC-001. The answer read 2026-10-26 on
   wrong keys is revised for the problems sheet only. No marker added.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.

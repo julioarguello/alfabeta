@@ -128,7 +128,7 @@ uv run --project <tools.repository> python -m alfabeta exam prep --student <stud
 ```
 
 It takes the scope from the teacher's announcement that `classroom-sync` captured, regenerates the
-topic's study guide when the class notes are newer, asks the notebook for the two reports with the
+topic's study guide when it was made before the class notes, asks the notebook for the two reports with the
 prompts «Theory sheet — for an exam» and «Problems sheet — for an exam» of [`prompts.md`](prompts.md),
 titles them `EXAMEN <weekday> 1 · Teoría para el examen · <topic>` and `… 2 · Problemas tipo · …`,
 and prints them into the topic folder as `Teoría para el examen · TNN (<D> <mmm>).pdf` and
@@ -141,7 +141,7 @@ Until that command exists, the same two reports are made with `nlm report create
 "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`, one per prompt with
 every placeholder filled, and printed with `print-report.sh` (step 6) under those file names.
 
-How it was first done, on 2026-10-28, on one exam of one topic: an agent wrote both sheets from the
+How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
 topic folder, every result computed by a script it wrote, and the family then decided that
 alfabeta makes them through the notebook. What that run measured:
 
@@ -150,7 +150,7 @@ alfabeta makes them through the notebook. What that run measured:
 | A 90-minute slot took four A4 pages of theory | `{pages}`: four per 90 minutes |
 | Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
 | The check reported five disagreements: three wrong answers on the teacher's sheet (the same three the parent's guide, checked 2026-10-26, had found), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | the table «Soluciones impresas que no cuadran», and the rounding rule in the prompt |
-| The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide older than the notes |
+| The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide made before the notes |
 | Nothing measured how the notebook does on these two prompts | the first run of `exam prep` is that measurement |
 
 ## Measured behaviour of Gemini Notebook
