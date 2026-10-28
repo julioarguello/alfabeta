@@ -49,6 +49,10 @@
   a mixed quiz; that week's «Ayer» pieces removed), «EXAMEN» as soon as an exam is known. Story 1
   is the exam pack; Story 3 and Story 5 rewritten; FR-020 to FR-023 added and later requirements
   renumbered (FR-024 to FR-028); SC-008 and SC-009 added. No marker remains.
+- Iteration 5 (2026-10-28): the exam eve, written after the family prepared one exam by hand
+  (julioarguello/alfabeta#97). User Story 7, FR-029 to FR-036 appended after FR-028 so no number
+  moves, the entities Exam sheet and Pattern, SC-010 to SC-012. The answer of 2026-10-26 on wrong
+  keys is revised for the problems sheet only (Clarifications, 2026-10-28). No marker added.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The

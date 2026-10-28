@@ -1,6 +1,6 @@
 ---
 name: study-pack
-description: Prepares a topic's study material inside its Gemini Notebook (NotebookLM) notebook — short explainer videos in Spanish per exam block, a practice sheet, quiz and flashcards in the subject's language, a bilingual glossary and a parent guide with a recomputed answer key — and prints the reports to A4 PDF in the topic's Drive folder. Use with «prepara el tema N de <asignatura>» (prepare topic N of <subject>), «el tema N ha terminado» (topic N is finished) or when Classroom shows material in a new topic.
+description: Prepares a topic's study material inside its Gemini Notebook (NotebookLM) notebook — short explainer videos in Spanish per exam block, a practice sheet, quiz and flashcards in the subject's language, a bilingual glossary and a parent guide with a recomputed answer key — and prints the reports to A4 PDF in the topic's Drive folder; the day before an exam, it writes a theory sheet and a problems sheet from the topic's sources and prints them. Use with «prepara el tema N de <asignatura>» (prepare topic N of <subject>), «el tema N ha terminado» (topic N is finished), «prepara el examen de <asignatura>» (prepare the exam of <subject>) or when Classroom shows material in a new topic.
 ---
 
 # Study pack — one topic, one notebook, a few pieces
@@ -40,6 +40,9 @@ email or an id into the repository.
 - **The topic is finished**: Classroom shows material in a new topic, judged by Classroom's dates, or
   the family says so. This is when videos are made — earlier, every new handout would regenerate them.
 - **An exam is announced** for the topic: run it at once, whatever the dates say.
+- **The day before an exam**, or when the family asks for the exam's sheets: the two sheets of
+  [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper). They need no notebook,
+  unless the study guide is stale (its step 2), and can run without the steps below.
 
 ## Steps
 
@@ -51,7 +54,8 @@ email or an id into the repository.
    source only as a literal transcription that someone who reads the notes has checked.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
-   anything the student sees.
+   anything the student sees, except the exam's problems sheet (see
+   [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper)).
 3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time:
    - one video per block (`--format explainer --language es-ES`);
    - reports: study guide (`--format 'Study Guide' --language es`), practice sheet (`--language` the
@@ -114,6 +118,79 @@ email or an id into the repository.
 > run failed. Left switched, every other notebook of that account answers in that language (measured
 > 2026-10-26).
 
+## The day before an exam: two sheets on paper
+
+Spec 002, User Story 7 (FR-029 to FR-036). Ask the family for the study slot (`16:15–17:45`, say):
+the configuration has no key for it. Nothing here touches the notebook but the rebuild of a stale
+study guide (step 2). Work in the session's scratchpad; the files below are the exam's, not code,
+and stay out of the repository.
+
+1. **Read the scope.** Find the exam in the agenda (`classroom-sync`, category `exam`) and read the
+   announcement it links; with none, read the class's stream as `classroom-sync` reads Classroom,
+   before writing anything, and with nothing there either ask the family. The announcement's
+   points, in its order, are the theory sheet's sections. Quote it in its language with its date
+   and say what of the topic it leaves out.
+2. **Read the sources** in order of trust: `apuntes/` (the living file `Apuntes de clase · TNN.md`),
+   then `classroom/`, then `sciencebits/`. Compare dates: a study guide in the topic folder made
+   before the notes' transcriptions is stale. Do not hand it out: rebuild it (step 3, then reprint
+   the topic, step 10), and write the theory sheet from the sources.
+3. **Map the problems.** List every exercise of the photocopies in `classroom/`, worked examples
+   included, and put each in a pattern, as few patterns as you can: one formula is one pattern, and
+   its direct and inverse uses are the same one; a chain of formulas, or a classification with no
+   formula, can be one too. Note the exercises printed on two photocopies and mark those the
+   teacher assigned (the assignment's text in Classroom says which). Per pattern, pick the hardest,
+   an assigned one when there is one, and a second one for spare time.
+4. **Write `solve.py`**, which computes every number, unit conversions included:
+   - `put(key, value, decimals)` for every result a sheet will print, rounded to `decimals` and
+     written to `values.json`;
+   - `check(exercise, what, computed, printed, unit, decimals)` for every answer a photocopy prints:
+     equal when `abs(computed - printed) <= 0.5 * 10**-d`, with `d` the decimals printed; the
+     disagreements go to `mismatch.json`, and the run ends with `N checked, M disagree`.
+
+   Then sort each disagreement. Recompute it with the intermediate values rounded as the printed
+   solution rounds them: if it agrees, it is a rounding note beside that solution; if not, it goes
+   in the table. A statement missing a datum goes in the table too, with its result under each
+   reading.
+5. **Write the two sheets** in Markdown, with `⟨key⟩` wherever a result goes, never the number:
+   - **Theory**, `<Subject> · Examen del <weekday D> de <month> — Teoría y plan de estudio`:
+     «Qué entra» with the announcement quoted; the plan as a table `Hora | Qué | Cómo`, one row per
+     section, a five-minute break and a last row of about fifteen minutes for the blank page (write
+     from memory, in the subject's language, then correct and circle what failed); then one section
+     per point of the announcement. In each, every term in the subject's language first, then in
+     Spanish; the notes' wording where it differs from the book's, and the same word used for two
+     things; the traps; a test to do without looking, with its answers. Point to the problems sheet
+     for problems. Four pages held a 90-minute slot.
+   - **Problems**, `<Subject> · Examen del <D> de <month> — Problemas tipo`: the photocopies with
+     their name and date; the assigned exercises marked ★; the map `Patrón | Problemas | El más
+     difícil`; the repeats; the order, about ten minutes per pattern; one section per pattern with
+     the statement quoted in its language, its Spanish translation, why it is the hardest and the
+     spare-time one; `<div class="newpage"></div>`; «Soluciones»; last, «Soluciones impresas que no
+     cuadran» as `Problema | Impreso | Calculado | Qué pasa`. That table names no one; outside it,
+     a wrong printed value appears only in the solution of its own exercise, with its cause.
+6. **Write `build.py`** and run it as `python3 -I build.py <tools.repository> <out-dir>`. It reads
+   `teoria.md`, `problemas.md` and `values.json` from its own folder, fills each `⟨key⟩` and stops
+   on a missing one, writes decimals with a comma (`{,}` inside `$…$`, or KaTeX spaces it as
+   punctuation), and renders A4 with `render` imported from
+   `skills/study-pack/scripts/print_pack.py`, which has no subcommand for a single page. Name them
+   `Teoría para el examen · TNN (<D mmm>).pdf` and `Problemas tipo · TNN (<D mmm>).pdf`.
+7. **Look at every page** (`pdftoppm -r 60 -png <pdf> <prefix>`, then read the images): the page
+   count against the slot, no `⟨` left, tables and formulas whole. Read every number of the
+   Markdown that is not a placeholder: each must be data of a statement, a fixed equivalence
+   (1 L = 1000 mL), a time or an exercise number. A converted datum is a result: move it to
+   `solve.py`. Copy both PDFs into the topic folder and refresh `drive.mirrors` as in step 9.
+8. **Report** where the two PDFs are, each disagreement with its printed and computed value, and
+   what was not verified.
+
+Measured on 2026-10-28, on one exam of one topic:
+
+| Behaviour | Consequence |
+|---|---|
+| A 90-minute slot took four A4 pages of theory | size the theory sheet to the slot |
+| Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
+| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three the parent's guide, checked 2026-10-26, had found), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | the table after the solutions, and the rounding rule of step 4 |
+| The topic's study guide had been generated two days earlier, before the class notes reached the folder; only the theory sheet was written, and the stale guide stayed in the notebook and the printed topic | never hand out a guide made before the notes, and rebuild it |
+| `build.py` stops on a missing value, and nothing in it notices a result typed into the Markdown; the sheets of that day had a few typed unit conversions and derived figures | the reading of step 7, which that day's run did not do |
+
 ## Measured behaviour of Gemini Notebook
 
 Measured 2026-10-26 with `notebooklm-mcp-cli` 0.15.8 on a personal Google account with a paid
@@ -135,6 +212,9 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
 ## Never
 
 - Put study blocks or reminders in the calendar: it holds only facts from Classroom.
-- Show the student a wrong value from a teacher's key, or name the teacher as wrong.
+- Show the student a wrong value from a teacher's key anywhere but the exam's problems sheet (its
+  table of printed answers that do not match, and the solution of that same exercise), or name the
+  teacher as wrong.
+- Type a result on an exam sheet: it comes from `values.json`.
 - Make a second notebook for the topic, or share the parent's material with the student.
 - Type a password. The family signs in.
