@@ -8,7 +8,7 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
-from alfabeta.google import oauth
+from alfabeta.google import notify, oauth
 from alfabeta.google.transport import HttpTransport, TransportError
 
 if TYPE_CHECKING:
@@ -146,9 +146,16 @@ def access_token(config: StudentConfig, alias: str, store: TokenStore, transport
 
 
 def check_accounts(
-    config: StudentConfig, store: TokenStore, transport: HttpTransport, today: dt.date
+    config: StudentConfig,
+    store: TokenStore,
+    transport: HttpTransport,
+    today: dt.date,
+    notifier: notify.Notifier | None = None,
 ) -> list[AccountStatus]:
-    """Refresh every linked account's token; refreshing is also what keeps it from going unused."""
+    """Refresh every linked account's token; refreshing is also what keeps it from going unused.
+
+    Every account that is not `ok` is told to `notifier` once, by its alias (FR-014, research R9).
+    """
     records = _read_records(config)
     statuses: list[AccountStatus] = []
     for alias in sorted(config.accounts):
@@ -163,6 +170,9 @@ def check_accounts(
             linked_on = records.get(alias, {}).get("linked_on")
             recent = linked_on is not None and (today - dt.date.fromisoformat(linked_on)).days < _TESTING_WINDOW_DAYS
             statuses.append(AccountStatus(alias, status, testing_suspected=status == "expired" and recent))
+    if notifier is not None:
+        for failed in (s for s in statuses if s.status != "ok"):
+            notifier.notify(notify.link_failed(failed.alias, failed.status))
     return statuses
 
 
