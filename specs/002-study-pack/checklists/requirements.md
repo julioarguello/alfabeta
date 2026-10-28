@@ -56,6 +56,9 @@
   alfabeta's own command asks the notebook for both sheets, with no Claude: the notebook computes
   their numbers, an accepted risk carved out of FR-009 and SC-001. The answer read 2026-10-26 on
   wrong keys is revised for the problems sheet only. No marker added.
+- Iteration 6, checked 2026-10-28: the operator set where the exam sheets go, the topic's `exam/`
+  subfolder, with no date in its name (FR-029, the contract's step 8); the rest of the layout is
+  julioarguello/alfabeta#110. No marker added.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The
