@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Render one Gemini Notebook report to a print-ready A4 PDF with formulas.
-# Usage: print-report.sh <notebook-id> <artifact-id> <output.pdf> [nlm-profile]
-# Kept for the command it has always been; the work is done by print_pack.py beside it.
+# Usage: print-report.sh <notebook-id> <artifact-id> <output.pdf> --student <id> [--home <dir>]
+# Kept for the command it has always been; the work is done by print_pack.py beside it, run with
+# the alfabeta clone this script sits in, whose loader reads the student's configuration.
 set -euo pipefail
-exec python3 -I "$(dirname "$0")/print_pack.py" report "$1" "$2" "$3" ${4:+--profile "$4"}
+here="$(cd "$(dirname "$0")" && pwd)"
+exec uv run --project "$here/../../.." python "$here/print_pack.py" report "$@"

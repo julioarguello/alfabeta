@@ -87,6 +87,7 @@ folder = "Mates"
 classroom_class = "Matemáticas 3º"
 book = ""
 book_class = ""
+exam_language = "es"
 """
 
 
@@ -127,6 +128,7 @@ def test_the_full_invented_configuration_is_valid(home: Path):
         ('languages = ["es", "en"]', 'languages = ["es", "changeme"]', ("student.languages", "unset")),
         ('languages = ["es", "en"]', "languages = [1]", ("student.languages", "type")),
         ('book = ""\n', f'book = ""\nshelf = "{SECRET_VALUE}"\n', ("subjects[0].shelf", "extra")),
+        ('exam_language = "es"\n', "", ("subjects[0].exam_language", "missing")),
         ('role = "student"\n', "", ("google.accounts.student.role", "missing")),
         ("[google.accounts.student]", '[google.accounts."Nombre Real"]', ("google.accounts.<name>", "invalid_name")),
     ],
@@ -237,6 +239,13 @@ def test_notes_and_notebook_keys_of_spec_005(home: Path):
     assert cfg.notebook_title_pattern == "{grade}. {subject}. {topic}"
     assert cfg.nlm_profile == "prueba"
     assert cfg.notebook_owner == "familia@example.com"
+
+
+def test_each_subject_carries_its_exam_language(home: Path):  # spec 002 FR-005
+    assert [s.exam_language for s in config.load(home, "s9", ("subjects",)).subjects] == ["es"]
+    write(home, text(home).replace('exam_language = "es"', 'exam_language = ""'))
+    with pytest.raises(config.ConfigError, match=r"subjects\.\*\.exam_language is empty"):
+        _ = config.load(home, "s9", ("subjects",)).subjects
 
 
 @pytest.mark.parametrize("bad", ["price_in = 0.0", "price_in = -1.0", "price_in = nan", "price_in = inf"])

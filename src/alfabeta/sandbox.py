@@ -1,7 +1,8 @@
 """An invented student to try a whole run without Classroom (spec 001 T030, contracts/cli.md).
 
-`sandbox prepare` builds, inside a `--home` the operator names explicitly, the student `sample`: a
-valid configuration, a base folder with one book topic, an empty downloads folder and the invented
+`sandbox prepare` builds, inside a `--home` the operator names explicitly, the student `sample` (or
+another id): a valid configuration, its own base folder `drive/<student>/` with one book topic, the
+downloads folder every student of the home shares, as they share the Mac's browser, and the invented
 captures of `tests/fixtures/classroom/` in `sandbox-captures/`. `sandbox download --captures` copies
 them to the downloads folder with the current run, as the extractor would leave them. Attachments
 and decisions arrive with T039.
@@ -28,7 +29,12 @@ class SandboxError(Exception):
     """The sandbox cannot do this here."""
 
 
-def _config(home: Path) -> str:
+def base_folder(home: Path, student: str) -> Path:
+    """The invented student's base folder; each student of the home has its own."""
+    return home / "drive" / student
+
+
+def _config(home: Path, student: str) -> str:
     def q(value: str) -> str:
         return json.dumps(value, ensure_ascii=False)
 
@@ -44,7 +50,7 @@ languages = ["es", "en"]
 account = "alumna@colegio.example"
 
 [storage]
-base = {q(str(home / "drive"))}
+base = {q(str(base_folder(home, student)))}
 
 [drive]
 root = "alfabeta"
@@ -106,12 +112,14 @@ folder = "FyQ"
 classroom_class = "Física y Química sintética 3ºA"
 book = "sciencebits"
 book_class = "Física inventada"
+exam_language = "es"
 
 [[subjects]]
 folder = "Ingles"
 classroom_class = "English Synthetic 3A"
 book = ""
 book_class = ""
+exam_language = "en"
 """
 
 
@@ -131,8 +139,8 @@ def prepare(home: Path, student: str = DEFAULT_STUDENT) -> Path:
     if (root / "config.toml").exists():
         raise SandboxError(f"student {student!r} already exists in this home")
     root.mkdir(parents=True)
-    (root / "config.toml").write_text(_config(home))
-    (home / "drive" / SCHOOL_YEAR / "FyQ" / BOOK_TOPIC / "sciencebits").mkdir(parents=True)
+    (root / "config.toml").write_text(_config(home, student))
+    (base_folder(home, student) / SCHOOL_YEAR / "FyQ" / BOOK_TOPIC / "sciencebits").mkdir(parents=True)
     (home / "downloads").mkdir(exist_ok=True)
     (home / "tools").mkdir(exist_ok=True)
     captures = home / "sandbox-captures"

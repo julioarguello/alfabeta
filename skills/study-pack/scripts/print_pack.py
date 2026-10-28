@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Print a topic's Gemini Notebook study material to A4 PDF.
 
-  print_pack.py report <notebook-id> <artifact-id> <out.pdf> [--profile P]
+  print_pack.py report <notebook-id> <artifact-id> <out.pdf> (--student S | --profile P)
       one report (study guide, practice sheet, parent guide…)
-  print_pack.py topic <notebook-id> <out.pdf> [--profile P]
+  print_pack.py topic <notebook-id> <out.pdf> (--student S | --profile P)
       the whole Studio in one document: an index first, then every report, quiz (answer key at the
       end), flashcards and mind map, in Studio order; videos appear in the index only
 
 Needs `nlm`, `pandoc`, Graphviz `dot` (mind maps) and Google Chrome (headless, prints the PDF).
-The profile defaults to `notebook.nlm_profile` in ~/.alfabeta/config.json, else nlm's default.
+With `--student`, the `nlm` profile is `notebook.nlm_profile` of `<home>/<student>/config.toml`
+(`--home`, default ~/.alfabeta), read through alfabeta's configuration loader, so run it from the
+clone: `uv run --project <tools.repository> python <this file> …`. `--profile` names one instead.
 """
 
 from __future__ import annotations
@@ -23,6 +25,8 @@ import sys
 import tempfile
 import textwrap
 from pathlib import Path
+
+from alfabeta import config
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 KATEX = "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/"
@@ -47,12 +51,12 @@ hr { border: 0; border-top: 1px solid #ddd; margin: 5mm 0; }
 LIST_ITEM = re.compile(r"\s*([*+-]|\d+[.)])\s")
 
 
-def profile_default() -> str:
+def profile_of(home: str, student: str) -> str:
+    """The student's `notebook.nlm_profile`; a missing or invalid configuration stops the run."""
     try:
-        cfg = json.loads(Path("~/.alfabeta/config.json").expanduser().read_text())
-    except OSError:
-        return "default"
-    return cfg.get("notebook", {}).get("nlm_profile", "default")
+        return config.load(Path(home).expanduser(), student, ("notebook",)).nlm_profile
+    except config.ConfigError as err:
+        sys.exit(f"print_pack: {err}")
 
 
 def nlm(profile: str, *args: str) -> str:
@@ -297,7 +301,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
     render(md, Path(args.out).expanduser(), work)
 
 
-def main() -> None:
+def parse(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("report")
@@ -305,8 +309,18 @@ def main() -> None:
     t = sub.add_parser("topic")
     t.add_argument("notebook"), t.add_argument("out")
     for s in (r, t):
-        s.add_argument("--profile", default=profile_default())
-    args = p.parse_args()
+        who = s.add_mutually_exclusive_group(required=True)
+        who.add_argument("--student", help="the student whose notebook.nlm_profile is used")
+        who.add_argument("--profile", help="an nlm profile, instead of the student's")
+        s.add_argument("--home", default="~/.alfabeta", help="folder of student configurations")
+    args = p.parse_args(argv)
+    if args.student:
+        args.profile = profile_of(args.home, args.student)
+    return args
+
+
+def main() -> None:
+    args = parse()
     with tempfile.TemporaryDirectory() as tmp:
         (report if args.cmd == "report" else topic)(args, Path(tmp))
     print(Path(args.out).expanduser())

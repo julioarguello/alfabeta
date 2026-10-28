@@ -12,20 +12,25 @@ says what to run.
 
 ## Configuration
 
-Read `~/.alfabeta/config.json` (template: the repo's `config.example.json`):
+Receive the student's id, or ask for it; never guess it. Read `~/.alfabeta/<student>/config.toml`
+(template: the repo's `config/template.toml`), then check it on the Mac with
+`uv run --project <tools.repository> python -m alfabeta config check --student <student>`. If it
+fails, say which keys and stop. Never create the configuration or write to it.
 
 | Key | Used for |
 |---|---|
-| `student.grade` | prompts and names |
-| `storage.base_dir`, `storage.tools_dir` | the topic folder; where `print-report.sh` is installed |
-| `subjects` | the subject's short name |
-| `study_pack.exam_language` | per subject: the language the exam is written in (`eu`, `en`, `es`) |
-| `notebook.nlm_profile` | the `nlm` profile of the account that owns the notebooks |
+| `student.grade_level`, `student.school_year` | prompts and names; the topic folder's first level |
+| `storage.base` | the topic folder |
+| `drive.mirrors` | the folders refreshed after the videos are copied (step 9); never shown, only counted |
+| `tools.repository` | the clone every command and script runs from |
+| `[[subjects]]` `folder`, `exam_language` | the subject's folder, and the language its exams are written in (`es`, `en`…) |
+| `notebook.title_pattern`, `notebook.nlm_profile` | the topic's notebook; the `nlm` profile of the account that owns it |
 
-Topic folder: `base_dir/<year>/<subject>/Tema NN - <title>/`, holding `apuntes/` (the student's class
-notes), `classroom/` (the teacher's material) and `sciencebits/` (the textbook). The notebook is the
-one whose title matches `notebook.title_pattern` (`nlm notebook list --profile <profile> --json`).
-Never write a name, an email or an id into the repository.
+Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>/`, found by
+`*Tema NN - *` whatever its date, holding `apuntes/` (the student's class notes), `classroom/` (the
+teacher's material) and `sciencebits/` (the textbook). The notebook is the one whose title matches
+`notebook.title_pattern` (`nlm notebook list --profile <profile> --json`), with `<profile>` =
+`notebook.nlm_profile`. Never write a name, an email or an id into the repository.
 
 ## When to run
 
@@ -64,7 +69,8 @@ Never write a name, an email or an id into the repository.
      problems were the teacher's, with the same numbers). Regenerate if it does.
    - Videos: duration (`ffprobe`) and a few frames (`ffmpeg -ss <s> -frames:v 1`). The audio
      language cannot be checked this way; say so.
-6. **Print the parent's material** with `scripts/print-report.sh <nb> <artifact-id> <output.pdf>`
+6. **Print the parent's material** with
+   `<tools.repository>/skills/study-pack/scripts/print-report.sh <nb> <artifact-id> <output.pdf> --student <student>`
    (A4, formulas rendered by KaTeX, page numbers) into `docente/`: the parent guide and the
    glossary, each with its Markdown beside it.
 7. **Remove from Studio what the student must not see.** A viewer sees every Studio artifact, so the
@@ -82,13 +88,15 @@ Never write a name, an email or an id into the repository.
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
 9. **Copy every video to the topic folder** (`nlm download video <nb> --id <id> -o "<topic
-   folder>/<title>.mp4"`), then refresh the mirrors: a viewer may not see the videos in the
-   notebook (table below). **Add the start note** `0 · Empieza aquí` last, so it sits on top
+   folder>/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
+   (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
+   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **Add the start note** `0 · Empieza aquí` last, so it sits on top
    (`nlm note create`, or `nlm note update` if it exists), naming the pieces by number and linking
    the topic folder in each of the student's Drives, and **configure the tutor chat**
    (both in [`prompts.md`](prompts.md)).
-10. **Print the topic** for paper: `scripts/print_pack.py topic <nb> "<topic folder>/Tema NN para
-    imprimir · <title>.pdf"`. One PDF: an index of every piece (videos marked as "in the
+10. **Print the topic** for paper: `uv run --project <tools.repository> python
+    <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/Tema NN para
+    imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
     notebook"), the start note, then each report, the quiz with its answer key at the end, the flashcards as a
     table and the mind map drawn with Graphviz, each on a new page, in the numbered order. Run it
     after step 7, or the parent's material would print with it.

@@ -187,6 +187,7 @@ class Subject:
     classroom_class: str
     book: str = ""
     book_class: str = ""
+    exam_language: str = ""
 
     def __post_init__(self) -> None:
         """Reject a value the data model forbids."""

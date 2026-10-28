@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from alfabeta import sandbox
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
@@ -54,7 +56,7 @@ class Box:
 
     @property
     def base(self) -> Path:
-        return self.home / "drive"
+        return sandbox.base_folder(self.home, "sample")
 
     def files(self) -> list[str]:
         return sorted(str(p.relative_to(self.base)) for p in self.base.rglob("*") if p.is_file())
