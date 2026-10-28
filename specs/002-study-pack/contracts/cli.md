@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic folder, the mirrors | JSON `{ok, exam_date, topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}`; `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `no_exam`, `no_announcement`, `no_notebook` · 3 a report never completed or did not print · 5 `nlm` not usable |
+| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `examen/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `examen/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}`; `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `no_exam`, `no_announcement`, `no_notebook` · 3 a report never completed or did not print · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -58,11 +58,14 @@ that fails does not stop the other.
    pack's step 8 does. Then it rewrites the start note «0 · Empieza aquí» last, naming the theory
    sheet as today's task (FR-015), and records both pieces and any regenerated guide in the pack
    record (FR-024).
-8. Downloads each report and prints it with `print_pack.py report` into the topic folder as
-   `Teoría para el examen · TNN (<D> <mmm>).pdf` and `Problemas tipo · TNN (<D> <mmm>).pdf`, with a
-   page break before the problems sheet's «Soluciones» heading, through an option of
-   `print_pack.py report` that julioarguello/alfabeta#106 adds. Then it refreshes the mirrors as
-   the pack's step 9 does; a mirror that fails is counted and stops nothing.
+8. Downloads each report and prints it with `print_pack.py report` into the topic's `examen/`
+   folder, created when missing and with no date in its name, as
+   `examen/Teoría para el examen · TNN (<D> <mmm>).pdf` and
+   `examen/Problemas tipo · TNN (<D> <mmm>).pdf`; a second exam on the same topic sits beside the
+   first, told apart by the date in those names. The problems sheet gets a page break before its
+   «Soluciones» heading, through an option of `print_pack.py report` that
+   julioarguello/alfabeta#106 adds. Then it refreshes the mirrors as the pack's step 9 does; a
+   mirror that fails is counted and stops nothing.
 9. Counts the theory sheet's pages against `pages_allowed`. A longer sheet is printed and reported
    on stderr; it is not regenerated. Nothing else of either sheet is checked: not its language,
    not its numbers (FR-009, FR-036).

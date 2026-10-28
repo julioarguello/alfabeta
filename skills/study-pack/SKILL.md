@@ -128,11 +128,13 @@ uv run --project <tools.repository> python -m alfabeta exam prep --student <stud
 ```
 
 It takes the scope from the teacher's announcement that `classroom-sync` captured, regenerates the
-topic's study guide when it was made before the class notes, asks the notebook for the two reports with the
-prompts «Theory sheet — for an exam» and «Problems sheet — for an exam» of [`prompts.md`](prompts.md),
-titles them `EXAMEN <weekday> <n> · Teoría para el examen · <topic>` and `… <n+1> · Problemas tipo · …`,
-numbered after the moment's existing pieces, rewrites the start note last, and prints them into the topic folder as `Teoría para el examen · TNN (<D> <mmm>).pdf` and
-`Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
+topic's study guide when it was made before the class notes, asks the notebook for the two reports
+with the prompts «Theory sheet — for an exam» and «Problems sheet — for an exam» of
+[`prompts.md`](prompts.md), titles them `EXAMEN <weekday> <n> · Teoría para el examen · <topic>`
+and `… <n+1> · Problemas tipo · …`, numbered after the pieces the moment already holds, rewrites
+the start note last, and prints them into the topic's `examen/` folder (no date in its name) as
+`examen/Teoría para el examen · TNN (<D> <mmm>).pdf` and
+`examen/Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
 (`notebook.enabled = false`), `nlm` is signed out or failing, or the exam, its announcement or the
 notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036).
@@ -140,7 +142,7 @@ one place where nothing recomputes them (spec 002 FR-036).
 Until that command exists, the family can make the same two reports by hand, with no agent:
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile
 <profile> -y`, one per prompt with every placeholder filled, printed with `print-report.sh`
-(step 6) under those file names. That path skips what the command adds: regenerating a stale
+(step 6) under those paths. That path skips what the command adds: regenerating a stale
 guide, the titles, the start note, the pack record and the page break before «Soluciones».
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
