@@ -28,7 +28,7 @@ Drop the worked-example sentence for a block with no calculation.
 
 ## Practice sheet — in the subject's language
 
-`nlm report create <nb> --format "Create Your Own" --language <exam-lang-code> --prompt "<prompt>" --profile <profile> -y`
+`nlm report create <nb> --format "Create Your Own" --language <language-code> --prompt "<prompt>" --profile <profile> -y`
 
 ```text
 Hoja de ejercicios graduados para practicar el examen, escrita entera en {language}, con los términos del material de clase. Tema: {blocks}. Estructura: Nivel 1, un ejemplo resuelto completo paso a paso. Nivel 2, dos ejemplos en los que falta el último paso, y luego dos en los que faltan los dos últimos pasos, para completar. Nivel 3, seis problemas mezclados, sin solución. Todos los datos numéricos tienen que ser nuevos: cambia cada número de cada problema; ninguno puede coincidir con los de las hojas del profesor ni con los ejemplos de las fuentes. Al final, en una sección aparte, la solución de cada problema de los niveles 2 y 3 con el planteamiento. Comprueba cada resultado numérico dos veces; la masa de la disolución es la masa del soluto más la del disolvente, y los volúmenes no siempre se suman.

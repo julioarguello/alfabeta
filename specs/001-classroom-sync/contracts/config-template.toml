@@ -132,4 +132,4 @@ book = "changeme"                   # e.g. "sciencebits"
 book_class = "changeme"             # e.g. "Matemáticas - 1º ESO"
 # Language the subject is taught and examined in, a code as in [student] languages (spec 002 FR-005):
 # the study pack writes the practice sheet, the quiz and the flashcards in it.
-language = "changeme"          # e.g. "en"
+language = "changeme"               # e.g. "en"

@@ -88,7 +88,7 @@ reuse the teacher's data.
 needs no guessing.
 
 **Independent Test**: with a test topic folder holding a teacher's sheet with a known wrong answer
-and a known language, run the pack and check each piece against the acceptance scenarios.
+and a subject with a known `language`, run the pack and check each piece against the acceptance scenarios.
 
 **Acceptance Scenarios**:
 
@@ -362,7 +362,7 @@ check that the proposed blocks include it.
 
 ### Key Entities
 
-- **Topic**: a school year, subject and topic folder, with its notebook and its subject's language.
+- **Topic**: a school year, subject and topic folder, with its notebook and the subject's language.
 - **Block**: an idea the exam can ask; title, the files it comes from, confirmed or not.
 - **Piece**: something in the notebook: kind (video, report, quiz, flashcards, mind map, note),
   number, title, language, audience (student or parent), verification result.
