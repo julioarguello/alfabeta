@@ -103,7 +103,9 @@ Below, `alfabeta <command>` stands for that line.
    made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
    other names. With the family's agreement, move it to
    `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it.
-10. **Apply.** `alfabeta apply` (with the same `--subject`). On a subject's first run, apply once
+10. **Apply.** `alfabeta apply` (with the same `--subject`). `apply` finds what was collected through
+    the current `plan.json`, so when subjects go one at a time, plan, download and apply each before
+    planning the next. On a subject's first run, apply once
     more: it must report `added` 0 and `changed` 0. Then `alfabeta lock release`.
 11. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
     classes, topics to confirm, attachments not fetched, each with its link), and why a run was
@@ -119,10 +121,10 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | A page's iframe `load` event came more than 30 s after its content | the extractor polls readiness instead |
 | An attachment's label reads «Archivo adjunto: <tipo>: <name>» | the extractor keeps only the name |
 | Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
-| A session signed in by the family lasted at least 18 minutes; how long it lasts was not measured | sign-in again is the family's, in the tab |
 | The second `apply` over the same captures changed nothing | step 10 is the check |
 | An empty «Trabajo de clase» shows «Aún no hay tareas…» and an empty stream «Aquí se mostrarán novedades…», with no rows (2026-10-28) | the extractor takes both as loaded |
 | Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `downloads collect` falls back to comparing letters and digits |
+| The school session lasted between 54 and 83 minutes after sign-in (2026-10-28) | sign-in again is the family's; a sync that runs longer stops `partial` |
 | Eleven classes took 14 minutes; the session was still alive 50 minutes after the family signed in (2026-10-28) | a whole sync fits in one sign-in |
 
 ## Never
