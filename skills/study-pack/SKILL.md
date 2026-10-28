@@ -124,7 +124,7 @@ Spec 002, User Story 7 (FR-029 to FR-037), and its [command contract](../../spec
 From julioarguello/alfabeta#106 on, alfabeta makes both sheets by itself, with no Claude:
 
 ```bash
-uv run --project <tools.repository> python -m alfabeta exam prep --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM]
+uv run --project <tools.repository> python -m alfabeta exam prep --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]
 ```
 
 It takes the scope from the teacher's announcement that `classroom-sync` captured, regenerates the
@@ -137,9 +137,11 @@ and prints them into the topic folder as `Teoría para el examen · TNN (<D> <mm
 notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036).
 
-Until that command exists, the same two reports are made with `nlm report create <nb> --format
-"Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`, one per prompt with
-every placeholder filled, and printed with `print-report.sh` (step 6) under those file names.
+Until that command exists, the family can make the same two reports by hand, with no agent:
+`nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile
+<profile> -y`, one per prompt with every placeholder filled, printed with `print-report.sh`
+(step 6) under those file names. That path skips what the command adds: regenerating a stale
+guide, the titles, the start note, the pack record and the page break before «Soluciones».
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
 topic folder, every result computed by a script it wrote, and the family then decided that
@@ -149,7 +151,7 @@ alfabeta makes them through the notebook. What that run measured:
 |---|---|
 | A 90-minute slot took four A4 pages of theory | `{pages}`: four per 90 minutes |
 | Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
-| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three the parent's guide, checked 2026-10-26, had found), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | the table «Soluciones impresas que no cuadran», and the rounding rule in the prompt |
+| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; whether the notebook finds them by itself is unmeasured), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | the table «Soluciones impresas que no cuadran», and the rounding rule in the prompt |
 | The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide made before the notes |
 | Nothing measured how the notebook does on these two prompts | the first run of `exam prep` is that measurement |
 

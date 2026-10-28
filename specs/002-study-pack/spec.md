@@ -132,9 +132,9 @@ done that day; the last three, what the operator decided once it was done (User 
   `{corrections}` of the parent-guide prompt), so whether the notebook finds a wrong printed
   answer by itself has not been measured: the first run of `exam prep` measures it. A check by a
   model that executes code may later be added for that step alone (FR-036).
-- Q: What if notebooks are switched off, or `nlm` does not work? → A: The command refuses with a
-  message that says why, and prints nothing: the notebook is an optional output that can break
-  (constitution VII).
+- Q: What if notebooks are switched off, or `nlm` does not work? → A: The command refuses before it
+  asks the notebook for anything, with a message that says why, and prints nothing: the notebook is
+  an optional output that can break (constitution VII).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -336,14 +336,14 @@ and cannot judge what the notebook writes.
 2. **Given** an exam whose announcement has not been captured, **When** the command runs, **Then**
    it refuses, says so, and asks the notebook for nothing.
 3. **Given** notebooks switched off in the configuration, or `nlm` signed out or failing, **When**
-   the command runs, **Then** it refuses with a message that names the cause, and prints nothing.
+   the command starts, **Then** it refuses with a message that names the cause, and prints nothing.
 4. **Given** a study slot, **When** the theory sheet is printed, **Then** it fits the pages that
    slot allows (four for 90 minutes, measured once) and opens with a plan that divides the slot by
    section, whose last step is a blank-page recall; a longer sheet is printed and reported.
 5. **Given** a term the class material writes in the subject's language, **When** it appears on
    either sheet, **Then** it is written first in that language, then in Spanish.
-6. **Given** a study guide made before the newest transcription of the class notes, **When** the
-   command runs, **Then** the guide is regenerated before anything is printed.
+6. **Given** a study guide made before the last revision of the topic's living notes file,
+   **When** the command runs, **Then** the guide is regenerated before anything is printed.
 7. **Given** the teacher's photocopies, **When** the problems sheet is read, **Then** every
    exercise is in exactly one pattern, exercises printed on two photocopies are named as repeats,
    each pattern has one worked problem (one the teacher assigned when the pattern has one), each
@@ -369,8 +369,11 @@ and cannot judge what the notebook writes.
   keeps Spanish and English.
 - The mind map leaves out a block: it is reported; it is not regenerated, because its content
   cannot be steered.
-- An exam is announced only in class, so the stream has no announcement: the command refuses it
-  (FR-030); how the family would give such an exam's scope is not designed (Assumptions).
+- An exam is announced only in class, or spec 001 detected it in a material or an assignment, so
+  there is no announcement: the command refuses it (FR-030); how the family would give such an
+  exam's scope is not designed (Assumptions).
+- The exam is on an earlier topic than the subject's most recent one: the family names the topic,
+  since the announcement does not give it (FR-030).
 - The notebook's theory sheet runs longer than the slot allows: it is printed, and the command
   reports its page count; it is not regenerated (FR-031).
 - A printed answer differs from the computed one only because its solution rounded before the end
@@ -417,7 +420,8 @@ and cannot judge what the notebook writes.
 - **FR-009**: Before the family is told the pack is ready, alfabeta MUST check the language of
   every piece's whole text (for a video, its on-screen text), recompute every numeric answer, and,
   for the practice sheet, compare its data with the teacher's sheets. The exam sheets of
-  `exam prep` are the one exception: the notebook computes their numbers (FR-036).
+  `exam prep` are the one exception: nothing checks them before they print but their page count,
+  neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
   regenerated or reported.
 - **FR-011**: Every teacher's answer key in the topic folder MUST be recomputed; each mismatch, and
@@ -488,17 +492,23 @@ and cannot judge what the notebook writes.
 
 - **FR-029**: alfabeta MUST provide a command, `exam prep` ([contract](contracts/cli.md)), that for
   a known exam (FR-022) asks the topic's notebook for two reports with fixed prompts, a theory
-  sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014) and
-  prints each as its own A4 PDF (FR-018) into the topic's Drive folder:
+  sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014),
+  numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
+  them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's Drive folder:
   `Teoría para el examen · TNN (<D> <mmm>).pdf` and `Problemas tipo · TNN (<D> <mmm>).pdf`, with
   the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
-  only with the announcement, the study slot, the subject's language and the grade level. Both
-  reports are asked for in Spanish, terms aside (FR-032), with the report's own language option,
-  so the account-wide setting of FR-007 is not touched. No agent writes either sheet.
+  only with the exam's date, its announcement and that announcement's date, the study slot and the
+  pages it allows, the subject's folder and language, and the grade level. Both reports are asked
+  for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
+  option, so the account-wide setting of FR-007 is not touched. That makes the problems sheet an
+  exception to FR-005, which puts practice in the subject's language: it is the sheet the parent
+  reviews with the student, as observed 2026-10-28. No agent writes either sheet.
 - **FR-030**: The exam's scope MUST come from the teacher's announcement of the exam, as spec 001
-  captures it (text and date). The theory sheet quotes it in its language with its date, its
-  sections are the announcement's points in the announcement's order, and it says what of the
-  topic the announcement leaves out. When no announcement has been captured for the exam, the
+  captures it (text and date). The topic is the one the family names, or else the subject's most
+  recent topic (FR-023): spec 001 files announcements outside any topic. The theory sheet quotes the
+  announcement in its language with its date, its sections are the announcement's points in the
+  announcement's order, and it says what of the topic the announcement leaves out. When the exam has
+  no captured announcement, including an exam spec 001 detected in a material or an assignment, the
   command MUST refuse and ask the notebook for nothing.
 - **FR-031**: The theory-sheet prompt MUST ask the notebook to follow the class notes, completed by
   Classroom and then the textbook (FR-002), and to fit the study slot (measured 2026-10-28: four
@@ -512,8 +522,9 @@ and cannot judge what the notebook writes.
   material writes it, and then in Spanish. Where the notes, the teacher's sheets and the textbook
   use different words for one thing, or one word for two things, the theory sheet shows each and
   how to tell them apart.
-- **FR-033**: When the newest transcription of the topic's class notes was made after the topic's
-  study guide, the command MUST regenerate the guide (FR-004), even though the pack record
+- **FR-033**: The command MUST first bring the notebook's class-notes source up to date, as spec
+  005's refresh does. When the topic's living notes file was last revised after the topic's study
+  guide was made, the command MUST regenerate the guide (FR-004), even though the pack record
   (FR-024) holds it, before anything is printed. A guide made before the notes is never handed out
   for an exam.
 - **FR-034**: The problems-sheet prompt MUST ask the notebook to put every exercise of the
@@ -538,10 +549,11 @@ and cannot judge what the notebook writes.
   a wrong printed value appears only in the worked solution of that same exercise, with its cause.
   A check of the sheets' numbers by a model that executes code MAY later be inserted between
   generation and printing, for that step alone.
-- **FR-037**: The command MUST refuse, with a message that names the cause and its exit code, and
-  print nothing, when notebooks are switched off in the configuration, when `nlm` is signed out or
-  fails, and when the exam, its announcement or the topic's notebook is not found (constitution
-  VII).
+- **FR-037**: Before it asks the notebook for anything, the command MUST refuse, with a message
+  that names the cause and its exit code, and print nothing, when notebooks are switched off in the
+  configuration, when `nlm` is signed out or failing, and when the exam, its announcement or the
+  topic's notebook is not found (constitution VII). A report that fails later is reported, and the
+  other one is still printed.
 
 ### Key Entities
 
@@ -588,7 +600,7 @@ and cannot judge what the notebook writes.
   exactly one pattern, and every pattern has exactly one worked problem.
 - **SC-011**: On a test topic whose photocopy prints a known wrong answer, the problems sheet's
   table lists it with the right value; and no exam sheet is printed when notebooks are switched off
-  or `nlm` fails.
+  or `nlm` is not usable when the command starts.
 - **SC-012**: A theory sheet fits the pages of its slot (measured once, 2026-10-28: four A4 pages
   for a 90-minute slot), and its sections follow the announcement's points one to one.
 
@@ -625,7 +637,8 @@ and cannot judge what the notebook writes.
   until then.
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
   or added as sources); a photocopy that is not cannot be mapped.
-- An exam announced only in class has no captured text, so the command refuses it; how the family
+- An exam announced only in class, or detected in a material or an assignment, has no announcement
+  text, so the command refuses it; how the family
   would give such an exam's scope is not designed.
 - The quota cost of `exam prep` (two reports, three when the guide is regenerated) has not been
   measured; SC-006 measured a whole pack.

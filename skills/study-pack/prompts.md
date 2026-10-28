@@ -17,10 +17,10 @@ one before sending; a prompt that still holds a `{` is a bug.
 | `{answer_sheet}` | the name of the teacher's sheet whose answers are recomputed |
 | `{corrections}` | the recomputed results that differ from the teacher's key, one per exercise |
 | `{subject}` | the subject's `folder` |
-| `{exam_day}` | the exam's date in words, `jueves 29 de octubre` |
+| `{exam_day}` | the exam's date in words, `martes 12 de mayo` |
 | `{scope}` | the text of the teacher's announcement of the exam, verbatim, as spec 001 captured it |
-| `{scope_date}` | that announcement's date, `27 de octubre` |
-| `{slot}` | the study slot, `16:15–17:45`, or `90 minutos` when none is given |
+| `{scope_date}` | that announcement's date, `8 de mayo` |
+| `{slot}` | the study slot, `17:00–18:30`, or `90 minutos` when none is given |
 | `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
 
 ## Video — one per block, at most three per topic
