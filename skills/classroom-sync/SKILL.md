@@ -39,13 +39,17 @@ Below, `alfabeta <command>` stands for that line.
    or move a Google page with the extension's `navigate` or `tabs_create`**: in this Chrome it ends
    the school session (research R16). A tab that is not on Classroom, or is on Google's sign-in, is a
    person's job: ask the family to sign in there and leave it on the home page. Read `/u/<n>` from
-   `location.pathname` and check, with a script run in the page that returns only true or false,
-   that the account button carries `classroom.account`. If not, try the next `<n>` with
-   `location.assign("/u/<n>/h")` run in the page.
+   `location.pathname` and check the account without writing the address into the call: hash
+   `classroom.account` (lower case, SHA-256) on the Mac and let a script in the page compare it with
+   the hash of each address in the page's `aria-label`s, returning only true or false. If it does
+   not match, try the next `<n>` with `location.assign("/u/<n>/h")` run in the page. A page already
+   on screen proves nothing about the session: a tab left overnight still shows last night's page.
+   The first load in step 4 is the proof.
 3. **Inject the extractor.** Read `<tools.repository>/skills/classroom-sync/scripts/extract.js` and
    pass its whole source to `javascript_tool` in that tab. It loads every page in a hidden iframe and
    never moves the tab; inject again only if the tab itself reloaded.
-4. **Capture the class list.**
+4. **Capture the class list.** Load «Trabajo de clase» of any class with `X.iframeLoader(window)`
+   first: a `SessionExpired` there means the family must sign in again.
    ```js
    const X = alfabetaExtract, run = "<run>", now = () => new Date();
    const classes = X.captureClasses({ run, doc: document, path: location.pathname, now });
@@ -55,7 +59,8 @@ Below, `alfabeta <command>` stands for that line.
    (it writes the line and releases the lock; it sends nothing), and tell the family what to do.
    Otherwise `alfabeta downloads collect --wait 10` and `alfabeta plan`.
 5. **Link the classes.** For each `class_link` in `plan.json`'s `pending_decisions`, propose the
-   subject's short name, with the reason and a confidence, in one file:
+   subject whose `classroom_class` names that class — the family wrote it for this — with the reason
+   and a confidence, in one file:
    ```json
    [{"type": "class_link", "origin": "<class id>", "target": {"subject": "<short name>"},
      "reason": "<why>", "confidence": "high"}]
@@ -92,6 +97,8 @@ Below, `alfabeta <command>` stands for that line.
    For each batch, starting at 0, load every `url` in a hidden iframe created in the Classroom tab,
    2–3 s apart; they arrive with no dialog (research R4). Then `alfabeta downloads collect --wait 30`
    before the next batch: a batch is how two files with the same name do not overwrite each other.
+   A file that never arrives (a large video stops at Drive's virus-scan notice) is left; `apply`
+   notes it as «no traído» with its link.
 9. **Before the first apply of a subject**, look at its topic folders in Drive. A `classroom/` folder
    made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
    other names. With the family's agreement, move it to
@@ -114,6 +121,9 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
 | A session signed in by the family lasted at least 18 minutes; how long it lasts was not measured | sign-in again is the family's, in the tab |
 | The second `apply` over the same captures changed nothing | step 10 is the check |
+| An empty «Trabajo de clase» shows «Aún no hay tareas…» and an empty stream «Aquí se mostrarán novedades…», with no rows (2026-10-28) | the extractor takes both as loaded |
+| Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `downloads collect` falls back to comparing letters and digits |
+| Eleven classes took 14 minutes; the session was still alive 50 minutes after the family signed in (2026-10-28) | a whole sync fits in one sign-in |
 
 ## Never
 

@@ -7,7 +7,7 @@ import json
 import time
 from typing import TYPE_CHECKING, Any
 
-from alfabeta.downloads import DownloadsInbox, collect, inbox_path, matches
+from alfabeta.downloads import DownloadsInbox, collect, inbox_path, loosely_matches, matches
 from alfabeta.plan import write
 
 if TYPE_CHECKING:
@@ -84,3 +84,35 @@ def test_names_the_browser_gives():
     assert not matches("ficha (2).docx", "ficha.pdf") and not matches("otra.pdf", "ficha.pdf")
     assert not matches("ficha.pdf.crdownload", "ficha.pdf")
     time.sleep(0)
+
+
+def test_names_drive_or_the_browser_change():
+    # Measured 2026-10-28: Drive keeps a double space the page collapses, and a Google Doc's PDF
+    # export arrived with a leading «_».
+    assert loosely_matches("3.  sektoreak.pdf", "3. sektoreak.pdf")
+    assert loosely_matches("_TEXTO SI O NO.pdf", "TEXTO SI O NO.pdf")
+    assert loosely_matches("_TEXTO SI O NO (1).pdf", "TEXTO SI O NO.pdf")
+    assert not loosely_matches("TEXTO SI.pdf", "TEXTO SI O NO.pdf")
+    assert not loosely_matches("_TEXTO SI O NO.docx", "TEXTO SI O NO.pdf")
+    assert not loosely_matches("TEXTO SI O NO.pdf.crdownload", "TEXTO SI O NO.pdf")
+
+
+def test_an_exact_name_is_claimed_before_a_loose_one(tmp_path: Path):
+    downloads, data = tmp_path / "downloads", tmp_path / "data"
+    downloads.mkdir()
+    plan: dict[str, Any] = {
+        "run": "r1",
+        "created_at": (dt.datetime.now(dt.UTC) - dt.timedelta(seconds=5)).isoformat(),
+        "downloads": [
+            {"item": "synth-1", "attachment": "synth-a", "expected_name": "a b.pdf", "batch": 0},
+            {"item": "synth-2", "attachment": "synth-b", "expected_name": "a-b.pdf", "batch": 0},
+        ],
+    }
+    write(plan, data)
+    inbox = DownloadsInbox(downloads, data)
+    (downloads / "a-b.pdf").write_bytes(b"dash")
+    (downloads / "a  b.pdf").write_bytes(b"space")
+    result = collect(inbox, "r1")
+    assert sorted(result["collected"]) == ["a b.pdf", "a-b.pdf"]
+    assert inbox_path(data, plan["downloads"][1]).read_bytes() == b"dash"
+    assert inbox_path(data, plan["downloads"][0]).read_bytes() == b"space"
