@@ -309,10 +309,10 @@ def _cmd_sandbox(args: argparse.Namespace) -> int:
             home.mkdir(parents=True, exist_ok=True)
             sandbox.prepare(home, args.student)
             _emit({"ok": True, "student": args.student})
-        elif args.batch is not None:
-            _emit({"ok": True, "written": sandbox.download_batch(home, args.student, args.batch)})
-        else:
+        elif args.captures:
             _emit({"ok": True, "written": sandbox.download_captures(home, args.student, os.environ.get(state.RUN_ENV))})
+        else:
+            _emit({"ok": True, "written": sandbox.download_batch(home, args.student, args.batch)})
     except (sandbox.SandboxError, config.ConfigError) as err:
         return _fail("invalid_sandbox", EXIT_INVALID, str(err))
     return EXIT_OK
@@ -454,9 +454,9 @@ def build_parser() -> argparse.ArgumentParser:
     box_prepare.add_argument("--student", default=sandbox.DEFAULT_STUDENT)
     box_download = box.add_parser("download", help="copy the sandbox captures to the downloads folder")
     box_download.add_argument("--student", required=True)
-    what = box_download.add_mutually_exclusive_group(required=True)
+    what = box_download.add_mutually_exclusive_group()
     what.add_argument("--captures", action="store_true")
-    what.add_argument("--batch", type=int)
+    what.add_argument("--batch", type=int, default=0)
 
     anon = groups.add_parser("anonymize", help="a synthetic page from a saved Classroom page")
     anon.add_argument("input")
