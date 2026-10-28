@@ -265,18 +265,22 @@
   }
 
   // Announcements of the stream; the notices of new items are skipped (they are in «Trabajo de clase»).
+  // The text is the post's own block, line by line: its header names the author, and every post
+  // hides a teacher-only notice in a tooltip, longer than any line of the body (measured 2026-10-28).
   function readStream(doc) {
-    const posts = [...doc.querySelectorAll("[data-stream-item-id]")].filter((p) =>
-      texts(p).some((t) => t.text.startsWith("Fecha de creación")),
-    );
+    const created = (p) => texts(p).find((t) => t.text.startsWith("Fecha de creación"));
+    const posts = [...doc.querySelectorAll("[data-stream-item-id]")].filter(created);
     return posts
       .filter((p) => !texts(p).some((t) => NOTICE.test(t.text)))
       .map((p) => {
-        const all = texts(p);
-        const created = all.find((t) => t.text.startsWith("Fecha de creación"));
-        const body = all.filter((t) => t !== created && !POSTED.test(t.text) && !COMMENT_HEADINGS.has(t.text));
-        const longest = body.reduce((best, t) => (t.text.length > best.length ? t.text : best), "");
-        return { id: p.getAttribute("data-stream-item-id"), created_text: created.text, text: longest, attachments: attachmentsIn([p]) };
+        const body = p.querySelector(".pco8Kc");
+        return {
+          id: p.getAttribute("data-stream-item-id"),
+          // The label and its date can be text nodes of their own (measured 2026-10-28).
+          created_text: clean(created(p).node.parentElement.textContent),
+          text: body ? blockText(body) : "",
+          attachments: attachmentsIn([p]),
+        };
       });
   }
 

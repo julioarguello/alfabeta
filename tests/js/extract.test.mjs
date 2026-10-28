@@ -60,6 +60,18 @@ function plantPrivate(doc) {
   }
   const author = doc.querySelector(".rec5Nb .YVvGBb");
   if (author) author.textContent = `${MARKER} autor`;
+  // On the stream, each post's header names its author and its class comments sit below it. The
+  // marker goes in a node of its own, so a notice still reads «Tarea: …».
+  for (const header of doc.querySelectorAll("[data-stream-item-id] .QUEiXc")) {
+    const name = doc.createElement("span");
+    name.textContent = `${MARKER} autor del anuncio`;
+    header.appendChild(name);
+  }
+  for (const comments of doc.querySelectorAll("[data-stream-item-id] .s2g3Xd")) {
+    const comment = doc.createElement("div");
+    comment.textContent = `${MARKER} comentario de clase en el tablón`;
+    comments.appendChild(comment);
+  }
 }
 
 async function capture(options) {
@@ -252,6 +264,30 @@ test("a classwork page with neither rows nor the empty notice is not ready", () 
   const doc = emptyClasswork();
   for (const div of doc.querySelectorAll("div")) if (div.textContent.startsWith("Aún no hay tareas")) div.remove();
   assert.equal(extract.pageReady("/u/5/w/synth-1/t/all", doc), false);
+});
+
+// The stream as the real page builds it (measured 2026-10-28): the body's lines are split by <br>,
+// and every post hides a teacher-only notice, longer than any of those lines, in a tooltip.
+test("each announcement is read whole, line by line, with its creation date", () => {
+  const doc = page("stream-announcements").window.document;
+  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), [
+    {
+      id: "9100000001",
+      created_text: "Fecha de creación: 22 sept",
+      text: "El examen del martes entra:\nMagnitudes y unidades.\nNotación científica.",
+      attachments: [],
+    },
+    { id: "9100000002", created_text: "Fecha de creación: 27 oct", text: "Mañana, examen.", attachments: [] },
+  ]);
+});
+
+test("a short announcement is not taken for its author, nor a comment for an announcement", async () => {
+  const { result } = await capture({ plant: true, override: { "/u/5/c/synth-1": "stream-announcements" } });
+  assert.ok(!JSON.stringify(result).includes(MARKER));
+  assert.deepEqual(result.stream.map((p) => p.text), [
+    "El examen del martes entra:\nMagnitudes y unidades.\nNotación científica.",
+    "Mañana, examen.",
+  ]);
 });
 
 test("an empty stream is ready", () => {
