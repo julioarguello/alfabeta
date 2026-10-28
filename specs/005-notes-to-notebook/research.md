@@ -273,26 +273,40 @@ own table is the subset the requirements rest on; this one is the full list.
 - **Decision**: `notebook refresh --student <id>` on the Mac reads `.alfabeta/state.json` through
   spec 004's adapter and, for each living file with a `source_id` and `health = ok` whose
   `built_md5` differs from the `read_md5` the Mac's refresh record holds for that source, runs
-  `nlm source content <source_id> --profile <[notebook] nlm_profile>` once and records the new
-  checksum. Before the first read of a pass it checks the session (`nlm login --check`); if that
-  fails it runs `nlm auth refresh` once, in `nlm`'s default mode, which renews through `nlm`'s own
+  `nlm source content <source_id> --profile <[notebook] nlm_profile>` and records the new
+  checksum; the next pass reads that source once more and marks it done (the data model's
+  `reads`). The confirming read covers the open question below at the cost of one `nlm` call per
+  change; if quickstart step 3b shows one read is enough, it goes. Before the first read of a pass it checks the session (`nlm login --check`); if that
+  fails it renews it with `nlm auth refresh --http-only`, which needs no browser, and, if the session
+  still fails, once with `nlm auth refresh` in its default mode, which renews through `nlm`'s own
   headless browser profile, never the family's Chrome; if the session still fails, the pass stops
   with code 5 and the notice of FR-019. A launchd agent in the family's user session runs the pass
   through the same `uv run --project <tools.repository>` the classroom-sync skill uses, with
   `StartCalendarInterval` entries every `[notebook] refresh_minutes`, so a Mac that slept runs it
   once on wake, and `RunAtLoad`, so a Mac that was shut down runs it once when the user's session
-  starts; a LaunchAgent runs only inside that session. The pass reads `state.json` through spec
-  004's adapter with its cached tree, so an idle pass lists no folder. `notebook agent install` writes the agent's plist under `~/Library/LaunchAgents/`
-  with a label built from the student id, never a name, and loads it; `notebook agent remove`
-  unloads and deletes it. The agent's standard output and error go to the student's data folder.
+  starts; a LaunchAgent runs only inside that session. The pass opens spec 004's adapter without
+  listing the tree: today `ScopedDrive.open` always relists it (171 requests on 2026-10-27, first
+  table), so the adapter gains an open that resolves the cached root only, and the pass reaches
+  `.alfabeta/state.json` by name from the root with the adapter's own look-ups, which keep the
+  allowlist: a handful of Drive calls, counted by T045. `nlm` and `uv` are resolved to absolute paths at install and put in
+  the agent's `PATH`, since launchd's is only the system's; a missing `nlm` is its own error, never
+  "not signed in". The label is `io.alfabeta.notebook-refresh.` and the first 12 hex digits of the
+  SHA-256 of the student id, so neither the id nor a name reaches `launchctl` or the system log.
+  `notebook agent install` writes the agent's plist under `~/Library/LaunchAgents/`
+  with that label and loads it; `notebook agent remove`
+  unloads and deletes it. The agent's standard output and error are appended to `notebook-agent.log`
+  in the student's data folder.
 - **Rationale**: the notebook takes a changed Drive file when its owner reads it, within two minutes,
   and not when the student, a viewer, opens it (first table, 2026-10-27 and 2026-10-28). The
   checksum comparison makes an idle pass one Drive read and no `nlm` call (SC-004). The record lives
   on the Mac because only the Mac writes it, so it needs no revision check against the cloud
   (R4). `StartCalendarInterval`, not `StartInterval`, because only the first runs after sleep
-  (first table). `--http-only` is not the renewal: it worked on 2026-10-28, but `nlm auth refresh
-  --help` (0.15.8) says only the default mode, through its headless browser, can renew
-  `__Secure-1PSIDTS` cookies, while `--http-only` renews the eligible ones.
+  (first table). `--http-only` goes first because it ran on 2026-10-28 with no browser and left the
+  session valid, though on a session that was already valid, so no renewal of a failing one was
+  observed. The default mode stays as the second try because `nlm auth refresh --help`
+  (0.15.8) says only it, through its headless browser, can renew `__Secure-1PSIDTS` cookies: the
+  owner's profile held none on 2026-10-28, and the project's issue #316 reports sessions dying in
+  about eight hours when such cookies were not renewed.
 - **Alternatives**:
   - The student opening the notebook: measured not to refresh it (first table). Rejected.
   - `nlm source stale` to decide what to read: it reported sources up to date while they were behind,
@@ -302,18 +316,24 @@ own table is the subset the requirements rest on; this one is the full list.
   - The desktop app's scheduled task: runs only while the app is open (spec, first table), the
     dependency the operator wants gone. Rejected.
   - Only the daily scheduled sync: a page could wait a day. Rejected.
+  - The same launchd agent also running `notes run`, so that the cloud job is not needed: then
+    transcription and the living files would also wait for the Mac. Rejected; the operator wants as
+    little as possible to depend on it (plan, Complexity Tracking).
   - A cloud-held owner session, either a Compute Engine machine with Chrome and Chrome Remote
-    Desktop where the owner signs in by hand (Google documents that setup), or an Android master
-    token minting web cookies (the approach of the unofficial `notebooklm-py`): it would remove the
-    Mac, but neither has been measured from a datacenter, the master token is a full-account
-    credential that does not expire, and constitution III authorises an unattended credential only
-    to read the student's own material. The operator declined it for now (spec, Clarifications,
+    Desktop where the owner signs in by hand (Google Cloud's guide «Set up Chrome Remote Desktop for
+    Linux on Compute Engine», read 2026-10-28), or an Android master token minting web cookies (the
+    unofficial `notebooklm-py`, whose README calls it a full-account credential and the auth model
+    for servers and CI, read 2026-10-28): it would remove the Mac, but neither has been measured
+    from a datacenter, and constitution III authorises an unattended credential only to read the
+    student's own material. The operator declined it for now (spec, Clarifications,
     session 2026-10-28).
   - The student owning the notebooks, so that his own access refreshes them: the notebooks belong to
     an adult account to avoid under-18 limits, and the student's Gmail is supervised by Family Link
     (decided 2026-10-26). Rejected.
 - **Questions for the quickstart**: does one read refresh every time, or does a pass need a
-  second read to confirm (step 3b)? Does the agent, started by launchd and not from a terminal or
+  second read to confirm (step 3b)? On 2026-10-28 the first read returned the old copy and the next,
+  76 seconds later, held the page, so whether that second read did anything is not known. Does the agent, started by launchd and not from a terminal or
   the app, reach the keychain that holds the Mac's Drive link and `nlm`'s protected credentials
   (step 3b)? How often does the owner's session need `nlm auth refresh`, and how often does FR-019
-  fire (step 8)?
+  fire (step 8)? With two students sharing one owner profile, their agents could renew it at the
+  same moment; `nlm` keeps a `locks/` folder of its own, not read for this plan.

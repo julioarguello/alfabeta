@@ -64,19 +64,30 @@ any page exists:
 python -m alfabeta notebook agent install --student <id>
 ```
 
-Expect: `{ok: true, agent: "installed"}`, and `launchctl print gui/$(id -u)/<label>` shows the job.
+Expect: `{ok: true, agent: "installed", label: "io.alfabeta.notebook-refresh.<hash>"}`, and
+`launchctl print gui/$(id -u)/<that label>` shows the job. The agent's passes are appended to
+`~/.alfabeta/<id>/data/notebook-agent.log`, one JSON line each. The pass at install (`RunAtLoad`)
+reads every living source that has no record yet, the next pass reads them again to confirm, and
+the passes after it show `read: 0`.
+
 Quit the Claude desktop app. Upload one invented photo to the topic's `apuntes/` and run
 `notes run` by hand (or wait for the cloud run once step 5 is done). From then on nobody touches the
-notebook as its owner: the student opens it and asks about a word only that page holds. Expect an
-answer within 20 minutes of `pages_added: 1` (SC-002), and in the agent's output in the data folder
-one pass with `read: 1` followed by passes with `read: 0`. Record the time from `pages_added` to the
-student's answer, and whether the source's content held the page on the first pass after the read
-(research R14's question); a pass that read the source also shows the agent reached the keychain.
+notebook as its owner: the student opens it and asks about a word only that page holds. Expect, in
+the log, one pass with `read: 1` after `pages_added: 1`, one more with `read: 1` (the confirming
+read), then only `read: 0`, and the student's answer within 20 minutes of `pages_added: 1`
+(SC-002). Record that time. If the student's view answers before the confirming pass, one read is
+enough and the confirming read can go (research R14's first question); a pass that read the source
+also shows the agent reached the keychain (its second question).
+
 Put the Mac to sleep across a refresh time, wake it, and expect one pass within a minute of waking;
-log out and back in, and expect one pass at login. Last, without touching the owner's real profile: in a copy of the
-configuration whose `[notebook] nlm_profile` names a profile that has never signed in, add one more
-page and run `notebook refresh` by hand twice; expect code 5, one macOS notification and one agenda
-line on the first run and none on the second (FR-019).
+log out and back in, and expect one pass at login.
+
+Last, without touching the owner's real profile: copy `~/.alfabeta/<id>/` to `<copy>/<id>/`, set
+`[notebook] nlm_profile` there to a profile name that has never signed in, add one more page to the
+test topic, and run `python -m alfabeta --home <copy> notebook refresh --student <id>` twice. Expect
+code 5 both times, `renewed: true`, one macOS notification on the first run and none on the second
+(FR-019). Delete `<copy>` afterwards. The agenda line comes from the Mac's sync while the record
+says `signed_out`; since `<copy>` holds its own record, the real agenda is untouched.
 
 ## 4. The student's marks
 
@@ -99,8 +110,8 @@ from upload to page. This is SC-001's first measurement.
 ## 6. A Classroom item
 
 Put an invented PDF named `YYYYMMDD - Prueba` into the test topic's `classroom/` in Drive. Within the
-next cloud run: its cover page and pages in `Classroom · <topic>.pdf`; the notebook answers about it
-two minutes after being opened. Record the time from upload to the living file (SC-003). Replace the
+next cloud run: its cover page and pages in `Classroom · <topic>.pdf`; after the Mac's next refresh
+(step 3b), the student's view of the notebook answers about it. Record the time from upload to the living file (SC-003). Replace the
 PDF with a changed one: its pages are replaced, not added. Repeat with an item folder holding a PDF,
 a Word file, `descripcion.md` and `enlaces.md`: one entry. Repeat with an assignment folder holding
 `enunciado - Prueba.pdf`, `entrega/Prueba.pdf` and `correccion.md`: only the statement's pages
@@ -119,6 +130,6 @@ enter.
 Record aggregates only, never per-photo times of the student (constitution III): pages uploaded,
 the longest and the median delay from upload to living file, pages marked, and whether any notebook
 gained a source other than its two living files (SC-005). SC-001 passes when the longest delay is
-under an hour. From the refresh agent's output: passes that read a source, passes that renewed the
-owner's session, and notices of FR-019 (research R14's second question). Remove the test
+under an hour. From `notebook-agent.log`: passes that read a source, passes with `renewed: true`,
+and passes that turned `session` to `signed_out`, FR-019's notices (research R14's third question). Remove the test
 topic, its notebook and its Drive folder by hand at the end; alfabeta removes nothing.

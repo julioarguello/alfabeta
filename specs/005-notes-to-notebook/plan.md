@@ -11,8 +11,8 @@ Each topic's notebook holds two living PDFs in Drive, `Apuntes · <topic>.pdf` a
 operator's Google Cloud project for alfabeta wakes every 15 minutes, reads Drive's change feed, transcribes new
 photos of the notes with the Claude API, and rebuilds the living file that changed. The notebook
 takes the rewritten file only when its owner reads it (measured 2026-10-28), so a launchd agent on
-the Mac, every 15 minutes, on wake and at login, with no app open, reads each changed source once as
-the owner (research R14); the cloud never needs the unofficial notebook tool. On the Mac, each sync
+the Mac, every 15 minutes, on wake and at login, with no app open, reads each changed source as the
+owner, on two consecutive passes (research R14); the cloud never needs the unofficial notebook tool. On the Mac, each sync
 brings into the master what Drive holds and the master lacks, and warns when the cloud has stopped
 running.
 
@@ -152,7 +152,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 The first slice's acceptance criterion is quickstart step 3: one photo, one page, the notebook
 answers. Ports are written for it, not for the end state.
 
-1. **A photo becomes a page, run on the Mac.** Covers US1 (scenarios 2 to 5), US5 (scenarios 1, 3
+1. **A photo becomes a page, run on the Mac.** Covers US1 (scenarios 3 to 5), US5 (scenarios 1, 3
    and 4) and FR-004. `notebook setup` and `notes run` for notes only, with `changes`, `state`,
    `transcribe`, `pdf`, `sources`. Done when quickstart steps 1 to 3 pass.
 2. **The same pass in the cloud.** Covers US1 scenario 1, FR-014 and FR-017. The cloud's own link,
@@ -168,18 +168,19 @@ answers. Ports are written for it, not for the end state.
    master out of the Drive for desktop mount.
 6. **Tema 01 and real use.** US5 scenario 2 on the real topic, then quickstart step 8.
 7. **The owner's refresh on the Mac.** Covers US1 scenarios 2 and 6, FR-018, FR-019 and SC-002.
-   `notebook refresh` over the cloud run's records, its record on the Mac, the session check and
-   one renewal, the notice, and `notebook agent install|remove`. Done when quickstart step 3b
+   `notebook refresh` over the cloud run's records, a root-only open of Drive, its record on the
+   Mac, the session check and its renewals, the notice, and `notebook agent install|remove`. Done when quickstart step 3b
    passes: a page reaches the student's view with nobody touching the notebook as its owner.
 
-Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4. Slice 7 needs slice 1 only
-(the records and `NlmSources`) and can run in parallel with slices 2 to 4.
+Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4. Slice 7 needs slice 1 (the
+records and `NlmSources`) and spec 004's `notify` (its T015), and can run in parallel with slices 2
+to 4.
 
 ## Complexity Tracking
 
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
-| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes to reach the notebook with the Mac off; the desktop app's tasks need it open (research, first table) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0 |
+| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes transcribed into the living files with the Mac off (clarify, 2026-10-27), and as little as possible to depend on the Mac (2026-10-28); only the owner's read of the source stays on the Mac (research R14) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0. The launchd agent of FR-018 also running `notes run`, with no cloud job: transcription and the living files would then wait for the Mac too, and the student could not read a transcription in Drive while it is off |
 | A second OAuth client and refresh token for the student, and a second Claude key, in Secret Manager | The cloud cannot read the Mac's keychain; constitution II (1.6.0) forbids copying a secret between places (research R3) | A service account cannot act as a consumer Gmail |
 | One account-wide Drive read: the change feed | Drive v3's change feed takes no folder filter (research, first table); polling each folder instead costs one listing per folder per run | Spec 004 FR-009a amended: the adapter drops every change outside the allowlist before returning, keeps and logs nothing about it, and the scope test covers the feed |
 | The cloud's records in Drive instead of a database | One small JSON, two writers guarded by a revision check (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |

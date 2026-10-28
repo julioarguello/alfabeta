@@ -176,8 +176,9 @@ Rationale: an unofficial tool must not leave the student without their notes.
 
 - Everything runs on the family's Mac unless a spec names a need the Mac cannot meet. Such a need
   runs in the operator's Google Cloud project for alfabeta, within its free tier, and the spec
-  names what stays on the Mac. The first is spec 005: the student's notes reach the notebook while
-  the Mac is off, because the desktop app's scheduled tasks run only while the app is open. The
+  names what stays on the Mac. The first is spec 005: the student's notes are transcribed into the
+  topic's living file in Drive while the Mac is off, which nothing on the Mac can do; the notebook
+  takes that file when the Mac's own refresh reads it. The
   second is spec 001's User Story 7: reading Classroom with nobody present — measured 2026-10-27,
   when a read missed two assignments posted that morning because it needed the Mac — with
   attachments and replicas staying on the Mac.
