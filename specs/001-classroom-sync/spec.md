@@ -355,12 +355,13 @@ saved.
    subject's `Sin tema` folder with its date, its text and its attachments, without student comments or names
    of other people.
 2. **Given** an assignment the student turned in with files, **When** it is synced, **Then** its
-   folder has those files as `entrega - <name>`, next to the teacher's `enunciado - <name>`.
+   folder has an `entrega/` subfolder holding those files with their own names, next to the
+   teacher's `enunciado - <name>`.
 3. **Given** an assignment returned with a grade and a comment, **When** it is synced, **Then** its
    folder has a `correccion` with the grading state, the grade if Classroom shows it to the
    student, the teacher's comment and the return date.
 4. **Given** an assignment the student turned in again, **When** it is synced, **Then** the new
-   submission is the `entrega` and the earlier one is kept as previous.
+   submission's files are in `entrega/` and an earlier file that changed is kept there as previous.
 
 ---
 
@@ -626,9 +627,11 @@ test.
   - a **material** with no files or links, only text, is a note `YYYYMMDD - <title>.md`
     (this rule wins over the one for a material with a description).
 - **FR-015a**: Inside an assignment's folder, each file MUST be prefixed with its role, with
-  fixed names without accents: `enunciado - <name>` (what the teacher attaches), `entrega - <name>`
-  (what the student turned in), `correccion` (grade, teacher's comment and return date) and
-  `enlaces` (videos, links and forms, with title and link).
+  fixed names without accents: `enunciado - <name>` (what the teacher attaches), `correccion`
+  (grade, teacher's comment and return date) and `enlaces` (videos, links and forms, with title
+  and link). What the student turned in goes in a subfolder `entrega/` with each file's own name:
+  a submission is often several photos of a notebook, which would otherwise mix with the
+  teacher's files (amended 2026-10-28; it was `entrega - <name>` beside them).
 - **FR-015b**: A superseded version (an attachment the teacher edited, a repeated submission) MUST
   be kept next to the current one as `<name> (anterior YYYY-MM-DD)`.
 - **FR-015c**: Names MUST be valid in the file system and in Drive, at most 255 UTF-8 bytes,
@@ -650,8 +653,9 @@ Example of the resulting structure (invented names):
     │       │   └── enlaces.md
     │       └── 20261020 - Problemas tema 2/
     │           ├── enunciado - Problemas.pdf
-    │           ├── entrega - Respuestas.pdf
-    │           └── correccion.md
+    │           ├── correccion.md
+    │           └── entrega/
+    │               └── Respuestas.pdf
     ├── 20261021 - <teacher's title>/
     │   └── classroom/
     │       └── 20261021 - Proyecto de laboratorio.pdf

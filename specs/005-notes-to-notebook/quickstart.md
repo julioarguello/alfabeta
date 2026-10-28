@@ -73,7 +73,7 @@ next cloud run: its cover page and pages in `Classroom · <topic>.pdf`; the note
 two minutes after being opened. Record the time from upload to the living file (SC-003). Replace the
 PDF with a changed one: its pages are replaced, not added. Repeat with an item folder holding a PDF,
 a Word file, `descripcion.md` and `enlaces.md`: one entry. Repeat with an assignment folder holding
-`enunciado - Prueba.pdf`, `entrega - Prueba.pdf` and `correccion.md`: only the statement's pages
+`enunciado - Prueba.pdf`, `entrega/Prueba.pdf` and `correccion.md`: only the statement's pages
 enter.
 
 ## 7. Limits and budget

@@ -13,7 +13,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Technical name | Name the student sees |
 |---|---|
 | Attachment `role` `statement` | `enunciado - <name>` |
-| Attachment `role` `submission` | `entrega - <name>` |
+| Attachment `role` `submission` | `entrega/<name>`: the file's own name, in the assignment's `entrega/` subfolder |
 | Attachment `role` `grading` | `correccion.md` |
 | Attachment `role` `links` | `enlaces.md` |
 | Attachment `role` `description` | `descripcion.md` |

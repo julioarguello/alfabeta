@@ -168,8 +168,8 @@ own table is the subset the requirements rest on; this one is the full list.
     `.alfabeta/conversions/`, exported, and that copy put in Drive's trash at once (it was never the
     family's); a Markdown is set as text; an image is one page; anything else is named on the cover
     page.
-  - **Never in a living file**: every file whose name starts with `entrega - ` or `correccion`,
-    whatever follows (spec 001's roles `submission` and `grading`, including their
+  - **Never in a living file**: everything in an `entrega/` subfolder (spec 001 FR-015a, amended
+    2026-10-28) and every file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's roles `submission` and `grading`, including their
     `(anterior YYYY-MM-DD)` versions): the student's own work and its grading (constitution III). An
     assignment enters with its statement only.
   - **Previous versions**: a file named `<name> (anterior YYYY-MM-DD)` (spec 001 FR-015b) is never a

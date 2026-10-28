@@ -164,7 +164,7 @@ and check that nothing changed.
    **Then** it is one entry: one cover page, the description, then each file's pages.
 5. **Given** an item edited by the teacher, **When** classroom-sync brings the new version, **Then**
    its pages in the living file are replaced in place, not added again.
-6. **Given** an assignment folder with `enunciado - <name>`, `entrega - <name>` and `correccion.md`,
+6. **Given** an assignment folder with `enunciado - <name>`, an `entrega/` subfolder and `correccion.md`,
    **When** it is added, **Then** only the statement's pages enter the living file; the student's
    work and its grading do not.
 
@@ -305,8 +305,9 @@ source and one living Classroom source, and that a second run adds nothing.
   order, files in name order. A PDF is copied page by page; a Google-native or Office file is
   converted to PDF through Drive; a Markdown note is set as text; an image is one page; anything
   else is named on the cover page. The student's own work and its grading (spec 001's roles
-  `submission` and `grading`: every file whose name starts with `entrega - ` or `correccion`,
-  whatever follows) are never put into a living file (constitution III). A previous version spec 001
+  `submission` and `grading`: everything in an `entrega/` subfolder, every file whose name starts
+  with `entrega - ` or `correccion`, whatever follows) are never put into a living file
+  (constitution III). A previous version spec 001
   keeps beside an edited one (`<name> (anterior YYYY-MM-DD)`) is never put in either: the current
   version replaces the old pages in place. An announcement note (`aviso`) is not material and is left
   out. A material in `Sin tema` goes into the living Classroom file of its subject's most recent
