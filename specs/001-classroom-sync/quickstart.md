@@ -83,8 +83,8 @@ leaves the complete file in the downloads folder. `downloads collect` must move 
 
 ## 7. Spike S2: scheduled task with a browser
 
-Create a test scheduled task in the app that opens Classroom in Chrome, reads the title of the
-page and downloads a capture and an attachment. Record whether it can use the browser and whether it downloads without
+Create a test scheduled task in the app that opens Classroom in Chrome from inside a Classroom tab
+(never with the extension's `navigate`, research R16), reads the title of the page and downloads a capture and an attachment. Record whether it can use the browser and whether it downloads without
 anyone approving anything. If not, the scheduled run stays in the reduced mode of FR-021a.
 
 ## 8. Spike S3: real structure and synthetic pages

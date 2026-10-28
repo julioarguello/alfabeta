@@ -493,6 +493,39 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   before Classroom opened, in a browser where the school account was already signed in. Two
   lifetimes were seen: one session was gone within about 1 h 20 min, another was still alive after
   2 h 47 min.
+- **The extension's own navigation is the likely trigger** (measured 2026-10-27 in another session,
+  in the operator's Chrome 156 on macOS, school account at `/u/5`):
+  - Two challenges, and each one came on a `navigate` call of the Claude in Chrome extension
+    (`tabs.update`): at 18:35:48 (the 9th load) and at 20:22:35 (the 5th load). This run's
+    `log.jsonl` records `session_expired` at 19:25:35 UTC, which is 20:25:35 local, three minutes
+    after the second one.
+  - Loads that the page starts itself met no challenge: about 120 in the extractor's iframe on
+    2026-10-26 over 9 minutes, and 11 on 2026-10-27 by `location.assign()` run inside an open
+    Classroom tab. The 11 prove little alone: the session was signed in at about 20:30 and kept
+    fresh by a run until 20:54. The weight is the two deaths landing on `navigate`, against 120
+    page-started loads with none.
+  - Ruled out: the pace (the 120); the network (Google traffic goes out through the home router,
+    one public address in 3 samples, and the VPN routes only private 10.x addresses); managed
+    Chrome policies (none on this Mac).
+  - Mechanism, from [anthropics/claude-code#92703](https://github.com/anthropics/claude-code/issues/92703)
+    (open, read 2026-10-27): Device Bound Session Credentials renews Google's short-lived
+    `__Secure-*PSIDTS` cookies only when a navigation has no initiator (the browser started it), a
+    same-site one, or an allow-listed one. `chrome.tabs.create` and `tabs.update` carry the
+    extension's origin as initiator, so the renewal is refused and Google sees an expired session.
+    The report also says the passkey sheet never appears in a background tab.
+  - Not verified: that DBSC is active in this Chrome profile (macOS privacy controls block reading
+    its folder; Chrome 156 only makes it possible). The report says the user's own tabs stay signed
+    in after a challenge; here the extractor's page-started loads stopped with `session_expired`
+    three minutes later, so in this Chrome one challenge ended the session everywhere. The check
+    that would settle it is a person's: DevTools → Network on the failing tab, column «Device bound
+    sessions», value `InScopeRefreshNotAllowed`.
+  - The report's workaround, turning off `chrome://flags/#enable-bound-session-credentials`, removes
+    cookie-theft protection for every account in that Chrome. It is not taken while page-started
+    navigation works, and it is the operator's call.
+  - **Decided**: the skill never opens a Google page with the extension's `navigate` or
+    `tabs_create`. It moves inside the Classroom tab the family left open (`location.assign()` run
+    in the page) or loads pages in the extractor's iframe. A tab that is not on Classroom is a
+    person's job to bring there.
 - **What Google documents** (read 2026-10-27):
   - Workspace admin help, "Set session length for Google services": the web session lasts 14 days
     by default; administrators of the Education editions can change it per organisational unit or
