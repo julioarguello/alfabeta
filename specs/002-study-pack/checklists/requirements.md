@@ -49,6 +49,13 @@
   a mixed quiz; that week's «Ayer» pieces removed), «EXAMEN» as soon as an exam is known. Story 1
   is the exam pack; Story 3 and Story 5 rewritten; FR-020 to FR-023 added and later requirements
   renumbered (FR-024 to FR-028); SC-008 and SC-009 added. No marker remains.
+- Iteration 5 (2026-10-28): the exam eve, written after one exam was prepared by hand
+  (julioarguello/alfabeta#97). User Story 7, FR-029 to FR-037 appended after FR-028 so no number
+  moves, the entities Exam sheet and Pattern, SC-010 to SC-012, and the command's contract in
+  `contracts/cli.md` (code: julioarguello/alfabeta#106). The operator chose the same day that
+  alfabeta's own command asks the notebook for both sheets, with no Claude: the notebook computes
+  their numbers, an accepted risk carved out of FR-009 and SC-001. The answer read 2026-10-26 on
+  wrong keys is revised for the problems sheet only. No marker added.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The

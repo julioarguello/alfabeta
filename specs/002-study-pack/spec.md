@@ -6,6 +6,10 @@
 
 **Status**: Draft
 
+**Amended**: 2026-10-28 — the day before an exam: alfabeta's `exam prep` asks the topic's notebook
+for a theory sheet and a problems sheet and prints them (User Story 7, julioarguello/alfabeta#97;
+the command is julioarguello/alfabeta#106).
+
 **Input**: Operator's description (translated from Spanish and condensed): "Prepare in advance the
 material the student needs, to cut the time spent preparing exams. Short explainer videos in
 Spanish; if the subject is taught in Basque or English, explain in Spanish and give the terms in
@@ -29,9 +33,19 @@ without someone watching; the measurements behind each requirement are in
 [About preparing study material in advance](../../docs/explanation/study-material.md) and in the
 skill's own table of measured behaviour.
 
+A second procedure was run by hand and checked 2026-10-28, for one exam the next day: two sheets
+on paper for the day before the exam, a theory sheet and a problems sheet (the topic's
+`Teoría para el examen` and `Problemas tipo` PDFs). An agent wrote them that day from the topic
+folder; the operator then decided that alfabeta makes them by itself, with its own command
+`exam prep` asking the topic's notebook (User Story 7, FR-029 to FR-037, and the
+[command contract](contracts/cli.md)). They add to the spaced practice of Stories 1 and 5 and do
+not replace it: the design page's case against material made only the night before still holds;
+these sheets narrow what was practised to what the announcement names.
+
 Out of this spec: writing to Classroom or to the textbook platform, the calendar beyond the facts
 spec 001 puts there and the two links of FR-026, audio overviews, and recognising handwriting in the class-note
-photos (it is a dependency, not a requirement here).
+photos (it is a dependency, not a requirement here). Running `exam prep` by itself when an exam is
+close belongs to the unattended runner (spec 001 User Story 7) and is later work.
 
 ## Clarifications
 
@@ -50,7 +64,7 @@ photos (it is a dependency, not a requirement here).
   then Classroom, then the textbook. The teacher's material prioritises scope; it does not limit it.
 - Q: In which language is each piece? → A: Explanations, videos and the study guide in Spanish, with
   each key term also in the subject's language. Practice, quiz and flashcards in the subject's language.
-  Everything for the parent in Spanish.
+  Everything for the parent in Spanish. (The exam's problems sheet aside: FR-029.)
 - Q: How many notebooks per topic? → A: One. The parent's material does not go into it.
 - Q: What is a block, and how many videos? → A: A block is an idea the exam can ask, grouped so two
   ideas students confuse stay apart. Two or three blocks per topic, one video each, a few minutes
@@ -61,7 +75,8 @@ photos (it is a dependency, not a requirement here).
   content is in the subject's language.
 - Q: What happens with a teacher's answer key that is wrong? → A: Every numeric answer is
   recomputed. The parent's guide shows the correct value next to the sheet's, neutrally; nothing
-  the student sees repeats the wrong value or names the teacher.
+  the student sees repeats the wrong value or names the teacher. (Revised for the exam's problems
+  sheet only, in the session below.)
 - Q: Can it all be printed? → A: Yes: one A4 PDF per topic in the topic's Drive folder, with every
   piece except the videos, the mind map included; and each of the parent's documents as its own PDF.
 - Q: Does any of this go in the calendar? → A: No study blocks and no reminders: the calendar holds
@@ -69,6 +84,57 @@ photos (it is a dependency, not a requirement here).
 - Q: May an exam's calendar event point to the topic's material? → A: Yes: the description of the
   exam event that is already there carries two links, to the topic's Drive folder and to its
   notebook. No new event is created for it.
+
+### Session 2026-10-28
+
+Written after an exam was prepared by hand the day before it. The first answers record what was
+done that day; the last three, what the operator decided once it was done (User Story 7).
+
+- Q: Where does an exam's scope come from? → A: From the teacher's announcement of the exam on the
+  class's Classroom stream, whose text and date spec 001 captures. The theory sheet's sections are
+  the announcement's points, in its order.
+- Q: What does the student work through the day before? → A: One theory sheet that follows the
+  class notes (notes > Classroom > textbook), sized to the study slot the family has: a 90-minute
+  slot took four A4 pages. Each term comes first in the subject's language, because the exam is
+  written in it, then in Spanish. The sheet opens with a timed plan for the slot whose last step is
+  a blank-page recall. A study guide generated before the class notes reached the folder is stale
+  and is regenerated before anything is printed; that day the topic's guide was stale and was not
+  regenerated.
+- Q: What does the student practise? → A: One problems sheet. Every problem of the teacher's
+  Classroom photocopies goes into a pattern, with as few patterns as possible: one formula is
+  about one pattern, and the direct and the inverse use of a formula are the same pattern; a
+  pattern can also be a chain of formulas or a classification with none. For each pattern the
+  sheet works the hardest problem, one the teacher assigned when there is one: the statement in
+  its original language, a Spanish translation, and the solutions after a page break. Two
+  photocopies fitted six patterns.
+- Q: How did the numbers reach that day's sheets? → A: The agent that wrote them computed every
+  result with a script, though a few unit conversions and derived figures were still typed. The
+  script recomputed every answer the photocopies print, at the precision it is printed with, and
+  reported three wrong answers on the teacher's sheet and a worked example of the textbook that
+  contradicts itself; each disagreement was listed with the printed and the computed value.
+- Q: The answer read 2026-10-26 says nothing the student sees repeats a wrong value of a
+  teacher's key. Does that hold for the problems sheet? → A: No; this revises it for that sheet
+  only. The student solves these problems on the photocopy, where the wrong value is printed
+  beside the exercise, so the sheet lists the printed answers that do not match, with both values,
+  after the solutions and under a neutral heading that names no one. Every other piece keeps the
+  earlier rule; the practice sheet never reuses the teacher's data (FR-006), so it never shows a
+  teacher's key.
+- Q: Who prepares the two sheets after that day? → A: alfabeta, by itself, through the topic's
+  notebook. The operator does not want to prepare an exam in front of Claude, but to have their own
+  tool do it unattended, and chose that alfabeta's command `exam prep` asks the notebook for the two
+  sheets as reports with fixed prompts and prints them, with no Claude and no Claude API («Sí, haz
+  tu recomendación. Y actualiza el README con estos comandos que tendríamos en alfabeta»). The two
+  sheets are therefore pieces of the notebook, in the moment «EXAMEN» (FR-014), and each is also
+  printed on its own into the topic's Drive folder.
+- Q: Who computes the numbers, then? → A: The notebook, as an accepted risk. The operator accepted
+  it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
+  printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
+  `{corrections}` of the parent-guide prompt), so whether the notebook finds a wrong printed
+  answer by itself has not been measured: the first run of `exam prep` measures it. A check by a
+  model that executes code may later be added for that step alone (FR-036).
+- Q: What if notebooks are switched off, or `nlm` does not work? → A: The command refuses before it
+  asks the notebook for anything, with a message that says why, and prints nothing: the notebook is
+  an optional output that can break (constitution VII).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -245,6 +311,50 @@ check that the proposed blocks include it.
 
 ---
 
+### User Story 7 - The day before an exam, two sheets on paper (Priority: P1)
+
+An exam is announced. The family runs one command: alfabeta asks the topic's notebook, with fixed
+prompts, for two reports — a theory sheet the student works through in the study slot, following
+a plan printed on it, and a problems sheet with one worked problem for each kind of problem the
+teacher's photocopies hold — and prints each into the topic's Drive folder. Nobody writes them by
+hand, and no Claude is involved.
+
+**Why this priority**: the notebook's pieces are for practice spread over days; the day before an
+exam the student has one slot, and needs what the announcement names, in the order it names it, on
+paper.
+
+**Independent Test**: run the command against a test notebook whose sources hold an announcement,
+class notes, a textbook chapter and two photocopies, one of them with a known wrong answer and one
+worked example that contradicts itself, for a 90-minute slot; then read the two PDFs against the
+acceptance scenarios. It needs a real notebook: the command's own tests use a stand-in for `nlm`
+and cannot judge what the notebook writes.
+
+**Acceptance Scenarios**:
+
+1. **Given** an announcement that lists three points, **When** the command runs, **Then** the
+   theory sheet's sections are those three points in the announcement's order.
+2. **Given** an exam whose announcement has not been captured, **When** the command runs, **Then**
+   it refuses, says so, and asks the notebook for nothing.
+3. **Given** notebooks switched off in the configuration, or `nlm` signed out or failing, **When**
+   the command starts, **Then** it refuses with a message that names the cause, and prints nothing.
+4. **Given** a study slot, **When** the theory sheet is printed, **Then** it fits the pages that
+   slot allows (four for 90 minutes, measured once) and opens with a plan that divides the slot by
+   section, whose last step is a blank-page recall; a longer sheet is printed and reported.
+5. **Given** a term the class material writes in the subject's language, **When** it appears on
+   either sheet, **Then** it is written first in that language, then in Spanish.
+6. **Given** a study guide made before the last revision of the topic's living notes file,
+   **When** the command runs, **Then** the guide is regenerated before anything is printed.
+7. **Given** the teacher's photocopies, **When** the problems sheet is read, **Then** every
+   exercise is in exactly one pattern, exercises printed on two photocopies are named as repeats,
+   each pattern has one worked problem (one the teacher assigned when the pattern has one), each
+   statement is in its original language followed by a Spanish translation, and the solutions come
+   only after a page break.
+8. **Given** a photocopy with a known wrong printed answer, **When** the problems sheet is read,
+   **Then** a table after the solutions lists it with the printed and the right value, and names
+   no one.
+
+---
+
 ### Edge Cases
 
 - The notebook account is at its usage limit: the run stops before generating, says when the
@@ -259,6 +369,22 @@ check that the proposed blocks include it.
   keeps Spanish and English.
 - The mind map leaves out a block: it is reported; it is not regenerated, because its content
   cannot be steered.
+- An exam is announced only in class, or spec 001 detected it in a material or an assignment, so
+  there is no announcement: the command refuses it (FR-030); how the family would give such an
+  exam's scope is not designed (Assumptions).
+- The exam is on an earlier topic than the subject's most recent one: the family names the topic,
+  since the announcement does not give it (FR-030).
+- The notebook's theory sheet runs longer than the slot allows: it is printed, and the command
+  reports its page count; it is not regenerated (FR-031).
+- A printed answer differs from the computed one only because its solution rounded before the end
+  (observed 2026-10-28: 9,32 % printed, 9,33 % computed): the solution says so; it is not a wrong
+  answer (FR-036).
+- A statement lacks a datum that the same page gives elsewhere (observed 2026-10-28: a mass where a
+  volume was needed, and the density in a worked example beside it): the solution uses it and says
+  where it came from, and the table lists the exercise with its result under each reading (FR-036).
+- The notes, the teacher's sheets and the textbook name one quantity in different words, or give
+  one name two meanings (observed 2026-10-28: «masa-kontzentrazioa» as a percentage on a sheet and in
+  g/L in the book): the theory sheet shows each wording and how to tell them apart (FR-032).
 
 ## Requirements *(mandatory)*
 
@@ -282,6 +408,7 @@ check that the proposed blocks include it.
 - **FR-005**: Videos and the study guide MUST be in Spanish, giving each key term also in the
   subject's language (the one it is taught and examined in) as the class material writes it.
   Practice sheet, quiz and flashcards MUST be in the subject's language, configured per subject.
+  The exam's problems sheet is the exception (FR-029).
 - **FR-006**: The practice sheet MUST go from a fully worked example to partly worked ones to
   problems without help, with the solutions in a separate section at the end, and MUST NOT reuse
   any numeric data of the teacher's sheets.
@@ -293,7 +420,9 @@ check that the proposed blocks include it.
 
 - **FR-009**: Before the family is told the pack is ready, alfabeta MUST check the language of
   every piece's whole text (for a video, its on-screen text), recompute every numeric answer, and,
-  for the practice sheet, compare its data with the teacher's sheets.
+  for the practice sheet, compare its data with the teacher's sheets. The exam sheets of
+  `exam prep` are the one exception: nothing checks them before they print but their page count,
+  neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
   regenerated or reported.
 - **FR-011**: Every teacher's answer key in the topic folder MUST be recomputed; each mismatch, and
@@ -360,6 +489,73 @@ check that the proposed blocks include it.
   come from the private configuration.
 - **FR-028**: alfabeta MUST NOT type a password; the family signs in.
 
+**The exam eve**
+
+- **FR-029**: alfabeta MUST provide a command, `exam prep` ([contract](contracts/cli.md)), that for
+  a known exam (FR-022) asks the topic's notebook for two reports with fixed prompts, a theory
+  sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014),
+  numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
+  them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's Drive folder:
+  `Teoría para el examen · TNN (<D> <mmm>).pdf` and `Problemas tipo · TNN (<D> <mmm>).pdf`, with
+  the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
+  only with the exam's date, its announcement and that announcement's date, the study slot and the
+  pages it allows, the subject's folder and language, and the grade level. Both reports are asked
+  for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
+  option, so the account-wide setting of FR-007 is not touched. That makes the problems sheet an
+  exception to FR-005, which puts practice in the subject's language: it is the sheet the parent
+  reviews with the student, as observed 2026-10-28. No agent writes either sheet.
+- **FR-030**: The exam's scope MUST come from the teacher's announcement of the exam, as spec 001
+  captures it (text and date). The topic is the one the family names, or else the subject's most
+  recent topic (FR-023): spec 001 files announcements outside any topic. The theory sheet quotes the
+  announcement in its language with its date, its sections are the announcement's points in the
+  announcement's order, and it says what of the topic the announcement leaves out. When the exam has
+  no captured announcement, including an exam spec 001 detected in a material or an assignment, the
+  command MUST refuse and ask the notebook for nothing.
+- **FR-031**: The theory-sheet prompt MUST ask the notebook to follow the class notes, completed by
+  Classroom and then the textbook (FR-002), and to fit the study slot (measured 2026-10-28: four
+  A4 pages for 90 minutes). The sheet opens with a plan that divides the slot by section, with
+  clock times and a short break, and whose last step is a blank-page recall: write from memory, in
+  the subject's language, what the sheet holds that the exam asks to reproduce, then correct it
+  against the sheet. Each section carries a way to test it without looking, with its answers. The
+  command reports the printed page count against the slot; a longer sheet is printed and
+  reported, not regenerated.
+- **FR-032**: On both sheets every term MUST appear first in the subject's language, as the class
+  material writes it, and then in Spanish. Where the notes, the teacher's sheets and the textbook
+  use different words for one thing, or one word for two things, the theory sheet shows each and
+  how to tell them apart.
+- **FR-033**: The command MUST first bring the notebook's class-notes source up to date, as spec
+  005's refresh does. When the topic's living notes file was last revised after the topic's study
+  guide was made, the command MUST regenerate the guide (FR-004), even though the pack record
+  (FR-024) holds it, before anything is printed. A guide made before the notes is never handed out
+  for an exam.
+- **FR-034**: The problems-sheet prompt MUST ask the notebook to put every exercise of the
+  teacher's Classroom photocopies, worked examples included, into a pattern, using as few patterns
+  as possible: one formula is about one pattern, and solving the same formula for another unknown
+  (direct or inverse) is the same pattern; a chain of formulas, or a classification with none, can
+  also be one. The sheet names the photocopies with their dates, maps each pattern to its
+  exercises, names the exercises printed on two photocopies and marks those the teacher assigned.
+- **FR-035**: For each pattern the problems sheet MUST work one problem, the hardest, preferring one
+  the teacher assigned, and say why it is the hardest; it may name a second one of the same pattern
+  for spare time. Each worked problem gives its statement in its original language followed by a
+  Spanish translation. The sheet gives the order and about how long each pattern takes, and every
+  solution comes after a page break, at the end.
+- **FR-036**: The notebook computes every number of both sheets. This is an accepted risk
+  (see Clarifications) and the one exception to FR-009 and SC-001. The
+  problems-sheet prompt MUST ask the notebook to recompute every answer the photocopies print and
+  compare it at the printed precision, equal when within half a unit of the last digit printed,
+  and to list after the solutions, in a table under a neutral heading that names no one, each
+  disagreement with the exercise, the printed value, the computed value and what went wrong, and
+  each statement missing a datum with its result under each reading. A difference that only comes
+  from rounding before the end is noted beside its solution, not in the table. Outside the table,
+  a wrong printed value appears only in the worked solution of that same exercise, with its cause.
+  A check of the sheets' numbers by a model that executes code MAY later be inserted between
+  generation and printing, for that step alone.
+- **FR-037**: Before it asks the notebook for anything, the command MUST refuse, with a message
+  that names the cause and its exit code, and print nothing, when notebooks are switched off in the
+  configuration, when `nlm` is signed out or failing, and when the exam, its announcement or the
+  topic's notebook is not found (constitution VII). A report that fails later is reported, and the
+  other one is still printed.
+
 ### Key Entities
 
 - **Topic**: a school year, subject and topic folder, with its notebook and the subject's language.
@@ -370,13 +566,19 @@ check that the proposed blocks include it.
   or whose statement lacks a datum.
 - **Pack record**: per topic, the blocks, the pieces with their moment, the materials each «HOY»
   piece covers, and the corrections, with dates (FR-024).
+- **Exam sheet**: one of the two reports `exam prep` asks the notebook for, theory or problems: a
+  piece of the moment «EXAMEN», also printed as its own A4 PDF in the topic's Drive folder
+  (FR-029).
+- **Pattern**: one way of solving that a group of the photocopies' exercises shares: a formula
+  used directly or inversely, a chain of them, or a classification; its exercises, the ones the
+  teacher assigned, and its hardest (FR-034, FR-035).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: No numeric answer the student sees differs from its recomputation, across every
-  piece of every pack.
+  piece of every pack, the exam sheets aside (FR-036).
 - **SC-002**: Every text piece intended for the subject's language contains no paragraph in another
   language, and every Spanish text piece gives each key term in the subject's language. (A video's
   audio cannot be checked by the run; its on-screen text is.)
@@ -395,6 +597,13 @@ check that the proposed blocks include it.
   and every weekly review day ends with its «REPASO SEMANA»; no «HOY» piece is made twice for the
   same material.
 - **SC-009**: No title and no note in any notebook says «opcional», «extra» or «si quieres».
+- **SC-010**: In every problems sheet, every exercise of every photocopy of the topic appears in
+  exactly one pattern, and every pattern has exactly one worked problem.
+- **SC-011**: On a test topic whose photocopy prints a known wrong answer, the problems sheet's
+  table lists it with the right value; and no exam sheet is printed when notebooks are switched off
+  or `nlm` is not usable when the command starts.
+- **SC-012**: A theory sheet fits the pages of its slot (measured once, 2026-10-28: four A4 pages
+  for a 90-minute slot), and its sections follow the announcement's points one to one.
 
 ## Assumptions
 
@@ -418,11 +627,29 @@ check that the proposed blocks include it.
 - The quota cost of «HOY» pieces and weekly reviews across several subjects has not been measured;
   quiz and flashcards cost less than videos, which is why «HOY» makes no video.
 - The weekly review day defaults to Friday.
+- The study slot of an exam sheet is given on the command line each time: the configuration has no
+  key for it (`[schedule]` holds the sync's times). Four pages for 90 minutes was measured once.
+- When the exam sheets are made, relative to the exam, is the family's call: the one run,
+  observed 2026-10-28, made them on the morning of the day before, for that afternoon's slot.
+- Whether the notebook's reports follow the fixed prompts closely enough — every exercise in a
+  pattern, the terms first in the subject's language, the page count, the table of wrong printed
+  answers — has not been measured: the sheets observed 2026-10-28 were written by an agent, not by
+  the notebook. The first run of `exam prep` is that measurement, and the prompts are unmeasured
+  until then.
+- The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
+  or added as sources); a photocopy that is not cannot be mapped.
+- An exam announced only in class, or detected in a material or an assignment, has no announcement
+  text, so the command refuses it; how the family
+  would give such an exam's scope is not designed.
+- The quota cost of `exam prep` (two reports, three when the guide is regenerated) has not been
+  measured; SC-006 measured a whole pack.
 
 ## Dependencies
 
 - Spec 001 (`classroom-sync`): the topic folders, and the agenda that carries new topics and
-  announced exams (FR-020, FR-022).
+  announced exams (FR-020, FR-022), including an exam announced only on the stream, with a link to
+  the announcement (its User Story 2); and the stream's announcements saved with their text and
+  creation date (its User Story 6), from which the exam sheets take their scope (FR-030).
 - `nlm` (`notebooklm-mcp-cli`), `pandoc`, Graphviz and Google Chrome on the machine that runs it.
 - A browser session of the notebook's owner for the one setting `nlm` cannot change: the output
   language of quiz and flashcards is account-wide (FR-007). The run drives that session itself.

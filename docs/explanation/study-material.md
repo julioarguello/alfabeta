@@ -55,7 +55,9 @@ teacher never touched still exists, at low priority.
 Trust also has limits in the other direction. On the same date, the teacher's answer key had three
 wrong answers out of eighteen: the key gave 25.85 % where the answer is 5.08 %, 0.13 g/mL where the
 density is 1.095 g/mL, and the wrong sign on an exponent. Material generated for the student never copies an answer key:
-every numeric answer is recomputed.
+every numeric answer is recomputed. The exam sheets of `exam prep` are the one exception: the
+notebook computes their numbers, an accepted risk ([spec 002](../../specs/002-study-pack/spec.md),
+FR-036).
 
 ## What the evidence says
 
@@ -136,10 +138,10 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 | When material arrives: add it as a source, generate nothing | Roca (talk before generating) |
 | When the teacher opens a new topic in Classroom, the previous one is closed: generate its explainer videos, one per block of content, plus the glossary | Segmenting and video length (evidence table); the topic-jump signal is a **hypothesis** to check across subjects |
 | When an exam is announced: practice in the subject's language (worked → faded → mixed problems, a quiz, flashcards) and a short plan of a few 20–25-minute sessions, kept as a note for the family — never in the calendar | Retrieval, spacing, worked examples; AI Family Network for the session length |
-| Videos and the parent's material in Spanish; practice in the subject's language | Sustatu and HABE on Basque audio quality; Saalbach on switching; the split itself is a **hypothesis** |
+| Videos and the parent's material in Spanish; practice in the subject's language, except the exam's problems sheet, in Spanish with each statement also in its original language (spec 002 FR-029) | Sustatu and HABE on Basque audio quality; Saalbach on switching; the split itself is a **hypothesis** |
 | Few pieces for the student, each named by what it is, what about and how long (`Vídeo 4 min · Kontzentrazioa`) | Choice overload ([Chernev et al. 2015](https://www.kellogg.northwestern.edu/faculty/research/detail/2015/when-product-assortment-leads-to-choice-overload-a-conceptual)); the count is a **hypothesis** |
 | The parent's material (topic map, recomputed answer key, translated exercises, a questioning guide with the Basque term) lives in a `docente/` folder of the Drive, not in the notebook | A viewer sees everything in Studio (sharing help) |
-| Numeric answers are recomputed before any material reaches the student | The answer-key errors above |
+| Numeric answers are recomputed before any material reaches the student, except the exam sheets of `exam prep`, whose numbers the notebook computes (an accepted risk, spec 002 FR-036) | The answer-key errors above |
 | The tutor gives hints before answers and never attributes authorship | Bastani et al.; the invented attribution measured above |
 | The calendar holds only objective Classroom facts — assignments, exams, posted material — never study blocks | A family decision: study time is planned by hand |
 
