@@ -527,3 +527,50 @@ class SpendLedger:
 def reportable(before: str | None, after: str) -> bool:
     """Whether a state is a change to report: a state that persists is reported once (FR-013)."""
     return before != after
+
+
+class Session(StrEnum):
+    """Whether the notebook owner's `nlm` session worked on the last pass that checked it (FR-019)."""
+
+    OK = "ok"
+    SIGNED_OUT = "signed_out"
+
+
+# A source is read on the pass that sees a new build, then once more on the next (research R14).
+FIRST_READ, CONFIRMED = 1, 2
+
+
+@dataclass(frozen=True)
+class SourceRead:
+    """The owner's last read of one notebook source."""
+
+    read_md5: str  # the living file's `built_md5` when the owner last read the source
+    reads: int  # FIRST_READ after the read that saw that checksum, CONFIRMED after the next
+    read_at: dt.datetime | None = None  # `exam prep`'s first read may not say when (spec 002)
+
+
+@dataclass(frozen=True)
+class RefreshRecord:
+    """On the Mac only: what the owner read, and whether the owner's session worked (data-model.md)."""
+
+    sources: Mapping[str, SourceRead] = field(default_factory=lambda: dict[str, SourceRead]())
+    session: Session | None = None  # None until a pass has checked it
+    session_since: dt.datetime | None = None  # when `session` took its value
+
+    def due(self, source_id: str, built_md5: str) -> bool:
+        """Whether a pass reads the source: a new build, or a first read awaiting its confirmation."""
+        read = self.sources.get(source_id)
+        return read is None or read.read_md5 != built_md5 or read.reads == FIRST_READ
+
+    def after_read(self, source_id: str, built_md5: str, at: dt.datetime) -> RefreshRecord:
+        """The record once the owner read the source of that build."""
+        read = self.sources.get(source_id)
+        confirming = read is not None and read.read_md5 == built_md5 and read.reads == FIRST_READ
+        reads = CONFIRMED if confirming else FIRST_READ
+        return replace(self, sources={**self.sources, source_id: SourceRead(built_md5, reads, at)})
+
+    def with_session(self, session: Session, at: dt.datetime) -> tuple[RefreshRecord, bool]:
+        """The record with the session measured now, and whether that turned it (FR-019's notice)."""
+        if self.session == session:
+            return self, False
+        return replace(self, session=session, session_since=at), True

@@ -1,9 +1,9 @@
-"""`notes run`, `notebook setup` and `claude key set` (spec 005 contracts/cli.md).
+"""`notes run`, `notebook setup`, `notebook refresh` and `claude key set` (spec 005 contracts/cli.md).
 
-JSON on stdout, one line for people on stderr; no output names an address, a key, a Drive id or a
-path. Exit codes: 0 ok · 1 usage or validation · 2 a Google link is not usable · 3 partial failure ·
-5 `nlm` not signed in; the highest wins. A spent budget is not a failure (exit 0), and a missing
-Claude key exits 0 on the Mac, transcription skipped and reported.
+JSON on stdout, one line for people on stderr; no output names an address, a key, a Drive id, a
+source id, a checksum or a path. Exit codes: 0 ok · 1 usage or validation (`no_nlm` too) · 2 a Google
+link is not usable · 3 partial failure · 5 `nlm` not signed in; the highest wins. A spent budget is not
+a failure (exit 0), and a missing Claude key exits 0 on the Mac, transcription skipped and reported.
 """
 
 from __future__ import annotations
@@ -16,13 +16,15 @@ from zoneinfo import ZoneInfo
 
 from alfabeta.google import accounts
 from alfabeta.google.drive import DriveError, ScopedDrive, cache_path
+from alfabeta.google.notify import MacNotifier
 from alfabeta.google.transport import TransportError, UrllibTransport
 from alfabeta.notes.changes import DriveChangeFeed
 from alfabeta.notes.model import RanOn
 from alfabeta.notes.pdf import ReportlabPdfBuilder
+from alfabeta.notes.refresh import LocalRefreshStore, RefreshDeps, refresh_sources
 from alfabeta.notes.run import NotesDeps, run_notes
 from alfabeta.notes.setup import Setting, SetupError, setup_topic
-from alfabeta.notes.sources import NlmSources, SourcesError
+from alfabeta.notes.sources import NlmMissingError, NlmSources, SourcesError, run_bounded
 from alfabeta.notes.state import ConcurrentWriteError, DriveNotesStateStore, retry_once
 from alfabeta.notes.transcribe import TIMEOUT_SECONDS, ClaudeTranscriber, claude_key_name
 
@@ -134,6 +136,54 @@ def cmd_notebook_setup(
     except (DriveError, TransportError, ConcurrentWriteError):
         return _fail("drive_failed", EXIT_PARTIAL, "Drive refused or did not answer; run setup again")
     _emit(out)
+    return EXIT_OK
+
+
+def refresh_deps(cfg: StudentConfig, store: TokenStore) -> RefreshDeps:
+    """The refresh's real ports: Drive opened at the root, the owner's `nlm`, the record, the Mac (R14)."""
+    transport = UrllibTransport()
+    token = accounts.access_token(cfg, _student_alias(cfg), store, transport)
+    drive = ScopedDrive.open_root(transport, token, cfg.drive_root, cache_path(cfg))
+    return RefreshDeps(
+        state=DriveNotesStateStore(drive),
+        sources=NlmSources(cfg.nlm_profile, run_bounded),
+        record=LocalRefreshStore(cfg.data_dir),
+        notifier=MacNotifier(),
+        clock=SystemClock(),
+    )
+
+
+def cmd_notebook_refresh(
+    cfg: StudentConfig,
+    store: TokenStore,
+    *,
+    browser: bool = False,
+    factory: Callable[[StudentConfig, TokenStore], RefreshDeps] = refresh_deps,
+) -> int:
+    """`notebook refresh`: one pass of the owner's reads (FR-018); `browser` only with a person at the Mac."""
+    try:
+        deps = factory(cfg, store)
+        report = refresh_sources(deps, browser=browser)
+    except accounts.LinkError as err:
+        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google check`")
+    except NlmMissingError:
+        return _fail("no_nlm", EXIT_INVALID, "nlm cannot be run: install it, then install the agent again")
+    except SourcesError:
+        return _fail("nlm_failed", EXIT_PARTIAL, "nlm failed; the next pass reads the same sources")
+    except (DriveError, TransportError):
+        return _fail("drive_failed", EXIT_PARTIAL, "Drive refused or did not answer; the next pass tries again")
+    _emit(report)
+    when = deps.clock.now().isoformat(timespec="seconds")  # the agent's log has no time of its own
+    counts = f"read {report['read']}, unchanged {report['unchanged']}, missing {report['missing']}"
+    print(f"alfabeta: notebook refresh at {when}: {counts}", file=sys.stderr)
+    if not report["ok"] and report["session"] == "signed_out":
+        print(
+            "alfabeta: nlm is not signed in, even after renewing: run `nlm login --profile <profile>`", file=sys.stderr
+        )
+        return EXIT_SIGNED_OUT
+    if not report["ok"]:
+        print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
+        return EXIT_PARTIAL
     return EXIT_OK
 
 

@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import short_day, weekday
+from alfabeta.notes.refresh import LocalRefreshStore
 from alfabeta.notes.run import topic_name
 from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC
 from alfabeta.sources import CLASSROOM
@@ -40,7 +41,6 @@ EXAM_FOLDER = "exam"
 START_TITLE = "0 · Empieza aquí"
 SOLUTIONS = "Soluciones"
 PACK_RECORD = "study-pack.json"
-REFRESH_RECORD = "notebook-refresh.json"
 DEFAULT_MINUTES = 90
 PAGES_PER_90_MINUTES = 4  # measured once, 2026-10-28
 SOURCE_SETTLE_SECONDS = 120  # a Drive source took one to two minutes to catch up (spec 005, 2026-10-27)
@@ -302,15 +302,17 @@ class ExamPrep:
         return status
 
     def _refresh(self, living: LivingNotes) -> None:
-        """Read the notes source once when the notebook may not hold its latest build (spec 005 FR-018)."""
-        path = self.data_dir / REFRESH_RECORD
-        record = _read(path)
-        sources = cast("dict[str, dict[str, Any]]", record.setdefault("sources", {}))
-        if sources.get(living.source, {}).get("read_md5") == living.built_md5:
+        """Read the notes source once when the notebook may not hold its latest build (spec 005 FR-018).
+
+        Only the first read (`reads = 1`); `notebook refresh` makes the confirming one (spec 005 R14).
+        """
+        store = LocalRefreshStore(self.data_dir)
+        record = store.load()
+        read = record.sources.get(living.source)
+        if read is not None and read.read_md5 == living.built_md5:
             return
         self.deps.notebook.read_source(living.source)
-        sources[living.source] = {"read_md5": living.built_md5, "reads": 1, "read_at": self.deps.now().isoformat()}
-        _write(path, record)
+        store.save(record.after_read(living.source, living.built_md5, self.deps.now()))
         self.deps.sleep(SOURCE_SETTLE_SECONDS)
 
     def _guide(self, living: LivingNotes, pack: dict[str, Any]) -> bool:

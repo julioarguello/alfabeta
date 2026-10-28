@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import hashlib
 from dataclasses import dataclass, field, replace
@@ -12,6 +13,7 @@ from alfabeta.google.drive import FOLDER, Change, DriveError, DriveFile, Outside
 from alfabeta.notes.changes import FeedResult, Known
 from alfabeta.notes.model import Arrival, Kind, PartKind, PhotoState, RanOn
 from alfabeta.notes.run import NotesDeps
+from alfabeta.notes.sources import NlmMissingError, Source, SourcesError
 from alfabeta.notes.state import DriveNotesStateStore
 from alfabeta.notes.transcribe import Transcription
 
@@ -325,3 +327,72 @@ def fixed(made: NotesDeps, drive: MemoryDrive) -> Callable[[StudentConfig, Token
         return made, drive
 
     return factory
+
+
+# --- the owner's refresh (spec 005 T045) ---
+
+
+@dataclass
+class FakeOwner:
+    """The notebook owner's `nlm`, scripted; records every call in order."""
+
+    sessions: list[bool] = field(default_factory=lambda: [True])  # one per check; the last repeats
+    renewals: list[bool] = field(default_factory=lambda: [])  # whether each renewal ran; True when empty
+    failing: dict[str, SourcesError] = field(default_factory=lambda: {})  # reads that fail, by source id
+    missing: bool = False  # `nlm` cannot be run
+    calls: list[str] = field(default_factory=lambda: [])
+
+    def session_ok(self) -> bool:
+        self.calls.append("check")
+        if self.missing:
+            raise NlmMissingError
+        return self.sessions.pop(0) if len(self.sessions) > 1 else self.sessions[0]
+
+    def renew_session(self, browser: bool) -> bool:
+        self.calls.append("renew browser" if browser else "renew http-only")
+        return self.renewals.pop(0) if self.renewals else True
+
+    def read_source(self, source_id: str) -> None:
+        self.calls.append(f"read {source_id}")
+        if source_id in self.failing:
+            raise self.failing[source_id]
+
+    def find_notebook(self, title: str) -> str | None:
+        raise AssertionError("the refresh never looks for a notebook")
+
+    def add_drive_source(self, notebook: str, file_id: str, title: str) -> str:
+        raise AssertionError("the refresh never adds a source (FR-011)")
+
+    def list_sources(self, notebook: str) -> list[Source]:
+        raise AssertionError("the refresh never lists sources")
+
+
+@dataclass
+class FakeState:
+    """`state.json` as the refresh reads it."""
+
+    state: dict[str, Any] = field(default_factory=lambda: {})
+    loads: int = 0
+
+    def load(self) -> dict[str, Any]:
+        self.loads += 1
+        return copy.deepcopy(self.state)
+
+
+@dataclass
+class FakeNotifier:
+    """The Mac's notifications, recorded."""
+
+    texts: list[str] = field(default_factory=lambda: [])
+
+    def notify(self, text: str) -> None:
+        self.texts.append(text)
+
+
+def living_state(*living: tuple[str, str | None, str | None, str]) -> dict[str, Any]:
+    """`state.json` with one topic per (kind, source id, built checksum, health); invented ids."""
+    topics: dict[str, Any] = {}
+    for n, (kind, source, md5, health) in enumerate(living):
+        record = {"file_id": f"vivo-{n}", "source_id": source, "built_md5": md5, "pages": 1, "health": health}
+        topics[f"tema-{n}"] = {"name": f"2026091{n} - Tema 0{n} - Materia inventada", "living": {kind: record}}
+    return {"topics": topics}
