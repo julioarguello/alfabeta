@@ -50,7 +50,10 @@ was measured). On 2026-10-28 the student's view did not answer within five minut
 the owner's reads (research.md has the row). To tell a slow refresh from one only the owner
 triggers, share the notebook with the student before adding the page, then let the owner touch
 nothing: the student opens the notebook and asks at five, ten and fifteen minutes; only if none
-answers does the owner run `nlm source stale`, and the student asks again two minutes later.
+answers does the owner read the source once with `nlm source content`, and the student asks again
+two minutes later. Repeated so on 2026-10-28: about fifty minutes of the student's access refreshed
+nothing, `nlm source stale` reported the source up to date when it was not, and the owner's
+`nlm source content` brought the page in within 76 seconds (research.md has both rows).
 
 ## 4. The student's marks
 
