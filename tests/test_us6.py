@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 GRADED = f"{TOPIC}/20261009 - Informe inventado de laboratorio"
 TURNED_IN = f"{TOPIC}/20261006 - Ficha inventada de mezclas"
 # Another item without a topic, posted 2026-10-22, dates the folder.
-NO_TOPIC = f"{FYQ}/20261022 - Sin tema/classroom"
+NO_TOPIC = f"{FYQ}/20261022 - No topic/classroom"
 
 
 @pytest.fixture
@@ -50,7 +50,7 @@ def test_a_graded_assignment_gets_its_correccion(box: Box):
     )
     # Each role is told apart by its name (SC-008a); an assignment turned in and not graded has none.
     names = sorted(p.name for p in (box.base / GRADED).iterdir())
-    assert names == ["correccion.md", "entrega", "enunciado - Plantilla inventada.pdf", "enunciado.md"]
+    assert names == ["correccion.md", "enunciado - Plantilla inventada.pdf", "enunciado.md", "submission"]
     assert not (box.base / TURNED_IN / "correccion.md").exists()
     again, _ = box.apply()
     assert (again["added"], again["changed"]) == (0, 0)
@@ -78,7 +78,7 @@ def test_a_grading_withdrawn_takes_its_note_away_unless_edited(box: Box, edited:
     assert note.exists() == edited
 
 
-def test_announcements_go_to_sin_tema(box: Box):
+def test_announcements_go_to_no_topic(box: Box):
     box.collect_and_plan()
     box.apply()
     notice = "20261026 - aviso - Recordad traer la bata inventada al laboratorio"

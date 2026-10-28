@@ -97,7 +97,7 @@ def test_living_file_names_are_spanish_and_keyed_by_folder():
     topic = Topic("carpeta-1", "Tema 01 - Sustancias inventadas")
     assert topic.living_file_name(LivingKind.NOTES) == "Apuntes · Tema 01 - Sustancias inventadas.pdf"
     assert topic.living_file_name(LivingKind.CLASSROOM) == "Classroom · Tema 01 - Sustancias inventadas.pdf"
-    assert Topic("a", "Sin tema") != Topic("b", "Sin tema")
+    assert Topic("a", "No topic") != Topic("b", "No topic")
 
 
 def test_only_setup_sets_a_living_file_and_its_id_never_changes():
@@ -139,6 +139,8 @@ def test_a_page_keeps_its_place_through_marks_and_corrections():
     "name",
     [
         "entrega - Ejercicios.pdf",
+        "submission/IMG_20261007_171546.jpg",
+        "Submission/Respuestas.pdf",
         "entrega/IMG_20261007_171546.jpg",
         "Entrega/Respuestas.pdf",
         "Entrega - ejercicios.pdf",

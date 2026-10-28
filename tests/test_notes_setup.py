@@ -11,7 +11,7 @@ import pytest
 from alfabeta.notes.setup import Setting, SetupError, setup_topic
 from alfabeta.notes.sources import Source, SourcesError
 from alfabeta.notes.state import STATE
-from tests.notes_fakes import TOPIC, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
+from tests.notes_fakes import NOTES, TOPIC, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
 
 OWNER = "propietario.inventado@example.com"
 TITLE = "3º ESO. FyQ. Tema 01 - Materia inventada"
@@ -70,7 +70,10 @@ def test_a_first_setup_creates_shares_and_adds_exactly_two_files():
     notes = drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
     classroom = drive.named("Classroom · Tema 01 - Materia inventada.pdf")
     assert len(notes) == len(classroom) == 1
-    assert drive.files[notes[0]].parents == (TOPIC,)
+    # Each in its folder of the topic: notes/ was there, classroom/ is made (constitution 2.2.0).
+    assert drive.files[notes[0]].parents == (NOTES,)
+    (made,) = drive.files[classroom[0]].parents
+    assert (drive.files[made].name, drive.files[made].parents) == ("classroom", (TOPIC,))
     assert sorted(drive.shared) == sorted([(notes[0], OWNER), (classroom[0], OWNER)])
     assert [t for _, t in nb.added] == [
         "Apuntes · Tema 01 - Materia inventada",

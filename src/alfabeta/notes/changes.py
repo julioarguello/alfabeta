@@ -1,9 +1,9 @@
 """What changed under the topic folders since the last run (spec 005 research R2, FR-004).
 
 The feed from `ScopedDrive.changes` becomes arrivals, the student's marks and corrections, and the
-recorded files that are gone. Layout (spec 001): `<year>/<subject>/<topic>/` with `apuntes/` and
-`classroom/` inside, living files at the topic's root, and `.alfabeta/` and `Informes/` at the root
-of the alfabeta folder.
+recorded files that are gone. Layout (spec 001): `<year>/<subject>/<topic>/` with `notes/` and
+`classroom/` inside, each holding its living file, nothing at the topic's root, and `.alfabeta/` and
+`reports/` at the root of the alfabeta folder.
 """
 
 from __future__ import annotations
@@ -12,18 +12,19 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol
 
 from alfabeta.google.drive import Change
-from alfabeta.notes.model import Arrival, Kind
+from alfabeta.notes.model import Arrival, Kind, LivingKind
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from alfabeta.google.drive import DriveFile
 
-NOTES_FOLDER = "apuntes"
+NOTES_FOLDER = "notes"
 CLASSROOM_FOLDER = "classroom"
-SKIPPED = frozenset({".alfabeta", "Informes"})
+# The folder of the topic each living file sits in (spec 005 FR-009).
+LIVING_FOLDERS = {LivingKind.NOTES: NOTES_FOLDER, LivingKind.CLASSROOM: CLASSROOM_FOLDER}
+SKIPPED = frozenset({".alfabeta", "reports"})
 TRANSCRIPT_MARK = " · transcripción"
-LIVING_PREFIXES = ("Apuntes · ", "Classroom · ")
 _TOPIC_DEPTH = 3  # root / year / subject / topic
 
 
@@ -97,12 +98,20 @@ class ChangeFeed(Protocol):
         ...
 
 
+def _is_living(item: DriveFile, kind: LivingKind) -> bool:
+    """Whether a file directly in `notes/` or `classroom/` carries that folder's living file name."""
+    stem = item.name.rsplit(".", 1)[0]
+    return item.name.startswith(f"{kind.prefix} · ") and item.name.endswith(".pdf") and TRANSCRIPT_MARK not in stem
+
+
 def _kind_in_notes(item: DriveFile) -> Kind:
     if item.mime_type.startswith("image/"):
         return Kind.NOTES_PHOTO  # the model decides whether it can be transcribed
     stem = item.name.rsplit(".", 1)[0]
     if item.name.endswith(".pdf") and TRANSCRIPT_MARK in stem:
         return Kind.NOTES_TRANSCRIPT
+    if _is_living(item, LivingKind.NOTES):
+        return Kind.LIVING_FILE
     if item.name.endswith(".md"):
         return Kind.NOTES_TEXT
     return Kind.UNEXPECTED
@@ -162,15 +171,16 @@ class DriveChangeFeed:
         topic, below = chain[_TOPIC_DEPTH - 1], chain[_TOPIC_DEPTH:]
         if not below:
             if item.is_folder:
-                return None  # apuntes/, classroom/ or another folder of the topic
-            living = item.name.startswith(LIVING_PREFIXES) and item.name.endswith(".pdf")
-            return topic.id, Kind.LIVING_FILE if living else Kind.UNEXPECTED, item.id
+                return None  # notes/, classroom/ or another folder of the topic
+            return topic.id, Kind.UNEXPECTED, item.id  # nothing alfabeta writes sits at a topic's root
         section = below[0].name
         if section == NOTES_FOLDER:
             if item.is_folder:
                 return None
             return topic.id, _kind_in_notes(item) if len(below) == 1 else Kind.UNEXPECTED, item.id
         if section == CLASSROOM_FOLDER:
+            if len(below) == 1 and not item.is_folder and _is_living(item, LivingKind.CLASSROOM):
+                return topic.id, Kind.LIVING_FILE, item.id  # never an item of itself
             # An item is a file or a folder directly in classroom/; a file deeper is part of its item.
             owner = item if len(below) == 1 else below[1]
             return topic.id, Kind.CLASSROOM_ITEM, owner.id

@@ -27,8 +27,10 @@ fails, say which keys and stop. Never create the configuration or write to it.
 | `notebook.title_pattern`, `notebook.nlm_profile` | the topic's notebook; the `nlm` profile of the account that owns it |
 
 Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>/`, found by
-`*Tema NN - *` whatever its date, holding `apuntes/` (the student's class notes), `classroom/` (the
-teacher's material) and `sciencebits/` (the textbook). The notebook is the one whose title matches
+`*Tema NN - *` whatever its date, holding only folders: `notes/` (the student's class notes),
+`classroom/` (the teacher's material), `sciencebits/` (the textbook), `notebook/` (everything this
+skill generates) and `exam/` (the sheets for the day before an exam). Nothing goes at its root. The
+notebook is the one whose title matches
 `notebook.title_pattern` (`nlm notebook list --profile <profile> --json`), with `<profile>` =
 `notebook.nlm_profile`. `nlm download` takes no profile and reads nlm's default one
 (`nlm config get auth.default_profile`; measured 2026-10-28 with nlm 0.15.8): when it is not
@@ -49,8 +51,8 @@ email or an id into the repository.
 1. **Read the scope.** Rank the sources: class notes > Classroom > textbook. The teacher's material
    says what is prioritised, not what is excluded. List the ideas an exam could ask, grouped in **two
    or three blocks**; separate on purpose two ideas students confuse (density and concentration were
-   one such pair). Write them to `docente/bloques.md` with the files they come from, and show them to
-   the family. **Once confirmed, the blocks are not decided again.** Photos in `apuntes/` become a
+   one such pair). Write them to `notebook/bloques.md` with the files they come from, and show them to
+   the family. **Once confirmed, the blocks are not decided again.** Photos in `notes/` become a
    source only as a literal transcription that someone who reads the notes has checked.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
@@ -78,11 +80,11 @@ email or an id into the repository.
      language cannot be checked this way; say so.
 6. **Print the parent's material** with
    `<tools.repository>/skills/study-pack/scripts/print-report.sh <nb> <artifact-id> <output.pdf> --student <student>`
-   (A4, formulas rendered by KaTeX, page numbers) into `docente/`: the parent guide and the
+   (A4, formulas rendered by KaTeX, page numbers) into `notebook/`: the parent guide and the
    glossary, each with its Markdown beside it.
 7. **Remove from Studio what the student must not see.** A viewer sees every Studio artifact, so the
    parent guide (it holds the answers) and the glossary leave Studio once their PDF and Markdown are
-   in `docente/` (`nlm studio delete <nb> <id> --profile <profile> --confirm`). Until this step a
+   in `notebook/` (`nlm studio delete <nb> <id> --profile <profile> --confirm`). Until this step a
    viewer can see them: run it as soon as step 6 ends. Few pieces is a design hypothesis (see the
    design page); Tema 01 ended with six to work through plus two to consult. Say so when a topic
    goes past that.
@@ -94,21 +96,21 @@ email or an id into the repository.
    Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
-9. **Copy every video to the topic folder** (`nlm download video <nb> --id <id> -o "<topic
-   folder>/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
+9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
+   folder>/notebook/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
    (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
    fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **Add the start note** `0 · Empieza aquí` last, so it sits on top
    (`nlm note create`, or `nlm note update` if it exists), naming the pieces by number and linking
-   the topic folder in each of the student's Drives, and **configure the tutor chat**
+   the topic's `notebook/` folder in each of the student's Drives, and **configure the tutor chat**
    (both in [`prompts.md`](prompts.md)).
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
-    <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/Tema NN para
-    imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
+    <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN
+    para imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
     notebook"), the start note, then each report, the quiz with its answer key at the end, the flashcards as a
     table and the mind map drawn with Graphviz, each on a new page, in the numbered order. Run it
     after step 7, or the parent's material would print with it.
 11. **Report** to the family: what is in Studio and in what order, where the printable PDF is,
-    what went to `docente/`, the corrections, and what was not verified.
+    what went to `notebook/`, the corrections, and what was not verified.
 
 > [!WARNING]
 > The output language that quiz and flashcards are written in is an **account-wide** setting, not a
@@ -142,9 +144,8 @@ one place where nothing recomputes them (spec 002 FR-036).
 Until that command exists, the family can make the same two reports by hand, with no agent:
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile
 <profile> -y`, one per prompt with every placeholder filled, printed with `print-report.sh`
-(step 6) under those paths after creating the topic's `exam/` folder by hand (`mkdir -p`):
-`print-report.sh` does not create it, and Chrome reports success without writing the PDF when it
-is missing. That path skips what the command adds: regenerating a stale guide, the titles, the
+(step 6) under those paths; `print-report.sh` creates the topic's `exam/` folder when it is
+missing. That path skips what the command adds: regenerating a stale guide, the titles, the
 start note, the pack record and the page break before «Soluciones».
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the

@@ -11,6 +11,8 @@ from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol
 
+from alfabeta.placement import SUBMISSION_FOLDER
+
 if TYPE_CHECKING:
     import datetime as dt
     from collections.abc import Mapping
@@ -23,9 +25,11 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
 # Spec 001's roles `submission` and `grading`, whatever follows the prefix (constitution III).
 _STUDENT_WORK = re.compile(r"^(entrega - |correccion)", re.IGNORECASE)
+# The submission's folder, and its name until 2026-10-28 (#110), so a folder not yet renamed stays out.
+_SUBMISSION_FOLDERS = frozenset({SUBMISSION_FOLDER, "entrega"})
 # A previous version spec 001 keeps beside an edited replica (spec 001 FR-015b).
 _PREVIOUS_VERSION = re.compile(r" \(anterior \d{4}-\d{2}-\d{2}\)(\.[^.]+)?$")
-# An announcement note spec 001 writes in `Sin tema`.
+# An announcement note spec 001 writes in `No topic`.
 _ANNOUNCEMENT = re.compile(r"^\d{8} - aviso - ")
 
 
@@ -144,6 +148,11 @@ class LivingKind(StrEnum):
     NOTES = "notes"
     CLASSROOM = "classroom"
 
+    @property
+    def prefix(self) -> str:
+        """How the living file's name starts, in Spanish: `<prefix> · <topic>.pdf`."""
+        return "Apuntes" if self is LivingKind.NOTES else "Classroom"
+
 
 class Health(StrEnum):
     """Whether a recorded living file is still where it was set up."""
@@ -181,11 +190,11 @@ class RanOn(StrEnum):
 def is_student_work(name: str) -> bool:
     """Whether a file is the student's own work or its grading, which never enters a living file.
 
-    `name` is the file's name or its path inside the item's folder: anything under `entrega/` is the
-    student's (spec 001 FR-015a, amended 2026-10-28), and so is the older `entrega - <name>`.
+    `name` is the file's name or its path inside the item's folder: anything under `submission/` is
+    the student's (spec 001 FR-015a, amended 2026-10-28), and so is the older `entrega - <name>`.
     """
     parts = name.replace("\\", "/").split("/")
-    return any(p.casefold() == "entrega" for p in parts[:-1]) or bool(_STUDENT_WORK.match(parts[-1]))
+    return any(p.casefold() in _SUBMISSION_FOLDERS for p in parts[:-1]) or bool(_STUDENT_WORK.match(parts[-1]))
 
 
 def is_previous_version(name: str) -> bool:
@@ -211,9 +220,8 @@ class Topic:
     name: str  # the folder's name after its date, `<topic>` in living file names
 
     def living_file_name(self, kind: LivingKind) -> str:
-        """The living file's name in the topic folder, in Spanish."""
-        prefix = "Apuntes" if kind == LivingKind.NOTES else "Classroom"
-        return f"{prefix} · {self.name}.pdf"
+        """The living file's name, in Spanish, in the topic's `notes/` or `classroom/`."""
+        return f"{kind.prefix} · {self.name}.pdf"
 
 
 @dataclass(frozen=True)

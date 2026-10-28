@@ -138,12 +138,12 @@ def test_item_match_wins_over_its_topic():
     assert "/20261014 - Tema 03 - Disoluciones/" in target.path
 
 
-def test_no_topic_goes_to_sin_tema_one_per_subject_and_never_a_month_folder():
+def test_no_topic_goes_to_no_topic_one_per_subject_and_never_a_month_folder():
     placer = Placer("2026-2027", NO_BOOK)
     a = placer.place(item(topic=None, ident="synth-i1"))
     b = placer.place(item(topic=None, ident="synth-i2", title="Otra", posted=dt.date(2026, 11, 3)))
     folders = {p.split("/")[2] for p in paths(a) + paths(b)}
-    assert folders == {"20261014 - Sin tema"}
+    assert folders == {"20261014 - No topic"}
     assert not any(
         part[:7].count("-") == 1 and part[:4].isdigit() and len(part) == 7
         for p in paths(a + b)
@@ -170,7 +170,7 @@ def test_material_forms():
     assert sorted(paths(only_links)) == [f"{folder}/descripcion.md", f"{folder}/enlaces.md"]
 
 
-def test_assignment_is_always_a_folder_with_prefixed_files_and_the_submission_in_entrega():
+def test_assignment_is_always_a_folder_with_prefixed_files_and_the_submission_in_submission():
     statement = file("Problemas.pdf", "synth-s1", AttachmentRole.STATEMENT)
     handed = file("Respuestas.pdf", "synth-s2", AttachmentRole.SUBMISSION)
     one = item(
@@ -186,7 +186,7 @@ def test_assignment_is_always_a_folder_with_prefixed_files_and_the_submission_in
     assert {(t.role, t.path) for t in targets} == {
         (ReplicaRole.STATEMENT, f"{folder}/enunciado - Problemas.pdf"),
         (ReplicaRole.DESCRIPTION, f"{folder}/enunciado.md"),
-        (ReplicaRole.SUBMISSION, f"{folder}/entrega/Respuestas.pdf"),
+        (ReplicaRole.SUBMISSION, f"{folder}/submission/Respuestas.pdf"),
         (ReplicaRole.GRADING, f"{folder}/correccion.md"),
     }
     question = Placer("2026-2027", NO_BOOK).place(
@@ -195,17 +195,17 @@ def test_assignment_is_always_a_folder_with_prefixed_files_and_the_submission_in
     assert paths(question) == ["2026-2027/Lengua/20261014 - T/classroom/20261014 - ¿Qué es un gas?/enunciado.md"]
 
 
-def test_announcement_note_or_folder_in_sin_tema():
+def test_announcement_note_or_folder_in_no_topic():
     text = "Cambio de fecha del examen: será el jueves 22 en la segunda hora, traed calculadora"
     placer = Placer("2026-2027", NO_BOOK)
     [note] = placer.place(item(ItemType.ANNOUNCEMENT, ident="synth-n1", topic="synth-t1", description=text))
     expected = "20261014 - aviso - " + summary(text)
-    assert note.path == f"2026-2027/Lengua/20261014 - Sin tema/classroom/{expected}.md"
+    assert note.path == f"2026-2027/Lengua/20261014 - No topic/classroom/{expected}.md"
     assert len(summary(text)) <= 60 and not summary(text).endswith(" ")
     with_file = placer.place(
         item(ItemType.ANNOUNCEMENT, ident="synth-n2", description="Horario", attachments=(file("Horario.pdf"),))
     )
-    folder = "2026-2027/Lengua/20261014 - Sin tema/classroom/20261014 - aviso - Horario"
+    folder = "2026-2027/Lengua/20261014 - No topic/classroom/20261014 - aviso - Horario"
     assert sorted(paths(with_file)) == [f"{folder}/20261014 - aviso - Horario.md", f"{folder}/Horario.pdf"]
 
 
@@ -245,9 +245,9 @@ def test_two_files_of_one_assignment_with_one_name_are_numbered():
     expected = [
         f"{folder}/enunciado - ficha.pdf",
         f"{folder}/enunciado - ficha (2).pdf",
-        f"{folder}/entrega/foto.jpg",
-        f"{folder}/entrega/foto (2).jpg",
-        f"{folder}/entrega/foto (3).jpg",
+        f"{folder}/submission/foto.jpg",
+        f"{folder}/submission/foto (2).jpg",
+        f"{folder}/submission/foto (3).jpg",
     ]
     assert paths(Placer("2026-2027", NO_BOOK).place(one, "T")) == expected
     assert paths(Placer("2026-2027", NO_BOOK).place(one, "T")) == expected  # the same on every run

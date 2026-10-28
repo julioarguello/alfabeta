@@ -87,7 +87,9 @@ def test_the_first_run_takes_the_cursor_first_then_the_whole_tree(tmp_path: Path
         ("u1", "t1", Kind.UNEXPECTED),
         ("it1", "t1", Kind.CLASSROOM_ITEM),  # the item folder and its file: one item
         ("it2", "t1", Kind.CLASSROOM_ITEM),
-        ("lf1", "t1", Kind.LIVING_FILE),
+        ("lf1", "t1", Kind.LIVING_FILE),  # in notes/
+        ("lf2", "t1", Kind.LIVING_FILE),  # in classroom/, never an item of itself
+        ("lf0", "t1", Kind.UNEXPECTED),  # a living file's name at the topic's root: nothing belongs there
         ("u2", "t1", Kind.UNEXPECTED),
     }
     assert {a.version for a in result.arrivals if a.file_id == "f1"} == {"a001"}
@@ -139,10 +141,10 @@ def test_a_trashed_recorded_file_is_gone():
     assert (result.gone, result.arrivals) == (["it2"], [])
 
 
-def test_a_deep_path_under_informes_is_never_read_as_a_topic(tmp_path: Path):
+def test_a_deep_path_under_reports_is_never_read_as_a_topic(tmp_path: Path):
     folder = "application/vnd.google-apps.folder"
-    # Informes/<a>/<b>/apuntes/ has a topic's shape one level down: only the skip keeps it out.
-    deep = [("i1", "2026-2027", "inf"), ("i2", "FyQ", "i1"), ("i4", "apuntes", "i2")]
+    # reports/<a>/<b>/notes/ has a topic's shape one level down: only the skip keeps it out.
+    deep = [("i1", "2026-2027", "inf"), ("i2", "FyQ", "i1"), ("i4", "notes", "i2")]
     files = fixture("tree.json")["files"]
     files += [{"id": i, "name": n, "mimeType": folder, "parents": [p]} for i, n, p in deep]
     files.append({"id": "img", "name": "foto.jpg", "mimeType": "image/jpeg", "parents": ["i4"], "md5Checksum": "z1"})
@@ -156,7 +158,7 @@ def test_a_recorded_file_moved_to_another_topic_arrives_there():
     folder = "application/vnd.google-apps.folder"
     other = (
         DriveFile("t2", "20261020 - Tema 02 - Otra", folder, ("fyq",)),
-        DriveFile("ap2", "apuntes", folder, ("t2",)),
+        DriveFile("ap2", "notes", folder, ("t2",)),
     )
     tree = {f["id"]: f for f in fixture("tree.json")["files"]}
     moved = {**{k: v for k, v in tree["f1"].items() if k != "id"}, "parents": ["ap2"]}
