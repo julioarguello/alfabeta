@@ -32,6 +32,7 @@ from alfabeta.model import (
     ItemType,
     Subject,
 )
+from alfabeta.notes.refresh import AGENDA_LINE
 from alfabeta.replicas import item_from_json, item_to_json
 from tests.test_incremental import first_run, next_run
 from tests.test_plan_apply_us1 import Box, cli
@@ -493,6 +494,15 @@ def test_agenda_json_follows_the_contract_and_carries_no_timestamp():
     assert document["school_year"] == "2026-2027" and document["version"] == 1
 
 
+def test_a_notice_goes_at_the_top_of_agenda_md_and_never_into_agenda_json():
+    plain = every_case()
+    noticed = replace(plain, notices=("**Aviso**: un aviso inventado.",))
+    md = noticed.to_markdown()
+    assert md.splitlines()[:4] == ["# Agenda 2026-2027", "", "**Aviso**: un aviso inventado.", ""]
+    assert md.replace("**Aviso**: un aviso inventado.\n\n", "", 1) == plain.to_markdown()
+    assert noticed.to_json() == plain.to_json()  # agenda.json is the reminders epic's input: entries only
+
+
 def test_the_same_inputs_give_the_same_bytes(tmp_path: Path):
     base = tmp_path / "base"
     base.mkdir()
@@ -581,3 +591,19 @@ def test_another_today_rewrites_nothing(box: Box, monkeypatch: pytest.MonkeyPatc
         assert cli_main.main(["--home", str(box.home), "agenda", "--student", "sample"]) == 0
         assert json.loads(capsys.readouterr().out) == {"written": []}
     assert [p.stat().st_mtime_ns for p in files] == stamps
+
+
+def test_the_macs_sync_shows_the_owners_session_line_while_it_is_signed_out(box: Box):
+    """Spec 005 FR-019: the agenda line comes from the Mac's sync, read from the refresh record."""
+    first_run(box)
+    record = box.data / "notebook-refresh.json"
+    record.write_text(
+        json.dumps({"sources": {}, "session": "signed_out", "session_since": "2026-10-28T10:00:00+01:00"})
+    )
+    assert box("agenda", "--student", "sample").returncode == 0
+    md = (box.base / "2026-2027" / "agenda.md").read_text()
+    assert md.splitlines()[2] == AGENDA_LINE
+    record.write_text(json.dumps({"sources": {}, "session": "ok", "session_since": "2026-10-28T10:15:00+01:00"}))
+    again = box("agenda", "--student", "sample")
+    assert json.loads(again.stdout) == {"written": ["2026-2027/agenda.md"]}
+    assert AGENDA_LINE not in (box.base / "2026-2027" / "agenda.md").read_text()

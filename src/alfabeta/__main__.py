@@ -40,6 +40,7 @@ from alfabeta.google.notify import MacNotifier
 from alfabeta.google.transport import UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
+from alfabeta.notes import refresh
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -430,6 +431,7 @@ def _agenda_builder(cfg: config.StudentConfig, data_dir: Path, current: dict[str
         decisions=store.decisions(),
         state=current,
         captured=agenda.capture_instants(plan.latest_captures(data_dir / "captures")),
+        notices=refresh.agenda_notices(data_dir),  # spec 005 FR-019, while the owner's session fails
     )
 
 
