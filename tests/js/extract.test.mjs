@@ -60,6 +60,18 @@ function plantPrivate(doc) {
   }
   const author = doc.querySelector(".rec5Nb .YVvGBb");
   if (author) author.textContent = `${MARKER} autor`;
+  // On the stream, each post's header names its author and its class comments sit below it. The
+  // marker goes in a node of its own, so a notice still reads «Tarea: …».
+  for (const header of doc.querySelectorAll("[data-stream-item-id] .QUEiXc")) {
+    const name = doc.createElement("span");
+    name.textContent = `${MARKER} autor del anuncio`;
+    header.appendChild(name);
+  }
+  for (const comments of doc.querySelectorAll("[data-stream-item-id] .s2g3Xd")) {
+    const comment = doc.createElement("div");
+    comment.textContent = `${MARKER} comentario de clase en el tablón`;
+    comments.appendChild(comment);
+  }
 }
 
 async function capture(options) {
@@ -252,6 +264,48 @@ test("a classwork page with neither rows nor the empty notice is not ready", () 
   const doc = emptyClasswork();
   for (const div of doc.querySelectorAll("div")) if (div.textContent.startsWith("Aún no hay tareas")) div.remove();
   assert.equal(extract.pageReady("/u/5/w/synth-1/t/all", doc), false);
+});
+
+// The stream as the real page builds it (measured 2026-10-28): the body's lines are split by <br>,
+// every post hides a teacher-only notice, longer than any of those lines, in a tooltip, and the
+// label «Fecha de creación: » and its date are two text nodes, which a saved page joins into one.
+test("each announcement is read whole, line by line, with its creation date", () => {
+  const doc = page("stream-announcements").window.document;
+  const expected = [
+    {
+      id: "9100000001",
+      created_text: "Fecha de creación: 22 sept",
+      text: "El examen del martes entra:\nMagnitudes y unidades.\nNotación científica.",
+      attachments: [],
+    },
+    { id: "9100000002", created_text: "Fecha de creación: 27 oct", text: "Mañana, examen.", attachments: [] },
+  ];
+  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), expected);
+  for (const label of doc.querySelectorAll(".JZk9qf > .jzdBjc")) label.firstChild.splitText("Fecha de creación: ".length);
+  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), expected);
+});
+
+test("a short announcement is not taken for its author, nor a comment for an announcement", async () => {
+  const { result } = await capture({ plant: true, override: { "/u/5/c/synth-1": "stream-announcements" } });
+  assert.ok(!JSON.stringify(result).includes(MARKER));
+  assert.deepEqual(result.stream.map((p) => p.text), [
+    "El examen del martes entra:\nMagnitudes y unidades.\nNotación científica.",
+    "Mañana, examen.",
+  ]);
+});
+
+test("an announcement whose body or comment starts like a notice is still read", () => {
+  const doc = page("stream-announcements").window.document;
+  const [first, second] = doc.querySelectorAll(".pco8Kc > span");
+  second.textContent = "Tarea: traed el cuaderno.";
+  const comment = doc.createElement("div");
+  comment.textContent = "Pregunta: ¿entra el tema 2?";
+  first.closest("[data-stream-item-id]").querySelector(".s2g3Xd").appendChild(comment);
+  const stream = JSON.parse(JSON.stringify(extract.readStream(doc)));
+  assert.deepEqual(stream.map((p) => [p.id, p.text.split("\n")[0]]), [
+    ["9100000001", "El examen del martes entra:"],
+    ["9100000002", "Tarea: traed el cuaderno."],
+  ]);
 });
 
 test("an empty stream is ready", () => {

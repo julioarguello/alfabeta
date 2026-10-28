@@ -207,6 +207,9 @@ def _announcement(raw: dict[str, Any], class_id: str, resolver: DateResolver) ->
     posted = _date(resolver, raw["created_text"])
     if posted is None:
         raise CaptureError("an announcement has no creation date")
+    if not text:
+        # The extractor found no text block: listed, not placed as an empty note (#98).
+        raise CaptureError("an announcement has no text")
     first_line = text.splitlines()[0] if text else ""
     return Item(
         id=str(raw["id"]),

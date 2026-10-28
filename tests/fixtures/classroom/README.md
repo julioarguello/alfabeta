@@ -15,6 +15,12 @@ Everything here is synthetic or invented. No page of a real student enters the r
 | `stream.html` | Stream (`/u/<n>/c/<class>`) | same |
 | `challenge.html` | Anti-bot challenge | written by hand |
 | `classwork-other-language.html` | «Trabajo de clase» with English labels | written by hand |
+| `stream-announcements.html` | Stream with two announcements and a notice | written by hand, in the shape of a real stream (2026-10-28) |
+
+`stream-announcements.html` exists because `anonymize` gives every text the same length: on
+`stream.html` the longest text of a post and its body cannot be told apart. Here the hidden
+teacher-only notice is longer than any line of a body, and one body is shorter than its author's
+header, as on the real page.
 
 The anonymised pages were generated on 2026-10-27. They keep tags, CSS classes, hierarchy, the
 label allowlist of research R8 and the short enumerations the page uses for structure
