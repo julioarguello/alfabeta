@@ -119,6 +119,15 @@ def test_an_unreadable_item_is_listed_not_guessed():
     assert {i.id for i in normalized.items}.isdisjoint({"synth-21", "synth-23"})
 
 
+def test_an_announcement_without_text_or_date_is_listed_not_guessed():
+    data = load("class-synth-1.json")
+    data["stream"][0]["text"] = ""
+    data["stream"][1]["created_text"] = "Fecha de creación:"
+    normalized = capture.normalize_class(data, "2026-2027")
+    assert normalized.unreadable == ("synth-30", "synth-31")
+    assert {i.id for i in normalized.items}.isdisjoint({"synth-30", "synth-31"})
+
+
 @pytest.mark.parametrize(
     ("key", "value", "message"),
     [

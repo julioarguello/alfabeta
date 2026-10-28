@@ -269,9 +269,12 @@
   // hides a teacher-only notice in a tooltip, longer than any line of the body (measured 2026-10-28).
   function readStream(doc) {
     const created = (p) => texts(p).find((t) => t.text.startsWith("Fecha de creación"));
+    // A notice says «Tarea: …» in its heading; an announcement's heading names its author, and its
+    // body or a comment may start with «Tarea: » too.
+    const notice = (p) => NOTICE.test(clean(p.querySelector("h2") && p.querySelector("h2").textContent));
     const posts = [...doc.querySelectorAll("[data-stream-item-id]")].filter(created);
     return posts
-      .filter((p) => !texts(p).some((t) => NOTICE.test(t.text)))
+      .filter((p) => !notice(p))
       .map((p) => {
         const body = p.querySelector(".pco8Kc");
         return {

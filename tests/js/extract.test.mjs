@@ -294,6 +294,20 @@ test("a short announcement is not taken for its author, nor a comment for an ann
   ]);
 });
 
+test("an announcement whose body or comment starts like a notice is still read", () => {
+  const doc = page("stream-announcements").window.document;
+  const [first, second] = doc.querySelectorAll(".pco8Kc > span");
+  second.textContent = "Tarea: traed el cuaderno.";
+  const comment = doc.createElement("div");
+  comment.textContent = "Pregunta: ¿entra el tema 2?";
+  first.closest("[data-stream-item-id]").querySelector(".s2g3Xd").appendChild(comment);
+  const stream = JSON.parse(JSON.stringify(extract.readStream(doc)));
+  assert.deepEqual(stream.map((p) => [p.id, p.text.split("\n")[0]]), [
+    ["9100000001", "El examen del martes entra:"],
+    ["9100000002", "Tarea: traed el cuaderno."],
+  ]);
+});
+
 test("an empty stream is ready", () => {
   const doc = page("stream").window.document;
   for (const node of doc.querySelectorAll("[data-stream-item-id]")) node.remove();
