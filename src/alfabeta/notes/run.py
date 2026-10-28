@@ -586,6 +586,7 @@ class ClassroomBuild:
     pages: int
     built: tuple[str, ...]
     failed: tuple[str, ...]
+    links_only: frozenset[str] = frozenset()  # built entries that are only their cover
 
 
 def _touch(work: Pass, record: dict[str, Any]) -> None:
@@ -655,10 +656,6 @@ def _item(deps: NotesDeps, work: Pass, item_id: str, record: dict[str, Any]) -> 
     record["item_version"] = version
     _settle(item_id, record, ItemState.SEEN)
     work.classroom_dirty.add(record["living"])
-    work.count(record["living"], "items_added")
-    covers = _DESCRIPTIONS | {_LINKS} if found.is_folder else frozenset[str]()
-    if all(part_kind(f.name, f.mime_type) == PartKind.NAMED for path, f in kept if path not in covers):
-        work.count(record["living"], "links_only")
 
 
 def _route(deps: NotesDeps, work: Pass, topic: str) -> str | None:
@@ -742,7 +739,12 @@ def _rebuild_classroom(deps: NotesDeps, work: Pass, topic: str) -> None:
     built, upload = living.built(hashlib.md5(build.data).hexdigest(), build.pages)
     if upload:
         deps.drive.update(living.file_id, build.data, PDF)
+    reached = [i for i in build.built if work.files[i]["state"] in _DUE]  # new or changed, now in the file
     settle_classroom(work.files, build)
+    for item_id in reached:
+        work.count(topic, "items_added")  # FR-013: items that reached the living file
+        if item_id in build.links_only:
+            work.count(topic, "links_only")
     for _ in build.failed:
         work.count(topic, "failed")
     living_records[LivingKind.CLASSROOM] = living_record(built)
@@ -774,7 +776,8 @@ def build_classroom(deps: NotesDeps, files: dict[str, dict[str, Any]], topic: st
             # (origin: #68)
             failed.append(item_id)
     data, pages = deps.pdf.classroom(Topic(topic, name), entries)
-    return ClassroomBuild(data, pages, tuple(e.item_id for e, _ in entries), tuple(failed))
+    links_only = frozenset(e.item_id for e, _ in entries if e.links_only)
+    return ClassroomBuild(data, pages, tuple(e.item_id for e, _ in entries), tuple(failed), links_only)
 
 
 def settle_classroom(files: dict[str, dict[str, Any]], build: ClassroomBuild) -> None:

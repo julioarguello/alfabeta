@@ -604,10 +604,10 @@ def test_an_item_drive_cannot_read_is_left_out_retried_then_in():
     drive.unreadable.add("plantilla")
     report = run(drive)
     assert body(drive, living) == f"classroom:{TEMA_01}:ficha[Ficha|||20261001 - Ficha.pdf/pdf=%PDF ficha]"
-    assert nonzero(report) == [{"items_added": 2, "failed": 1}]
+    assert nonzero(report) == [{"items_added": 1, "failed": 1}]  # only what reached the file is added
     assert state_of(drive)["files"]["lab"]["state"] == "failed"
     drive.unreadable.clear()
-    run(drive)  # nothing changed in Drive: a failed item is retried
+    assert nonzero(run(drive)) == [{"items_added": 1}]  # nothing changed in Drive: a failed item is retried
     assert "lab[Práctica|||plantilla.docx/office=office:plantilla]" in body(drive, living)
     assert state_of(drive)["files"]["lab"]["state"] == "in_living_file"
 
@@ -652,6 +652,6 @@ def test_a_topic_waiting_for_setup_gets_no_classroom_file():
     drive = MemoryDrive.subject()
     drive.put("ficha", "20261001 - Ficha.pdf", PDF_MIME, b"%PDF ficha", parent=CLASSROOM)
     report = run(drive)
-    assert nonzero(report) == [{"items_added": 1, "waiting_setup": 1}]
+    assert nonzero(report) == [{"waiting_setup": 1}]
     assert not [n for n in drive.uploads if n.startswith("Classroom ·")] and "ficha" not in drive.downloads
     assert state_of(drive)["files"]["ficha"]["state"] == "seen"

@@ -363,8 +363,9 @@ class ScopedDrive:
         """An Office file as PDF, through a Google copy that goes to the trash at once (spec 005 research R6).
 
         Drive copies the file into `folder_id` as `google_type` and exports the copy; the file itself is
-        only read. The copy carries `properties`. A copy that a stopped run left in the folder carries them too and
-        goes to the trash first, so the folder never holds two (research R4). Nothing else is ever trashed.
+        only read. The copy carries `properties`. A copy that a stopped run left in the folder carries
+        them too and goes to the trash first, so the folder never holds two (research R4). Nothing else
+        is ever trashed.
         """
         self._inside(file_id)
         for left in self._carrying(folder_id, properties):

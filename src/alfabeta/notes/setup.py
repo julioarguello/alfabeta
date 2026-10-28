@@ -2,11 +2,10 @@
 
 Only this command creates living files (research R6). It runs on the Mac, where `nlm` is signed in.
 It first runs the recording pass, so an adopted Markdown and the topic's Classroom items are in the
-first build; then, for each
-living file not yet recorded, it builds it in the topic's `notes/` or `classroom/` (made when
-missing), shares it read-only with the notebook's owner (and nothing else in the folder), adds it as
-a Drive source and records both ids. A recorded file that
-is gone is reported, never recreated. Old plain sources of the notes or the Classroom material are
+first build; then, for each living file not yet recorded, it builds it in the topic's `notes/` or
+`classroom/` (made when missing), shares it read-only with the notebook's owner (and nothing else in
+the folder), adds it as a Drive source and records both ids. A recorded file that is gone is
+reported, never recreated. Old plain sources of the notes or the Classroom material are
 listed for the family to remove; nothing is removed (FR-011).
 """
 
