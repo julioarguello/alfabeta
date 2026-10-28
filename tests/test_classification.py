@@ -86,6 +86,24 @@ def test_only_the_students_languages_give_hints():
     assert Classifier(("es",)).category(english) == AgendaCategory.ASSIGNMENT
 
 
+@pytest.mark.parametrize(
+    ("title", "category"),
+    [
+        ("Azterketa asmatua", AgendaCategory.EXAM),
+        ("Gai asmatuaren AZTERKETARAKO fitxa", AgendaCategory.EXAM),  # a stem takes the case Basque adds
+        ("Kontrola ostiralean", AgendaCategory.EXAM),
+        ("Probabilitate asmatua", AgendaCategory.ASSIGNMENT),  # not a stem: «proba» is left out
+        ("Ariketa asmatuak", AgendaCategory.ASSIGNMENT),
+        ("Irakurri testua eta erantzun", AgendaCategory.ASSIGNMENT),  # «testua» is a text, not a test
+        ("Test asmatua", AgendaCategory.EXAM),
+    ],
+)
+def test_basque_hints_match_their_stem_with_any_ending(title: str, category: AgendaCategory):
+    assert Classifier(("eu",)).category(item(ItemType.ASSIGNMENT, title)) == category
+    if not title.startswith("Test "):  # «test» is English and Spanish too
+        assert ES_EN.category(item(ItemType.ASSIGNMENT, title)) == AgendaCategory.ASSIGNMENT
+
+
 def fixture_items() -> list[Item]:
     found: list[Item] = []
     for name in ("class-synth-1.json", "class-synth-2.json"):

@@ -25,11 +25,15 @@ if TYPE_CHECKING:
     from alfabeta.model import Decision, Item
 
 # Words that name a test, per language code of `[student] languages`, written without accents and
-# matched as whole words, whatever their case or accents. Not measured on Classroom: the smallest
-# set that names a test in either language of the sample student; a language missing here gives none.
+# matched as whole words, whatever their case or accents; one ending in «*» is a stem, matched with any
+# ending, because Basque adds its cases to the word («azterketan», «azterketarako»). Not measured on
+# Classroom: the smallest set that names a test in each language; a language missing here gives none.
+# Basque leaves out «proba» and «froga», and «test» is no stem: as stems they would also match
+# «probabilitatea», «frogatu» and «testua» (a text).
 EXAM_HINTS: Mapping[str, tuple[str, ...]] = {
     "es": ("examen", "examenes", "prueba", "pruebas", "control", "controles", "test", "tests"),
     "en": ("exam", "exams", "test", "tests"),
+    "eu": ("azterket*", "kontrol*", "test", "testa", "testak"),
 }
 # The `type` of a candidate in `plan.json`'s `pending_decisions`.
 CANDIDATE = "exam_candidate"
@@ -64,7 +68,8 @@ class Classifier:
     def __post_init__(self) -> None:
         """Compile the hints of the student's languages into one whole-word pattern."""
         words = sorted({w for code in self.languages for w in EXAM_HINTS.get(code, ())})
-        pattern = re.compile(rf"\b(?:{'|'.join(map(re.escape, words))})\b") if words else None
+        alternatives = [re.escape(w[:-1]) + r"\w*" if w.endswith("*") else re.escape(w) for w in words]
+        pattern = re.compile(rf"\b(?:{'|'.join(alternatives)})\b") if words else None
         object.__setattr__(self, "_hint", pattern)
 
     def hints(self, text: str) -> bool:
