@@ -5,7 +5,8 @@ its documents. For using it, read the [README](README.md).
 
 ## Prepare the environment
 
-You need [uv](https://docs.astral.sh/uv/) and [Node.js](https://nodejs.org/) 23 or later.
+You need [uv](https://docs.astral.sh/uv/) and [Node.js](https://nodejs.org/) 23 or later. CI runs the
+major in `.node-version`, the same way `.python-version` sets Python.
 
 ```bash
 make setup-python setup-node
