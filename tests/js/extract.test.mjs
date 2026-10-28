@@ -267,10 +267,11 @@ test("a classwork page with neither rows nor the empty notice is not ready", () 
 });
 
 // The stream as the real page builds it (measured 2026-10-28): the body's lines are split by <br>,
-// and every post hides a teacher-only notice, longer than any of those lines, in a tooltip.
+// every post hides a teacher-only notice, longer than any of those lines, in a tooltip, and the
+// label «Fecha de creación: » and its date are two text nodes, which a saved page joins into one.
 test("each announcement is read whole, line by line, with its creation date", () => {
   const doc = page("stream-announcements").window.document;
-  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), [
+  const expected = [
     {
       id: "9100000001",
       created_text: "Fecha de creación: 22 sept",
@@ -278,7 +279,10 @@ test("each announcement is read whole, line by line, with its creation date", ()
       attachments: [],
     },
     { id: "9100000002", created_text: "Fecha de creación: 27 oct", text: "Mañana, examen.", attachments: [] },
-  ]);
+  ];
+  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), expected);
+  for (const label of doc.querySelectorAll(".JZk9qf > .jzdBjc")) label.firstChild.splitText("Fecha de creación: ".length);
+  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), expected);
 });
 
 test("a short announcement is not taken for its author, nor a comment for an announcement", async () => {

@@ -124,6 +124,7 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | An empty «Trabajo de clase» shows «Aún no hay tareas…» and an empty stream «Aquí se mostrarán novedades…», with no rows (2026-10-28) | the extractor takes both as loaded |
 | Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `downloads collect` falls back to comparing letters and digits |
 | Eleven classes took 14 minutes; the session was still alive 50 minutes after the family signed in (2026-10-28) | a whole sync fits in one sign-in |
+| On the stream, «Fecha de creación: » and its date are two text nodes, and every post hides a teacher-only notice longer than any line of its text (2026-10-28) | the extractor reads the label's whole element and the post's own text block |
 
 ## Never
 
