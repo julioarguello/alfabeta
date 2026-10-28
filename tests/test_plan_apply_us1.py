@@ -135,6 +135,23 @@ def test_a_submission_that_does_not_arrive_is_noted(box: Box):
     assert "respuestas-inventadas.pdf" in note and "no traído" in note
 
 
+def test_a_file_that_arrives_later_takes_its_no_traido_line_away(box: Box):
+    box.collect_and_plan(skip="respuestas-inventadas.pdf")
+    box.apply()
+    folder = box.base / TOPIC / "20261006 - Ficha inventada de mezclas"
+    assert "no traído" in (folder / "enlaces.md").read_text()
+    box.release()
+    box.take()  # a later run: the previous plan still asks for the file, so its first collect waits on it
+    assert box("sandbox", "download", "--student", "sample", "--captures").returncode == 0
+    box("downloads", "collect", "--student", "sample")
+    assert box("plan", "--student", "sample").returncode == 0
+    assert box("sandbox", "download", "--student", "sample", "--batch", "0").returncode == 0
+    box("downloads", "collect", "--student", "sample")
+    box.apply()
+    assert (folder / "entrega" / "respuestas-inventadas.pdf").is_file()
+    assert not (folder / "enlaces.md").exists()  # it had nothing else to say
+
+
 def test_an_unreadable_class_does_not_stop_the_other(box: Box):
     box.collect_and_plan(drop_stop=True)
     physics = next(box.data.glob(f"captures/alfabeta-capture-{box.run}-synth-1-*.json"))

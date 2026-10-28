@@ -226,6 +226,21 @@ class Applier:
             "hash": hashlib.sha256(text.encode()).hexdigest(),
         }
 
+    def _drop_note(self, item: Item, role: ReplicaRole) -> None:
+        """Take away a note this tool wrote that has nothing left to say: a «no traído» line whose file came.
+
+        Only when the file still holds exactly what was written; a note someone edited stays.
+        """
+        key = f"{CLASSROOM}|{item.id}|#{role}"
+        record = cast("dict[str, Any] | None", self.replicas.get(key))
+        if record is None:
+            return
+        path = self.base / str(record["path"])
+        if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == record.get("hash"):
+            path.unlink()
+            self.changed += 1
+            del self.replicas[key]
+
     def place_item(self, placer: Placer, item: Item, topic_title: str | None) -> None:
         """Every file a run places for one item."""
         targets = [t for t in placer.place(item, topic_title) if t.role in PLACED_ROLES]
@@ -251,6 +266,8 @@ class Applier:
                 self._note_record(
                     item, Target(ReplicaRole.LINKS, "", f"{folder}/enlaces.md"), _links_note(item, links, missing)
                 )
+        else:
+            self._drop_note(item, ReplicaRole.LINKS)
         self.items[item.id] = item_to_json(item, topic_title)
 
     def apply(self, captures: dict[str, dict[str, Any]], scope: Iterable[str], links: dict[str, Subject]) -> list[str]:
