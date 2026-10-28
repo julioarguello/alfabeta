@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Print a topic's Gemini Notebook study material to A4 PDF.
 
-  print_pack.py report <notebook-id> <artifact-id> <out.pdf> (--student S | --profile P)
-      one report (study guide, practice sheet, parent guide…)
+  print_pack.py report <notebook-id> <artifact-id> <out.pdf> (--student S | --profile P) [--break-before H]
+      one report (study guide, practice sheet, parent guide…); with --break-before, a new page
+      before its first heading titled H (an exam's problems sheet before «Soluciones»)
   print_pack.py topic <notebook-id> <out.pdf> (--student S | --profile P)
       the whole Studio in one document: an index first, then every report, quiz (answer key at the
       end), flashcards and mind map, in Studio order; videos appear in the index only
@@ -66,9 +67,7 @@ def nlm(profile: str, *args: str) -> str:
     extra = () if args[0] in UNPROFILED else ("--profile", profile)
     done = subprocess.run(["nlm", *args, *extra], capture_output=True, text=True)
     if done.returncode:
-        sys.exit(
-            f"nlm {args[0]} {args[1]} failed: {done.stderr.strip() or done.stdout.strip()}"
-        )
+        sys.exit(f"nlm {args[0]} {args[1]} failed: {done.stderr.strip() or done.stdout.strip()}")
     return done.stdout
 
 
@@ -82,9 +81,7 @@ def require_default(profile: str) -> None:
         )
 
 
-def download(
-    profile: str, kind: str, nb: str, art: str, work: Path, *extra: str
-) -> Path:
+def download(profile: str, kind: str, nb: str, art: str, work: Path, *extra: str) -> Path:
     out = work / f"{art}.{'md' if kind == 'report' else 'json'}"
     nlm(profile, "download", kind, nb, "--id", art, "-o", str(out), *extra)
     return out
@@ -94,15 +91,25 @@ def fix_lists(md: str) -> str:
     """Gemini Notebook omits the blank line pandoc needs before a list; add it."""
     out: list[str] = []
     for line in md.split("\n"):
-        if (
-            LIST_ITEM.match(line)
-            and out
-            and out[-1].strip()
-            and not LIST_ITEM.match(out[-1])
-        ):
+        if LIST_ITEM.match(line) and out and out[-1].strip() and not LIST_ITEM.match(out[-1]):
             out.append("")
         out.append(line)
     return "\n".join(out)
+
+
+def break_before(md: str, heading: str) -> str:
+    """A page break before the first heading whose text is `heading`.
+
+    Whatever its level, numbering (`5.`, `5)`), bold, quotes or a closing colon: `## **5. Soluciones:**`.
+    """
+    lines = md.split("\n")
+    for n, line in enumerate(lines):
+        found = re.match(r"#{1,6}\s+(.*)$", line)
+        text = found.group(1).strip(' *_«»"') if found else ""
+        if found and re.sub(r"^\d+[.)]\s*", "", text).rstrip(":").strip(' *_«»"') == heading:
+            return "\n".join([*lines[:n], '<div class="newpage"></div>', "", *lines[n:]])
+    print(f"print_pack: no heading «{heading}»; no page break added", file=sys.stderr)
+    return md
 
 
 def demote(md: str) -> str:
@@ -128,16 +135,11 @@ def quiz_md(data: dict) -> str:
             if opt.get("isCorrect"):
                 key.append(f"| {n} | {letter} | {cell(opt.get('rationale', ''))} |")
         lines += [":::", ""]
-    return "\n".join(
-        lines + ["### Erantzunak", "", "| # | | |", "|---|---|---|", *key, ""]
-    )
+    return "\n".join(lines + ["### Erantzunak", "", "| # | | |", "|---|---|---|", *key, ""])
 
 
 def flashcards_md(data: dict) -> str:
-    rows = [
-        f"| {cell(card_text(c['front']))} | {cell(card_text(c['back']))} |"
-        for c in data["cards"]
-    ]
+    rows = [f"| {cell(card_text(c['front']))} | {cell(card_text(c['back']))} |" for c in data["cards"]]
     return "\n".join(["| | |", "|---|---|", *rows, ""])
 
 
@@ -167,9 +169,7 @@ def mindmap_html(data: dict, work: Path) -> str:
         + "".join(edges)
         + "}"
     )
-    svg = subprocess.run(
-        ["dot", "-Tsvg"], input=dot, capture_output=True, text=True, check=True
-    ).stdout
+    svg = subprocess.run(["dot", "-Tsvg"], input=dot, capture_output=True, text=True, check=True).stdout
     return '<div class="mindmap">' + svg[svg.index("<svg") :] + "</div>"
 
 
@@ -214,38 +214,24 @@ def render(md: str, out: Path, work: Path) -> None:
 
 
 def report(args: argparse.Namespace, work: Path) -> None:
-    md = download(
-        args.profile, "report", args.notebook, args.artifact, work
-    ).read_text()
-    render(fix_lists(md), Path(args.out).expanduser(), work)
+    md = fix_lists(download(args.profile, "report", args.notebook, args.artifact, work).read_text())
+    if args.break_before:
+        md = break_before(md, args.break_before)
+    render(md, Path(args.out).expanduser(), work)
 
 
 def topic(args: argparse.Namespace, work: Path) -> None:
-    arts = json.loads(
-        nlm(args.profile, "studio", "status", args.notebook, "--full", "--json")
-    )
+    arts = json.loads(nlm(args.profile, "studio", "status", args.notebook, "--full", "--json"))
     arts = [
-        a
-        for a in (arts.get("artifacts", arts) if isinstance(arts, dict) else arts)
-        if a.get("status") == "completed"
+        a for a in (arts.get("artifacts", arts) if isinstance(arts, dict) else arts) if a.get("status") == "completed"
     ]
     # Studio order is last-modified; a leading "N ·" in the title is the intended order.
-    arts.sort(
-        key=lambda a: (
-            int(m.group(1))
-            if (m := re.match(r"(\d+)\s*·", a.get("title") or ""))
-            else 99
-        )
-    )
-    title = json.loads(
-        nlm(args.profile, "notebook", "get", args.notebook, "--json")
-    ).get("title", "")
+    arts.sort(key=lambda a: int(m.group(1)) if (m := re.match(r"(\d+)\s*·", a.get("title") or "")) else 99)
+    title = json.loads(nlm(args.profile, "notebook", "get", args.notebook, "--json")).get("title", "")
     index = ["| | Pieza | Dónde |", "|---|---|---|"]
     # The start note ("0 · …") opens the index and is printed right after it.
     notes = json.loads(nlm(args.profile, "note", "list", args.notebook, "--json"))
-    start = [
-        n for n in notes.get("notes", []) if re.match(r"0\s*·", n.get("title") or "")
-    ]
+    start = [n for n in notes.get("notes", []) if re.match(r"0\s*·", n.get("title") or "")]
     index += [f"| ✎ | {cell(n['title'])} | en este documento |" for n in start]
     body: list[str] = [f"## {n['title']}\n\n{n.get('content', '')}\n" for n in start]
     for a in arts:
@@ -256,15 +242,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
         index.append(f"| ✎ | {name} | en este documento |")
         body += ['<div class="newpage"></div>', "", f"## {name}", ""]
         if kind == "report":
-            body.append(
-                demote(
-                    fix_lists(
-                        download(
-                            args.profile, "report", args.notebook, a["id"], work
-                        ).read_text()
-                    )
-                )
-            )
+            body.append(demote(fix_lists(download(args.profile, "report", args.notebook, a["id"], work).read_text())))
         elif kind == "quiz":
             body.append(
                 quiz_md(
@@ -300,11 +278,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
         elif kind == "mind_map":
             body.append(
                 mindmap_html(
-                    json.loads(
-                        download(
-                            args.profile, "mind-map", args.notebook, a["id"], work
-                        ).read_text()
-                    ),
+                    json.loads(download(args.profile, "mind-map", args.notebook, a["id"], work).read_text()),
                     work,
                 )
             )
@@ -320,6 +294,7 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("report")
     r.add_argument("notebook"), r.add_argument("artifact"), r.add_argument("out")
+    r.add_argument("--break-before", metavar="HEADING", help="a new page before this heading")
     t = sub.add_parser("topic")
     t.add_argument("notebook"), t.add_argument("out")
     for s in (r, t):

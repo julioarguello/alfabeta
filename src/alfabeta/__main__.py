@@ -18,6 +18,7 @@ from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from alfabeta import __version__, anonymize, config, decisions, downloads, guardrail, plan, replicas, sandbox, state
+from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
@@ -508,6 +509,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     notebook_setup = notebook.add_parser("setup", help="the topic's two living files, added as sources")
     notebook_setup.add_argument("--topic", required=True, help="<subject>/<topic folder>")
+    exam = groups.add_parser("exam", help="the sheets for the day before an exam (spec 002)").add_subparsers(
+        dest="verb", required=True
+    )
+    exam_prep = exam.add_parser("prep", help="the topic's notebook writes a theory and a problems sheet; both print")
+    exam_prep.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
+    exam_prep.add_argument("--exam", type=dt.date.fromisoformat, help="the exam's date (default: the next one)")
+    exam_prep.add_argument("--slot", help="the study slot, HH:MM-HH:MM (default: 90 minutes)")
+    exam_prep.add_argument("--topic", help="the exam's topic folder (default: the subject's most recent)")
     claude = groups.add_parser("claude", help="this place's Claude API key").add_subparsers(dest="verb", required=True)
     claude_key = claude.add_parser("key", help="the key of the workspace alfabeta").add_subparsers(
         dest="action", required=True
@@ -541,6 +550,7 @@ def build_parser() -> argparse.ArgumentParser:
         collect,
         notes_run,
         notebook_setup,
+        exam_prep,
         claude_set,
     ):
         sub.add_argument("--student", required=True)
@@ -584,6 +594,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_collect(args, home)
         if args.group == "config":
             return _cmd_config_check(home, args.student)
+        if args.group == "exam":
+            return exam_cli.cmd_exam_prep(home, args, store)
         cfg = config.load(home, args.student, TABLES[args.group])
         if args.group == "notes":
             return notes_cli.cmd_notes_run(cfg, store)

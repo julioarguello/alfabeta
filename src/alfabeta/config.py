@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "template.toml"
 # A template table whose only child is this table holds one table per name the operator chooses.
 DYNAMIC = "changeme"
-READERS = frozenset({"_str", "_strs", "_int", "_float", "_names", "_count"})
+READERS = frozenset({"_str", "_strs", "_int", "_float", "_bool", "_names", "_count"})
 
 _NAME = re.compile(r"[a-z][a-z0-9_-]*")
 # Google Drive for desktop mounts every account under this folder (spec 004 R7).
@@ -106,6 +106,13 @@ def _float(data: Mapping[str, Any], path: str, *names: str) -> float:
     value = _at(data, path, names)
     if not isinstance(value, float) or not math.isfinite(value) or value <= 0:
         raise ConfigError(f"key {path} must be a number above 0")
+    return value
+
+
+def _bool(data: Mapping[str, Any], path: str, *names: str) -> bool:
+    value = _at(data, path, names)
+    if not isinstance(value, bool):
+        raise ConfigError(f"key {path} must be true or false")
     return value
 
 
@@ -192,6 +199,16 @@ class StudentConfig:
     def lock_idle_minutes(self) -> int:
         """Minutes without renewal after which a dead run's lock is released."""
         return _int(self.data, "sync.lock_idle_minutes")
+
+    @property
+    def mirrors(self) -> tuple[Path, ...]:
+        """The one-way mirrors of the base folder in the student's other Drives; never shown."""
+        return tuple(Path(m).expanduser() for m in _strs(self.data, "drive.mirrors", allow_empty=True))
+
+    @property
+    def notebook_enabled(self) -> bool:
+        """Whether alfabeta uses the topics' notebooks at all (constitution VII: an optional output)."""
+        return _bool(self.data, "notebook.enabled")
 
     @property
     def notebook_title_pattern(self) -> str:
