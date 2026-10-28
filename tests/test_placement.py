@@ -234,3 +234,20 @@ def test_book_topics_are_folders_holding_the_book_subfolder(tmp_path: Path):
             (tmp_path / name / "sciencebits").mkdir()
     assert book_topics(tmp_path, "sciencebits") == ["Tema 01 - Mezclas", "Tema 02 - Gases"]
     assert book_topics(tmp_path, "") == []
+
+
+def test_two_files_of_one_assignment_with_one_name_are_numbered():
+    # Measured 2026-10-28: one submission held four photos with the same name (FR-015c).
+    photos = tuple(file("foto.jpg", f"synth-p{i}", AttachmentRole.SUBMISSION) for i in range(1, 4))
+    sheets = tuple(file("ficha.pdf", f"synth-e{i}", AttachmentRole.STATEMENT) for i in range(1, 3))
+    one = item(ItemType.ASSIGNMENT, title="Fotos", attachments=sheets, submission=photos)
+    folder = "2026-2027/Lengua/20261014 - T/classroom/20261014 - Fotos"
+    expected = [
+        f"{folder}/enunciado - ficha.pdf",
+        f"{folder}/enunciado - ficha (2).pdf",
+        f"{folder}/entrega/foto.jpg",
+        f"{folder}/entrega/foto (2).jpg",
+        f"{folder}/entrega/foto (3).jpg",
+    ]
+    assert paths(Placer("2026-2027", NO_BOOK).place(one, "T")) == expected
+    assert paths(Placer("2026-2027", NO_BOOK).place(one, "T")) == expected  # the same on every run

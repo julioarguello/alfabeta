@@ -192,13 +192,20 @@ class Placer:
         title = clean(item.title) or "sin título"
         if item.type in (ItemType.ASSIGNMENT, ItemType.QUESTION):
             folder = f"{where}/{self._unique(where, fit(f'{day} - {title}'), item.id, is_folder=True)}"
+            # Two files of one item may share a name: each attachment owns its numbered name (FR-015c).
             targets = [
-                Target(ReplicaRole.STATEMENT, a.id, f"{folder}/{fit('enunciado - ' + _file_name(a))}") for a in files
+                Target(
+                    ReplicaRole.STATEMENT,
+                    a.id,
+                    f"{folder}/{self._unique(folder, fit('enunciado - ' + _file_name(a)), a.id)}",
+                )
+                for a in files
             ]
             if item.description:
                 targets.append(Target(ReplicaRole.DESCRIPTION, "", f"{folder}/enunciado.md"))
+            handed = f"{folder}/{SUBMISSION_FOLDER}"
             targets += [
-                Target(ReplicaRole.SUBMISSION, a.id, f"{folder}/{SUBMISSION_FOLDER}/{fit(_file_name(a))}")
+                Target(ReplicaRole.SUBMISSION, a.id, f"{handed}/{self._unique(handed, fit(_file_name(a)), a.id)}")
                 for a in item.submission
                 if a.downloaded
             ]
