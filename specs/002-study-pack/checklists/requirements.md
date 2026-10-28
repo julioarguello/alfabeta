@@ -60,7 +60,7 @@
   subfolder, with no date in its name (FR-029, the contract's step 8); the rest of the layout is
   julioarguello/alfabeta#110. No marker added.
 - Iteration 7, checked 2026-10-28 (constitution 2.2.0, julioarguello/alfabeta#110): the rest of
-  the pack goes in the topic's `notebook/` (FR-012, FR-017, FR-019, User Stories 2 and 3; it was
+  the pack goes in the topic's `notebook/` (FR-012, FR-017, FR-019, User Stories 2 and 4; it was
   `docente/` and the topic's root), the class notes in `notes/` (User Story 6). No marker added.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.

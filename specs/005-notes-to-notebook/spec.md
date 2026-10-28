@@ -102,8 +102,10 @@ reads it, and that read also needs `nlm`: the Mac does it, on its own schedule a
   `Classroom · <topic>.pdf` in `classroom/`, never at the topic folder's root, where they sat until
   then. Decided by the family on 2026-10-28 with every folder name the code decides in English
   (constitution 2.2.0, julioarguello/alfabeta#110); the cloud run's reports go in `reports/` (it
-  was `Informes/`). In `classroom/` the living file is never a Classroom item of itself, and a file
-  at a topic folder's root is unexpected (FR-009, FR-011).
+  was `Informes/`). In `classroom/` the living file is never itself a Classroom item, a file at a
+  topic folder's root is reported as unexpected, and `notebook/`, `exam/` and `sciencebits/` are
+  not read. Tema 01's two living files, set up at its root on 2026-10-27, were moved by hand into
+  their folders (edge cases).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -258,8 +260,13 @@ source and one living Classroom source, and that a second run adds nothing.
 
 - **A living file is trashed, moved or deleted in Drive.** Google's announcement says the notebook
   then drops the source (not measured). alfabeta never deletes or moves it; each run checks that
-  each recorded living file is still in its topic's `notes/` or `classroom/` and not trashed, and if not, reports it
-  and does not recreate a second file or source.
+  each recorded living file is still in its own folder of the topic (`notes/` for the notes file,
+  `classroom/` for the Classroom file) and not trashed, and if not, reports it and does not
+  recreate a second file or source. Put back in its folder, it is healthy again on the next check,
+  and a page transcribed meanwhile reaches it on that pass.
+- **A living file set up at the topic's root, before 2026-10-28.** Moved by hand once into its
+  folder (julioarguello/alfabeta#110); until then it is reported missing. A Drive move keeps the
+  file's id, which is what the notebook source is bound to.
 - **The Mac is asleep, off or logged out.** The notebook's copy of a living file stays old until the
   Mac's next refresh after it wakes or the family's session starts, and the student may meet the old
   copy meanwhile: opening the notebook as the student does not refresh it (measured 2026-10-28). The
@@ -267,8 +274,9 @@ source and one living Classroom source, and that a second run adds nothing.
 - **The owner's `nlm` session stops working.** The refresh tries to renew it (research R14); if the
   session still does not work, it stops, the family is told once on the Mac (FR-019), and the owner
   signs in again with `nlm login`. Nothing else stops: Drive keeps receiving pages.
-- **A photo is put outside `notes/`**, or in the school Drive: it is not transcribed. The first is
-  reported as an unexpected file; the second cannot be seen.
+- **A photo is put outside `notes/`**, or in the school Drive: it is not transcribed. At the topic
+  folder's root or deeper in `notes/` it is reported as an unexpected file; in `notebook/`, `exam/`
+  or `sciencebits/` it is not read; in the school Drive it cannot be seen.
 - **A photo in a format the transcription does not take** (anything but JPEG, PNG or WebP, such as
   HEIC, or a scanned PDF), or over 10 MB: it is reported as not supported, with what to upload
   instead, and is not retried until it changes.
@@ -334,8 +342,8 @@ source and one living Classroom source, and that a second run adds nothing.
 - **FR-009**: Each topic MUST have two living files in Drive, `Apuntes · <topic>.pdf` in its
   `notes/` and `Classroom · <topic>.pdf` in its `classroom/`, where `<topic>` is the topic folder's
   name after its date; neither sits at the topic folder's root (constitution 2.2.0), and the setup
-  makes the folder when the topic has none yet. Only the setup
-  on the Mac creates them, shares each read-only with the account in `[notebook] owner` (the one
+  makes the folder when the topic has none yet. Only the setup on the Mac creates them, shares each
+  read-only with the account in `[notebook] owner` (the one
   that owns the notebooks) and with no other, and adds each, once, to the topic's notebook as a
   Drive source. Material that arrives later goes into them; no other source is added for it.
 - **FR-010**: Notes pages go into the living notes file in the order they were first seen. Each
@@ -345,9 +353,9 @@ source and one living Classroom source, and that a second run adds nothing.
   order, files in name order. A PDF is copied page by page; a Google-native or Office file is
   converted to PDF through Drive; a Markdown note is set as text; an image is one page; anything
   else is named on the cover page. The student's own work and its grading (spec 001's roles
-  `submission` and `grading`: everything in a `submission/` subfolder, `entrega/` before
-  2026-10-28, and every file whose name starts with `entrega - ` or `correccion`, whatever follows)
-  are never put into a living file (constitution III). A previous version spec 001
+  `submission` and `grading`: everything in a `submission/` subfolder or a legacy `entrega/` one,
+  and every file whose name starts with `entrega - ` or `correccion`, whatever follows) are never
+  put into a living file (constitution III). A previous version spec 001
   keeps beside an edited one (`<name> (anterior YYYY-MM-DD)`) is never put in either: the current
   version replaces the old pages in place. An announcement note (`aviso`) is not material and is left
   out. A material in `No topic` goes into the living Classroom file of its subject's most recent
@@ -355,9 +363,8 @@ source and one living Classroom source, and that a second run adds nothing.
   (spec 002 FR-023). An item moved to another topic leaves the first living file and enters the
   second.
 - **FR-011**: alfabeta MUST NOT delete, rename or move a living file, nor remove a source from a
-  notebook. A living file that is missing, trashed or outside its topic's `notes/` or `classroom/`
-  is reported and is
-  not recreated.
+  notebook. A living file that is missing, trashed or outside its own folder of the topic
+  (`notes/` or `classroom/`) is reported and is not recreated.
 - **FR-012**: Adding material MUST NOT regenerate any study piece. The run reports what the new
   material adds against the topic's study guide (User Story 4).
 - **FR-018**: After a living file changes, the notebook owner's account MUST read that file's
@@ -413,9 +420,8 @@ source and one living Classroom source, and that a second run adds nothing.
   checksum.
 - **Notes page**: one photo and its literal transcription, with its state: automatic, checked by
   the student, or marked wrong.
-- **Living file**: one notes file and one Classroom file per topic, each a PDF in the topic's `notes/` or
-  `classroom/`,
-  with its Drive id and the notebook source it is bound to.
+- **Living file**: one notes file and one Classroom file per topic, each a PDF in its own folder
+  of the topic (`notes/` or `classroom/`), with its Drive id and the notebook source it is bound to.
 - **Classroom entry**: a Classroom item (a file, a note or a folder) as the living Classroom file
   holds it: its cover page, its pages, and the Drive files it came from.
 - **Change cursor**: the position in Drive's record of changes the last cloud run reached, and when.

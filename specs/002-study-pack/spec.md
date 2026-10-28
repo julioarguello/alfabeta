@@ -25,7 +25,8 @@ This is the third epic that [spec 001](../001-classroom-sync/spec.md) names, «P
 ("prepare the topic for me"), tracked in julioarguello/alfabeta#21. It takes the
 topic folder that the textbook capture and `classroom-sync` (spec 001) fill, and turns it into
 material to study from: inside the topic's Gemini Notebook notebook for the student, in the
-topic's `notebook/` folder in Drive for the parent, and in one printable document for paper.
+topic's `notebook/` folder in Drive, the parent's material included, and in one printable document
+for paper.
 
 The procedure was run by hand on one topic on 2026-10-26, as the `study-pack` skill
 (julioarguello/alfabeta#20). This spec states what that procedure must guarantee so it can run
@@ -187,18 +188,19 @@ and a subject with a known `language`, run the pack and check each piece against
 
 ---
 
-### User Story 2 - The parent's material, in Spanish and out of the student's sight (Priority: P1)
+### User Story 2 - The parent's material, in Spanish and out of the notebook (Priority: P1)
 
 The parent opens the topic's `notebook/` folder and finds, in Spanish, the blocks with the files
 they came from, a guide with questions to ask at home and the expected answers, the teacher's
 answer key recomputed with every mismatch marked, and a glossary in the subject's language, Spanish
-and English. None of it is in the notebook.
+and English. None of it is in the Gemini notebook, where the student studies; the `notebook/`
+folder also holds what the student uses, and the family chose no separate folder for the parent.
 
 **Why this priority**: the parent cannot help without it, and a wrong key discourages the student.
 
 **Independent Test**: with the same test topic, check that `notebook/` holds the four documents as
 PDF and Markdown, that the known wrong answer is marked with its correct value, and that the
-notebook lists none of them.
+Gemini notebook lists none of them.
 
 **Acceptance Scenarios**:
 
@@ -242,8 +244,8 @@ before the answer, explanations in Spanish with the terms in the subject's langu
 
 The family prints the topic. In the topic's `notebook/` folder in Drive there is one A4 PDF with
 an index of every piece (videos marked as "in the notebook") and then each piece on a new page in
-the numbered order: the practice sheet, the quiz with its answers at the end, the flashcards as a table, the
-study guide and the mind map drawn as a diagram. Formulas print as formulas.
+the numbered order: the practice sheet, the quiz with its answers at the end, the flashcards as a
+table, the study guide and the mind map drawn as a diagram. Formulas print as formulas.
 
 **Why this priority**: the parent prints what the student works on, and the platform has no print
 view for a report or a mind map (the operator found that exporting a report to Google Docs lost
@@ -407,8 +409,8 @@ and cannot judge what the notebook writes.
 **Scope and sources**
 
 - **FR-001**: alfabeta MUST propose a topic's blocks from its folder (class notes, Classroom
-  material, textbook), naming for each block the files it comes from, and MUST NOT generate until
-  they are confirmed. Once confirmed, the blocks of a topic are not proposed again.
+  material, textbook; not spec 005's living files, which repeat them), naming for each block the
+  files it comes from, and MUST NOT generate until they are confirmed. Once confirmed, the blocks of a topic are not proposed again.
 - **FR-002**: When sources disagree about what the exam asks, the class notes MUST win over
   Classroom and Classroom over the textbook.
 - **FR-003**: Two ideas that the teacher's material or the parent's guide name as a typical
@@ -439,8 +441,8 @@ and cannot judge what the notebook writes.
   neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
   regenerated or reported.
-- **FR-011**: Every teacher's answer key in the topic folder MUST be recomputed; each mismatch, and
-  each statement missing a datum, is recorded for the parent's guide.
+- **FR-011**: Every teacher's answer key in the topic's `classroom/` MUST be recomputed; each
+  mismatch, and each statement missing a datum, is recorded for the parent's guide.
 
 **The parent's material**
 

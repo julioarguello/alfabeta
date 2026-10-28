@@ -32,7 +32,7 @@ One per Drive file seen under a topic folder, keyed by Drive id.
 |---|---|
 | `file_id` | Drive id |
 | `topic` | Topic folder id |
-| `kind` | `notes_photo` (an image in `notes/`), `notes_transcript` (a transcription PDF in `notes/`), `notes_text` (a transcription Markdown in `notes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`, except the living file), `living_file` (`Apuntes · <topic>.pdf` in `notes/`, `Classroom · <topic>.pdf` in `classroom/`), `unexpected` (anything else, a file at the topic folder's root included) |
+| `kind` | `notes_photo` (an image in `notes/`), `notes_transcript` (a transcription PDF in `notes/`), `notes_text` (a transcription Markdown in `notes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`, except the living file), `living_file` (`Apuntes · <topic>.pdf` in `notes/`, `Classroom · <topic>.pdf` in `classroom/`), `unexpected` (anything else in `notes/`, and any file at the topic folder's root; `notebook/`, `exam/` and `sciencebits/` are not read) |
 | `own` | true for every file alfabeta wrote (transcriptions, living files, state, run log, reports, temporary conversions): a change to it is consumed, never an arrival (research R2), except a new name of a `notes_transcript` (a mark) and a checksum of a `notes_text` that differs from the one alfabeta recorded (a correction) |
 | `for` | `properties.alfabeta_for` of an own file: the photo or item it was made from; a run looks it up before creating (research R4) |
 | `version` | Drive's `md5Checksum`, or `modifiedTime` for a Google-native file; "a new version" means either changed |
@@ -77,7 +77,7 @@ Two per topic.
 | `source_id` | The notebook source bound to it, set by `notebook setup` |
 | `built_md5` | Checksum of the last uploaded revision; a rebuild with the same checksum is not uploaded |
 | `pages` | Page count of the last build, reported above `[notes] warn_pages` |
-| `health` | `ok`, or `missing` (deleted, trashed or moved out of its topic's `notes/` or `classroom/`): reported, never recreated |
+| `health` | `ok`, or `missing` (deleted, trashed or moved out of its own folder of the topic, `notes/` or `classroom/`); a check that finds it there again sets `ok`: reported, never recreated |
 
 A topic with no `file_id` is `waiting_setup`: its photos are transcribed and recorded, no living
 file is created, and the report says so.
@@ -111,7 +111,7 @@ file.
 | `item_id`, `item_version` | The item; for a folder, the latest `version` of anything inside |
 | `title`, `posted` | From the item's name, `YYYYMMDD - <title>` (constitution, Storage) |
 | `description`, `addresses` | From `descripcion.md` and `enlaces.md`, when the item is a folder |
-| `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type in `.alfabeta/conversions/`, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover). Never parts: any file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's `submission` and `grading`, constitution III), and any `<name> (anterior YYYY-MM-DD)` (a previous version, replaced by the current one) |
+| `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type in `.alfabeta/conversions/`, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover). Never parts: any file in a `submission/` or legacy `entrega/` subfolder, any file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's `submission` and `grading`, constitution III), and any `<name> (anterior YYYY-MM-DD)` (a previous version, replaced by the current one) |
 | `pages` | Pages in the living file |
 
 A new `item_version` replaces the entry's pages in place.

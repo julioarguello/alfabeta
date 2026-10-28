@@ -506,7 +506,10 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
         living_records[LivingKind.NOTES] = {**living_record(living), "health": "missing"}
         work.count(topic, "missing_living_files")  # reported, never recreated (FR-014)
         return
-    if topic not in work.dirty:
+    living_records[LivingKind.NOTES] = living_record(living)  # in place again after a move: healthy
+    # A page transcribed while the file was missing reaches it on the first pass that finds it again.
+    waiting = any(work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED for p in pages)
+    if topic not in work.dirty and not waiting:
         return
     data, count = deps.pdf.notes(
         Topic(topic, work.topics[topic]["name"]), [(p, deps.drive.content(p.photo_id)) for p in pages]

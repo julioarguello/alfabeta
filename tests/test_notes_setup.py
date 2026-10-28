@@ -103,6 +103,21 @@ def test_a_recorded_living_file_that_was_deleted_is_reported_not_recreated():
     assert not drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
 
 
+def test_a_living_file_at_the_topics_root_is_missing_until_it_is_back_in_its_folder():
+    from dataclasses import replace
+
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    (notes,) = drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
+    drive.files[notes] = replace(drive.files[notes], parents=(TOPIC,))  # where it sat until #110
+    assert setup(drive, nb)["notes_source"] == "missing"
+    assert drive.named("Apuntes · Tema 01 - Materia inventada.pdf") == [notes]  # never a second one
+    drive.files[notes] = replace(drive.files[notes], parents=(NOTES,))
+    assert setup(drive, nb)["notes_source"] == "unchanged"
+    state = json.loads(drive.bodies[drive.named(STATE)[0]])
+    assert state["topics"][TOPIC]["living"]["notes"]["health"] == "ok"
+
+
 def test_plain_sources_are_listed_never_removed():
     drive, nb = drive_with_photo(), FakeNotebook()
     setup(drive, nb, [["foto-1"]])
@@ -134,6 +149,7 @@ def test_a_setup_stopped_after_one_source_adds_each_source_once_when_run_again()
     ]
     assert out["plain_sources_to_remove"] == 1
     assert len(drive.named("Apuntes · Tema 01 - Materia inventada.pdf")) == 1
+    assert len(drive.named("classroom")) == len(drive.named("Classroom · Tema 01 - Materia inventada.pdf")) == 1
 
 
 def test_a_setup_whose_save_lost_a_race_adds_nothing_when_run_again():

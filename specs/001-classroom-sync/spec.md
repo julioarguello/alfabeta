@@ -174,6 +174,9 @@ replaces the local MCP design of julioarguello/alfabeta#2.
   names keep their language (`enunciado - `, `correccion.md`, `enlaces.md`, `descripcion.md`), and
   so do the titles taken from Classroom and the textbook. The sessions above keep the names they
   used then. Classroom's own heading for posts with no topic is still «Sin tema» on its pages.
+  The student's Drive is renamed by hand once (#110), before the first sync on the new names: a
+  sync that found no `… - No topic` folder would make one beside the old one and move the replicas
+  into it.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -588,9 +591,9 @@ test.
   count, never by address.
 - **FR-012**: Inside the root, the structure MUST be common to every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/<source>/`,
-  with `classroom` and `sciencebits`
-  as this epic's sources. A topic folder holds only folders (constitution 2.2.0): the sources',
-  `notes/` (spec 005), `notebook/` and `exam/` (spec 002); this epic writes nothing at its root. The first level is the school year (`2026-2027`), as in
+  with `classroom` and `sciencebits` as this epic's sources. alfabeta writes nothing at a topic
+  folder's root (constitution 2.2.0): beside the sources' folders sit `notes/` (spec 005),
+  `notebook/` and `exam/` (spec 002). The first level is the school year (`2026-2027`), as in
   Science Bits today. Every topic folder starts with the posting date of its first Classroom
   material (`YYYYMMDD - `), or with the day it is created if a book provider creates it first. The
   date is set when the folder is created and MUST NOT change: alfabeta MUST find an existing topic
@@ -625,7 +628,9 @@ test.
 - **FR-014**: An item without a topic and an announcement MUST go to the subject's
   `<YYYYMMDD> - No topic` folder, dated by the first item placed there. There are no month folders.
 - **FR-015**: Inside `classroom/`, each item MUST be prefixed with its posting date,
-  `YYYYMMDD - <item title>`, and its form MUST depend on its type:
+  `YYYYMMDD - <item title>`, and its form MUST depend on its type. The one file there that is not
+  an item is spec 005's living Classroom file, `Classroom · <topic>.pdf`, which this epic neither
+  writes nor reads:
   - a **material** with a single file, no links and no description is that file; with several
     files, with links or with a description, it is a folder with its files, a `descripcion` note
     with its text if it has one and an `enlaces` note if it has links;

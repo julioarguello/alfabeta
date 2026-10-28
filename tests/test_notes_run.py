@@ -15,7 +15,7 @@ from alfabeta.notes.model import PhotoState, Usage
 from alfabeta.notes.run import COUNTS, adopted_section, run_notes, topic_name
 from alfabeta.notes.state import STATE, ConcurrentWriteError, DriveNotesStateStore
 from alfabeta.notes.transcribe import Transcription
-from tests.notes_fakes import TOPIC, FixedClock, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
+from tests.notes_fakes import NOTES, TOPIC, FixedClock, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -172,6 +172,15 @@ def test_a_living_file_at_the_topics_root_is_reported_and_left_alone():
     report = run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber()))
     assert report["topics"][0]["missing_living_files"] == 1
     assert drive.bodies[living] == b"vacio" and drive.named("Apuntes · Tema 01 - Materia inventada.pdf") == [living]
+    assert state_of(drive)["topics"][TOPIC]["living"]["notes"]["health"] == "missing"
+    # Moved into notes/ by the family: found again, healthy, and still the only one.
+    drive.files[living] = replace(drive.files[living], parents=(NOTES,))
+    assert run_notes(deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber()))["topics"] == []
+    state = state_of(drive)
+    assert state["topics"][TOPIC]["living"]["notes"]["health"] == "ok"
+    # The page transcribed while it was missing is in it now.
+    assert drive.bodies[living] == b"notes:Tema 01 - Materia inventada:foto-1/automatic"
+    assert state["files"]["foto-1"]["state"] == "in_living_file"
 
 
 def test_a_spent_budget_waits_until_the_next_day():

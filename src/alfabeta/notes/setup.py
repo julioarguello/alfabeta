@@ -120,8 +120,8 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
             found = drive.listed(current.file_id) if drive.contains(current.file_id) else None
             there = found is not None and in_place(drive, found, folder.id, kind)
             outcome[kind] = "unchanged" if there else "missing"
-            if not there:
-                living[kind] = {**living_record(current), "health": "missing"}
+            # Health is this check's: a file put back where setup made it is healthy again.
+            living[kind] = living_record(current) if there else {**living_record(current), "health": "missing"}
             continue
         data, pages = _build(deps, state, folder.id, name, kind)
         section = _section(drive, folder.id, LIVING_FOLDERS[kind])

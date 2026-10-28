@@ -70,7 +70,8 @@ email or an id into the repository.
 4. **Wait** with `nlm studio status <nb> --profile <profile> --full --json` until every artifact is
    `completed` (measured 2026-10-26: about an hour for three videos). Do not create a second notebook.
 5. **Verify each artifact before anyone sees it.**
-   - Download it (`nlm download report|quiz|flashcards|video <nb> --id <id> -o <file>`).
+   - Download it to a scratch folder, never the topic folder
+     (`nlm download report|quiz|flashcards|video <nb> --id <id> -o <scratch>/<file>`).
    - Language: the whole text, not the title.
    - Recompute every number in the practice sheet, the quiz and the parent guide.
    - Compare the practice sheet's problems with the teacher's sheets: **no problem may reuse their

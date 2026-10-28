@@ -133,6 +133,13 @@ def test_an_own_transcript_renamed_to_its_recorded_name_is_an_echo():
     assert (result.marks, result.arrivals) == ([], [])
 
 
+def test_a_transcription_named_like_a_living_file_stays_a_transcription():
+    photo = "Apuntes · pizarra.jpg · transcripción.pdf"  # the photo's own name starts like a living file
+    new = {"name": photo, "mimeType": "application/pdf", "parents": ["ap"], "md5Checksum": "c001"}  # in notes/
+    d, _ = drive({"changes": [{"fileId": "tx", "removed": False, "file": new}], "newStartPageToken": "9"})
+    assert [(a.file_id, a.kind) for a in DriveChangeFeed(d).read("8", {}).arrivals] == [("tx", Kind.NOTES_TRANSCRIPT)]
+
+
 def test_a_trashed_recorded_file_is_gone():
     tree = {f["id"]: f for f in fixture("tree.json")["files"]}
     trashed = {**{k: v for k, v in tree["it2"].items() if k != "id"}, "trashed": True}
