@@ -8,9 +8,9 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from alfabeta.google.drive import FOLDER, DriveError, DriveFile, OutsideFolderError
+from alfabeta.google.drive import FOLDER, Change, DriveError, DriveFile, OutsideFolderError
 from alfabeta.notes.changes import FeedResult, Known
-from alfabeta.notes.model import Arrival, Kind, PhotoState, RanOn
+from alfabeta.notes.model import Arrival, Kind, PartKind, PhotoState, RanOn
 from alfabeta.notes.run import NotesDeps
 from alfabeta.notes.state import DriveNotesStateStore
 from alfabeta.notes.transcribe import Transcription
@@ -20,12 +20,17 @@ if TYPE_CHECKING:
 
     from alfabeta.config import StudentConfig
     from alfabeta.google.keychain import TokenStore
+    from alfabeta.notes.changes import ChangeFeed
     from alfabeta.notes.model import ClassroomEntry, NotesPage, Topic
     from alfabeta.notes.pdf import RenderedPart
 
 MADRID = ZoneInfo("Europe/Madrid")
 TOPIC = "t1"
 NOTES = "ap1"
+# The Classroom tree of `MemoryDrive.subject()`: each topic's `classroom/`.
+CLASSROOM = "cl1"
+TOPIC_2, CLASSROOM_2 = "t2", "cl2"
+NO_TOPIC, CLASSROOM_0 = "t0", "cl0"
 
 
 @dataclass
@@ -42,6 +47,11 @@ class MemoryDrive:
     fail_writes: bool = False
     made: int = 0
     downloads: list[str] = field(default_factory=lambda: [])
+    exports: list[str] = field(default_factory=lambda: [])
+    conversions: list[str] = field(default_factory=lambda: [])
+    unreadable: set[str] = field(default_factory=lambda: set())  # reading these fails, as Drive can
+    changed: list[str] = field(default_factory=lambda: [])  # what the feed reports on its next page
+    tokens: int = 0
 
     @classmethod
     def topic(cls) -> MemoryDrive:
@@ -55,6 +65,28 @@ class MemoryDrive:
         ):
             drive.files[fid] = DriveFile(fid, name, FOLDER, (parent,))
         return drive
+
+    @classmethod
+    def subject(cls) -> MemoryDrive:
+        """alfabeta/2026-2027/FyQ/ with Tema 01 (notes/ and classroom/), Tema 02, later, and No topic."""
+        drive = cls.topic()
+        for fid, name, parent in (
+            (CLASSROOM, "classroom", TOPIC),
+            (TOPIC_2, "20261020 - Tema 02 - Otra materia", "fyq"),
+            (CLASSROOM_2, "classroom", TOPIC_2),
+            (NO_TOPIC, "20260910 - No topic", "fyq"),
+            (CLASSROOM_0, "classroom", NO_TOPIC),
+        ):
+            drive.files[fid] = DriveFile(fid, name, FOLDER, (parent,))
+        return drive
+
+    def folder(self, fid: str, name: str, parent: str) -> DriveFile:
+        self.files[fid] = DriveFile(fid, name, FOLDER, (parent,))
+        return self.files[fid]
+
+    def touch(self, *fids: str) -> None:
+        """What the feed's next page reports as changed."""
+        self.changed += fids
 
     def put(self, fid: str, name: str, mime: str, body: bytes, parent: str = NOTES) -> DriveFile:
         md5 = hashlib.md5(body).hexdigest()
@@ -78,7 +110,65 @@ class MemoryDrive:
 
     def content(self, file_id: str) -> bytes:
         self.downloads.append(file_id)
+        self._readable(file_id)
         return self.bodies[file_id]
+
+    def _readable(self, file_id: str) -> None:
+        if file_id in self.unreadable:
+            raise DriveError("Drive API returned 500", 500)
+
+    def children(self, folder_id: str) -> list[DriveFile]:
+        found = (f for f in self.files.values() if folder_id in f.parents and not f.trashed)
+        return sorted(found, key=lambda f: (f.name, f.id))
+
+    def export(self, file_id: str, mime_type: str = "application/pdf") -> bytes:
+        self.exports.append(file_id)
+        self._readable(file_id)
+        return f"export:{file_id}".encode()
+
+    def convert(self, file_id: str, folder_id: str, google_type: str, properties: dict[str, str]) -> bytes:
+        """Like Drive's: a leftover copy is trashed, the new copy is exported and trashed at once."""
+        for left in self.children(folder_id):
+            if all(left.prop(k) == v for k, v in properties.items()):
+                self.files[left.id] = replace(left, trashed=True)
+        self._readable(file_id)
+        fid = self._new_id()
+        self.files[fid] = DriveFile(
+            fid, self.files[file_id].name, google_type, (folder_id,), properties=tuple(sorted(properties.items()))
+        )
+        self.conversions.append(file_id)
+        self.files[fid] = replace(self.files[fid], trashed=True)
+        return f"office:{file_id}".encode()
+
+    # FeedSource: the first read lists the tree, a later one reports what `touch` named ------------
+
+    def items(self) -> list[DriveFile]:
+        return [f for f in self.files.values() if not f.trashed]
+
+    def relist(self) -> None:
+        pass
+
+    def ancestors(self, item_id: str) -> list[DriveFile]:
+        chain: list[DriveFile] = []
+        parents = self.files[item_id].parents
+        while parents and parents[0] in self.files:
+            chain.append(self.files[parents[0]])
+            parents = self.files[parents[0]].parents
+        return chain[::-1]
+
+    def start_page_token(self) -> str:
+        self.tokens += 1
+        return f"c{self.tokens}"
+
+    def changes(self, page_token: str, known_ids: frozenset[str]) -> tuple[list[Change], str]:
+        kept: list[Change] = []
+        for fid in self.changed:
+            if fid in self.files and not self.files[fid].trashed:
+                kept.append(Change(fid, left=False, file=self.files[fid]))
+            elif fid in known_ids:
+                kept.append(Change(fid, left=True))
+        self.changed = []
+        return kept, self.start_page_token()
 
     def made_for(self, folder_id: str, properties: dict[str, str]) -> DriveFile | None:
         found = [
@@ -168,7 +258,16 @@ class CountingPdf:
     def classroom(
         self, topic: Topic, entries: Sequence[tuple[ClassroomEntry, Sequence[RenderedPart]]]
     ) -> tuple[bytes, int]:
-        return f"classroom:{topic.name}:{len(entries)}".encode(), 1 + len(entries)
+        """`classroom:<topic>:` then per entry, in posting order, `<id>[title|description|addresses|parts]`,
+        each part as `<name>/<kind>=<its bytes>`."""
+        shown = [
+            f"{e.item_id}[{e.title}|{e.description}|{','.join(e.addresses)}|"
+            + ",".join(f"{r.part.name}/{r.part.kind}={r.content.decode()}" for r in parts)
+            + "]"
+            for e, parts in sorted(entries, key=lambda e: (e[0].posted, e[0].title))
+        ]
+        pages = 1 + sum(1 + sum(r.part.kind != PartKind.NAMED for r in parts) for _, parts in entries)
+        return f"classroom:{topic.name}:{';'.join(shown)}".encode(), pages
 
     def page(self, page: NotesPage, image: bytes) -> bytes:
         return f"page:{page.photo_id}:{page.markdown}".encode()
@@ -200,7 +299,7 @@ class FixedClock:
 
 def deps(
     drive: MemoryDrive,
-    feed: ScriptedFeed,
+    feed: ChangeFeed,
     transcriber: ScriptedTranscriber | None,
     clock: FixedClock | None = None,
     warn_pages: int = 100,

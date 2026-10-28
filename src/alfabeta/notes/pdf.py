@@ -193,24 +193,38 @@ class ReportlabPdfBuilder:
             self._drawn(self._cover(f"Classroom · {topic.name}", ["Material del profesor, por fecha."]), topic.name)
         ]
         for entry, parts in sorted(entries, key=lambda e: (e[0].posted, e[0].title)):
+            own: list[bytes] = []
+            named: list[str] = []
+            for rendered in sorted(parts, key=lambda p: p.part.name):
+                drawn = self._part(rendered)
+                if drawn is None:
+                    named.append(rendered.part.name)
+                else:
+                    own.append(drawn)
             lines = [entry.posted.isoformat()]
             if entry.description:
                 lines += ["", *entry.description.splitlines()]
-            lines += [*entry.addresses, *(p.part.name for p in parts if p.part.kind == PartKind.NAMED)]
-            pieces.append(self._drawn(self._cover(entry.title, lines), entry.title))
-            for rendered in sorted(parts, key=lambda p: p.part.name):
-                pieces.extend(self._part(rendered))
+            lines += [*entry.addresses, *named]
+            pieces += [self._drawn(self._cover(entry.title, lines), entry.title), *own]
         return _finish(pieces)
 
-    def _part(self, rendered: RenderedPart) -> list[bytes]:
+    def _part(self, rendered: RenderedPart) -> bytes | None:
+        """A part's pages; None for a part only named on the cover, as is one whose bytes cannot be read.
+
+        One unreadable file of the teacher's never stops the topic's file (as `_paragraph` for a line).
+        """
         kind = rendered.part.kind
-        if kind in (PartKind.PDF, PartKind.EXPORT, PartKind.OFFICE):
-            return [rendered.content]
-        if kind == PartKind.TEXT:
-            return [self._drawn([*self._text(rendered.content.decode()), PageBreak()], rendered.part.name)]
-        if kind == PartKind.IMAGE:
-            return [self._drawn([self._photo(rendered.content)], rendered.part.name)]
-        return []  # NAMED: only on the cover
+        try:
+            if kind in (PartKind.PDF, PartKind.EXPORT, PartKind.OFFICE):
+                return rendered.content if len(PdfReader(io.BytesIO(rendered.content)).pages) else None
+            if kind == PartKind.TEXT:
+                text = rendered.content.decode(errors="replace")
+                return self._drawn([*self._text(text), PageBreak()], rendered.part.name)
+            if kind == PartKind.IMAGE:
+                return self._drawn([self._photo(rendered.content)], rendered.part.name)
+        except Exception:  # pypdf and Pillow raise many types for a damaged file
+            return None
+        return None  # NAMED: only on the cover
 
 
 def _finish(pieces: Sequence[bytes]) -> tuple[bytes, int]:

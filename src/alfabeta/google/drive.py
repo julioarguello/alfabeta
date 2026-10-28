@@ -238,6 +238,15 @@ class ScopedDrive:
             raise DriveError(f"Drive API returned {resp.status}", resp.status)
         return resp.body
 
+    def export(self, file_id: str, mime_type: str = "application/pdf") -> bytes:
+        """A Google-native file's content in another format, converted by Drive (spec 005 research R6)."""
+        self._inside(file_id)
+        query = urllib.parse.urlencode({"mimeType": mime_type})
+        resp = self._transport.request("GET", f"{API}/{file_id}/export?{query}", headers=self._headers())
+        if resp.status >= 400:
+            raise DriveError(f"Drive API returned {resp.status}", resp.status)
+        return resp.body
+
     def head_revision(self, file_id: str) -> str | None:
         """The file's `headRevisionId`, read now (spec 005 research R4)."""
         self._inside(file_id)
@@ -347,6 +356,29 @@ class ScopedDrive:
 
     def made_for(self, folder_id: str, properties: dict[str, str]) -> DriveFile | None:
         """The file in the folder carrying all these public properties, asked of Drive now (research R4)."""
+        found = self._carrying(folder_id, properties)
+        return found[0] if found else None
+
+    def convert(self, file_id: str, folder_id: str, google_type: str, properties: dict[str, str]) -> bytes:
+        """An Office file as PDF, through a Google copy that goes to the trash at once (spec 005 research R6).
+
+        Drive copies the file into `folder_id` as `google_type` and exports the copy; the file itself is
+        only read. The copy carries `properties`. A copy that a stopped run left in the folder carries them too and
+        goes to the trash first, so the folder never holds two (research R4). Nothing else is ever trashed.
+        """
+        self._inside(file_id)
+        for left in self._carrying(folder_id, properties):
+            self._trash(left.id)
+        metadata = {"name": self._tree[file_id].name, "mimeType": google_type, "parents": [folder_id]}
+        body = json.dumps({**metadata, "properties": properties}).encode()
+        copy = DriveFile.of(self._call("POST", f"{API}/{file_id}/copy?fields={FIELDS}", body, "application/json"))
+        self._tree[copy.id] = copy
+        try:
+            return self.export(copy.id)
+        finally:
+            self._trash(copy.id)
+
+    def _carrying(self, folder_id: str, properties: dict[str, str]) -> list[DriveFile]:
         self._folder(folder_id)
         has = " and ".join(
             f"properties has {{ key={_quote(k)} and value={_quote(v)} }}" for k, v in sorted(properties.items())
@@ -355,7 +387,13 @@ class ScopedDrive:
         found = sorted(self._query(q), key=lambda f: f.id)
         for item in found:
             self._tree[item.id] = item
-        return found[0] if found else None
+        return found
+
+    def _trash(self, file_id: str) -> None:
+        """Put one of alfabeta's own conversions in Drive's trash; only `convert` calls it."""
+        body = json.dumps({"trashed": True}).encode()
+        self._call("PATCH", f"{API}/{file_id}?fields=id", body, "application/json")
+        self._tree.pop(file_id, None)
 
     def share_reader(self, file_id: str, address: str) -> None:
         """Let one account read one file, without mailing it (spec 005 FR-011, research R9)."""

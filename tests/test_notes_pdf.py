@@ -109,6 +109,20 @@ def test_each_part_kind_becomes_its_pages(builder: ReportlabPdfBuilder):
     assert again == pdf
 
 
+def test_a_damaged_file_of_the_teacher_is_named_on_its_cover_not_a_failed_file(builder: ReportlabPdfBuilder):
+    entry = ClassroomEntry(
+        "item-1",
+        "v1",
+        "Ficha dañada",
+        dt.date(2026, 10, 5),
+        parts=(Part("p1", "rota.pdf", PartKind.PDF), Part("p2", "rota.png", PartKind.IMAGE)),
+    )
+    rendered = [RenderedPart(entry.parts[0], b"no es un PDF"), RenderedPart(entry.parts[1], b"ni una imagen")]
+    pdf, pages = builder.classroom(TOPIC, [(entry, rendered)])
+    assert pages == 2  # the file's cover and the entry's, which names both
+    assert "rota.pdf" in text_of(pdf) and "rota.png" in text_of(pdf)
+
+
 def test_overlapping_marks_become_plain_text_not_a_failed_file(builder: ReportlabPdfBuilder):
     page = NotesPage("foto-3", "v1", "**a ~~b** c~~ PALABRA-SOLAPADA", order=1)
     text = text_of(builder.notes(TOPIC, [(page, drawn("tres"))])[0])

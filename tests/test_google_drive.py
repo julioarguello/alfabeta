@@ -1,4 +1,5 @@
-"""Uploads confirmed by size and checksum, updates on the same id (spec 004 FR-012, T024). Invented ids."""
+"""Uploads confirmed by size and checksum, updates on the same id (spec 004 FR-012, T024); exports and
+Office conversions for the Classroom living file (spec 005 research R6). Invented ids."""
 
 from __future__ import annotations
 
@@ -9,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from alfabeta.google.drive import MULTIPART_LIMIT, DriveError
+from alfabeta.google.drive import MULTIPART_LIMIT, DriveError, OutsideFolderError
 from alfabeta.google.transport import Response
 from tests.conftest import json_response
 from tests.test_google_drive_scope import file, opened
@@ -146,3 +147,69 @@ def test_sharing_mails_nobody_and_never_a_folder(tmp_path: Path):
     assert url.endswith("/files/ficha-1/permissions?sendNotificationEmail=false")
     with pytest.raises(DriveError, match="never a folder"):
         drive.share_reader("tema-1", "familia@example.com")
+
+
+DOC = "application/vnd.google-apps.document"
+
+
+def test_a_google_file_is_exported_as_pdf(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses.append(Response(200, b"%PDF exportado"))
+    assert drive.export("ficha-1") == b"%PDF exportado"
+    method, url, _, _ = t.calls[-1]
+    assert (method, url) == (
+        "GET",
+        "https://www.googleapis.com/drive/v3/files/ficha-1/export?mimeType=application%2Fpdf",
+    )
+    t.responses.append(Response(403, b'{"error": {"code": 403}}'))  # Drive's export has a size cap
+    with pytest.raises(DriveError):
+        drive.export("ficha-1")
+
+
+def test_an_office_file_is_copied_exported_and_its_copy_trashed(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    props = {"alfabeta_for": "ficha-1", "alfabeta_role": "conversion"}
+    left = {**file("vieja", "tema-1"), "mimeType": DOC, "properties": props}  # a stopped run's copy
+    t.responses += [
+        json_response(200, {"files": [left]}),
+        json_response(200, {"id": "vieja"}),
+        json_response(200, {**file("copia", "tema-1"), "mimeType": DOC, "properties": props}),
+        Response(200, b"%PDF convertido"),
+        json_response(200, {"id": "copia"}),
+    ]
+    assert drive.convert("ficha-1", "tema-1", DOC, props) == b"%PDF convertido"
+    methods = [(m, urllib.parse.urlparse(u).path.rsplit("/files", 1)[-1]) for m, u, _, _ in t.calls[-5:]]
+    assert methods == [
+        ("GET", ""),
+        ("PATCH", "/vieja"),
+        ("POST", "/ficha-1/copy"),
+        ("GET", "/copia/export"),
+        ("PATCH", "/copia"),
+    ]
+    copy = json.loads(t.calls[-3][3] or b"{}")
+    assert (copy["mimeType"], copy["parents"], copy["properties"]) == (DOC, ["tema-1"], props)
+    assert all(json.loads(t.calls[i][3] or b"{}") == {"trashed": True} for i in (-4, -1))
+    assert not drive.contains("copia") and not drive.contains("vieja")
+
+
+def test_a_failed_export_still_trashes_the_copy(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses += [
+        json_response(200, {"files": []}),
+        json_response(200, {**file("copia", "tema-1"), "mimeType": DOC}),
+        Response(500, b"{}"),
+        json_response(200, {"id": "copia"}),
+    ]
+    with pytest.raises(DriveError):
+        drive.convert("ficha-1", "tema-1", DOC, {"alfabeta_for": "ficha-1"})
+    assert t.calls[-1][0] == "PATCH" and not t.responses
+
+
+def test_a_conversion_goes_only_into_a_folder_of_the_tree(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    before = len(t.calls)
+    with pytest.raises(OutsideFolderError):
+        drive.convert("ficha-1", "fuera-1", DOC, {"alfabeta_for": "ficha-1"})
+    with pytest.raises(DriveError, match="not a folder"):
+        drive.convert("ficha-1", "ficha-0", DOC, {"alfabeta_for": "ficha-1"})
+    assert len(t.calls) == before

@@ -1,4 +1,4 @@
-"""`notebook setup` with a fake notebook (spec 005 T016, T017). Every value is invented."""
+"""`notebook setup` with a fake notebook (spec 005 T016, T017, T028). Every value is invented."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from typing import Any
 
 import pytest
 
+from alfabeta.notes.changes import DriveChangeFeed
+from alfabeta.notes.run import run_notes
 from alfabeta.notes.setup import Setting, SetupError, setup_topic
 from alfabeta.notes.sources import Source, SourcesError
 from alfabeta.notes.state import STATE
@@ -171,3 +173,20 @@ def test_a_setup_whose_save_lost_a_race_adds_nothing_when_run_again():
         setup_topic(made, drive, nb, SETTING)
     setup(drive, nb)
     assert len(nb.added) == 2
+
+
+def test_setup_builds_the_classroom_file_with_the_items_already_in_classroom():
+    drive, nb = drive_with_photo(), FakeNotebook()
+    drive.folder("cl", "classroom", TOPIC)
+    drive.put("ficha", "20261001 - Ficha.pdf", "application/pdf", b"%PDF ficha", parent="cl")
+    feed = DriveChangeFeed(drive)
+    setup_topic(deps(drive, feed, ScriptedTranscriber()), drive, nb, SETTING)
+    (classroom,) = drive.named("Classroom · Tema 01 - Materia inventada.pdf")
+    assert drive.files[classroom].parents == ("cl",)
+    expected = b"classroom:Tema 01 - Materia inventada:ficha[Ficha|||20261001 - Ficha.pdf/pdf=%PDF ficha]"
+    assert drive.bodies[classroom] == expected
+    state = json.loads(drive.bodies[drive.named(STATE)[0]])
+    assert state["files"]["ficha"]["state"] == "in_living_file"
+    writes = list(drive.updates)
+    run_notes(deps(drive, feed, ScriptedTranscriber()))  # the next run finds it built already
+    assert drive.updates[len(writes) :] == ["last-run.json"]

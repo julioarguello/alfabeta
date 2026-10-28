@@ -28,8 +28,11 @@ from alfabeta.notes.model import (
     SpendLedger,
     Topic,
     Usage,
+    addresses,
     is_announcement,
     is_part,
+    part_kind,
+    posted_title,
     reportable,
 )
 
@@ -202,3 +205,50 @@ def test_the_ledger_sums_every_call_by_month():
     assert ledger.months["2026-10"] == Usage(4_000, 1_500)
     assert ledger.cost("2026-10", (2.0, 10.0)) == pytest.approx(0.023)
     assert ledger.cost("2026-12", (2.0, 10.0)) == 0
+
+
+@pytest.mark.parametrize(
+    ("name", "mime", "kind"),
+    [
+        ("guion.pdf", "application/pdf", PartKind.PDF),
+        ("guion.PDF", "application/octet-stream", PartKind.PDF),
+        ("Presentación", "application/vnd.google-apps.presentation", PartKind.EXPORT),
+        ("Hoja", "application/vnd.google-apps.spreadsheet", PartKind.EXPORT),
+        ("plantilla.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", PartKind.OFFICE),
+        ("datos.xlsx", "application/octet-stream", PartKind.OFFICE),
+        ("diapos.odp", "application/vnd.oasis.opendocument.presentation", PartKind.OFFICE),
+        ("notas.md", "text/markdown", PartKind.TEXT),
+        ("leeme", "text/plain", PartKind.TEXT),
+        ("mapa.PNG", "image/png", PartKind.IMAGE),
+        ("foto.heic", "image/heic", PartKind.NAMED),
+        ("simulador.html", "text/html", PartKind.NAMED),
+        ("Formulario", "application/vnd.google-apps.form", PartKind.NAMED),
+    ],
+)
+def test_each_file_of_an_item_has_its_way_into_pages(name: str, mime: str, kind: PartKind):
+    assert part_kind(name, mime) == kind
+
+
+def test_an_item_name_gives_its_posting_date_and_title():
+    assert posted_title("20261005 - Práctica 1.2", folder=True) == (dt.date(2026, 10, 5), "Práctica 1.2")
+    assert posted_title("20261005 - Práctica 1.2.pdf", folder=False) == (dt.date(2026, 10, 5), "Práctica 1.2")
+    assert posted_title("apuntes extra.pdf", folder=False) is None
+    assert posted_title("20261399 - Fecha imposible.pdf", folder=False) is None
+
+
+def test_the_links_note_becomes_cover_lines():
+    note = "# Enlaces\n\n- [Vídeo](https://example.org/v) · 06/10/2026\n- [](https://example.org/x) · 06/10/2026\n\nOtra línea\n"
+    assert addresses(note) == ("Vídeo: https://example.org/v · 06/10/2026", "https://example.org/x · 06/10/2026")
+
+
+def test_a_classroom_item_failing_is_capped_then_final_and_a_new_version_starts_again():
+    item = ClassroomItem(Arrival("item-1", "tema-1", Kind.CLASSROOM_ITEM, "v1"))
+    for _ in range(MAX_RETRIES):
+        item = item.moved_to(ItemState.FAILED)
+    assert (item.state, item.retries) == (ItemState.FAILED, MAX_RETRIES)
+    item = item.moved_to(ItemState.FAILED)
+    assert item.state == ItemState.FAILED_FINAL
+    with pytest.raises(ValueError, match="cannot go"):
+        item.moved_to(ItemState.IN_LIVING_FILE)
+    assert item.moved_to(ItemState.SEEN) == ClassroomItem(item.arrival)
+    assert item.moved_to(ItemState.LEFT_OUT).state == ItemState.LEFT_OUT

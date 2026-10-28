@@ -1,29 +1,38 @@
 """One pass of the notes: new photos become pages, changed living files are rebuilt (spec 005 R2, R4 to R6).
 
 The pass reads the records and the run log, reads the change feed from the cursor, records what
-arrived, transcribes the pending photos, writes each page's Markdown and PDF next to its photo, and
-rebuilds the notes living file of every topic that changed. It never creates a living file: only
-`notebook setup` does (research R6). It writes `state.json` only when a record changed, and the run
-log always. It calls no study-pack generation (FR-012).
+arrived, transcribes the pending photos, writes each page's Markdown and PDF next to its photo, checks
+every recorded Classroom item against this run's listing, and rebuilds the living files of every
+topic that changed. It never creates a living file: only `notebook setup` does (research R6). It
+writes `state.json` only when a record changed, and the run log always. It calls no study-pack
+generation (FR-012).
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections import Counter
 from dataclasses import dataclass, field, replace
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.google.drive import DriveError, OutsideFolderError
 from alfabeta.notes.changes import LIVING_FOLDERS, Known
 from alfabeta.notes.model import (
+    OFFICE_TYPES,
     Arrival,
+    ClassroomEntry,
+    ClassroomItem,
+    ItemState,
     Kind,
     LivingFile,
     LivingKind,
     NotesPage,
     PageSource,
+    Part,
+    PartKind,
     Photo,
     PhotoState,
     RanOn,
@@ -33,7 +42,14 @@ from alfabeta.notes.model import (
     SpendLedger,
     Topic,
     Usage,
+    addresses,
+    is_announcement,
+    is_part,
+    part_kind,
+    posted_title,
 )
+from alfabeta.notes.pdf import RenderedPart
+from alfabeta.placement import NO_TOPIC
 
 if TYPE_CHECKING:
     from alfabeta.google.drive import DriveFile
@@ -49,6 +65,14 @@ VERSION = "alfabeta_version"
 PDF = "application/pdf"
 MARKDOWN = "text/markdown"
 _DATED = re.compile(r"^\d{8} - (.+)$")
+CONVERSIONS = "conversions"  # in `.alfabeta/`: an Office file's Google copy while it is exported
+# What spec 001 writes in an item's folder for its cover: a material's description, an assignment's
+# statement (placement.py), and the links it did not download.
+_DESCRIPTIONS = frozenset({"descripcion.md", "enunciado.md"})
+_LINKS = "enlaces.md"
+# An item whose entry is in its living file or due to be; `failed_final` waits until it changes.
+_FILED = frozenset({ItemState.SEEN, ItemState.IN_LIVING_FILE, ItemState.FAILED})
+_DUE = frozenset({ItemState.SEEN, ItemState.FAILED})
 _HEADING = re.compile(r"^#{1,6} ", re.MULTILINE)
 # What a report counts per topic (contracts/cli.md); a topic is an opaque index, never a name or id.
 COUNTS = (
@@ -127,6 +151,18 @@ class NotesDrive(Protocol):
         """New content on the same id, confirmed."""
         ...
 
+    def children(self, folder_id: str) -> list[DriveFile]:
+        """What this run's listing found directly inside the folder, sorted by name."""
+        ...
+
+    def export(self, file_id: str, mime_type: str = PDF) -> bytes:
+        """A Google-native file converted by Drive."""
+        ...
+
+    def convert(self, file_id: str, folder_id: str, google_type: str, properties: dict[str, str]) -> bytes:
+        """An Office file as PDF, through a Google copy in `folder_id` that goes to the trash at once."""
+        ...
+
 
 @dataclass
 class NotesDeps:
@@ -152,6 +188,7 @@ class Pass:
     today: str
     counts: dict[str, Counter[str]] = field(default_factory=lambda: {})
     dirty: set[str] = field(default_factory=lambda: set())
+    classroom_dirty: set[str] = field(default_factory=lambda: set())  # topics whose Classroom file changes
     budget_wait: int = 0
     budget_refused: bool = False  # once refused, this pass makes no other call (research R5)
     no_key: bool = False
@@ -283,11 +320,13 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
         except DriveError:
             work.write_failed = True
             work.count(work.files[photo_id]["topic"], "failed")
+    _items(deps, work)
     for topic in sorted(work.topics):
-        try:
-            _rebuild(deps, work, topic)
-        except DriveError:
-            work.write_failed = True
+        for rebuild in (_rebuild, _rebuild_classroom):
+            try:
+                rebuild(deps, work, topic)
+            except DriveError:
+                work.write_failed = True
     deps.store.save(state)
     failed = work.write_failed or any(c["failed"] for c in work.counts.values())
     run_result = RunResult.PARTIAL if failed else RunResult.OK
@@ -322,9 +361,11 @@ def _gone(work: Pass, file_id: str) -> None:
     record = work.files.get(file_id)
     if record is None or record.get("state") == str(PhotoState.GONE):
         return
-    if record["kind"] in (Kind.NOTES_PHOTO, Kind.CLASSROOM_ITEM):
+    if record["kind"] == Kind.NOTES_PHOTO:
         record["state"] = str(PhotoState.GONE)  # its page stays (constitution V)
         work.count(record["topic"], "gone")
+    elif record["kind"] == Kind.CLASSROOM_ITEM:
+        _item_gone(work, file_id, record)
 
 
 def _record(deps: NotesDeps, work: Pass, arrival: Arrival) -> None:
@@ -332,6 +373,7 @@ def _record(deps: NotesDeps, work: Pass, arrival: Arrival) -> None:
     if arrival.topic not in work.topics:
         work.topics[arrival.topic] = {"name": topic_name(deps.drive.listed(arrival.topic).name)}
     record = work.files.setdefault(arrival.file_id, {})
+    before = record.get("topic")
     record |= {"kind": str(arrival.kind), "topic": arrival.topic, "version": arrival.version, "own": False}
     if arrival.kind == Kind.NOTES_PHOTO:
         record |= {"name": deps.drive.listed(arrival.file_id).name, "state": str(PhotoState.SEEN), "retries": 0}
@@ -339,7 +381,12 @@ def _record(deps: NotesDeps, work: Pass, arrival: Arrival) -> None:
     elif arrival.kind == Kind.NOTES_TEXT:
         record["name"] = deps.drive.listed(arrival.file_id).name
     elif arrival.kind == Kind.CLASSROOM_ITEM:
-        record.setdefault("state", "seen")  # phase 5 builds them
+        if before not in (None, arrival.topic):
+            _touch(work, record)  # moved: it leaves the first file, and `_item` files it in the second
+            record.pop("living", None)
+        if record.get("state") in (None, ItemState.GONE):
+            record |= {"state": str(ItemState.SEEN), "retries": 0}  # new, or back: its entry is built again
+            record.pop("item_version", None)
     elif arrival.kind == Kind.UNEXPECTED:
         work.count(arrival.topic, "unexpected")
 
@@ -523,3 +570,251 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
     living_records[LivingKind.NOTES] = living_record(built)
     if built.over(deps.warn_pages):
         work.count(topic, "over_page_count")
+
+
+# --- Classroom items (research R6; data-model.md, ClassroomEntry) -------------------------------------
+
+
+@dataclass(frozen=True)
+class ClassroomBuild:
+    """A Classroom living file built from its entries, and the items it held or could not read."""
+
+    data: bytes
+    pages: int
+    built: tuple[str, ...]
+    failed: tuple[str, ...]
+
+
+def _touch(work: Pass, record: dict[str, Any]) -> None:
+    """The item's living Classroom file is rebuilt this run."""
+    living = record.get("living")
+    if living is not None:
+        work.classroom_dirty.add(living)
+
+
+def _settle(item_id: str, record: dict[str, Any], state: ItemState) -> None:
+    """Move an item's record to `state` through the model's transitions; staying where it is is no move."""
+    current = ItemState(record.get("state", ItemState.SEEN))
+    if current == state and state != ItemState.FAILED:
+        return
+    item = ClassroomItem(
+        Arrival(item_id, record["topic"], Kind.CLASSROOM_ITEM, record.get("version", "")),
+        current,
+        int(record.get("retries", 0)),
+    ).moved_to(state)
+    record |= {"state": str(item.state), "retries": item.retries}
+
+
+def _item_gone(work: Pass, item_id: str, record: dict[str, Any]) -> None:
+    """Removed, trashed or moved out of its topic: its entry leaves the file, which cannot read it again."""
+    _settle(item_id, record, ItemState.GONE)
+    work.count(record.get("living") or record["topic"], "gone")
+    _touch(work, record)
+
+
+def _items(deps: NotesDeps, work: Pass) -> None:
+    """Every recorded Classroom item against this run's listing, which `ScopedDrive.open` makes afresh.
+
+    The feed only says which item changed; the listing says what it is now, so a renamed item, a file
+    removed from an item's folder or an item moved out of the topics is seen with no change of its own.
+    """
+    for item_id, record in sorted(work.files.items()):
+        if record["kind"] == Kind.CLASSROOM_ITEM and record.get("state") != ItemState.GONE:
+            _item(deps, work, item_id, record)
+
+
+def _item(deps: NotesDeps, work: Pass, item_id: str, record: dict[str, Any]) -> None:
+    """What the item is now (T028): left out, waiting for a topic, unchanged, or a new version of its entry."""
+    found = deps.drive.listed(item_id) if deps.drive.contains(item_id) else None
+    if found is None or not in_place(deps.drive, found, record["topic"], LivingKind.CLASSROOM):
+        _item_gone(work, item_id, record)
+        return
+    named = posted_title(found.name, folder=found.is_folder)
+    if named is None or is_announcement(found.name) or not is_part(found.name):
+        # Not material: an announcement, a previous version, or a name spec 001 never writes.
+        if record.get("state") != ItemState.LEFT_OUT:
+            if named is None:
+                work.count(record.get("living") or record["topic"], "unexpected")
+            _touch(work, record)  # an entry it had leaves the file
+        _settle(item_id, record, ItemState.LEFT_OUT)
+        record.pop("item_version", None)
+        return
+    if "living" not in record:
+        living = _route(deps, work, record["topic"])
+        if living is None:
+            return  # a `No topic` material of a subject with no topic yet: routed once one exists
+        record["living"] = living
+        work.classroom_dirty.add(living)
+    kept = _kept(deps.drive, found)
+    version = _version(found.name, kept)
+    if version == record.get("item_version"):
+        return
+    record["item_version"] = version
+    _settle(item_id, record, ItemState.SEEN)
+    work.classroom_dirty.add(record["living"])
+    work.count(record["living"], "items_added")
+    covers = _DESCRIPTIONS | {_LINKS} if found.is_folder else frozenset[str]()
+    if all(part_kind(f.name, f.mime_type) == PartKind.NAMED for path, f in kept if path not in covers):
+        work.count(record["living"], "links_only")
+
+
+def _route(deps: NotesDeps, work: Pass, topic: str) -> str | None:
+    """The topic whose Classroom file an item of `topic` goes into; None while there is none.
+
+    An item's own topic, or for `No topic` the subject's topic folder with the latest date now (spec 002
+    FR-023).
+    """
+    folder = deps.drive.listed(topic)
+    if topic_name(folder.name) != NO_TOPIC:
+        return topic
+    dated = [
+        (sibling.name[:8], sibling.name, sibling.id)
+        for subject in folder.parents
+        if deps.drive.contains(subject)
+        for sibling in deps.drive.children(subject)
+        if sibling.is_folder and _DATED.match(sibling.name) and topic_name(sibling.name) != NO_TOPIC
+    ]
+    if not dated:
+        return None
+    latest = max(dated)[2]
+    work.topics.setdefault(latest, {"name": topic_name(deps.drive.listed(latest).name)})
+    return latest
+
+
+def _kept(drive: NotesDrive, item: DriveFile) -> list[tuple[str, DriveFile]]:
+    """Each file of the item a living file may show, by its path inside the item, in name order.
+
+    Never the student's work, its grading or a previous version (constitution III, spec 001 FR-015b).
+    """
+    if not item.is_folder:
+        return [(item.name, item)]
+    kept: list[tuple[str, DriveFile]] = []
+    below = [("", item.id)]
+    while below:
+        prefix, folder = below.pop()
+        for child in drive.children(folder):
+            path = prefix + child.name
+            if child.is_folder:
+                below.append((f"{path}/", child.id))
+            elif is_part(path):
+                kept.append((path, child))
+    return sorted(kept, key=lambda k: (k[0], k[1].id))
+
+
+def _version(name: str, kept: list[tuple[str, DriveFile]]) -> str:
+    """The entry's `item_version`: what it shows, the item's name and each kept file's path and version."""
+    shown = json.dumps([name, [[path, f.version] for path, f in kept]], ensure_ascii=False)
+    return hashlib.sha256(shown.encode()).hexdigest()[:16]
+
+
+def _filed(files: dict[str, dict[str, Any]], topic: str) -> list[str]:
+    """The items whose entries the topic's Classroom file holds or is due to."""
+    return sorted(
+        f
+        for f, r in files.items()
+        if r["kind"] == Kind.CLASSROOM_ITEM and r.get("living") == topic and r.get("state") in _FILED
+    )
+
+
+def _rebuild_classroom(deps: NotesDeps, work: Pass, topic: str) -> None:
+    """The topic's Classroom living file: checked where it was set up, rebuilt when an entry changed."""
+    filed = _filed(work.files, topic)
+    living_records = cast("dict[str, Any]", work.topics[topic].setdefault("living", {}))
+    living = living_of(topic, LivingKind.CLASSROOM, living_records.get(LivingKind.CLASSROOM))
+    if living.waiting_setup:
+        if filed:
+            work.count(topic, "waiting_setup")
+        return
+    assert living.file_id is not None
+    found = deps.drive.listed(living.file_id) if deps.drive.contains(living.file_id) else None
+    if found is None or not in_place(deps.drive, found, topic, LivingKind.CLASSROOM):
+        living_records[LivingKind.CLASSROOM] = {**living_record(living), "health": "missing"}
+        work.count(topic, "missing_living_files")  # reported, never recreated (FR-011)
+        return
+    living_records[LivingKind.CLASSROOM] = living_record(living)
+    waiting = any(work.files[i]["state"] in _DUE for i in filed)
+    if topic not in work.classroom_dirty and not waiting:
+        return
+    build = build_classroom(deps, work.files, topic, work.topics[topic]["name"])
+    built, upload = living.built(hashlib.md5(build.data).hexdigest(), build.pages)
+    if upload:
+        deps.drive.update(living.file_id, build.data, PDF)
+    settle_classroom(work.files, build)
+    for _ in build.failed:
+        work.count(topic, "failed")
+    living_records[LivingKind.CLASSROOM] = living_record(built)
+    if built.over(deps.warn_pages):
+        work.count(topic, "over_page_count")
+
+
+def build_classroom(deps: NotesDeps, files: dict[str, dict[str, Any]], topic: str, name: str) -> ClassroomBuild:
+    """The topic's Classroom living file from its entries, each read from Drive now (research R6).
+
+    A new or changed entry Drive fails to read is left out and retried on the next runs, up to the
+    cap; one already in the file stops the build instead, so the file never loses it to a Drive error.
+    """
+    entries: list[tuple[ClassroomEntry, list[RenderedPart]]] = []
+    failed: list[str] = []
+    for item_id in _filed(files, topic):
+        try:
+            entries.append(_entry(deps, item_id, files[item_id]))
+        except DriveError:
+            if files[item_id]["state"] == ItemState.IN_LIVING_FILE:
+                raise
+            failed.append(item_id)
+    data, pages = deps.pdf.classroom(Topic(topic, name), entries)
+    return ClassroomBuild(data, pages, tuple(e.item_id for e, _ in entries), tuple(failed))
+
+
+def settle_classroom(files: dict[str, dict[str, Any]], build: ClassroomBuild) -> None:
+    """Once the file is written: its entries are in it, and the ones Drive failed to read count a failure."""
+    for item_id in build.built:
+        _settle(item_id, files[item_id], ItemState.IN_LIVING_FILE)
+    for item_id in build.failed:
+        _settle(item_id, files[item_id], ItemState.FAILED)
+
+
+def _entry(deps: NotesDeps, item_id: str, record: dict[str, Any]) -> tuple[ClassroomEntry, list[RenderedPart]]:
+    """One entry and its parts' bytes; the student's work and its grading are never downloaded.
+
+    Its cover comes from the item's name, `descripcion.md` or `enunciado.md`, and `enlaces.md`; each
+    other kept file is a part.
+    """
+    item = deps.drive.listed(item_id)
+    named = posted_title(item.name, folder=item.is_folder)
+    assert named is not None  # `_item` left every other name out
+    posted, title = named
+    description: list[str] = []
+    links: tuple[str, ...] = ()
+    rendered: list[RenderedPart] = []
+    for path, f in _kept(deps.drive, item):
+        if item.is_folder and path in _DESCRIPTIONS:
+            description.append(deps.drive.content(f.id).decode(errors="replace").strip())
+        elif item.is_folder and path == _LINKS:
+            links = addresses(deps.drive.content(f.id).decode(errors="replace"))
+        else:
+            part = Part(f.id, path, part_kind(f.name, f.mime_type))
+            rendered.append(RenderedPart(part, _render(deps, f, part.kind)))
+    entry = ClassroomEntry(
+        item_id,
+        record.get("item_version", ""),
+        title,
+        posted,
+        "\n\n".join(d for d in description if d),
+        links,
+        tuple(r.part for r in rendered),
+    )
+    return entry, rendered
+
+
+def _render(deps: NotesDeps, file: DriveFile, kind: PartKind) -> bytes:
+    """A part's bytes as the builder takes them (research R6); a part only named needs none."""
+    if kind in (PartKind.PDF, PartKind.TEXT, PartKind.IMAGE):
+        return deps.drive.content(file.id)
+    if kind == PartKind.EXPORT:
+        return deps.drive.export(file.id, PDF)
+    if kind == PartKind.OFFICE:
+        google = OFFICE_TYPES[PurePosixPath(file.name).suffix.lower()]
+        folder = deps.store.work_folder(CONVERSIONS)
+        return deps.drive.convert(file.id, folder, google, {FOR: file.id, ROLE: "conversion"})
+    return b""
