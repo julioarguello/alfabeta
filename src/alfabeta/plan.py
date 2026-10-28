@@ -3,8 +3,9 @@
 `plan` reads the latest capture of each class in scope, the state and the decisions, and writes
 `data/plan.json`. It downloads only what is new, what the teacher modified after the last replica,
 what changed name, or everything when the periodic full review is due (FR-026, research R3/S1).
-Two attachments with the same expected name never share a batch, so each downloaded file has one
-owner. Exam candidates and the matches of topics that span several book topics arrive with US2.
+What a run cut before `apply` already collected into `data/inbox/` is listed under
+`already_collected` instead of being downloaded again (FR-029). Two attachments with the same
+expected name never share a batch, so each downloaded file has one owner. Exam candidates and the matches of topics that span several book topics arrive with US2.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from alfabeta import capture
 from alfabeta.dates import MADRID
+from alfabeta.downloads import inbox_path
 from alfabeta.model import AttachmentKind, DecisionState, DecisionType, Item, ReplicaRole, Subject
 from alfabeta.placement import Placer, book_topics, downloaded_name
 from alfabeta.sources import CLASSROOM
@@ -115,6 +117,7 @@ class Planner:
     full_review_days: int
     today: dt.date
     last_review: dt.date | None = None
+    data_dir: Path | None = None
     _plan: dict[str, Any] = field(init=False, default_factory=dict[str, Any])
 
     def linked_classes(self) -> dict[str, Subject]:
@@ -179,6 +182,7 @@ class Planner:
         classes = captures.get("classes")
         account = int(classes["account_index"]) if classes else 0
         downloads: list[dict[str, Any]] = []
+        collected: list[dict[str, Any]] = []
         changes: list[dict[str, Any]] = []
         pending = self._pending_classes(classes)
         for class_id in sorted(scope):
@@ -215,16 +219,16 @@ class Planner:
                     url = download_url(attachment, account) if attachment else None
                     why = self._why(item, attachment) if attachment and url else None
                     if attachment and url and why:
-                        downloads.append(
-                            {
-                                "class": class_id,
-                                "item": item.id,
-                                "attachment": attachment["id"],
-                                "url": url,
-                                "expected_name": expected_name(attachment["name"], attachment["kind"]),
-                                "why": why,
-                            }
-                        )
+                        wanted = {
+                            "class": class_id,
+                            "item": item.id,
+                            "attachment": attachment["id"],
+                            "url": url,
+                            "expected_name": expected_name(attachment["name"], attachment["kind"]),
+                            "why": why,
+                        }
+                        cut = self.data_dir is not None and inbox_path(self.data_dir, wanted).is_file()
+                        (collected if cut else downloads).append(wanted)
         seen: Counter[str] = Counter()
         for download in downloads:
             download["batch"] = seen[download["expected_name"]]
@@ -234,6 +238,7 @@ class Planner:
             "created_at": dt.datetime.now(MADRID).isoformat(),
             "full_review": self.full_review,
             "downloads": downloads,
+            "already_collected": collected,
             "changes": changes,
             "pending_decisions": pending,
         }
@@ -261,6 +266,34 @@ def run_stops(captures_dir: Path, run: str) -> dict[str, str]:
         if data["type"] == "stop" and data.get("class") and data["run"] == run:
             stops[str(data["class"])] = str(data["reason"])
     return stops
+
+
+def prune_captures(captures_dir: Path, kept: int) -> int:
+    """Delete all but the `kept` newest captures of each class, class list and stop; returns how many went.
+
+    The run's own records (FR-025). A file that cannot be read is left where it is: what it belongs
+    to is unknown, so it is never counted as old.
+    """
+    by_owner: dict[str, list[tuple[dt.datetime, Path]]] = {}
+    for path in captures_dir.glob("alfabeta-capture-*.json"):
+        try:
+            data = capture.read(path)
+            moment = capture.captured_at(data)
+        except capture.CaptureError:
+            continue
+        if data["type"] == "class":
+            owner = f"class|{data['class']['id']}"
+        elif data["type"] == "stop":
+            owner = f"stop|{data.get('class') or ''}"
+        else:
+            owner = str(data["type"])
+        by_owner.setdefault(owner, []).append((moment, path))
+    removed = 0
+    for found in by_owner.values():
+        for _, path in sorted(found, key=lambda f: (f[0], f[1].name), reverse=True)[kept:]:
+            path.unlink()
+            removed += 1
+    return removed
 
 
 def _raw_attachments(raw: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:

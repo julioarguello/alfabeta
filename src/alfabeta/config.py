@@ -165,6 +165,11 @@ class StudentConfig:
         return _int(self.data, "sync.full_review_days")
 
     @property
+    def kept_captures(self) -> int:
+        """How many captures of each class stay in the data folder."""
+        return _int(self.data, "sync.kept_captures")
+
+    @property
     def subjects(self) -> tuple[Subject, ...]:
         """The configured subjects, in order."""
         return tuple(
