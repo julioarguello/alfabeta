@@ -139,7 +139,7 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 | Videos and the parent's material in Spanish; practice in the subject's language | Sustatu and HABE on Basque audio quality; Saalbach on switching; the split itself is a **hypothesis** |
 | Few pieces for the student, each named by what it is, what about and how long (`Vídeo 4 min · Kontzentrazioa`) | Choice overload ([Chernev et al. 2015](https://www.kellogg.northwestern.edu/faculty/research/detail/2015/when-product-assortment-leads-to-choice-overload-a-conceptual)); the count is a **hypothesis** |
 | The parent's material (topic map, recomputed answer key, translated exercises, a questioning guide with the Basque term) lives in a `docente/` folder of the Drive, not in the notebook | A viewer sees everything in Studio (sharing help) |
-| Numeric answers are recomputed before any material reaches the student | The answer-key errors above |
+| Numeric answers are recomputed before any material reaches the student, except the exam sheets of `exam prep`, whose numbers the notebook computes (an accepted risk, spec 002 FR-036) | The answer-key errors above |
 | The tutor gives hints before answers and never attributes authorship | Bastani et al.; the invented attribution measured above |
 | The calendar holds only objective Classroom facts — assignments, exams, posted material — never study blocks | A family decision: study time is planned by hand |
 

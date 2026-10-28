@@ -1,8 +1,9 @@
 # Study-pack prompt templates
 
 The prompts are in Spanish because they were measured in Spanish (2026-10-26); a translation is an
-untested prompt. `{placeholders}` come from the configuration or from the topic's confirmed blocks
-(`docente/bloques.md`). Replace every one before sending; a prompt that still holds a `{` is a bug.
+untested prompt. `{placeholders}` come from the configuration, from the topic's confirmed blocks
+(`docente/bloques.md`) or, for the exam sheets, from the exam and its announcement. Replace every
+one before sending; a prompt that still holds a `{` is a bug.
 
 | Placeholder | Source |
 |---|---|
@@ -15,6 +16,12 @@ untested prompt. `{placeholders}` come from the configuration or from the topic'
 | `{blocks}` | the confirmed blocks, in study order |
 | `{answer_sheet}` | the name of the teacher's sheet whose answers are recomputed |
 | `{corrections}` | the recomputed results that differ from the teacher's key, one per exercise |
+| `{subject}` | the subject's `folder` |
+| `{exam_day}` | the exam's date in words, `jueves 29 de octubre` |
+| `{scope}` | the text of the teacher's announcement of the exam, verbatim, as spec 001 captured it |
+| `{scope_date}` | that announcement's date, `27 de octubre` |
+| `{slot}` | the study slot, `16:15–17:45`, or `90 minutos` when none is given |
+| `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
 
 ## Video — one per block, at most three per topic
 
@@ -62,6 +69,24 @@ Test para practicar el examen: {blocks}. Preguntas de comprensión y de cálculo
 
 ```text
 Tarjetas de vocabulario del tema: en el anverso el término en {language} tal como aparece en el material de clase; en el reverso, el término en castellano y en inglés y una definición de una línea. Solo términos de las hojas y la presentación del profesor: {blocks}.
+```
+
+## Theory sheet — for an exam
+
+`exam prep` sends it (spec 002 FR-029 to FR-033):
+`nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`.
+Not measured: the 2026-10-28 sheet it describes was written by an agent, not by the notebook.
+
+```text
+Hoja de teoría para estudiar mañana un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · Examen del {exam_day} — Teoría y plan de estudio». Empieza con «Qué entra»: copia tal cual este anuncio del profesor, en su idioma, con su fecha ({scope_date}): {scope}. Las secciones de la hoja son los puntos de ese anuncio, en el mismo orden; di qué partes del tema no entran. Mandan los apuntes de clase del alumno; las fotocopias de Classroom y el libro solo completan lo que falta en ellos. Cada término va primero en {language}, tal como lo escribe el material de clase, y después en castellano; si los apuntes, las fotocopias y el libro llaman de forma distinta a una misma cosa, o usan una palabra para dos cosas, muestra cada forma y cómo distinguirlas. Después de «Qué entra», un plan para la tarde ({slot}) en una tabla Hora | Qué | Cómo: una fila por sección, un descanso de cinco minutos y una última fila de unos quince minutos de hoja en blanco, para escribir de memoria y en {language} lo que el examen pide reproducir, corregir con esta hoja y rodear lo que falle. Cada sección acaba con una prueba para hacer sin mirar, con sus respuestas. Señala las trampas típicas. Los problemas no van aquí, sino en la hoja «Problemas tipo». Como mucho {pages} páginas A4. Comprueba dos veces cada número.
+```
+
+## Problems sheet — for an exam
+
+`exam prep` sends it the same way (spec 002 FR-034 to FR-036). Not measured either.
+
+```text
+Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · Examen del {exam_day} — Problemas tipo». Usa solo los problemas de las fotocopias que el profesor ha puesto en Classroom, ejemplos resueltos incluidos. 1) Nombra cada fotocopia con su fecha. 2) Reparte todos los problemas en el menor número de patrones posible: una fórmula es un patrón, y usarla al derecho o al revés, despejando otra incógnita, es el mismo patrón; un patrón también puede ser una cadena de fórmulas o una clasificación sin fórmula. Pon una tabla Patrón | Problemas | El más difícil en la que cada problema esté en un solo patrón; señala los problemas que se repiten en dos fotocopias y marca con ★ los que el profesor mandó hacer. 3) Di en qué orden repasarlos, unos diez minutos por patrón. 4) Para cada patrón, el problema más difícil, uno de los mandados si lo hay: su enunciado copiado tal cual en su idioma, su traducción al castellano y por qué es el más difícil; puedes añadir otro del mismo patrón para si sobra tiempo. 5) Después, bajo el título «Soluciones», cada uno de esos problemas resuelto con su planteamiento. 6) Al final, bajo el título «Soluciones impresas que no cuadran», recalcula cada resultado que imprimen las fotocopias, compáralo con la precisión con que está impreso y pon en una tabla Problema | Impreso | Calculado | Qué pasa cada uno que no coincida, y cada enunciado al que le falte un dato con el resultado de cada lectura. Si la diferencia solo viene de redondear antes del final, dilo junto a su solución y no lo pongas en la tabla. No culpes ni nombres a nadie. Cada término, primero en {language} y después en castellano. Comprueba dos veces cada número.
 ```
 
 ## Start note
