@@ -2,8 +2,14 @@
 
 The prompts are in Spanish because they were measured in Spanish (2026-10-26); a translation is an
 untested prompt. `{placeholders}` come from the configuration, from the topic's confirmed blocks
-(`notebook/bloques.md`) or, for the exam sheets, from the exam and its announcement. Replace every
-one before sending; a prompt that still holds a `{` is a bug.
+(`notebook/bloques.md`) or, for the exam sheets, from the exam and its announcement, and for the
+exam's start note from the title `exam prep` gives the theory sheet. Replace every one before
+sending; a prompt that still holds a `{` is a bug.
+
+> [!IMPORTANT]
+> `exam prep` finds its three texts by their exact headings: «Theory sheet — for an exam»,
+> «Problems sheet — for an exam» and «Start note — for an exam». Renaming one makes the command
+> refuse (`invalid_prompt`) and ask the notebook for nothing.
 
 | Placeholder | Source |
 |---|---|

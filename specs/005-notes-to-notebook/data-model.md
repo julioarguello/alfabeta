@@ -84,8 +84,9 @@ file is created, and the report says so.
 
 ## RefreshRecord (on the Mac: `notebook-refresh.json` in the student's data folder)
 
-Written by `notebook refresh` (FR-018), and by spec 002's `exam prep` when it reads a notes
-source before an exam (its contract, step 5), only when a field changes; never in Drive, the
+Written by `notebook refresh` (FR-018), and by spec 002's `exam prep`, which makes only the first
+read of a changed source (`reads = 1`; the confirming read stays with `notebook refresh`) before
+an exam (its contract, step 5), only when a field changes; never in Drive, the
 repository or a log (research R14). The per-source fields sit under `sources`, keyed by the
 source id.
 

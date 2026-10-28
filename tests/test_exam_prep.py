@@ -710,13 +710,13 @@ def test_a_topic_that_is_not_a_folder_of_the_subject_is_refused(
 
 
 def test_a_sheet_named_after_a_long_teachers_topic_fits_a_file_name(world: World, capsys: pytest.CaptureFixture[str]):
-    long_topic = ("20261001 - " + "Proyecto de laboratorio sobre la densidad " * 5)[:200].strip()
+    long_topic = ("20261001 - " + "Proyecto de laboratorio sobre la densidad " * 6)[:240].strip()
     (world.base / "2026-2027" / "FyQ" / long_topic).mkdir()
     world.nlm.notebooks.append({"id": "nb-2", "title": f"3º ESO. FyQ. {long_topic[11:]}"})
     world.living = FakeLiving(folder=long_topic)
     assert world.run("--topic", long_topic) == 0
     names = [p.name for p in (world.base / "2026-2027" / "FyQ" / long_topic / "exam").iterdir()]
-    assert len(names) == 2 and all(len(n.encode()) <= 255 and n.endswith(".pdf") for n in names)
+    assert len(names) == 2 and all(len(n.encode()) <= 255 and n.endswith(" (5 nov).pdf") for n in names)
 
 
 def test_a_new_guide_whose_old_one_cannot_be_removed_is_still_the_recorded_guide(

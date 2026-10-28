@@ -147,8 +147,8 @@ no agent: `nlm report create <nb> --format "Create Your Own" --language es --pro
 --profile <profile> -y`, with every placeholder of its prompt filled, printed with
 `print-report.sh` (step 6) under its path, adding `--break-before Soluciones` for the problems
 sheet; `print-report.sh` creates the topic's `exam/` folder when it is missing. That path skips
-what the command adds: regenerating a stale guide, the titles, the start note and the pack
-record.
+what the command adds: reading the notes source again, regenerating a stale guide, the titles, the
+start note, the pack record, the page count and the mirrors (refresh them as step 9 says).
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
 topic folder, every result computed by a script it wrote, and the family then decided that

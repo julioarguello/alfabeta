@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import short_day, weekday
 from alfabeta.notes.run import topic_name
-from alfabeta.placement import NO_TOPIC, fit
+from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -244,6 +244,13 @@ class Sheet:
     break_before: str = ""
 
 
+def _cut(text: str, limit: int) -> str:
+    """`text` cut to `limit` UTF-8 bytes."""
+    while len(text.encode()) > limit:
+        text = text[:-1]
+    return text.rstrip(" .")
+
+
 def _read(path: Path) -> dict[str, Any]:
     return cast("dict[str, Any]", json.loads(path.read_text())) if path.is_file() else {}
 
@@ -425,11 +432,15 @@ class ExamPrep:
             return pages
         exam_dir = self.folder / EXAM_FOLDER
         exam_dir.mkdir(exist_ok=True)
-        named = f"{topic_number(self.folder.name)} ({short_day(self.exam.day)})"
+        day = f" ({short_day(self.exam.day)}).pdf"
         for sheet in self.sheets:
             if sheet.kind not in done:
                 continue
-            out = exam_dir / fit(f"{sheet.name} · {named}.pdf")
+            # A long teacher's topic is cut, never the exam's date that tells two exams apart.
+            out = (
+                exam_dir
+                / f"{_cut(f'{sheet.name} · {topic_number(self.folder.name)}', MAX_NAME_BYTES - len(day.encode()))}{day}"
+            )
             if self.deps.printer.print_report(self.notebook, done[sheet.kind], out, break_before=sheet.break_before):
                 pages[sheet.kind] = self.deps.printer.pages(out)
             else:

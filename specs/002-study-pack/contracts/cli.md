@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}`; `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `no_exam`, `no_announcement`, `no_notebook` · 3 a report never completed or did not print · 5 `nlm` not usable |
+| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}`; `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -46,9 +46,10 @@ that fails does not stop the other.
    measured 2026-10-27). Then it compares the time Drive gives for
    the living notes file's last revision with the study guide's creation time
    (`nlm studio status --full --json`). When the revision is later, or there is no guide, it
-   generates one (`--format 'Study Guide' --language es`), waits for it, gives it the previous
-   guide's title and deletes the previous one, so one guide is live (FR-033). The guide is the one
-   the pack record names, or else a completed report titled «Guía de estudio» or «Study Guide». A
+   generates one (`--format 'Study Guide' --language es`) and waits for it. The guide is the
+   report the pack record names or, failing that, the latest-made completed report whose title
+   contains «Guía de estudio» or «Study Guide» (any case, accent optional). The new guide takes
+   that guide's title, and every report taken for a guide is deleted, so one is live (FR-033). A
    topic whose living files are not set up yet skips the comparison and says so.
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and
@@ -58,16 +59,20 @@ that fails does not stop the other.
 7. Titles them as pieces of the moment `EXAMEN <weekday>` (FR-014), numbered after the pieces that
    moment already holds: `EXAMEN <weekday> <n> · Teoría para el examen · <topic>` and
    `EXAMEN <weekday> <n+1> · Problemas tipo · <topic>`, renamed from the last to the first as the
-   pack's step 8 does. Then it rewrites the start note «0 · Empieza aquí» last, naming the theory
-   sheet as today's task (FR-015), and records both pieces and any regenerated guide in the pack
-   record (FR-024).
+   pack's step 8 does. Then it rewrites the start note «0 · Empieza aquí» last, with «Start note —
+   for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), naming the theory sheet as
+   today's task (FR-015), and records both pieces and any regenerated guide in the pack record
+   (FR-024). A second run for the same exam asks for two new reports, numbered after these, and
+   prints over the same two files.
 8. Downloads each report and prints it with `print_pack.py report` into the topic's `exam/`
    folder, created when missing and with no date in its name, as
    `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
    `exam/Problemas tipo · TNN (<D> <mmm>).pdf`; a second exam on the same topic sits beside the
    first, told apart by the date in those names. A teacher's topic with no `Tema NN` is named by
-   its folder's name after the date in place of `TNN`. The problems sheet gets a page break before
-   its «Soluciones» heading, `print_pack.py report --break-before Soluciones`. Then it refreshes
+   its folder's name after the date in place of `TNN`, cut so the whole name fits 255 UTF-8 bytes
+   with the date kept. The problems sheet gets a page break before its «Soluciones» heading,
+   `print_pack.py report --break-before Soluciones`; a sheet with no such heading prints without
+   it, says so on stderr, and the run is not code 3 for it. Then it refreshes
    the mirrors as the pack's step 9 does; a mirror that fails or is not mounted is counted, stops
    nothing and makes the run code 3.
 9. Counts the theory sheet's pages against `pages_allowed`. A longer sheet is printed and reported
@@ -77,17 +82,21 @@ that fails does not stop the other.
 **Records**, in the student's data folder (`~/.alfabeta/<id>/data/`), never in Drive or the
 repository:
 
-- the pack record (FR-024), `study-pack.json`: per topic, keyed by the topic folder's path under
-  `storage.base`, the live study guide (`guide`: its notebook id and the day it was made) and the
-  pieces (`pieces`: notebook id, kind, moment, title, language, verification — `pages_only` for an
-  exam sheet — the exam's date and the day it was made);
+- the pack record (FR-024), `study-pack.json`: under `topics`, keyed by the topic folder's path
+  under `storage.base`, `guide` (`id`, `made`: the live study guide and the day it was made) and
+  `pieces` (`id`; `kind`, `exam_theory` or `exam_problems`; `moment`; `title`; `language`;
+  `verification`, `pages_only` for an exam sheet; `exam`, the exam's date; `made`);
 - spec 005's refresh record, `notebook-refresh.json`: under `sources`, per source id, `read_md5`,
   `reads` and `read_at` (spec 005 data-model, RefreshRecord).
 
 **Exit codes**: 0 ok · 1 usage or validation · 3 partial failure · 5 the notebook tool is not
-usable. When several apply, the highest wins, as in spec 005. Code 1 also covers `invalid_config`,
-`no_subject`, `invalid_slot`, `no_topic`, `unknown_language` (a subject `language` with no words
-in the prompts) and `invalid_prompt`; code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
+usable. Steps 1 to 4 stop at the first refusal, in their order; from step 5 on, when several
+apply, the highest wins, as in spec 005. An argument argparse cannot read (`--exam notadate`) is
+its own code 2, as in spec 001. Code 1 also covers `invalid_config`, `no_subject`, `invalid_slot`,
+`no_topic`, `unreadable_agenda` and `unreadable_state` (spec 001's `agenda.json` or
+`data/state.json` is not readable JSON), `unknown_language` (a subject `language` code with no
+Spanish name in `src/alfabeta/exam/prompts.py`) and `invalid_prompt` (a heading of `prompts.md`
+the command reads is missing or renamed); code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
 `nlm_not_default`.
 
 **Not in this command**:
