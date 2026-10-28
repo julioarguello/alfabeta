@@ -34,6 +34,7 @@ from alfabeta.classification import CANDIDATE, Classifier
 from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
+from alfabeta.google.notify import MacNotifier
 from alfabeta.google.transport import UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
@@ -427,7 +428,7 @@ def _cmd_link(args: argparse.Namespace, cfg: config.StudentConfig, store: Keycha
 
 
 def _cmd_check(cfg: config.StudentConfig, store: KeychainStore) -> int:
-    statuses = accounts.check_accounts(cfg, store, UrllibTransport(), dt.date.today())
+    statuses = accounts.check_accounts(cfg, store, UrllibTransport(), dt.date.today(), MacNotifier())
     for status in statuses:
         hint = " (the app may still be in Testing: publish it)" if status.testing_suspected else ""
         print(f"alfabeta: {status.alias}: {status.status}{hint}", file=sys.stderr)
