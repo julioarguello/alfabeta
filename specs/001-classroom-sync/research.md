@@ -526,6 +526,13 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
     `tabs_create`. It moves inside the Classroom tab the family left open (`location.assign()` run
     in the page) or loads pages in the extractor's iframe. A tab that is not on Classroom is a
     person's job to bring there.
+  - Measured again 2026-10-28, same Chrome and account. At 08:51:53 UTC a `location.assign("/u/5/h")`
+    run in the page landed on «Demuestra que eres tú»; the tab had sat about 12 hours on a page loaded
+    the evening before, so the session had most likely expired overnight, and the page on screen
+    had proved nothing. After the family signed in again: a `location.assign` at 08:53:41 loaded the
+    home page, and an extractor iframe load of «Trabajo de clase» at 08:55 took 3 s; neither met a
+    challenge. Page-started loads on a live session survive, as decided above; whether the
+    extension's `navigate` alone kills a live session was not re-tested, on purpose.
 - **What Google documents** (read 2026-10-27):
   - Workspace admin help, "Set session length for Google services": the web session lasts 14 days
     by default; administrators of the Education editions can change it per organisational unit or

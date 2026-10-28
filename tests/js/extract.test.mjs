@@ -224,3 +224,43 @@ test("a description keeps its line breaks and joins its inline marks", () => {
   ).window.document;
   assert.equal(extract.readDetail(doc).description, "Ejercicios 1 y 2.\nMañana los corrijo.\n\nSaludos");
 });
+
+// A class whose «Trabajo de clase» is empty shows only «Aún no hay tareas…» (measured 2026-10-28):
+// its page is ready with no rows, and the capture is a class with no items, read twice to be sure.
+function emptyClasswork() {
+  const dom = page("classwork");
+  const doc = dom.window.document;
+  for (const node of doc.querySelectorAll("li[data-stream-item-type], [data-topic-id][role=region]")) node.remove();
+  const note = doc.createElement("div");
+  note.textContent = "Aún no hay tareas. ¡Qué suerte tienes!";
+  doc.body.appendChild(note);
+  return doc;
+}
+
+test("an empty «Trabajo de clase» is ready and gives a class with no items", async () => {
+  assert.equal(extract.pageReady("/u/5/w/synth-1/t/all", emptyClasswork()), true);
+  const browser = fakeBrowser();
+  const load = async (path) => (/\/t\/all$/.test(path) ? (browser.visits.push({ path, at: 0 }), { doc: emptyClasswork(), path }) : browser.load(path));
+  const result = JSON.parse(JSON.stringify(await extract.captureClass({ run: "r1", classId: "synth-1", account: 5, ...browser, load })));
+  assert.equal(result.type, "class");
+  assert.equal(result.complete, true);
+  assert.deepEqual([result.items, result.topics], [[], []]);
+  assert.equal(browser.visits.filter((v) => v.path.endsWith("/t/all")).length, 2);
+});
+
+test("a classwork page with neither rows nor the empty notice is not ready", () => {
+  const doc = emptyClasswork();
+  for (const div of doc.querySelectorAll("div")) if (div.textContent.startsWith("Aún no hay tareas")) div.remove();
+  assert.equal(extract.pageReady("/u/5/w/synth-1/t/all", doc), false);
+});
+
+test("an empty stream is ready", () => {
+  const doc = page("stream").window.document;
+  for (const node of doc.querySelectorAll("[data-stream-item-id]")) node.remove();
+  assert.equal(extract.pageReady("/u/5/c/synth-1", doc), false);
+  const note = doc.createElement("div");
+  note.textContent = "Aquí se mostrarán novedades de esta clase";
+  doc.body.appendChild(note);
+  assert.equal(extract.pageReady("/u/5/c/synth-1", doc), true);
+  assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), []);
+});

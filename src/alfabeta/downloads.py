@@ -40,6 +40,20 @@ def matches(file_name: str, expected: str) -> bool:
     return got.suffix == want.suffix and _SUFFIX.sub("", got.stem) == want.stem and got.stem != want.stem
 
 
+def _key(stem: str) -> str:
+    return re.sub(r"[\W_]+", "", _SUFFIX.sub("", stem))
+
+
+def loosely_matches(file_name: str, expected: str) -> bool:
+    """The same letters and digits, tried only after every exact match.
+
+    Drive keeps spaces the page collapsed, and an export can arrive with a character replaced by «_»
+    (measured 2026-10-28).
+    """
+    want, got = PurePosixPath(expected), PurePosixPath(file_name)
+    return got.suffix == want.suffix and bool(_key(want.stem)) and _key(got.stem) == _key(want.stem)
+
+
 def inbox_path(data_dir: Path, download: dict[str, Any]) -> Path:
     """Where a collected attachment waits for `apply`."""
     return data_dir / "inbox" / f"{download['item']}__{download['attachment']}" / str(download["expected_name"])
@@ -88,19 +102,24 @@ class DownloadsInbox:
         lowest: dict[str, int] = {}
         for download in waiting:
             lowest.setdefault(str(download["expected_name"]), int(download["batch"]))
-        for download in waiting:
+        current = [d for d in waiting if int(d["batch"]) == lowest[str(d["expected_name"])]]
+        pending.extend(str(d["expected_name"]) for d in waiting if d not in current)
+        found: dict[int, Path] = {}
+        for rule in (matches, loosely_matches):
+            for i, download in enumerate(current):
+                name = str(download["expected_name"])
+                hit = next((p for p in candidates if p not in claimed and rule(p.name, name) and _complete(p)), None)
+                if i not in found and hit is not None:
+                    found[i] = hit
+                    claimed.add(hit)
+        for i, download in enumerate(current):
             name = str(download["expected_name"])
-            if int(download["batch"]) != lowest[name]:
+            if i not in found:
                 pending.append(name)
                 continue
-            found = next((p for p in candidates if p not in claimed and matches(p.name, name) and _complete(p)), None)
-            if found is None:
-                pending.append(name)
-                continue
-            claimed.add(found)
             destination = inbox_path(self.data_dir, download)
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(found), destination)
+            shutil.move(str(found[i]), destination)
             collected.append(name)
         return collected, pending
 

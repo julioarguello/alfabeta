@@ -41,6 +41,10 @@
   // An attachment's aria-label is «Archivo adjunto: <tipo>: <name>»; the name is the file's
   // (measured 2026-10-27 on the real pages, where every download would otherwise go unmatched).
   const ATTACHMENT_LABEL = /^Archivo adjunto: [^:]+: /;
+  // A class with nothing in «Trabajo de clase» shows only this, and no rows (measured 2026-10-28).
+  const EMPTY_CLASSWORK = /^Aún no hay tareas/;
+  // And a class with no announcements shows this on its stream (measured 2026-10-28).
+  const EMPTY_STREAM = /^Aquí se mostrarán novedades de esta clase/;
 
   const clean = (text) => (text || "").replace(/\s+/g, " ").trim();
 
@@ -324,7 +328,19 @@
     }
     let reason = detectStop(classwork.doc, "classwork");
     if (reason) return stop(run, now, reason, classId);
-    const listing = readClasswork(classwork.doc);
+    let listing = readClasswork(classwork.doc);
+    if (!listing.items.length) {
+      // An empty listing is read once more, so a page still filling in is not taken for an empty class.
+      try {
+        classwork = await visit(`/u/${account}/w/${classId}/t/all`);
+      } catch (err) {
+        if (err && err.name === "SessionExpired") return stop(run, now, "session_expired", classId);
+        throw err;
+      }
+      reason = detectStop(classwork.doc, "classwork");
+      if (reason) return stop(run, now, reason, classId);
+      listing = readClasswork(classwork.doc);
+    }
     const items = [];
     let complete = true;
     for (const row of listing.items) {
@@ -363,11 +379,13 @@
   // When a page is ready to read: its rows, its title and date, or its posts. The iframe's own `load`
   // event is not waited for: on Classroom it came more than 30 s after the content (2026-10-27).
   function pageReady(path, doc) {
-    if (/\/w\/[^/]+\/t\/all$/.test(path)) return !!doc.querySelector("li[data-stream-item-type]");
+    if (/\/w\/[^/]+\/t\/all$/.test(path)) {
+      return !!doc.querySelector("li[data-stream-item-type]") || texts(doc.body).some((t) => EMPTY_CLASSWORK.test(t.text));
+    }
     if (/\/details$/.test(path)) {
       return doc.querySelectorAll("h1").length >= 2 && texts(doc.body).some((t) => new RegExp(`^${DATE}`).test(t.text));
     }
-    return !!doc.querySelector("[data-stream-item-id]");
+    return !!doc.querySelector("[data-stream-item-id]") || texts(doc.body).some((t) => EMPTY_STREAM.test(t.text));
   }
 
   // The default loader: a hidden same-origin iframe, so the injected script is never lost. It polls
