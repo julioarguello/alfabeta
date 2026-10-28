@@ -129,9 +129,9 @@ done that day; the last three, what the operator decided once it was done (User 
 - Q: Where in the topic folder do the printed sheets go? → A: In its `exam/` subfolder, whose name
   carries no date; the exam's date stays in each file's name, so a second exam on the same topic
   sits beside the first. The operator set this when deciding the topic folders' layout, with every
-  directory name the code decides in English; file names stay in Spanish. The constitution still
-  asks for Spanish folder names, and its amendment is julioarguello/alfabeta#110. That day's two
-  PDFs were moved there by hand.
+  directory name the code decides in English, because the project is public; file names keep their
+  language. The constitution still asks for Spanish folder names, and its amendment is
+  julioarguello/alfabeta#110. That day's two PDFs were moved there by hand.
 - Q: Who computes the numbers, then? → A: The notebook, as an accepted risk. The operator accepted
   it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
   printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
