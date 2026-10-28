@@ -100,7 +100,9 @@ def cmd_exam_prep(
 ) -> int:
     """`exam prep`: steps 1 to 4 here, 5 to 9 in `ExamPrep`."""
     # 1. The configuration, as `config check` reads it; notebooks may be switched off.
-    problems, _ = config.check(home, args.student)
+    problems, warnings = config.check(home, args.student)
+    for warning in warnings:
+        print(f"alfabeta: warning: {warning.key}: {warning.reason}", file=sys.stderr)
     for problem in problems:
         print(f"alfabeta: {problem.key}: {problem.reason}", file=sys.stderr)
     if problems:

@@ -8,7 +8,7 @@ as `notebook setup` finds it. The revision time is the one Drive gives for the f
 from __future__ import annotations
 
 import datetime as dt
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.exam.prep import LivingNotes, LivingNotesError
 from alfabeta.google import accounts
@@ -19,8 +19,31 @@ from alfabeta.notes.model import Health, LivingKind
 from alfabeta.notes.state import DriveNotesStateStore
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from alfabeta.config import StudentConfig
+    from alfabeta.google.drive import DriveFile
     from alfabeta.google.keychain import TokenStore
+
+
+class TopicDrive(Protocol):
+    """What finding a topic's living notes file needs of spec 004's `ScopedDrive`."""
+
+    def items(self) -> list[DriveFile]:
+        """Everything listed under the root this run."""
+        ...
+
+    def contains(self, item_id: str) -> bool:
+        """Whether the item is under the root, as listed this run."""
+        ...
+
+    def listed(self, item_id: str) -> DriveFile:
+        """The item as the run's listing holds it."""
+        ...
+
+    def get(self, file_id: str) -> DriveFile:
+        """The file as Drive holds it now."""
+        ...
 
 
 def _student_alias(cfg: StudentConfig) -> str:
@@ -48,25 +71,29 @@ class DriveLivingNotes:
         transport = UrllibTransport()
         token = accounts.access_token(self._cfg, _student_alias(self._cfg), self._store, transport)
         drive = ScopedDrive.open(transport, token, self._cfg.drive_root, cache_path(self._cfg))
-        topics = [
-            f
-            for f in drive.items()
-            if f.is_folder
-            and f.name == folder
-            and any(drive.contains(p) and drive.listed(p).name == subject for p in f.parents)
-        ]
-        if len(topics) != 1:
-            return None
-        state = DriveNotesStateStore(drive).load()
-        record = cast("dict[str, dict[str, Any]]", state.get("topics", {})).get(topics[0].id, {})
-        living = cast("dict[str, dict[str, Any]]", record.get("living", {}))
-        notes = living.get(str(LivingKind.NOTES)) or {}
-        file_id, source, built = (str(notes.get(k) or "") for k in ("file_id", "source_id", "built_md5"))
-        if not (file_id and source and built) or notes.get("health", str(Health.OK)) != Health.OK:
-            return None
-        if not drive.contains(file_id):
-            return None
-        modified = drive.get(file_id).modified
-        if not modified:
-            return None
-        return LivingNotes(source, built, dt.datetime.fromisoformat(modified))
+        return living_notes_of(drive, DriveNotesStateStore(drive).load(), subject, folder)
+
+
+def living_notes_of(drive: TopicDrive, state: Mapping[str, Any], subject: str, folder: str) -> LivingNotes | None:
+    """The topic's living notes file from spec 005's records; None unless it is set up and in place."""
+    topics = [
+        f
+        for f in drive.items()
+        if f.is_folder
+        and f.name == folder
+        and any(drive.contains(p) and drive.listed(p).name == subject for p in f.parents)
+    ]
+    if len(topics) != 1:
+        return None
+    record = cast("dict[str, dict[str, Any]]", state.get("topics", {})).get(topics[0].id, {})
+    living = cast("dict[str, dict[str, Any]]", record.get("living", {}))
+    notes = living.get(str(LivingKind.NOTES)) or {}
+    file_id, source, built = (str(notes.get(k) or "") for k in ("file_id", "source_id", "built_md5"))
+    if not (file_id and source and built) or notes.get("health", str(Health.OK)) != Health.OK:
+        return None
+    if not drive.contains(file_id):
+        return None
+    modified = drive.get(file_id).modified
+    if not modified:
+        return None
+    return LivingNotes(source, built, dt.datetime.fromisoformat(modified))

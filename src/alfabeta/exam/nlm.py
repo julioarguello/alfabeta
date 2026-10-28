@@ -136,7 +136,7 @@ class NlmNotebook:
             done = self._run(argv, None)
         except FileNotFoundError:
             raise NlmError("no_nlm") from None
-        if done.returncode == SIGNED_OUT_CHECK:
+        if done.returncode == SIGNED_OUT_CHECK and "Usage:" not in done.stderr:  # click's usage errors exit 2 too
             raise NlmError("nlm_signed_out")
         if done.returncode != 0:
             raise NlmError("nlm_failed")

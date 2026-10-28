@@ -37,7 +37,12 @@ class PrintPack:
         argv = [sys.executable, str(PRINT_PACK), "report", notebook, artifact, str(out), "--profile", self._profile]
         if break_before:
             argv += ["--break-before", break_before]
-        return self._run(argv, None).returncode == 0 and out.is_file()
+        done = self._run(argv, None)
+        # Its own lines name keys and headings, never a value; nlm's, which may hold ids, stay out.
+        for line in done.stderr.splitlines():
+            if line.startswith("print_pack: "):
+                print(f"alfabeta: {line}", file=sys.stderr)
+        return done.returncode == 0 and out.is_file()
 
     def pages(self, pdf: Path) -> int:
         """The PDF's page count; 0 when it cannot be read."""

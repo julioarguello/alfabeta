@@ -53,10 +53,10 @@ class PromptError(Exception):
 
 
 def template(heading: str, source: Path = PROMPTS) -> str:
-    """The first `text` block under the `## <heading>` of `prompts.md`."""
-    found = re.search(
-        rf"^## {re.escape(heading)}\n.*?^```text\n(.*?)\n^```", source.read_text(), flags=re.MULTILINE | re.DOTALL
-    )
+    """The first `text` block of the `## <heading>` section of `prompts.md`, never of a later section."""
+    sections = re.split(r"^(?=## )", source.read_text(), flags=re.MULTILINE)
+    section = next((s for s in sections if s.split("\n", 1)[0] == f"## {heading}"), "")
+    found = re.search(r"^```text\n(.*?)\n^```", section, flags=re.MULTILINE | re.DOTALL)
     if found is None:
         raise PromptError(f"prompts.md has no text block under «{heading}»")
     return found.group(1)

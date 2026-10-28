@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import short_day, weekday
 from alfabeta.notes.run import topic_name
-from alfabeta.placement import NO_TOPIC
+from alfabeta.placement import NO_TOPIC, fit
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -129,9 +129,22 @@ def _announcement(state: dict[str, Any], base: Path, entry: dict[str, Any]) -> t
     return (text, dt.datetime.strptime(named.group(1), "%Y%m%d").date()) if text else None
 
 
+def _records(path: Path, reason: str) -> dict[str, Any]:
+    """A JSON record of spec 001, or a refusal that names it when it cannot be read."""
+    try:
+        read: object = json.loads(path.read_text()) if path.is_file() else {}
+    except (OSError, ValueError):
+        read = None
+    if not isinstance(read, dict):
+        raise Refusal(reason, f"{path.name} is not readable JSON; run the sync again")
+    return cast("dict[str, Any]", read)
+
+
 def find_exam(agenda: Path, state: Path, base: Path, subject: str, wanted: dt.date | None, today: dt.date) -> Exam:
     """The subject's exam on `wanted`, or its next one from today on, with its announcement (step 3)."""
-    entries = cast("list[dict[str, Any]]", json.loads(agenda.read_text())["entries"]) if agenda.is_file() else []
+    listed: object = _records(agenda, "unreadable_agenda").get("entries", [])
+    rows = cast("list[object]", listed) if isinstance(listed, list) else []
+    entries = [cast("dict[str, Any]", e) for e in rows if isinstance(e, dict)]
     exams = [
         (day, e)
         for e in entries
@@ -141,7 +154,7 @@ def find_exam(agenda: Path, state: Path, base: Path, subject: str, wanted: dt.da
     found = [e for day, e in exams if day == on]
     if on is None or not found:
         raise Refusal("no_exam", "the agenda holds no exam of the subject on that day, or none to come")
-    records = cast("dict[str, Any]", json.loads(state.read_text())) if state.is_file() else {}
+    records = _records(state, "unreadable_state")
     for entry in found:
         announced = _announcement(records, base, entry)
         if announced is not None:
@@ -157,7 +170,7 @@ def topic_folder(subject_dir: Path, wanted: str | None) -> Path:
     """The named topic folder, or the subject's most recent one, by the date its name starts with (step 4)."""
     if wanted is not None:
         folder = subject_dir / wanted
-        if "/" in wanted or not folder.is_dir():
+        if "/" in wanted or wanted in (".", "..") or not folder.is_dir():
             raise Refusal("no_topic", "--topic is not a folder of the subject")
         return folder
     dated = [
@@ -305,11 +318,15 @@ class ExamPrep:
             _say("the new study guide did not complete; the guide may be stale")
             self.partial = True
             return False
-        if current is not None and current.title:
-            self.deps.notebook.rename(made, current.title)
-        for old in guides:
-            self.deps.notebook.delete(self.notebook, old.id)
         pack["guide"] = {"id": made, "made": self.deps.now().date().isoformat()}
+        try:
+            if current is not None and current.title:
+                self.deps.notebook.rename(made, current.title)
+            for old in guides:
+                self.deps.notebook.delete(self.notebook, old.id)
+        except NlmError:
+            _say("the new study guide is in the notebook, but the previous one was not retitled or removed")
+            self.partial = True
         return True
 
     def _notes_and_guide(self, pack: dict[str, Any]) -> bool:
@@ -412,7 +429,7 @@ class ExamPrep:
         for sheet in self.sheets:
             if sheet.kind not in done:
                 continue
-            out = exam_dir / f"{sheet.name} · {named}.pdf"
+            out = exam_dir / fit(f"{sheet.name} · {named}.pdf")
             if self.deps.printer.print_report(self.notebook, done[sheet.kind], out, break_before=sheet.break_before):
                 pages[sheet.kind] = self.deps.printer.pages(out)
             else:

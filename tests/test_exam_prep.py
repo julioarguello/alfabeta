@@ -22,7 +22,8 @@ from alfabeta import __main__ as cli_main
 from alfabeta import sandbox
 from alfabeta.exam import prompts
 from alfabeta.exam.cli import cmd_exam_prep
-from alfabeta.exam.nlm import NlmNotebook
+from alfabeta.exam.drive import living_notes_of
+from alfabeta.exam.nlm import NlmError, NlmNotebook
 from alfabeta.exam.prep import (
     POLL_SECONDS,
     SOURCE_SETTLE_SECONDS,
@@ -33,7 +34,8 @@ from alfabeta.exam.prep import (
     Slot,
     topic_number,
 )
-from alfabeta.exam.printing import refresh_mirrors
+from alfabeta.exam.printing import PrintPack, refresh_mirrors
+from alfabeta.google.drive import DriveFile
 from tests.conftest import MemoryStore
 
 STUDENT = "sample"
@@ -130,9 +132,10 @@ class FakeNlm:
 class FakeLiving:
     found: LivingNotes | None = None
     fails: bool = False
+    folder: str = f"20260915 - {TOPIC}"
 
     def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
-        assert (subject, folder) == ("FyQ", f"20260915 - {TOPIC}")
+        assert (subject, folder) == ("FyQ", self.folder)
         if self.fails:
             raise LivingNotesError("TransportError")
         return self.found
@@ -686,3 +689,165 @@ def test_mirrors_are_refreshed_without_delete_and_one_not_mounted_is_counted(tmp
 
     assert refresh_mirrors(base, [mounted, absent], runner) == 1
     assert calls == [["rsync", "-rlt", "--exclude", ".DS_Store", f"{base}/", f"{mounted}/"]]
+
+
+# --- what the review asked for ----------------------------------------------------------------------
+
+
+def test_a_heading_without_its_own_text_block_never_borrows_the_next_sections(tmp_path: Path):
+    source = tmp_path / "prompts.md"
+    source.write_text("## A\n\nno block here\n\n## B\n\n```text\nB's prompt\n```\n")
+    with pytest.raises(prompts.PromptError, match="«A»"):
+        prompts.template("A", source)
+    assert prompts.template("B", source) == "B's prompt"
+
+
+@pytest.mark.parametrize("topic", ["..", "."])
+def test_a_topic_that_is_not_a_folder_of_the_subject_is_refused(
+    world: World, capsys: pytest.CaptureFixture[str], topic: str
+):
+    refused(world, capsys, 1, "no_topic", "--topic", topic)
+
+
+def test_a_sheet_named_after_a_long_teachers_topic_fits_a_file_name(world: World, capsys: pytest.CaptureFixture[str]):
+    long_topic = ("20261001 - " + "Proyecto de laboratorio sobre la densidad " * 5)[:200].strip()
+    (world.base / "2026-2027" / "FyQ" / long_topic).mkdir()
+    world.nlm.notebooks.append({"id": "nb-2", "title": f"3º ESO. FyQ. {long_topic[11:]}"})
+    world.living = FakeLiving(folder=long_topic)
+    assert world.run("--topic", long_topic) == 0
+    names = [p.name for p in (world.base / "2026-2027" / "FyQ" / long_topic / "exam").iterdir()]
+    assert len(names) == 2 and all(len(n.encode()) <= 255 and n.endswith(".pdf") for n in names)
+
+
+def test_a_new_guide_whose_old_one_cannot_be_removed_is_still_the_recorded_guide(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    world.nlm.studio = [Art("guide-0", "report", "Guía de estudio", created_at="2026-10-25T09:00:00Z")]
+    world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    real = world.nlm.__call__
+
+    def refuse_delete(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
+        if argv[1:3] == ["studio", "delete"]:
+            world.nlm.calls.append(argv)
+            return subprocess.CompletedProcess(argv, 1, "", "error")
+        return real(argv, stdin)
+
+    deps = world.deps
+
+    def with_refusal(cfg: object, store: object) -> ExamDeps:
+        made = deps(cfg, store)
+        made.notebook = NlmNotebook(PROFILE, refuse_delete)
+        return made
+
+    world.deps = with_refusal  # type: ignore[method-assign]
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert result["guide_regenerated"] is True and "was not retitled or removed" in err
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    assert pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["guide"]["id"] == "art-1"
+
+
+@pytest.mark.parametrize(("file", "reason"), [("agenda", "unreadable_agenda"), ("state", "unreadable_state")])
+def test_an_unreadable_record_of_the_sync_is_a_refusal_not_a_traceback(
+    world: World, capsys: pytest.CaptureFixture[str], file: str, reason: str
+):
+    path = world.base / "2026-2027" / "agenda.json" if file == "agenda" else world.data / "state.json"
+    path.write_text("{ half written")
+    err = refused(world, capsys, 1, reason)
+    assert "run the sync again" in err and str(world.home) not in err
+
+
+def test_a_usage_error_of_nlm_login_is_not_a_signed_out_session():
+    def usage(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(argv, 2, "", "Usage: nlm login [OPTIONS]\nError: No such option: --check")
+
+    with pytest.raises(NlmError) as err:
+        NlmNotebook(PROFILE, usage).check_session()
+    assert err.value.reason == "nlm_failed"
+
+
+def test_the_configurations_warnings_are_shown(world: World, capsys: pytest.CaptureFixture[str]):
+    config = world.home / STUDENT / "config.toml"
+    config.write_text(config.read_text().replace("mirrors = []", f'mirrors = ["{world.home}/no-montado"]'))
+    world.mirror_failures = 1
+    assert world.run() == 3
+    _, err = output(capsys)
+    assert "warning: drive.mirrors[0]: not_mounted" in err
+
+
+def test_the_printer_runs_print_pack_with_the_profile_and_passes_on_only_its_own_lines(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    calls: list[list[str]] = []
+    out = tmp_path / "exam" / "Problemas tipo · T01 (5 nov).pdf"
+
+    def runner(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        out.parent.mkdir()
+        out.write_bytes(b"%PDF-1.4\n")
+        stderr = "print_pack: no heading «Soluciones»; no page break added\nnlm download report nb-1 failed: id art-2\n"
+        return subprocess.CompletedProcess(argv, 0, "", stderr)
+
+    assert PrintPack(PROFILE, runner).print_report("nb-1", "art-2", out, break_before="Soluciones")
+    [argv] = calls
+    assert argv[1].endswith("skills/study-pack/scripts/print_pack.py")
+    assert argv[2:] == ["report", "nb-1", "art-2", str(out), "--profile", PROFILE, "--break-before", "Soluciones"]
+    err = capsys.readouterr().err
+    assert "no heading «Soluciones»" in err and "art-2" not in err
+
+
+@dataclass
+class FakeDrive:
+    files: dict[str, DriveFile]
+
+    def items(self) -> list[DriveFile]:
+        return list(self.files.values())
+
+    def contains(self, item_id: str) -> bool:
+        return item_id in self.files
+
+    def listed(self, item_id: str) -> DriveFile:
+        return self.files[item_id]
+
+    def get(self, file_id: str) -> DriveFile:
+        return self.files[file_id]
+
+
+FOLDER_MIME = "application/vnd.google-apps.folder"
+
+
+def drive_with_topic() -> FakeDrive:
+    return FakeDrive(
+        {
+            "subj": DriveFile("subj", "FyQ", FOLDER_MIME),
+            "other": DriveFile("other", "Ingles", FOLDER_MIME),
+            "top-1": DriveFile("top-1", f"20260915 - {TOPIC}", FOLDER_MIME, ("subj",)),
+            "top-2": DriveFile("top-2", f"20260915 - {TOPIC}", FOLDER_MIME, ("other",)),
+            "liv-1": DriveFile(
+                "liv-1", f"Apuntes · {TOPIC}.pdf", "application/pdf", ("n-1",), modified="2026-10-27T10:00:00.000Z"
+            ),
+        }
+    )
+
+
+def notes_record(**more: Any) -> dict[str, Any]:
+    notes = {"file_id": "liv-1", "source_id": "src-1", "built_md5": "md5-1", "pages": 3, "health": "ok"} | more
+    return {"topics": {"top-1": {"name": TOPIC, "living": {"notes": notes}}}}
+
+
+def test_the_living_notes_file_is_read_from_the_topics_record_in_drive():
+    found = living_notes_of(drive_with_topic(), notes_record(), "FyQ", f"20260915 - {TOPIC}")
+    assert found == LivingNotes("src-1", "md5-1", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {},
+        notes_record(source_id=None),
+        notes_record(health="missing"),
+        notes_record(file_id="gone"),
+    ],
+)
+def test_a_living_notes_file_not_set_up_or_not_in_place_is_none(state: dict[str, Any]):
+    assert living_notes_of(drive_with_topic(), state, "FyQ", f"20260915 - {TOPIC}") is None

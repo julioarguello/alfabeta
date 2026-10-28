@@ -164,3 +164,9 @@ def test_the_report_takes_a_heading_to_break_before(tmp_path: Path, monkeypatch:
     script.report(args, tmp_path)
     assert '<div class="newpage"></div>\n\n## 5. Soluciones' in rendered[0]
     assert script.parse(["report", "nb-1", "art-1", "out.pdf", "--profile", "p"]).break_before is None
+
+
+@pytest.mark.parametrize("heading", ["## Soluciones", "### 5) Soluciones:", "## **5. Soluciones**", "## «Soluciones»"])
+def test_the_solutions_heading_is_found_however_it_is_written(heading: str):
+    md = f"# Hoja\n\nEnunciado.\n\n{heading}\n\nSolución.\n"
+    assert f'<div class="newpage"></div>\n\n{heading}\n' in load_script().break_before(md, "Soluciones")
