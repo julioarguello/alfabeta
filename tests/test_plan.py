@@ -60,8 +60,10 @@ def test_the_sandbox_run_plans_downloads_places_and_asks(sandbox: tuple[Path, st
         "Presentación inventada.pdf",
         "apuntes-inventados.pdf",
         "ficha-inventada.pdf",
+        "informe-inventado.pdf",
         "normas-inventadas.pdf",
-    ]  # no submissions (US6), no video, link or form
+        "respuestas-inventadas.pdf",
+    ]  # the student's submissions too (US6), no video, link or form
     by_name = {d["expected_name"]: d for d in result["downloads"]}
     assert by_name["ficha-inventada.pdf"]["url"].startswith(
         "https://drive.usercontent.google.com/download?id=synth-40&"
@@ -71,6 +73,7 @@ def test_the_sandbox_run_plans_downloads_places_and_asks(sandbox: tuple[Path, st
     paths = [c["path"] for c in result["changes"]]
     assert any(p.startswith("2026-2027/FyQ/") and p.endswith("/enunciado - ficha-inventada.pdf") for p in paths)
     assert any("/Sin tema/" in p or " - Sin tema/" in p for p in paths)
+    assert any(p.endswith("/20261006 - Ficha inventada de mezclas/entrega/respuestas-inventadas.pdf") for p in paths)
     pending = {(p["type"], p["origin"]) for p in result["pending_decisions"]}
     assert pending == {("class_link", "synth-3"), ("topic_match", "synth-10"), ("topic_match", "synth-11")}
     topic = next(p for p in result["pending_decisions"] if p["origin"] == "synth-10")

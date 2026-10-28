@@ -139,6 +139,8 @@ def test_a_page_keeps_its_place_through_marks_and_corrections():
     "name",
     [
         "entrega - Ejercicios.pdf",
+        "entrega/IMG_20261007_171546.jpg",
+        "Entrega/Respuestas.pdf",
         "Entrega - ejercicios.pdf",
         "correccion.md",
         "correccion (anterior 2026-10-01).md",

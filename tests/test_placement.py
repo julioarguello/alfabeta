@@ -170,7 +170,7 @@ def test_material_forms():
     assert sorted(paths(only_links)) == [f"{folder}/descripcion.md", f"{folder}/enlaces.md"]
 
 
-def test_assignment_is_always_a_folder_with_prefixed_files():
+def test_assignment_is_always_a_folder_with_prefixed_files_and_the_submission_in_entrega():
     statement = file("Problemas.pdf", "synth-s1", AttachmentRole.STATEMENT)
     handed = file("Respuestas.pdf", "synth-s2", AttachmentRole.SUBMISSION)
     one = item(
@@ -186,7 +186,7 @@ def test_assignment_is_always_a_folder_with_prefixed_files():
     assert {(t.role, t.path) for t in targets} == {
         (ReplicaRole.STATEMENT, f"{folder}/enunciado - Problemas.pdf"),
         (ReplicaRole.DESCRIPTION, f"{folder}/enunciado.md"),
-        (ReplicaRole.SUBMISSION, f"{folder}/entrega - Respuestas.pdf"),
+        (ReplicaRole.SUBMISSION, f"{folder}/entrega/Respuestas.pdf"),
         (ReplicaRole.GRADING, f"{folder}/correccion.md"),
     }
     question = Placer("2026-2027", NO_BOOK).place(

@@ -33,7 +33,7 @@ from alfabeta.model import (
     Subject,
 )
 from alfabeta.placement import Placer, Target
-from alfabeta.plan import US1_ROLES
+from alfabeta.plan import PLACED_ROLES
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -43,6 +43,8 @@ if TYPE_CHECKING:
     from alfabeta.decisions import DecisionStore
 
 NOT_ARRIVED = "no llegó a la carpeta de descargas"
+# Roles whose replica is a downloaded file.
+_FILE_ROLES = frozenset({ReplicaRole.STATEMENT, ReplicaRole.MATERIAL, ReplicaRole.SUBMISSION})
 
 
 def sha256(path: Path) -> str:
@@ -225,12 +227,12 @@ class Applier:
         }
 
     def place_item(self, placer: Placer, item: Item, topic_title: str | None) -> None:
-        """Every US1 file of one item."""
-        targets = [t for t in placer.place(item, topic_title) if t.role in US1_ROLES]
-        by_id = {a.id: a for a in item.attachments}
+        """Every file a run places for one item."""
+        targets = [t for t in placer.place(item, topic_title) if t.role in PLACED_ROLES]
+        by_id = {a.id: a for a in (*item.attachments, *item.submission)}
         missing: list[Attachment] = []
         for target in targets:
-            if target.attachment and target.role in (ReplicaRole.STATEMENT, ReplicaRole.MATERIAL):
+            if target.attachment and target.role in _FILE_ROLES:
                 attachment = by_id[target.attachment]
                 if not self._place_file(item, target, attachment):
                     missing.append(attachment)
@@ -281,7 +283,7 @@ class Applier:
     def _replace(self, placer: Placer, item: Item, topic_title: str | None) -> None:
         """Move the replicas of an item outside the scope to where the decisions in force put them."""
         for target in placer.place(item, topic_title):
-            if target.role not in US1_ROLES:
+            if target.role not in PLACED_ROLES:
                 continue
             suffix = target.attachment or f"#{target.role}"
             record = cast("dict[str, Any] | None", self.replicas.get(f"{CLASSROOM}|{item.id}|{suffix}"))
@@ -305,7 +307,8 @@ def _links_folder(targets: list[Target]) -> str | None:
             return str(PurePosixPath(target.path).parent)
     files = [PurePosixPath(t.path) for t in targets if t.role in (ReplicaRole.STATEMENT, ReplicaRole.MATERIAL)]
     if not files:
-        return None
+        handed = [PurePosixPath(t.path) for t in targets if t.role == ReplicaRole.SUBMISSION]
+        return str(handed[0].parent.parent) if handed else None
     if files[0].parent.name == CLASSROOM:
         return str(files[0].parent / files[0].stem)
     return str(files[0].parent)

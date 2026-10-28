@@ -188,9 +188,9 @@ and «Hecho», independent of the day.
 **Independent Test**: two announcements (one with an attachment), an assignment turned in and not graded and another returned with
 grading; each role recognizable by its name (SC-008a), with no comments or classmates' names.
 
-- [ ] T060 [P] [US6] Write `tests/test_us6.py` (the author and the class and private comments planted in the synthetic page do not appear in `correccion.md` nor in the announcement): announcement → `<YYYYMMDD> - Sin tema/classroom/YYYYMMDD - aviso - <summary>.md` (or a folder if it has attachments) and its agenda entry gets a `folder`; student submission → `entrega/<name>` inside the assignment's folder; grading → `correccion.md` with grading state, grade only if Classroom shows it, teacher comment and return date; resubmission → the earlier one as previous
+- [ ] T060 [P] [US6] (partial 2026-10-28: the student's submissions only, in `entrega/`; announcements and `correccion.md` still to do) Write `tests/test_us6.py` (the author and the class and private comments planted in the synthetic page do not appear in `correccion.md` nor in the announcement): announcement → `<YYYYMMDD> - Sin tema/classroom/YYYYMMDD - aviso - <summary>.md` (or a folder if it has attachments) and its agenda entry gets a `folder`; student submission → `entrega/<name>` inside the assignment's folder; grading → `correccion.md` with grading state, grade only if Classroom shows it, teacher comment and return date; resubmission → the earlier one as previous
 - [ ] T061 [US6] Extend `skills/classroom-sync/scripts/extract.js` and `tests/js/extract.test.mjs` to read from the detail the files the student turned in, the visible comment and grade and the return date (`returned_text`), without touching the «Tu trabajo» panel
-- [ ] T062 [US6] Implement in `src/alfabeta/replicas.py` the replicas of announcements, student submissions and `correccion.md` (FR-015a, FR-016a)
+- [ ] T062 [US6] (partial 2026-10-28: the student's submissions only, in `entrega/`; announcements and `correccion.md` still to do) Implement in `src/alfabeta/replicas.py` the replicas of announcements, student submissions and `correccion.md` (FR-015a, FR-016a)
 
 ---
 
