@@ -67,3 +67,4 @@
   the independent review determined (constitution, Development workflow) that it needs the operator's
   explicit request, quoted with its date in the PR, before any merge. Constitution 2.0.0 (MAJOR:
   principle III redefined). `/speckit-analyze` was re-run on this change.
+- Clarification 2026-10-28 (constitution 2.2.0, #110): the folders alfabeta names are in English: `<date> - No topic` (was `Sin tema`) and an assignment's `submission/` (was `entrega/`). Spec, plan, data model, quickstart and tasks follow it; earlier clarifications keep the names of their day.

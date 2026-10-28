@@ -21,9 +21,9 @@ The lists may be `[]`. Never print a mirror's path or a `share_with` address: sa
 paths carry the account's email).
 
 Result per topic:
-- `TemaNN_<LANG>.pdf` and `.md` in the topic folder (see Names). Each PDF: cover, clickable table of contents
-  (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content) and
-  the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
+- `TemaNN_<LANG>.pdf` and `.md` in the topic folder's `sciencebits/` (see Names). Each PDF: cover, clickable table
+  of contents (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content)
+  and the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
 - The same files in every folder of `drive.mirrors`, one-way copies of `storage.base`.
 - If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, shared as viewer with every account
   in `notebook.share_with`.
@@ -55,7 +55,7 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
   folder matching `*Tema NN - *` (two-digit `NN`), whatever its date, and reuse it. Only if none matches, create
   one dated today. Never create a second folder for a topic that already has one: an
   undated or re-dated duplicate splits the topic in two.
-- Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - Sin tema`) are Classroom's; leave them alone.
+- Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - No topic`) are Classroom's; leave them alone.
 - "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *` that already
   hold `sciencebits/`, ignoring the date prefix (and the order of units in the Science Bits class).
 
@@ -89,7 +89,8 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
 7. **Verify.** pypdf: pages, bookmarks, table-of-contents links, extractable text. Review the `.md`. If a lesson
    has few screens compared with its index (`menu` in meta.json), capture it again.
 8. **Save.** Find the topic folder by `*Tema NN - *` (see Names); only if there is none, `mkdir -p` it with
-   today's date. Copy `out/*` into it. Write only in `storage.base`, never in a mirror.
+   today's date. Copy `out/*` into its `sciencebits/` (`mkdir -p`), never to its root. Write only in
+   `storage.base`, never in a mirror.
    **Mirrors.** Then, for each folder in `drive.mirrors`, bring it up to date from the whole master, on the Mac:
    `rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"` (trailing slashes; never `--delete`; never the other
    way round). It copies only what is new or changed, so a repeat writes nothing. If a mirror is not mounted or

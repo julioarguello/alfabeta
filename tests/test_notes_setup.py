@@ -11,7 +11,7 @@ import pytest
 from alfabeta.notes.setup import Setting, SetupError, setup_topic
 from alfabeta.notes.sources import Source, SourcesError
 from alfabeta.notes.state import STATE
-from tests.notes_fakes import TOPIC, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
+from tests.notes_fakes import NOTES, TOPIC, MemoryDrive, ScriptedFeed, ScriptedTranscriber, deps
 
 OWNER = "propietario.inventado@example.com"
 TITLE = "3º ESO. FyQ. Tema 01 - Materia inventada"
@@ -70,7 +70,10 @@ def test_a_first_setup_creates_shares_and_adds_exactly_two_files():
     notes = drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
     classroom = drive.named("Classroom · Tema 01 - Materia inventada.pdf")
     assert len(notes) == len(classroom) == 1
-    assert drive.files[notes[0]].parents == (TOPIC,)
+    # Each in its folder of the topic: notes/ was there, classroom/ is made (constitution 2.2.0).
+    assert drive.files[notes[0]].parents == (NOTES,)
+    (made,) = drive.files[classroom[0]].parents
+    assert (drive.files[made].name, drive.files[made].parents) == ("classroom", (TOPIC,))
     assert sorted(drive.shared) == sorted([(notes[0], OWNER), (classroom[0], OWNER)])
     assert [t for _, t in nb.added] == [
         "Apuntes · Tema 01 - Materia inventada",
@@ -98,6 +101,21 @@ def test_a_recorded_living_file_that_was_deleted_is_reported_not_recreated():
     out = setup(drive, nb)
     assert out["notes_source"] == "missing"
     assert not drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
+
+
+def test_a_living_file_at_the_topics_root_is_missing_until_it_is_back_in_its_folder():
+    from dataclasses import replace
+
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    (notes,) = drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
+    drive.files[notes] = replace(drive.files[notes], parents=(TOPIC,))  # where it sat until #110
+    assert setup(drive, nb)["notes_source"] == "missing"
+    assert drive.named("Apuntes · Tema 01 - Materia inventada.pdf") == [notes]  # never a second one
+    drive.files[notes] = replace(drive.files[notes], parents=(NOTES,))
+    assert setup(drive, nb)["notes_source"] == "unchanged"
+    state = json.loads(drive.bodies[drive.named(STATE)[0]])
+    assert state["topics"][TOPIC]["living"]["notes"]["health"] == "ok"
 
 
 def test_plain_sources_are_listed_never_removed():
@@ -131,6 +149,7 @@ def test_a_setup_stopped_after_one_source_adds_each_source_once_when_run_again()
     ]
     assert out["plain_sources_to_remove"] == 1
     assert len(drive.named("Apuntes · Tema 01 - Materia inventada.pdf")) == 1
+    assert len(drive.named("classroom")) == len(drive.named("Classroom · Tema 01 - Materia inventada.pdf")) == 1
 
 
 def test_a_setup_whose_save_lost_a_race_adds_nothing_when_run_again():

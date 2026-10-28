@@ -196,6 +196,7 @@ def render(md: str, out: Path, work: Path) -> None:
         ],
         check=True,
     )
+    out.parent.mkdir(parents=True, exist_ok=True)  # the topic's notebook/ or exam/ may not exist yet
     subprocess.run(
         [
             CHROME,

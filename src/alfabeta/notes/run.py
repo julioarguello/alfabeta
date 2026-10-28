@@ -16,7 +16,7 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.google.drive import DriveError, OutsideFolderError
-from alfabeta.notes.changes import Known
+from alfabeta.notes.changes import LIVING_FOLDERS, Known
 from alfabeta.notes.model import (
     Arrival,
     Kind,
@@ -82,6 +82,18 @@ def adopted_section(markdown: str, photo_name: str) -> str | None:
         if f"]({photo_name})" in section or f"]({photo_name.replace(' ', '%20')})" in section:
             return section.strip() + "\n"
     return None
+
+
+class Listing(Protocol):
+    """What looking up an item in this run's listing needs of spec 004's `ScopedDrive`."""
+
+    def listed(self, item_id: str) -> DriveFile:
+        """The item as the run's listing holds it."""
+        ...
+
+    def contains(self, item_id: str) -> bool:
+        """Whether the item is under the root, as listed this run."""
+        ...
 
 
 class NotesDrive(Protocol):
@@ -214,6 +226,14 @@ def living_of(topic: str, kind: LivingKind, record: dict[str, Any] | None) -> Li
         record.get("source_id"),
         record.get("built_md5"),
         record.get("pages", 0),
+    )
+
+
+def in_place(drive: Listing, file: DriveFile, topic: str, kind: LivingKind) -> bool:
+    """Whether a living file sits where setup put it: its topic's `notes/` or `classroom/` (FR-011)."""
+    folder = LIVING_FOLDERS[kind]
+    return not file.trashed and any(
+        drive.contains(p) and drive.listed(p).name == folder and topic in drive.listed(p).parents for p in file.parents
     )
 
 
@@ -446,7 +466,7 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
 
 
 def _adopted(deps: NotesDeps, work: Pass, topic: str, folder: str, photo_name: str) -> str | None:
-    """A transcription the family already wrote, in a Markdown of the same `apuntes/`: no Claude call."""
+    """A transcription the family already wrote, in a Markdown of the same `notes/`: no Claude call."""
     for fid, r in sorted(work.files.items()):
         if r["kind"] != Kind.NOTES_TEXT or r.get("own") or r.get("topic") != topic or not deps.drive.contains(fid):
             continue
@@ -482,11 +502,14 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
         return
     assert living.file_id is not None
     found = deps.drive.listed(living.file_id) if deps.drive.contains(living.file_id) else None
-    if found is None or found.trashed or topic not in found.parents:
+    if found is None or not in_place(deps.drive, found, topic, LivingKind.NOTES):
         living_records[LivingKind.NOTES] = {**living_record(living), "health": "missing"}
         work.count(topic, "missing_living_files")  # reported, never recreated (FR-014)
         return
-    if topic not in work.dirty:
+    living_records[LivingKind.NOTES] = living_record(living)  # in place again after a move: healthy
+    # A page transcribed while the file was missing reaches it on the first pass that finds it again.
+    waiting = any(work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED for p in pages)
+    if topic not in work.dirty and not waiting:
         return
     data, count = deps.pdf.notes(
         Topic(topic, work.topics[topic]["name"]), [(p, deps.drive.content(p.photo_id)) for p in pages]

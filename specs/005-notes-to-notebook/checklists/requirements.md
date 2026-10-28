@@ -42,3 +42,7 @@
   spec 004 (FR-007, FR-009a, the refresh-token edge case, a note under its Constitution Check), and
   marks spec 002's check of transcriptions as superseded. `skills/study-pack/SKILL.md` still states
   the check; it changes with the implementation, not in this documentation-only pull request.
+- Clarification 2026-10-28 (constitution 2.2.0, julioarguello/alfabeta#110): the living files sit in the topic's
+  `notes/` (was `apuntes/`) and `classroom/`, never at its root (FR-009, FR-011, the edge cases, the data model's
+  `kind` and `health`); the reports folder is `reports/` (was `Informes/`); the student's work is a `submission/`
+  or legacy `entrega/` subfolder. No marker added.

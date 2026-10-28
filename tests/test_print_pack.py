@@ -102,3 +102,15 @@ def test_the_run_checks_the_default_before_it_downloads(home: Path, monkeypatch:
     with pytest.raises(SystemExit):
         script.main()
     assert [call[1] for call in fake.calls] == ["config"]
+
+
+def test_a_pdf_for_a_folder_the_topic_lacks_makes_the_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    fake = FakeRun("familia")
+    monkeypatch.setattr(script.subprocess, "run", fake)
+    out = tmp_path / "20261001 - Tema 01 - Inventado" / "notebook" / "Guía · T01.pdf"
+    work = tmp_path / "work"
+    work.mkdir()
+    script.render("# Guía\n", out, work)
+    assert out.parent.is_dir()
+    assert f"--print-to-pdf={out}" in fake.calls[-1]

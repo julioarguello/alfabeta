@@ -102,7 +102,9 @@ Below, `alfabeta <command>` stands for that line.
 9. **Before the first apply of a subject**, look at its topic folders in Drive. A `classroom/` folder
    made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
    other names. With the family's agreement, move it to
-   `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it.
+   `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it. Leave
+   `Classroom · <topic>.pdf` where it is: it is `notebook setup`'s (spec 005) and a source of the
+   topic's notebook; quarantine only what is beside it.
 10. **Apply.** `alfabeta apply` (with the same `--subject`). `apply` finds what was collected through
     the current `plan.json`, so when subjects go one at a time, plan, download and apply each before
     planning the next. On a subject's first run, apply once

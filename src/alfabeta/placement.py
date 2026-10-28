@@ -1,6 +1,6 @@
 """Where each Classroom item goes in the student's folder (spec 001 FR-012…FR-015c).
 
-`<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/classroom/…`
+`<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/classroom/…`
 
 A topic folder is found by the part of its name after the date, whatever that date is, and keeps
 the date it was created with: the posting date of the first item placed in it. Items must therefore
@@ -33,9 +33,9 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-NO_TOPIC = "Sin tema"
+NO_TOPIC = "No topic"
 # What the student turned in, inside the assignment's folder (FR-015a, amended 2026-10-28).
-SUBMISSION_FOLDER = "entrega"
+SUBMISSION_FOLDER = "submission"
 MAX_NAME_BYTES = 255
 SUMMARY_CHARS = 60
 

@@ -45,13 +45,13 @@ class MemoryDrive:
 
     @classmethod
     def topic(cls) -> MemoryDrive:
-        """alfabeta/2026-2027/FyQ/20260915 - Tema 01 - Materia inventada/apuntes/"""
+        """alfabeta/2026-2027/FyQ/20260915 - Tema 01 - Materia inventada/notes/"""
         drive = cls()
         for fid, name, parent in (
             ("anio", "2026-2027", "raiz"),
             ("fyq", "FyQ", "anio"),
             (TOPIC, "20260915 - Tema 01 - Materia inventada", "fyq"),
-            (NOTES, "apuntes", TOPIC),
+            (NOTES, "notes", TOPIC),
         ):
             drive.files[fid] = DriveFile(fid, name, FOLDER, (parent,))
         return drive

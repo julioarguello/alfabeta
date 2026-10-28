@@ -24,8 +24,9 @@ maps included, filed in the Drive."
 This is the third epic that [spec 001](../001-classroom-sync/spec.md) names, «Prepárame el tema»
 ("prepare the topic for me"), tracked in julioarguello/alfabeta#21. It takes the
 topic folder that the textbook capture and `classroom-sync` (spec 001) fill, and turns it into
-material to study from: inside the topic's Gemini Notebook notebook for the student, in a
-`docente/` folder for the parent, and in one printable document for paper.
+material to study from: inside the topic's Gemini Notebook notebook for the student, in the
+topic's `notebook/` folder in Drive, the parent's material included, and in one printable document
+for paper.
 
 The procedure was run by hand on one topic on 2026-10-26, as the `study-pack` skill
 (julioarguello/alfabeta#20). This spec states what that procedure must guarantee so it can run
@@ -130,8 +131,8 @@ done that day; the last three, what the operator decided once it was done (User 
   carries no date; the exam's date stays in each file's name, so a second exam on the same topic
   sits beside the first. The operator set this when deciding the topic folders' layout, with every
   directory name the code decides in English, because the project is public; file names keep their
-  language. The constitution still asks for Spanish folder names, and its amendment is
-  julioarguello/alfabeta#110. That day's two PDFs were moved there by hand.
+  language. The constitution was amended the same day to match (2.2.0, julioarguello/alfabeta#110).
+  That day's two PDFs were moved there by hand.
 - Q: Who computes the numbers, then? → A: The notebook, as an accepted risk. The operator accepted
   it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
   printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
@@ -141,6 +142,14 @@ done that day; the last three, what the operator decided once it was done (User 
 - Q: What if notebooks are switched off, or `nlm` does not work? → A: The command refuses before it
   asks the notebook for anything, with a message that says why, and prints nothing: the notebook is
   an optional output that can break (constitution VII).
+- Q: Where does the rest of the pack go, now that a topic folder holds only folders? → A: In the
+  topic's `notebook/` folder, named after the product, like `classroom/` and `sciencebits/`:
+  everything the notebook generates, the videos copied from it, the printed topic, the blocks and
+  the parent's documents. It replaces `docente/` and the files the pack left at the topic's root.
+  There is no separate folder for the parent: the practice sheet already carries its solutions.
+  «cuaderno» was rejected, because for a student it means their own notes. The operator decided
+  it with the exam sheets' folder (constitution 2.2.0, julioarguello/alfabeta#110); the class notes
+  are in `notes/` (it was `apuntes/`).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -179,18 +188,19 @@ and a subject with a known `language`, run the pack and check each piece against
 
 ---
 
-### User Story 2 - The parent's material, in Spanish and out of the student's sight (Priority: P1)
+### User Story 2 - The parent's material, in Spanish and out of the notebook (Priority: P1)
 
-The parent opens the topic's `docente/` folder and finds, in Spanish, the blocks with the files
+The parent opens the topic's `notebook/` folder and finds, in Spanish, the blocks with the files
 they came from, a guide with questions to ask at home and the expected answers, the teacher's
 answer key recomputed with every mismatch marked, and a glossary in the subject's language, Spanish
-and English. None of it is in the notebook.
+and English. None of it is in the Gemini notebook, where the student studies; the `notebook/`
+folder also holds what the student uses, and the family chose no separate folder for the parent.
 
 **Why this priority**: the parent cannot help without it, and a wrong key discourages the student.
 
-**Independent Test**: with the same test topic, check that `docente/` holds the four documents as
+**Independent Test**: with the same test topic, check that `notebook/` holds the four documents as
 PDF and Markdown, that the known wrong answer is marked with its correct value, and that the
-notebook lists none of them.
+Gemini notebook lists none of them.
 
 **Acceptance Scenarios**:
 
@@ -232,10 +242,10 @@ before the answer, explanations in Spanish with the terms in the subject's langu
 
 ### User Story 4 - The whole topic on paper (Priority: P2)
 
-The family prints the topic. In the topic's Drive folder there is one A4 PDF with an index of
-every piece (videos marked as "in the notebook") and then each piece on a new page in the numbered
-order: the practice sheet, the quiz with its answers at the end, the flashcards as a table, the
-study guide and the mind map drawn as a diagram. Formulas print as formulas.
+The family prints the topic. In the topic's `notebook/` folder in Drive there is one A4 PDF with
+an index of every piece (videos marked as "in the notebook") and then each piece on a new page in
+the numbered order: the practice sheet, the quiz with its answers at the end, the flashcards as a
+table, the study guide and the mind map drawn as a diagram. Formulas print as formulas.
 
 **Why this priority**: the parent prints what the student works on, and the platform has no print
 view for a report or a mind map (the operator found that exporting a report to Google Docs lost
@@ -292,7 +302,7 @@ the notebook's list after each.
 
 ### User Story 6 - The student's class notes lead (Priority: P3)
 
-The family drops photos of the student's class notes into the topic's `apuntes/` folder. They are
+The family drops photos of the student's class notes into the topic's `notes/` folder. They are
 transcribed literally, the transcription is checked by someone who can read the notes, and only
 then does it become a source of the notebook — the most trusted one: when the notes show what was
 taught, the blocks follow them.
@@ -300,12 +310,12 @@ taught, the blocks follow them.
 **Why this priority**: the notes are the best evidence of what the exam asks, but turning photos
 of handwriting into a usable source had not been tried when this was written.
 
-**Independent Test**: with photos in `apuntes/` that stress an idea the textbook barely covers,
+**Independent Test**: with photos in `notes/` that stress an idea the textbook barely covers,
 check that the proposed blocks include it.
 
 **Acceptance Scenarios**:
 
-1. **Given** photos in `apuntes/` with a checked transcription, **When** the pack runs, **Then**
+1. **Given** photos in `notes/` with a checked transcription, **When** the pack runs, **Then**
    the transcription is a source of the notebook and the proposed blocks cite it.
 2. **Given** photos whose transcription nobody has checked, **When** the pack runs, **Then** they
    are not a source and the family is told.
@@ -399,8 +409,9 @@ and cannot judge what the notebook writes.
 **Scope and sources**
 
 - **FR-001**: alfabeta MUST propose a topic's blocks from its folder (class notes, Classroom
-  material, textbook), naming for each block the files it comes from, and MUST NOT generate until
-  they are confirmed. Once confirmed, the blocks of a topic are not proposed again.
+  material, textbook; not spec 005's living files, which repeat them), naming for each block the
+  files it comes from, and MUST NOT generate until they are confirmed. Once confirmed, the blocks
+  of a topic are not proposed again.
 - **FR-002**: When sources disagree about what the exam asks, the class notes MUST win over
   Classroom and Classroom over the textbook.
 - **FR-003**: Two ideas that the teacher's material or the parent's guide name as a typical
@@ -431,12 +442,13 @@ and cannot judge what the notebook writes.
   neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
   regenerated or reported.
-- **FR-011**: Every teacher's answer key in the topic folder MUST be recomputed; each mismatch, and
-  each statement missing a datum, is recorded for the parent's guide.
+- **FR-011**: Every teacher's answer key in the topic's `classroom/` (not in spec 005's living
+  Classroom file, which repeats them) MUST be recomputed; each mismatch, and each statement
+  missing a datum, is recorded for the parent's guide.
 
 **The parent's material**
 
-- **FR-012**: `docente/` in the topic folder MUST hold, in Spanish: the confirmed blocks with their
+- **FR-012**: The topic's `notebook/` folder MUST hold, in Spanish: the confirmed blocks with their
   sources; a parent's guide with questions to ask at home and the teacher's sheets translated and
   recomputed, each mismatch marked neutrally; and a glossary (the subject's language, Spanish, English,
   one-line definition, formula). The guide and the glossary as PDF and Markdown.
@@ -457,13 +469,13 @@ and cannot judge what the notebook writes.
 
 **Printing**
 
-- **FR-017**: alfabeta MUST write one A4 PDF per topic into the topic's folder, holding an index of
-  every piece in the notebook's order, then the start note, then every piece except videos, each
-  on a new page: the
+- **FR-017**: alfabeta MUST write one A4 PDF per topic into the topic's `notebook/`, holding an
+  index of every piece in the notebook's order, then the start note, then every piece except
+  videos, each on a new page: the
   quiz with its answers after its questions, the flashcards as a table, the mind map as a diagram
   that fits one page.
 - **FR-018**: Formulas MUST print as typeset formulas, and lists and tables as such.
-- **FR-019**: Each document of `docente/` MUST also print as its own PDF.
+- **FR-019**: Each of the parent's documents in `notebook/` MUST also print as its own PDF.
 
 **Trigger and record**
 

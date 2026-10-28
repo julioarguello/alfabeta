@@ -44,7 +44,7 @@
   },
   {
    "id": "inf",
-   "name": "Informes",
+   "name": "reports",
    "mimeType": "application/vnd.google-apps.folder",
    "parents": [
     "raiz"
@@ -95,7 +95,7 @@
   },
   {
    "id": "ap",
-   "name": "apuntes",
+   "name": "notes",
    "mimeType": "application/vnd.google-apps.folder",
    "parents": [
     "t1"
@@ -194,11 +194,33 @@
    "name": "Apuntes · Materia inventada.pdf",
    "mimeType": "application/pdf",
    "parents": [
-    "t1"
+    "ap"
    ],
    "modifiedTime": "2026-10-20T10:00:00.000Z",
    "trashed": false,
    "md5Checksum": "a007"
+  },
+  {
+   "id": "lf2",
+   "name": "Classroom · Materia inventada.pdf",
+   "mimeType": "application/pdf",
+   "parents": [
+    "cl"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a009"
+  },
+  {
+   "id": "lf0",
+   "name": "Apuntes · Materia inventada (copia).pdf",
+   "mimeType": "application/pdf",
+   "parents": [
+    "t1"
+   ],
+   "modifiedTime": "2026-10-20T10:00:00.000Z",
+   "trashed": false,
+   "md5Checksum": "a00a"
   },
   {
    "id": "u2",

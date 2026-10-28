@@ -2,7 +2,7 @@
 
 The prompts are in Spanish because they were measured in Spanish (2026-10-26); a translation is an
 untested prompt. `{placeholders}` come from the configuration, from the topic's confirmed blocks
-(`docente/bloques.md`) or, for the exam sheets, from the exam and its announcement. Replace every
+(`notebook/bloques.md`) or, for the exam sheets, from the exam and its announcement. Replace every
 one before sending; a prompt that still holds a `{` is a bug.
 
 | Placeholder | Source |
@@ -43,13 +43,13 @@ Hoja de ejercicios graduados para practicar el examen, escrita entera en {langua
 
 The last sentence is the topic's typical error; replace it with the one that applies.
 
-## Glossary — for the parent, in `docente/`
+## Glossary — for the parent, in `notebook/`
 
 ```text
 Glosario del tema para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Una sola tabla con las columnas: término en {language} tal como aparece en el material de clase | castellano | inglés | definición de una línea en castellano | fórmula o unidad, si la hay. Como máximo 25 términos, solo los que aparecen en las hojas y la presentación del profesor, en el orden en que se estudian: {blocks}. Sin introducción ni texto adicional.
 ```
 
-## Parent guide — for the parent, in `docente/`
+## Parent guide — for the parent, in `notebook/`
 
 ```text
 Guía en castellano para un padre o una madre que ayuda en casa y no sabe {language}; el alumno da la asignatura en {language}. Secciones: 1) Qué entra en el examen, por bloques: {blocks}. 2) Preguntas para hacerle en casa, por bloque, en una tabla: pregunta en castellano | respuesta esperada | término en {language}. 3) Solucionario de la hoja {answer_sheet}: enunciado traducido al castellano, planteamiento y resultado de cada ejercicio, recalculado por ti. Marca de forma neutra, sin culpar a nadie, los resultados que no coinciden con la hoja: {corrections}; indica también si a algún enunciado le falta un dato. 4) Errores típicos que vigilar.

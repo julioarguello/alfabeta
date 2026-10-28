@@ -39,7 +39,7 @@ both outside the downloads. `lock take` returns the `run` we export;
 `sandbox download --captures` leaves the captures in the downloads with that `run` (what the extractor leaves in a
 real run) and the first `downloads collect` takes them and fixes the scope; `sandbox download` copies to the downloads, after the
 plan, the attachments it requests (what Claude does), and the second `downloads collect` collects them. If the plan
-spreads downloads over batches, `sandbox download --batch N` and `downloads collect` for each batch. Expected: `2026-2027/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/classroom/` with
+spreads downloads over batches, `sandbox download --batch N` and `downloads collect` for each batch. Expected: `2026-2027/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/classroom/` with
 materials `YYYYMMDD - <title>`, assignment folders with `enunciado - <name>` and `enlaces.md` notes;
 every item of the capture in its place or noted with link and reason (SC-001).
 

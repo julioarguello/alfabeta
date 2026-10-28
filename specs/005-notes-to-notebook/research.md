@@ -77,7 +77,7 @@ own table is the subset the requirements rest on; this one is the full list.
   an idle run, whose token moves because of its own previous run log, writes only the run log
   (SC-004).
 - **First run**: with no cursor, the job takes `getStartPageToken` first, then lists the whole tree
-  under the allowlist once (FR-004). A Markdown in `apuntes/` that embeds a photo by name, in a
+  under the allowlist once (FR-004). A Markdown in `notes/` that embeds a photo by name, in a
   section of its own, is that photo's transcription (Tema 01's form, first table): no Claude call.
 - **Rationale**: four polls an hour meet SC-001 (one hour) with margin, need no public endpoint, and
   use one Scheduler job.
@@ -174,15 +174,15 @@ own table is the subset the requirements rest on; this one is the full list.
     `.alfabeta/conversions/`, exported, and that copy put in Drive's trash at once (it was never the
     family's); a Markdown is set as text; an image is one page; anything else is named on the cover
     page.
-  - **Never in a living file**: everything in an `entrega/` subfolder (spec 001 FR-015a, amended
-    2026-10-28) and every file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's roles `submission` and `grading`, including their
+  - **Never in a living file**: everything in a `submission/` subfolder or a legacy `entrega/` one
+    (spec 001 FR-015a, amended 2026-10-28) and every file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's roles `submission` and `grading`, including their
     `(anterior YYYY-MM-DD)` versions): the student's own work and its grading (constitution III). An
     assignment enters with its statement only.
   - **Previous versions**: a file named `<name> (anterior YYYY-MM-DD)` (spec 001 FR-015b) is never a
     part; the current version replaces the item's pages in place.
-  - **Announcements** (`… aviso …` notes in `Sin tema`) are not material and stay out (spec 002
+  - **Announcements** (`… aviso …` notes in `No topic`) are not material and stay out (spec 002
     FR-023 routes material only).
-  - **`Sin tema`**: its materials go into the living Classroom file of the subject's most recent
+  - **`No topic`**: its materials go into the living Classroom file of the subject's most recent
     topic, the topic folder whose date is latest when the material is first seen, and stay there,
     as spec 002 FR-023 sends them to that topic's notebook. An item moved by classroom-sync to
     another topic leaves the first file and enters the second.
@@ -207,13 +207,13 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R8 — The report and "what it adds"
 
-- **Decision**: a run that changed something writes `Informe AAAAMMDD-HHMM.md` into `Informes/` at the
+- **Decision**: a run that changed something writes `Informe AAAAMMDD-HHMM.md` into `reports/` at the
   root of the alfabeta folder, in Spanish. "What it adds" is one Claude call per changed topic,
   given the new pages and the text of the study guide section of the topic's printable PDF, which
-  the study-pack skill writes as `Tema NN para imprimir · <title>.pdf` in the topic folder
+  the study-pack skill writes as `Tema NN para imprimir · <title>.pdf` in the topic's `notebook/`
   (`skills/study-pack/SKILL.md`, step 10), extracted with `pypdf`; skipped with a line when that PDF
   is missing or the budget is spent. Every call's `usage` goes into the month's spend ledger. The
-  Mac's sync lists `Informes/` through `ScopedDrive` and adds one agenda line per report it has not
+  Mac's sync lists `reports/` through `ScopedDrive` and adds one agenda line per report it has not
   listed before.
 - **Rationale**: Drive is the one channel the cloud and the family share.
 - **Alternatives**: email needs a Gmail scope no spec asks for (spec 004 R9). Rejected.

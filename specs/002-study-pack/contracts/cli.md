@@ -19,7 +19,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
   a plan in minutes from the start.
 - `--topic`: the exam's topic folder. Without it, the subject's most recent topic folder (FR-023),
   named on stderr. The announcement does not give the topic: spec 001 files every announcement in
-  the subject's `<YYYYMMDD> - Sin tema` folder (its FR-014).
+  the subject's `<YYYYMMDD> - No topic` folder (its FR-014).
 
 **What it does, in order.** Steps 1 to 4 ask the notebook for nothing; a refusal there prints
 nothing. From step 5 on, a failure is code 3 and stops nothing after it: a refresh or a guide that

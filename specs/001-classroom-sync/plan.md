@@ -190,7 +190,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 | Browser | Claude + `SKILL.md` | Locates the school account, runs the extractor, downloads attachments according to the plan, proposes matches (with confidence) and exams |
 | Domain | `Student`, `Subject`, `Item`, `Attachment`, `Replica`, `AgendaEntry`, `Grading`, `Decision`, `Run` | Immutable dataclasses (see data-model) |
 | Domain | `Classifier` | Closed category with precedence, and exam candidates from cues |
-| Domain | `Placer` | Folder and name of each replica from school year, subject, confirmed match, teacher's topic or `Sin tema`, source and role; finds an existing topic folder by the name after its `YYYYMMDD - ` prefix |
+| Domain | `Placer` | Folder and name of each replica from school year, subject, confirmed match, teacher's topic or `No topic`, source and role; finds an existing topic folder by the name after its `YYYYMMDD - ` prefix |
 | Domain | `DateResolver` | Absolute date in `Europe/Madrid` from the displayed text, the school year and the instant the page was read (`seen_at`, falling back to the capture instant); the same instant decides overdue vs pending (H10) |
 | Ports | `Source` | Protocol: `name` (the subfolder) and normalised `items()` for `Planner`; implementations `ClassroomSource` (captures) and `BookSource` (a book provider's directory) |
 | Ports | `StateStore`, `DecisionStore`, `StudentFolder`, `DownloadsInbox` | Protocols: state and decisions, writing to the Drive folder, collection from the downloads folder |

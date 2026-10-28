@@ -2,8 +2,9 @@
 
 Only this command creates living files (research R6). It runs on the Mac, where `nlm` is signed in.
 It first runs the recording pass, so an adopted Markdown is in the first build; then, for each
-living file not yet recorded, it builds it, shares it read-only with the notebook's owner (and
-nothing else in the folder), adds it as a Drive source and records both ids. A recorded file that
+living file not yet recorded, it builds it in the topic's `notes/` or `classroom/` (made when
+missing), shares it read-only with the notebook's owner (and nothing else in the folder), adds it as
+a Drive source and records both ids. A recorded file that
 is gone is reported, never recreated. Old plain sources of the notes or the Classroom material are
 listed for the family to remove; nothing is removed (FR-011).
 """
@@ -14,14 +15,26 @@ import hashlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
+from alfabeta.notes.changes import LIVING_FOLDERS
 from alfabeta.notes.model import Kind, LivingKind, PhotoState, Topic
-from alfabeta.notes.run import FOR, PDF, ROLE, NotesDeps, living_of, living_record, page_of, run_notes, topic_name
+from alfabeta.notes.run import (
+    FOR,
+    PDF,
+    ROLE,
+    NotesDeps,
+    in_place,
+    living_of,
+    living_record,
+    page_of,
+    run_notes,
+    topic_name,
+)
 
 if TYPE_CHECKING:
     from alfabeta.google.drive import DriveFile
     from alfabeta.notes.sources import NotebookSources
 
-LIVING_TITLES = ("Apuntes ·", "Classroom ·")
+LIVING_TITLES = tuple(f"{kind.prefix} ·" for kind in LivingKind)
 
 
 class SetupError(Exception):
@@ -45,6 +58,14 @@ class SetupDrive(Protocol):
 
     def contains(self, item_id: str) -> bool:
         """Whether the item is under the root."""
+        ...
+
+    def lookup(self, folder_id: str, name: str) -> DriveFile | None:
+        """The item with that name in the folder, asked of Drive now."""
+        ...
+
+    def create_folder(self, parent_id: str, name: str) -> DriveFile:
+        """A new folder inside a folder of the tree."""
         ...
 
     def share_reader(self, file_id: str, address: str) -> None:
@@ -97,13 +118,14 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         if not current.waiting_setup:
             assert current.file_id is not None
             found = drive.listed(current.file_id) if drive.contains(current.file_id) else None
-            there = found is not None and not found.trashed and folder.id in found.parents
+            there = found is not None and in_place(drive, found, folder.id, kind)
             outcome[kind] = "unchanged" if there else "missing"
-            if not there:
-                living[kind] = {**living_record(current), "health": "missing"}
+            # Health is this check's: a file put back where setup made it is healthy again.
+            living[kind] = living_record(current) if there else {**living_record(current), "health": "missing"}
             continue
         data, pages = _build(deps, state, folder.id, name, kind)
-        file = _living_file(deps, folder.id, Topic(folder.id, name).living_file_name(kind), data, kind)
+        section = _section(drive, folder.id, LIVING_FOLDERS[kind])
+        file = _living_file(deps, folder.id, section, Topic(folder.id, name).living_file_name(kind), data, kind)
         drive.share_reader(file.id, setting.owner)
         title = file.name.removesuffix(".pdf")
         # A setup stopped after adding the source (nlm failed on the next one, or another writer
@@ -146,10 +168,16 @@ def _build(deps: NotesDeps, state: dict[str, Any], topic: str, name: str, kind: 
     return deps.pdf.notes(Topic(topic, name), [(p, deps.drive.content(p.photo_id)) for p in pages])
 
 
-def _living_file(deps: NotesDeps, folder: str, name: str, data: bytes, kind: LivingKind) -> DriveFile:
+def _section(drive: SetupDrive, topic: str, name: str) -> str:
+    """The id of the topic's `notes/` or `classroom/`, made when the topic has none yet."""
+    found = drive.lookup(topic, name)
+    return (found if found is not None else drive.create_folder(topic, name)).id
+
+
+def _living_file(deps: NotesDeps, topic: str, section: str, name: str, data: bytes, kind: LivingKind) -> DriveFile:
     """Look up before create: a setup that stopped after the upload leaves one file."""
-    properties = {FOR: folder, ROLE: str(kind)}
-    found = deps.drive.made_for(folder, properties)
+    properties = {FOR: topic, ROLE: str(kind)}
+    found = deps.drive.made_for(section, properties)
     if found is not None:
         return deps.drive.update(found.id, data, PDF, properties)
-    return deps.drive.upload(folder, name, data, PDF, properties)
+    return deps.drive.upload(section, name, data, PDF, properties)

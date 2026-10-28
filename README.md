@@ -41,12 +41,12 @@ and the [constitution](.specify/memory/constitution.md).
 
 Target layout, from [specification 001](specs/001-classroom-sync/plan.md) and the
 [study-pack design](docs/explanation/study-material.md). The Science Bits skill writes its files
-straight into the topic folder.
+into the topic folder's `sciencebits/`.
 
 ```
 class notes (photos) ─┐
 Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► each listed account
-Science Bits ─────────┘     {apuntes, classroom, sciencebits}                            (shared as viewer)
+Science Bits ─────────┘     {notes, classroom, sciencebits, notebook, exam}              (shared as viewer)
                                               │
                                               ├──► one-way mirrors in the student's other accounts' Drives
                                               └──► calendar: assignments, exams, posted material ──► each listed account
@@ -54,8 +54,13 @@ Science Bits ─────────┘     {apuntes, classroom, sciencebits
 
 Every topic folder starts with the date the teacher posted its first material, so the student sees
 each topic in time. A teacher's topic that is not in the textbook carries the teacher's title
-instead of `Tema NN - <title>`, and what Classroom posts with no topic goes in `YYYYMMDD - Sin tema`.
+instead of `Tema NN - <title>`, and what Classroom posts with no topic goes in `YYYYMMDD - No topic`.
 Each Classroom file inside `classroom/` starts with its own posting date, `YYYYMMDD - <title>`.
+A topic folder holds only folders, each named in English for where its content comes from:
+`notes/` (the photos of the class notes, their transcriptions and the living file the notebook
+reads), `classroom/` (the teacher's material and its living file), `sciencebits/` (the textbook) and
+`notebook/` (what the notebook generates: videos, study guide, practice sheet, the printed topic,
+the parent's material); `exam/` holds the sheets for the day before an exam.
 
 When the three sources disagree about **what will be asked**, the design ranks the student's notes
 over Classroom, and Classroom over the textbook. The textbook still explains best; it is just the

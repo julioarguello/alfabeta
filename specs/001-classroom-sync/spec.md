@@ -165,6 +165,19 @@ replaces the local MCP design of julioarguello/alfabeta#2.
   constitution's Development workflow requires to merge a change that weakens NON-NEGOTIABLE
   principles III and IV; it is quoted with its date in the pull request.
 
+### Session 2026-10-28
+
+- Q: In which language are the folders alfabeta names, now that the repository is public? → A: In
+  English, as constants (constitution 2.2.0, issue #110, decided by the family on 2026-10-28). What
+  Classroom posts with no topic goes in `YYYYMMDD - No topic` (it was `Sin tema`) and what the
+  student turned in goes in the assignment's `submission/` (it was `entrega/`, FR-015a). File
+  names keep their language (`enunciado - `, `correccion.md`, `enlaces.md`, `descripcion.md`), and
+  so do the titles taken from Classroom and the textbook. The sessions above keep the names they
+  used then. Classroom's own heading for posts with no topic is still «Sin tema» on its pages.
+  The student's Drive is renamed by hand once (#110), before the first sync on the new names: a
+  sync that found no `… - No topic` folder would make one beside the old one and move the replicas
+  into it.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures and launches alfabeta), **the student**
@@ -176,7 +189,7 @@ The actors are **the family** (the parent who configures and launches alfabeta),
 The family asks to sync a subject. With the Classroom session the student already started,
 alfabeta walks that class's «Trabajo de clase» and leaves a replica of every material and every
 assignment attachment (the problems and exercises the teacher sets) in the `classroom` subfolder of
-its topic or, if the teacher gave it no topic, of the subject's `Sin tema` folder. Each file is
+its topic or, if the teacher gave it no topic, of the subject's `No topic` folder. Each file is
 prefixed with the date it was posted. What is not a file (a video, a web link, a quiz) is noted with its link. At the end,
 the family sees a summary of what was saved and what was not, and why.
 
@@ -195,7 +208,7 @@ form), sync the subject and check item by item, against what the student sees in
    `<topic>/classroom/`, each item named `YYYYMMDD - <title>` (file or folder according to
    FR-015), where the date is the posting date.
 2. **Given** a material without a topic posted on 3 March, **When** it is synced, **Then** it ends
-   up in its subject's `<YYYYMMDD> - Sin tema/classroom/` as `YYYY0303 - <title>`.
+   up in its subject's `<YYYYMMDD> - No topic/classroom/` as `YYYY0303 - <title>`.
 3. **Given** an attachment that is a Google document, presentation or spreadsheet,
    **When** it is synced, **Then** its replica is saved as a PDF.
 4. **Given** an item with a video, a web link or a form, **When** it is synced,
@@ -352,16 +365,16 @@ saved.
 **Acceptance Scenarios**:
 
 1. **Given** announcements on the stream, **When** it is synced, **Then** each one ends up in its
-   subject's `Sin tema` folder with its date, its text and its attachments, without student comments or names
+   subject's `No topic` folder with its date, its text and its attachments, without student comments or names
    of other people.
 2. **Given** an assignment the student turned in with files, **When** it is synced, **Then** its
-   folder has an `entrega/` subfolder holding those files with their own names, next to the
+   folder has a `submission/` subfolder holding those files with their own names, next to the
    teacher's `enunciado - <name>`.
 3. **Given** an assignment returned with a grade and a comment, **When** it is synced, **Then** its
    folder has a `correccion` with the grading state, the grade if Classroom shows it to the
    student, the teacher's comment and the return date.
 4. **Given** an assignment the student turned in again, **When** it is synced, **Then** the new
-   submission's files are in `entrega/` and an earlier file that changed is kept there as previous.
+   submission's files are in `submission/` and an earlier file that changed is kept there as previous.
 
 ---
 
@@ -577,9 +590,10 @@ test.
   not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
   count, never by address.
 - **FR-012**: Inside the root, the structure MUST be common to every source:
-  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | Sin tema>/<source>/`,
-  with `classroom` and `sciencebits`
-  as this epic's sources. The first level is the school year (`2026-2027`), as in
+  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/<source>/`,
+  with `classroom` and `sciencebits` as this epic's sources. alfabeta writes nothing at a topic
+  folder's root (constitution 2.2.0): beside the sources' folders sit `notes/` (spec 005),
+  `notebook/` and `exam/` (spec 002). The first level is the school year (`2026-2027`), as in
   Science Bits today. Every topic folder starts with the posting date of its first Classroom
   material (`YYYYMMDD - `), or with the day it is created if a book provider creates it first. The
   date is set when the folder is created and MUST NOT change: alfabeta MUST find an existing topic
@@ -612,9 +626,11 @@ test.
     teacher's topic's own folder, as if it had no equivalent in the book, and the summary asks for
     confirmation. Confirming the match moves them to the book topic's folder.
 - **FR-014**: An item without a topic and an announcement MUST go to the subject's
-  `<YYYYMMDD> - Sin tema` folder, dated by the first item placed there. There are no month folders.
+  `<YYYYMMDD> - No topic` folder, dated by the first item placed there. There are no month folders.
 - **FR-015**: Inside `classroom/`, each item MUST be prefixed with its posting date,
-  `YYYYMMDD - <item title>`, and its form MUST depend on its type:
+  `YYYYMMDD - <item title>`. The one file there that is not an item is spec 005's living
+  Classroom file, `Classroom · <topic>.pdf`, which this epic neither writes nor reads. An item's
+  form MUST depend on its type:
   - a **material** with a single file, no links and no description is that file; with several
     files, with links or with a description, it is a folder with its files, a `descripcion` note
     with its text if it has one and an `enlaces` note if it has links;
@@ -629,9 +645,10 @@ test.
 - **FR-015a**: Inside an assignment's folder, each file MUST be prefixed with its role, with
   fixed names without accents: `enunciado - <name>` (what the teacher attaches), `correccion`
   (grade, teacher's comment and return date) and `enlaces` (videos, links and forms, with title
-  and link). What the student turned in goes in a subfolder `entrega/` with each file's own name:
-  a submission is often several photos of a notebook, which would otherwise mix with the
-  teacher's files (amended 2026-10-28; it was `entrega - <name>` beside them).
+  and link). What the student turned in goes in a subfolder `submission/` with each file's own
+  name: a submission is often several photos of a notebook, which would otherwise mix with the
+  teacher's files (amended 2026-10-28; it was `entrega - <name>` beside them, then `entrega/`
+  until the folder names became English, #110).
 - **FR-015b**: A superseded version (an attachment the teacher edited, a repeated submission) MUST
   be kept next to the current one as `<name> (anterior YYYY-MM-DD)`.
 - **FR-015c**: Names MUST be valid in the file system and in Drive, at most 255 UTF-8 bytes,
@@ -654,12 +671,12 @@ Example of the resulting structure (invented names):
     │       └── 20261020 - Problemas tema 2/
     │           ├── enunciado - Problemas.pdf
     │           ├── correccion.md
-    │           └── entrega/
+    │           └── submission/
     │               └── Respuestas.pdf
     ├── 20261021 - <teacher's title>/
     │   └── classroom/
     │       └── 20261021 - Proyecto de laboratorio.pdf
-    └── 20261103 - Sin tema/
+    └── 20261103 - No topic/
         └── classroom/
             └── 20261103 - aviso - Cambio de fecha del examen.md
 ```
@@ -959,7 +976,7 @@ Example of the resulting structure (invented names):
   corresponds to it.
 - **Topic folder**: the third level of the structure, prefixed with its date. A topic folder holds
   the match with the teacher's topic, or a teacher's topic with no book equivalent; the subject's
-  `Sin tema` folder collects what has no topic.
+  `No topic` folder collects what has no topic.
 - **Source**: the origin of a piece of content (`classroom`, `sciencebits`) and its subfolder.
 - **Classroom item**: material, assignment, question or announcement. Stable identifier, subject,
   topic, title, dates and attachments.
