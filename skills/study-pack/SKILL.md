@@ -142,8 +142,10 @@ one place where nothing recomputes them (spec 002 FR-036).
 Until that command exists, the family can make the same two reports by hand, with no agent:
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile
 <profile> -y`, one per prompt with every placeholder filled, printed with `print-report.sh`
-(step 6) under those paths. That path skips what the command adds: regenerating a stale
-guide, the titles, the start note, the pack record and the page break before «Soluciones».
+(step 6) under those paths after creating the topic's `exam/` folder by hand (`mkdir -p`):
+`print-report.sh` does not create it, and Chrome reports success without writing the PDF when it
+is missing. That path skips what the command adds: regenerating a stale guide, the titles, the
+start note, the pack record and the page break before «Soluciones».
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
 topic folder, every result computed by a script it wrote, and the family then decided that

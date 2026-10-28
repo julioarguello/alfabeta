@@ -503,8 +503,7 @@ and cannot judge what the notebook writes.
   numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
   them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's `exam/` folder,
   whose name carries no date: `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
-  `exam/Problemas tipo · TNN (<D> <mmm>).pdf`, with
-  the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
+  `exam/Problemas tipo · TNN (<D> <mmm>).pdf`, with the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level. Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
