@@ -196,6 +196,21 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   `apply` reported 0 added, 0 changed. The 9 downloaded files are byte-identical to the imported
   ones. The descriptions had lost their line breaks: the extractor read `textContent`, which joins
   the lines a `<br>` separates; it now ends a line at a `<br>` or a block element.
+- **The other eleven classes, measured 2026-10-28** (the family confirmed the class links and the
+  quarantine):
+  - Capture took 14 minutes, between 18 s and 118 s per class. The session the family signed in to
+    at 08:53 UTC was still alive at the end, about 50 minutes later.
+  - Downloads: 71 of 72 arrived in two batches. The one missing is a video that Drive holds behind
+    its virus-scan notice; it is noted «no traído» with its link.
+  - Apply: 27 imported `classroom/` folders (172 files, compared by sha256) went to a local
+    quarantine, then 128 replicas were placed; a second `apply` reported 0 added and 0 changed.
+  - Against the import: 63 of its 79 binaries are byte-identical in the new tree. The other 16 are
+    the student's own submissions, which the import had filed as statements and US1 does not
+    replicate (US6), or attachments the teacher has since replaced.
+  - Three defects, fixed in the same day's PR: an empty «Trabajo de clase» and an empty stream were
+    never taken as loaded, and download names differed by a double space or a leading `_`.
+  - The lock watcher was also tested: a run left without renewing was stopped as `idle` exactly
+    `lock_idle_minutes` after its last renewal, its lease removed and the next `lock take` granted.
 
 ### R5. Dates without a year, and relative dates
 
