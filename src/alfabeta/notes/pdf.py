@@ -214,17 +214,24 @@ class ReportlabPdfBuilder:
         One unreadable file of the teacher's never stops the topic's file (as `_paragraph` for a line).
         """
         kind = rendered.part.kind
+        if kind == PartKind.TEXT:
+            text = rendered.content.decode(errors="replace")
+            return self._drawn([*self._text(text), PageBreak()], rendered.part.name)
+        if kind not in (PartKind.PDF, PartKind.EXPORT, PartKind.OFFICE, PartKind.IMAGE):
+            return None  # NAMED: only on the cover
+        # Only reading the teacher's bytes may fail here; drawing stays outside, so a bug still fails the run.
+        # pypdf and Pillow raise many types for a damaged file.
+        if kind == PartKind.IMAGE:
+            try:
+                image = self._photo(rendered.content)
+            except Exception:
+                return None
+            return self._drawn([image], rendered.part.name)
         try:
-            if kind in (PartKind.PDF, PartKind.EXPORT, PartKind.OFFICE):
-                return rendered.content if len(PdfReader(io.BytesIO(rendered.content)).pages) else None
-            if kind == PartKind.TEXT:
-                text = rendered.content.decode(errors="replace")
-                return self._drawn([*self._text(text), PageBreak()], rendered.part.name)
-            if kind == PartKind.IMAGE:
-                return self._drawn([self._photo(rendered.content)], rendered.part.name)
-        except Exception:  # pypdf and Pillow raise many types for a damaged file
+            pages = len(PdfReader(io.BytesIO(rendered.content)).pages)
+        except Exception:
             return None
-        return None  # NAMED: only on the cover
+        return rendered.content if pages else None
 
 
 def _finish(pieces: Sequence[bytes]) -> tuple[bytes, int]:

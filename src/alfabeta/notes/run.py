@@ -755,12 +755,20 @@ def build_classroom(deps: NotesDeps, files: dict[str, dict[str, Any]], topic: st
     """
     entries: list[tuple[ClassroomEntry, list[RenderedPart]]] = []
     failed: list[str] = []
+    # HACK(tech-debt): every rebuild reads, exports and converts each entry of the topic again.
+    # Research R6 rebuilds a living file whole from its records, and state.json keeps no part's bytes;
+    # a cache of rendered parts by (file id, version) in `.alfabeta/` would spare the Office copies
+    # (origin: #68)
     for item_id in _filed(files, topic):
         try:
             entries.append(_entry(deps, item_id, files[item_id]))
         except DriveError:
             if files[item_id]["state"] == ItemState.IN_LIVING_FILE:
                 raise
+            # FIXME(tech-debt): a new version Drive fails to read drops the item's old entry too.
+            # The old version's files are no longer read (renamed `(anterior …)` or overwritten), so the
+            # build cannot keep the entry it replaces; it is back once a retry reads the new one
+            # (origin: #68)
             failed.append(item_id)
     data, pages = deps.pdf.classroom(Topic(topic, name), entries)
     return ClassroomBuild(data, pages, tuple(e.item_id for e, _ in entries), tuple(failed))
