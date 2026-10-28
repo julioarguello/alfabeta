@@ -17,7 +17,7 @@ sending; a prompt that still holds a `{` is a bug.
 | `{language}` | the subject's `language` in words (`euskera`, `inglés`) |
 | `{block}` | one confirmed block: what it covers, in Spanish |
 | `{terms}` | the block's key terms as the class material writes them, comma-separated |
-| `{exclude}` | what the video must not explain: the other blocks and anything out of the exam |
+| `{exclude}` | what the video must not explain: the other blocks' titles, and what a source says is out of the exam (the announcement, the teacher), each sourced in `bloques.md`. Never a textbook lesson, a notes page or a Classroom item on its own: the handouts' silence is not exclusion (SKILL.md step 1) |
 | `{worked_example}` | one solved example taken from the teacher's sheets, with its recomputed result |
 | `{blocks}` | the confirmed blocks, in study order |
 | `{answer_sheet}` | the name of the teacher's sheet whose answers are recomputed |
@@ -30,7 +30,7 @@ sending; a prompt that still holds a `{` is a bug.
 | `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
 | `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
 
-## Video — one per block, at most three per topic
+## Video — one per block, plus one per point of the announcement no block covers
 
 `nlm video create <nb> --format explainer --language es-ES --focus "<prompt>" --profile <profile> -y`
 
@@ -101,7 +101,7 @@ Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la
 `nlm note create <nb> --title "0 · Empieza aquí" --content "<text>" --profile <profile>`
 
 ```text
-1. Mira los vídeos en orden (1, 2, 3): uno por tarde.
+1. Mira los vídeos en orden: uno por tarde.
 2. Después de cada vídeo, haz la parte de la hoja de ejercicios de ese bloque, en papel.
 3. El día antes del examen: el test y las tarjetas. Si una respuesta tuya no coincide con una hoja, fíate de tu cuenta y pregunta en el chat.
 ```
