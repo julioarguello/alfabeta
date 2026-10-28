@@ -132,9 +132,9 @@ topic's study guide when it was made before the class notes, asks the notebook f
 with the prompts «Theory sheet — for an exam» and «Problems sheet — for an exam» of
 [`prompts.md`](prompts.md), titles them `EXAMEN <weekday> <n> · Teoría para el examen · <topic>`
 and `… <n+1> · Problemas tipo · …`, numbered after the pieces the moment already holds, rewrites
-the start note last, and prints them into the topic's `examen/` folder (no date in its name) as
-`examen/Teoría para el examen · TNN (<D> <mmm>).pdf` and
-`examen/Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
+the start note last, and prints them into the topic's `exam/` folder (no date in its name) as
+`exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
+`exam/Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
 (`notebook.enabled = false`), `nlm` is signed out or failing, or the exam, its announcement or the
 notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036).

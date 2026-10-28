@@ -125,11 +125,13 @@ done that day; the last three, what the operator decided once it was done (User 
   sheets as reports with fixed prompts and prints them, with no Claude and no Claude API («Sí, haz
   tu recomendación. Y actualiza el README con estos comandos que tendríamos en alfabeta»). The two
   sheets are therefore pieces of the notebook, in the moment «EXAMEN» (FR-014), and each is also
-  printed on its own into the topic's `examen/` folder.
-- Q: Where in the topic folder do the printed sheets go? → A: In its `examen/` subfolder, whose
-  name carries no date; the exam's date stays in each file's name, so a second exam on the same
-  topic sits beside the first. The operator set this when deciding the topic folders' layout; that
-  day's two PDFs were moved there by hand.
+  printed on its own into the topic's `exam/` folder.
+- Q: Where in the topic folder do the printed sheets go? → A: In its `exam/` subfolder, whose name
+  carries no date; the exam's date stays in each file's name, so a second exam on the same topic
+  sits beside the first. The operator set this when deciding the topic folders' layout, with every
+  directory name the code decides in English; file names stay in Spanish. The constitution still
+  asks for Spanish folder names, and its amendment is julioarguello/alfabeta#110. That day's two
+  PDFs were moved there by hand.
 - Q: Who computes the numbers, then? → A: The notebook, as an accepted risk. The operator accepted
   it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
   printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
@@ -320,7 +322,7 @@ check that the proposed blocks include it.
 An exam is announced. The family runs one command: alfabeta asks the topic's notebook, with fixed
 prompts, for two reports — a theory sheet the student works through in the study slot, following a
 plan printed on it, and a problems sheet with one worked problem for each kind of problem the
-teacher's photocopies hold — and prints each into the topic's `examen/` folder. Nobody writes them
+teacher's photocopies hold — and prints each into the topic's `exam/` folder. Nobody writes them
 by hand, and no Claude is involved.
 
 **Why this priority**: the notebook's pieces are for practice spread over days; the day before an
@@ -499,9 +501,9 @@ and cannot judge what the notebook writes.
   a known exam (FR-022) asks the topic's notebook for two reports with fixed prompts, a theory
   sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014),
   numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
-  them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's `examen/` folder,
-  whose name carries no date: `examen/Teoría para el examen · TNN (<D> <mmm>).pdf` and
-  `examen/Problemas tipo · TNN (<D> <mmm>).pdf`, with
+  them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's `exam/` folder,
+  whose name carries no date: `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
+  `exam/Problemas tipo · TNN (<D> <mmm>).pdf`, with
   the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level. Both reports are asked
@@ -572,7 +574,7 @@ and cannot judge what the notebook writes.
 - **Pack record**: per topic, the blocks, the pieces with their moment, the materials each «HOY»
   piece covers, and the corrections, with dates (FR-024).
 - **Exam sheet**: one of the two reports `exam prep` asks the notebook for, theory or problems: a
-  piece of the moment «EXAMEN», also printed as its own A4 PDF in the topic's `examen/` folder
+  piece of the moment «EXAMEN», also printed as its own A4 PDF in the topic's `exam/` folder
   (FR-029).
 - **Pattern**: one way of solving that a group of the photocopies' exercises shares: a formula
   used directly or inversely, a chain of them, or a classification; its exercises, the ones the
