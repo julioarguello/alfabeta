@@ -201,7 +201,8 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
 
 ## Never
 
-- Put study blocks or reminders in the calendar: it holds only facts from Classroom.
+- Put study blocks or reminders in the calendar: it holds only facts from Classroom and the
+  warnings that restate them, which `calendar sync` writes (spec 003).
 - Show the student a wrong value from a teacher's key anywhere but the exam's problems sheet (its
   table of printed answers that do not match, and the solution of that same exercise), or name the
   teacher as wrong.

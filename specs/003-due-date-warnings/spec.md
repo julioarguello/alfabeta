@@ -41,7 +41,8 @@ Calendar section, the calendar policy line of the student's private configuratio
 operator's standing instruction recorded outside the repository. The operator chose warnings that
 restate facts (Clarifications, 2026-10-27), so the edit is narrow: "objective facts only" stays, and
 each place gains "plus warnings that restate those facts". FR-025's ban on study
-blocks stays whole.
+blocks stays whole. The two places in the repository, and the `study-pack` skill's line that
+repeats FR-025, change in the pull request that approves this spec, with its plan.
 
 ## Clarifications
 
@@ -85,6 +86,30 @@ blocks stays whole.
   days the lead-time rule gives. Postings carry none. There is one calendar and no warning events.
   The school account cannot be used: its administrator blocks third-party apps for under-18
   users.
+
+### Plan, 2026-10-28
+
+Decisions the plan took where the spec was silent or the data did not reach; each is in
+[research.md](research.md).
+
+- The last warning rings at or before its event's start: a reminder cannot ring after the event
+  begins, and a due at 16:10 has its event from 15:40 (FR-006, research R4).
+- Google allows at most 28 days (40,320 minutes) between a reminder and its event's start. When the
+  28-days-before warning would exceed it, it rings the next day at the home slot (FR-006, research
+  R4).
+- FR-016 reads a weekday in the title only: the agenda, this spec's input, carries no description,
+  and the one measured case is a weekday in a title (research R1, R9).
+- "Exams come from the family" means the family's correction of an exam detected in Classroom (spec
+  001 FR-020b). No path lets the family declare an exam Classroom does not show, and the calendar
+  holds only Classroom's facts; an exam announced only orally is added by the family by hand, as an
+  event alfabeta never touches (FR-014, research R8).
+- An exam whose date carries a time sits at that time, labelled «hora según Classroom» (FR-014,
+  research R3).
+- An announcement gets no event of its own; the exam it announces does. A quiz is placed and warned
+  like an assignment (FR-018, research R3).
+- An event whose fact left Classroom (a withdrawn item, a due date no longer shown, an exam the
+  family discarded) is kept, loses its reminders and is titled «Retirado ·»; alfabeta deletes no
+  event of its own (constitution V, research R7).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -311,10 +336,12 @@ tick the teacher also sees.
   before.
 - **FR-006**: Warnings MUST follow the window `g` = due date − start date (FR-007), in days, every
   warning at the home slot (FR-008):
-  - last: the last home slot strictly before the due instant (or the cutoff of FR-005);
+  - last: the last home slot strictly before the due instant (or the cutoff of FR-005) and no
+    later than the start of the item's event (FR-023);
   - `g` from 2 to 7: also one on due date − ⌈g/2⌉;
   - `g` of 8 or more: also one on due date − 14 and one on due date − 7, plus due date − 28 when `g`
-    exceeds 28;
+    exceeds 28, moved to the next day while it would ring more than 40,320 minutes before the
+    event's start (Google's limit);
   - any warning other than the last that falls on or before the start date is dropped; two steps of
     one item on the same day are one warning.
   - Worked example, the chromatography video (start Thursday 8 October, due 13 October, no time,
@@ -343,24 +370,25 @@ tick the teacher also sees.
   start, end, subject), with Classroom classes mapped to subjects by class identifier, never by
   name (two of the twelve class names are not subject names). The repository holds only a template.
 - **FR-014**: An exam MUST sit in its subject's session that day, labelled «hora según horario»;
-  when the subject has no session that day, at break time, labelled «hora no conocida». Exams come
-  from stream announcements and from the family.
+  when the subject has no session that day, at break time, labelled «hora no conocida»; when its date
+  carries a time, at that time, labelled «hora según Classroom». Exams come from Classroom: items and
+  stream announcements, with the family's corrections (spec 001 FR-020b).
 - **FR-015**: A known exam MUST get a warning 7 days before and one at the home slot of the day
   before.
 
 **Due dates**
 
 - **FR-016**: The due date MUST come from Classroom's due-date field. Only when it is empty, a due
-  date MAY be inferred, and only when all hold: a weekday or date with a purpose form in the title
-  or first line («-rako» in Basque, «para el» in Spanish, «for» in English); the subject has a session
+  date MAY be inferred, and only when all hold: a weekday with a purpose form in the title
+  («-rako» in Basque, «para el» in Spanish, «for» in English); the subject has a session
   that weekday; it falls strictly after the posting date and within 7 days. The result is the next
   session of that subject, and the event says it was deduced and from which words.
 - **FR-017**: Assignments with no due date MUST get no warning; they stay in Classroom's «Tareas
   pendientes» and as their posting event.
-- **FR-018**: Posting events (material and assignments) MUST stay, placed by FR-023 on the posting
-  date: they are the only calendar presence of the undated assignments, and the constitution makes
-  what is posted part of the agenda. The time is the class's, not the moment of posting, which the
-  capture does not hold; the event says so.
+- **FR-018**: Posting events (material, assignments and quizzes; not announcements) MUST stay,
+  placed by FR-023 on the posting date: they are the only calendar presence of the undated
+  assignments, and the constitution makes what is posted part of the agenda. The time is the
+  class's, not the moment of posting, which the capture does not hold; the event says so.
 
 **Running and verifying**
 
@@ -412,11 +440,12 @@ tick the teacher also sees.
   words, the family).
 - **Warning**: a reminder on an item's due-date or exam event — step (28, 14 or 7 days before, half
   the window, the evening before), the instant it rings (a home slot), set as the student.
-- **Exam**: subject, date, source (stream post or family), placed session if any.
+- **Exam**: subject, date, source (a Classroom item, a stream post, the family's correction), placed
+  session if any.
 - **Home slot**: one time of day for every day (16:00).
 - **Reader**: an account that reads the calendar. Only the student's Gmail has reminders, and the
   date its delivery was seen is recorded.
-- **Placement**: where an event is drawn — its subject's session that day, else break time, or the
+- **Placement**: where an event is drawn — its subject's session that day, else break time,
   or the due time for a timed due date. Never all-day.
 
 ## Success Criteria *(mandatory)*
