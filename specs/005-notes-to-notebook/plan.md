@@ -10,9 +10,11 @@ Each topic's notebook holds two living PDFs in Drive, `Apuntes · <topic>.pdf` a
 `Classroom · <topic>.pdf`, added once as Drive sources from the Mac. A Cloud Run job in the
 operator's Google Cloud project for alfabeta wakes every 15 minutes, reads Drive's change feed, transcribes new
 photos of the notes with the Claude API, and rebuilds the living file that changed. The notebook
-follows the rewritten file the next time it is opened, so the cloud never needs the unofficial
-notebook tool. On the Mac, each sync brings into the master what Drive holds and the master lacks,
-and warns when the cloud has stopped running.
+takes the rewritten file only when its owner reads it (measured 2026-10-28), so a launchd agent on
+the Mac, every 15 minutes, on wake and at login, with no app open, reads each changed source as the
+owner, on two consecutive passes (research R14); the cloud never needs the unofficial notebook tool. On the Mac, each sync
+brings into the master what Drive holds and the master lacks, and warns when the cloud has stopped
+running.
 
 ## Technical Context
 
@@ -28,14 +30,15 @@ and warns when the cloud has stopped running.
 - secrets: three Secret Manager secrets mounted as files into the cloud run (its own OAuth client
   and token, its own Claude key, the configuration); the keychain for the Mac's own (research R3);
 - records: `.alfabeta/state.json` and the run log `.alfabeta/last-run.json`, which holds
-  the change cursor, in the student's Drive (research R2, R4, R13).
+  the change cursor, in the student's Drive (research R2, R4, R13); on the Mac only, the refresh
+  record `notebook-refresh.json` in the student's data folder (research R14).
 
 **Testing**: `pytest` with spec 004's recorded-response transport for Drive and a recorded Claude
 response with invented content; a fake `NotebookSources` for `nlm`. Image fixtures are drawn by the
 test suite, never photos of real notes. The live proof is [quickstart.md](quickstart.md).
 
 **Target Platform**: Cloud Run job (Linux container) for `notes run`; macOS for `notebook setup`, the
-cloud link and the staleness check.
+cloud link and the staleness check; a macOS launchd agent for `notebook refresh`.
 
 **Project Type**: subcommands of spec 001's local command (`python -m alfabeta`), plus a container
 that runs one of them.
@@ -74,6 +77,15 @@ constitution 1.6.0, amended in this pull request.
 
 Re-checked after Phase 1: unchanged.
 
+Re-checked on 2026-10-28 for the owner's refresh (FR-018, FR-019) against constitution 2.1.0,
+amended in the pull request that adds them: the refresh runs on the Mac, where IX puts everything by default; its
+scheduler is launchd, which macOS already has, so no dependency is added; it reads the owner's
+`nlm` profile and the Mac's own Drive link where they already live, copies no secret (II) and
+writes its record to the data folder II names; it reads notebook sources and changes none (FR-011);
+its record and output hold source ids and counts, never a name (III). The constitution's technical
+constraints named only the desktop app as the Mac's environment; 2.1.0 adds a launchd agent that runs
+alfabeta's own commands with no app open.
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -103,9 +115,11 @@ src/alfabeta/notes/
 ├── transcribe.py     # Transcriber port + ClaudeTranscriber (Messages API through HttpTransport)
 ├── secrets.py        # FileTokenStore: spec 004's TokenStore over the files the cloud mounts
 ├── pdf.py            # PdfBuilder: deterministic living files with reportlab and pypdf
-├── sources.py        # NotebookSources port + NlmSources (`nlm source add --drive`), Mac only
+├── sources.py        # NotebookSources port + NlmSources (`nlm source add --drive`, `nlm source content`), Mac only
 ├── run.py            # notes run: one reconciliation pass
 ├── setup.py          # notebook setup
+├── refresh.py        # notebook refresh: the owner's read of changed sources, and its record (Mac only)
+├── agent.py          # notebook agent install|remove: the launchd agent's plist (Mac only)
 ├── watch.py          # the Mac's check that the cloud ran recently (FR-017)
 └── report.py         # RunReport → Informes/*.md, and "what it adds"
 deploy/notes-cloud-run/
@@ -127,18 +141,18 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 
 | Layer | Names | Responsibility |
 |---|---|---|
-| Domain | `Arrival`, `NotesPage`, `LivingFile`, `ClassroomEntry`, `ChangeCursor`, `RunReport` | Values, states and transitions from the [data model](data-model.md); no I/O |
-| Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `PdfBuilder`, `NotebookSources`, `Clock` | What the core needs from the outside |
-| Adapters | `DriveChangeFeed`, `DriveNotesStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
-| Services | `run_notes`, `setup_topic`, `check_cloud`, `write_report` | One per subcommand or sync step; return results the CLI prints |
-| CLI | `notes run`, `notebook setup`, `google link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
+| Domain | `Arrival`, `NotesPage`, `LivingFile`, `ClassroomEntry`, `ChangeCursor`, `RunReport`, `RefreshRecord` | Values, states and transitions from the [data model](data-model.md); no I/O |
+| Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `PdfBuilder`, `NotebookSources` (`add_drive_source`, `read_source`, `session_ok`, `renew_session`), `RefreshStore`, `Clock` | What the core needs from the outside |
+| Adapters | `DriveChangeFeed`, `DriveNotesStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore`, `LocalRefreshStore`, `LaunchdAgent` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
+| Services | `run_notes`, `setup_topic`, `check_cloud`, `write_report`, `refresh_sources` | One per subcommand or sync step; return results the CLI prints |
+| CLI | `notes run`, `notebook setup`, `notebook refresh`, `notebook agent install|remove`, `google link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
 
 ## Vertical slices (each leaves the system demonstrable)
 
 The first slice's acceptance criterion is quickstart step 3: one photo, one page, the notebook
 answers. Ports are written for it, not for the end state.
 
-1. **A photo becomes a page, run on the Mac.** Covers US1 (scenarios 2 to 5), US5 (scenarios 1, 3
+1. **A photo becomes a page, run on the Mac.** Covers US1 (scenarios 3 to 5), US5 (scenarios 1, 3
    and 4) and FR-004. `notebook setup` and `notes run` for notes only, with `changes`, `state`,
    `transcribe`, `pdf`, `sources`. Done when quickstart steps 1 to 3 pass.
 2. **The same pass in the cloud.** Covers US1 scenario 1, FR-014 and FR-017. The cloud's own link,
@@ -153,16 +167,23 @@ answers. Ports are written for it, not for the end state.
    the next sync, and the next `drive push` uploads nothing. Must ship before spec 004 moves the
    master out of the Drive for desktop mount.
 6. **Tema 01 and real use.** US5 scenario 2 on the real topic, then quickstart step 8.
+7. **The owner's refresh on the Mac.** Covers US1 scenarios 2 and 6, FR-018, FR-019 and SC-002.
+   `notebook refresh` over the cloud run's records, a root-only open of Drive, its record on the
+   Mac, the session check and its renewals, the notice, and `notebook agent install|remove`. Done when quickstart step 3b
+   passes: a page reaches the student's view with nobody touching the notebook as its owner.
 
-Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4.
+Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4. Slice 7 needs slice 1 (the
+records and `NlmSources`) and spec 004's `notify` (its T015), and can run in parallel with slices 2
+to 4.
 
 ## Complexity Tracking
 
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
-| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes to reach the notebook with the Mac off; the desktop app's tasks need it open (research, first table) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0 |
+| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes transcribed into the living files with the Mac off (clarify, 2026-10-27), and as little as possible to depend on the Mac (spec, Clarifications, session 2026-10-28); only the owner's read of the source stays on the Mac (research R14) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0. The launchd agent of FR-018 also running `notes run`, with no cloud job: transcription and the living files would then wait for the Mac too, and the student could not read a transcription in Drive while it is off |
 | A second OAuth client and refresh token for the student, and a second Claude key, in Secret Manager | The cloud cannot read the Mac's keychain; constitution II (1.6.0) forbids copying a secret between places (research R3) | A service account cannot act as a consumer Gmail |
 | One account-wide Drive read: the change feed | Drive v3's change feed takes no folder filter (research, first table); polling each folder instead costs one listing per folder per run | Spec 004 FR-009a amended: the adapter drops every change outside the allowlist before returning, keeps and logs nothing about it, and the scope test covers the feed |
 | The cloud's records in Drive instead of a database | One small JSON, two writers guarded by a revision check (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |
 | `reportlab` and `pypdf` at runtime | The standard library cannot draw or merge PDFs, and the notebook follows a PDF in Drive (research R6) | A Google Doc living file needs images at public URLs |
 | Two places that call Claude (transcription, "what it adds") under one budget | The report is what tells the family the pack is missing what the notes stress (US4) | No report: the student studies a pack that silently misses the notes |
+| A launchd agent on the Mac, besides the desktop app's scheduled sync (constitution 2.1.0) | Only the owner's read makes the notebook take a changed living file (measured 2026-10-28), and the operator wants that without starting the app (research R14) | The app's scheduled task: needs the app open, the dependency the operator wants gone. The daily sync alone: a page waits up to a day. A cloud-held owner session: declined by the operator for now, and not measured |

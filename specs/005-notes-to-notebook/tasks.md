@@ -64,6 +64,21 @@ about it, run from the Mac.
 
 ---
 
+## Phase 3b: User Story 1 — the owner's refresh on the Mac, with no app open (P1)
+
+**Goal**: a page that reached a living file reaches the student's view of the notebook with nobody
+touching it as its owner (FR-018, FR-019, SC-002).
+
+**Independent test**: quickstart step 3b.
+
+- [ ] T043 [US1] Extend `NotebookSources` and `NlmSources` in `src/alfabeta/notes/sources.py`: `read_source(source_id)` with `nlm source content <id> --profile <[notebook] nlm_profile>`, whose output is discarded and never logged; `session_ok()` with `nlm login --check --profile <profile>`; `renew_session(browser)` with `nlm auth refresh --http-only --profile <profile>`, or without `--http-only` when `browser` is true (research R14). Mac only, like the rest of the module.
+- [ ] T044 [US1] Write `RefreshRecord` in `src/alfabeta/notes/model.py`, and `RefreshStore`, `LocalRefreshStore` and `refresh_sources` in `src/alfabeta/notes/refresh.py`: the record is `notebook-refresh.json` in the student's data folder, user-only, written only when a field changes (data-model.md); add to spec 004's `ScopedDrive` in `src/alfabeta/google/drive.py` an open that resolves the cached root and does not list the tree (today `open` always relists it), and have the pass reach `.alfabeta/state.json` by name from the root through the adapter's own look-ups and read it through `DriveNotesStateStore`; select the living files with a `source_id`, `health = ok`, and either a `built_md5` that differs from the record's `read_md5` or `reads = 1` (data-model.md); with none selected return without calling `nlm`; otherwise check the session, renew it if it fails (`--http-only` first, then the default mode once), read each selected source once and update `read_md5` and `reads`; report `renewed` when the pass ran a renewal; a session that still fails sets `session = signed_out`, and only when that is a change gives FR-019's macOS notice through spec 004's `notify`, then exits 5. In the Mac's sync, beside T026's staleness check, add an agenda line while the record's `session` is `signed_out` (spec 001's agenda module).
+- [ ] T045 [P] [US1] Test `tests/test_notes_refresh.py` with a fake `NotebookSources` and a fake state store: an idle pass makes no `nlm` call, writes no record and makes no more Drive calls than the root-only open and the look-ups to `state.json` (asserted as a count, SC-004); one changed living file → one read and `reads = 1`, the next pass → one confirming read and `reads = 2`, the pass after → nothing; a `missing` living file is not read; a failing session that `--http-only` fixes → no default-mode renewal and `renewed: true`; a failing session → both renewals, then the notice once and code 5; a second failing pass → no second notice; a pass that finds the session working again and a later failure → a new notice; no source id, checksum or address appears in any output or log line.
+- [ ] T046 [US1] Add `notebook refresh` and `notebook agent install|remove` to `src/alfabeta/__main__.py` with the output and exit codes of `contracts/cli.md`, and write `LaunchdAgent` in `src/alfabeta/notes/agent.py`: a plist labelled `io.alfabeta.notebook-refresh.` plus the first 12 hex digits of the SHA-256 of the student id, so the label carries neither the id nor a name; `ProgramArguments` running `notebook refresh --student <id>` through `uv run --project <tools.repository>` with the `uv` path resolved at install; an `EnvironmentVariables` `PATH` holding the directories of the `uv` and `nlm` resolved at install, refusing to install with code 1 `no_nlm` when `nlm` is not found, and a pass that cannot run `nlm` exiting 1 `no_nlm`, never 5; one `StartCalendarInterval` entry every `[notebook] refresh_minutes`, refusing a value that does not divide 60, and `RunAtLoad`; standard output and error appended to `notebook-agent.log` in the student's data folder; loaded and unloaded with `launchctl bootstrap` and `bootout` in the user's GUI domain; installing again rewrites the plist only when it differs. Add `[notebook] refresh_minutes` to `config/template.toml`. Test the plist and the JSON shapes in `tests/test_notes_agent.py` with a fake `launchctl`.
+- [ ] T047 [US1] Run quickstart step 3b on a test topic and record the result in `specs/005-notes-to-notebook/research.md`.
+
+---
+
 ## Phase 4: User Story 1 in the cloud — with the Mac off (P1) — MVP part 2
 
 **Goal**: the same pass runs every 15 minutes in the operator's Google Cloud project for alfabeta.
@@ -136,18 +151,23 @@ failure reported once.
   (the pull, FR-002 here) before spec 004's T029 step 4 moves the master folder; the pull blocks no
   phase here.
 - Phase 3 (Mac) before Phase 4 (cloud): the cloud job runs the same pass.
+- Phase 3 before Phase 3b: the refresh reads the records `notes run` and `notebook setup` write, and
+  extends `sources.py`. Spec 004's `notify.py` (its T015) before T044. Phase 3b needs nothing from
+  Phases 4 to 7 and can run beside them.
 - Phases 5, 6 and 7 each extend `run.py` after T018; same file, so one after another, in that order.
 
 ## Parallel examples
 
 - Phase 2: T005, T008, T010 and T012 once their modules exist.
 - Phase 3: T014, T017 and T019 beside the modules they test.
+- Phase 3b: T045 beside `refresh.py`.
 - Phase 8: T038, T039 and T041.
 
 ## Implementation strategy
 
-1. **MVP**: Phases 1 to 4. One photo from the phone, with the Mac off, becomes a page the notebook
-   answers about (quickstart steps 1, 3 and 5).
+1. **MVP**: Phases 1 to 4 and 3b. One photo from the phone, with the Mac off, becomes a page, and
+   the student's view of the notebook answers about it once the Mac is awake (quickstart steps 1,
+   3, 3b and 5). Without Phase 3b the notebook takes the page only when its owner opens it.
 2. Spec 004's pull before spec 004 moves the master folder.
 3. Then US3, US2, US4, each proved by its quickstart step.
 4. Tema 01 and two weeks of real use close the spec.

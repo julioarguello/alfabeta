@@ -4,7 +4,8 @@ alfabeta gathers the study material of a secondary-school student that today is 
 school's digital textbook and Google Classroom. It files it by subject and topic in the student's
 folder, which syncs with their cloud, creates a Gemini Notebook notebook per topic, and takes
 assignments and exams to a calendar the student and their family share. A family runs it on its own
-Mac with the Claude desktop app; reading Classroom with nobody present can also run as a job in the
+Mac with the Claude desktop app, and with a launchd agent for the few commands that need no app
+(Technical constraints); reading Classroom with nobody present can also run as a job in the
 family's own cloud project (IX). The repository is public.
 
 ## Core Principles
@@ -176,8 +177,9 @@ Rationale: an unofficial tool must not leave the student without their notes.
 
 - Everything runs on the family's Mac unless a spec names a need the Mac cannot meet. Such a need
   runs in the operator's Google Cloud project for alfabeta, within its free tier, and the spec
-  names what stays on the Mac. The first is spec 005: the student's notes reach the notebook while
-  the Mac is off, because the desktop app's scheduled tasks run only while the app is open. The
+  names what stays on the Mac. The first is spec 005: the student's notes are transcribed into the
+  topic's living file in Drive while the Mac is off, which nothing on the Mac can do; the notebook
+  takes that file when the Mac's own refresh reads it. The
   second is spec 001's User Story 7: reading Classroom with nobody present — measured 2026-10-27,
   when a read missed two assignments posted that morning because it needed the Mac — with
   attachments and replicas staying on the Mac.
@@ -190,8 +192,11 @@ Rationale: an unofficial tool must not leave the student without their notes.
   session (Chrome with the Claude extension, or the app's built-in browser). For reading Classroom
   with nobody present (IX), a scheduled job of the operator's Google Cloud project for alfabeta that
   reads either as a first-party client with a token, or with a headless browser whose session the
-  family started by hand — using a secret in the vault (II). Python 3.12 for the scripts; JavaScript
-  only inside the browser, to extract pages.
+  family started by hand — using a secret in the vault (II). On the Mac, alfabeta's own commands may
+  also run from a launchd agent in the family's user session, with no app open, when a spec names
+  the need (spec 005: the notebook owner's refresh, FR-018); such an agent uses the secrets already
+  on the Mac and adds none. Python 3.12 for the scripts; JavaScript only inside the browser, to
+  extract pages.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
@@ -266,4 +271,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
+**Version**: 2.1.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-28
