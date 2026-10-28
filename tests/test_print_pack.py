@@ -55,3 +55,37 @@ def test_exactly_one_of_student_and_profile(home: Path, who: list[str]):
         check=False,
     )
     assert done.returncode == 2 and "--student" in done.stderr
+
+
+class FakeRun:
+    """Records each `nlm` call and answers `config get` with a default profile."""
+
+    def __init__(self, default: str) -> None:
+        self.default = default
+        self.calls: list[list[str]] = []
+
+    def __call__(self, cmd: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        self.calls.append(cmd)
+        out = f"{self.default}\n" if cmd[1:3] == ["config", "get"] else "{}"
+        return subprocess.CompletedProcess(cmd, 0, out, "")
+
+
+def test_every_nlm_command_but_download_and_config_gets_the_profile(monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    fake = FakeRun("familia")
+    monkeypatch.setattr(script.subprocess, "run", fake)
+    script.nlm("familia", "studio", "status", "nb-1", "--full", "--json")
+    script.nlm("familia", "download", "report", "nb-1", "--id", "art-1", "-o", "x.md")
+    script.require_default("familia")
+    assert fake.calls == [
+        ["nlm", "studio", "status", "nb-1", "--full", "--json", "--profile", "familia"],
+        ["nlm", "download", "report", "nb-1", "--id", "art-1", "-o", "x.md"],
+        ["nlm", "config", "get", "auth.default_profile"],
+    ]
+
+
+def test_a_default_profile_other_than_the_students_stops_before_any_download(monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    monkeypatch.setattr(script.subprocess, "run", FakeRun("default"))
+    with pytest.raises(SystemExit, match=r"nlm config set auth\.default_profile familia"):
+        script.require_default("familia")

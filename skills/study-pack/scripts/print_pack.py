@@ -11,6 +11,7 @@ Needs `nlm`, `pandoc`, Graphviz `dot` (mind maps) and Google Chrome (headless, p
 With `--student`, the `nlm` profile is `notebook.nlm_profile` of `<home>/<student>/config.toml`
 (`--home`, default ~/.alfabeta), read through alfabeta's configuration loader, so run it from the
 clone: `uv run --project <tools.repository> python <this file> …`. `--profile` names one instead.
+`nlm download` takes no profile and reads nlm's default one, so the run stops unless that is it.
 """
 
 from __future__ import annotations
@@ -18,7 +19,6 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import os
 import re
 import subprocess
 import sys
@@ -48,6 +48,9 @@ hr { border: 0; border-top: 1px solid #ddd; margin: 5mm 0; }
 .mindmap svg { display: block; margin: 0 auto; height: 225mm; width: auto; max-width: 100%; }
 .question { break-inside: avoid; margin-bottom: 4mm; }
 """
+# Measured 2026-10-28 with nlm 0.15.8: every command used here takes --profile but these two, which
+# read nlm's default profile (`auth.default_profile`); nlm reads no profile from the environment.
+UNPROFILED = frozenset({"download", "config"})
 LIST_ITEM = re.compile(r"\s*([*+-]|\d+[.)])\s")
 
 
@@ -60,13 +63,23 @@ def profile_of(home: str, student: str) -> str:
 
 
 def nlm(profile: str, *args: str) -> str:
-    env = {**os.environ, "NLM_PROFILE": profile}
-    done = subprocess.run(["nlm", *args], env=env, capture_output=True, text=True)
+    extra = () if args[0] in UNPROFILED else ("--profile", profile)
+    done = subprocess.run(["nlm", *args, *extra], capture_output=True, text=True)
     if done.returncode:
         sys.exit(
             f"nlm {args[0]} {args[1]} failed: {done.stderr.strip() or done.stdout.strip()}"
         )
     return done.stdout
+
+
+def require_default(profile: str) -> None:
+    """Stop unless `profile` is nlm's default one, the profile `nlm download` reads."""
+    default = nlm(profile, "config", "get", "auth.default_profile").strip()
+    if default != profile:
+        sys.exit(
+            f"print_pack: nlm download reads nlm's default profile, {default!r}, not {profile!r};"
+            f" run `nlm config set auth.default_profile {profile}` first"
+        )
 
 
 def download(
@@ -321,6 +334,7 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> None:
     args = parse()
+    require_default(args.profile)
     with tempfile.TemporaryDirectory() as tmp:
         (report if args.cmd == "report" else topic)(args, Path(tmp))
     print(Path(args.out).expanduser())

@@ -106,9 +106,11 @@ Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships 
    still missing or invalid, by name and never by value, and each skill runs that check before it
    starts. The file stays outside the repository; a second student is a second folder with its own
    `config.toml`.
-2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks. Both skills use
-   the profile named in `notebook.nlm_profile`, so write `default` there unless you keep a separate
-   profile.
+2. Sign `nlm` in (`nlm login`) with the Google account that will own the notebooks. Both skills
+   pass `nlm` the profile named in `notebook.nlm_profile`, so write `default` there unless you keep a
+   separate profile. If you do, make it `nlm`'s default as well
+   (`nlm config set auth.default_profile <profile>`): `nlm download` takes no profile, and the study
+   pack stops before downloading from another account.
 3. Write the path of this clone in `tools.repository`, and copy `skills/sciencebits-a-notebooklm/scripts/`
    to the `tools.folder` of the configuration. The study pack's scripts run from the clone.
 4. Add the skills to Claude by uploading `skills/sciencebits-a-notebooklm/` and

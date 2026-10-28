@@ -41,7 +41,8 @@ someone has to sign in (Science Bits or Google).
 Environments: built-in browser (`…Claude_Browser__*`; load the `built-in-browser` skill first); Desktop
 Commander for commands on the Mac; `device_bash` (VM with python3, reportlab, bs4, pypdf, DejaVu fonts) with
 `downloads.folder` connected, where `build.py` runs; the `nlm` CLI (`notebooklm-mcp-cli`) for the notebook, every
-command with `NLM_PROFILE=<notebook.nlm_profile>` in front, as the study pack's `print_pack.py` runs it.
+command with `--profile <notebook.nlm_profile>` (`login` included). Measured 2026-10-28 with nlm 0.15.8: only
+`nlm download` and `nlm config` take no profile, and nlm reads none from the environment.
 
 ## Names
 - School year: `student.school_year`, e.g. `2026-2027`.

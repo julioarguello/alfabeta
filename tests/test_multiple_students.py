@@ -92,6 +92,8 @@ def test_both_students_come_from_the_template_with_their_own_folders(home: Path)
 
 
 def test_syncing_one_writes_only_its_root_state_and_log(home: Path):
+    # Outside the student's own folders only the shared browser lock may change: a new file at the
+    # home's top level belongs to every student and is a decision to take, not a list to widen here.
     repo_before = git_status()
     before = tree(home)
     run = take(home, "sample")

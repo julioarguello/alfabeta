@@ -30,7 +30,10 @@ Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <ti
 `*Tema NN - *` whatever its date, holding `apuntes/` (the student's class notes), `classroom/` (the
 teacher's material) and `sciencebits/` (the textbook). The notebook is the one whose title matches
 `notebook.title_pattern` (`nlm notebook list --profile <profile> --json`), with `<profile>` =
-`notebook.nlm_profile`. Never write a name, an email or an id into the repository.
+`notebook.nlm_profile`. `nlm download` takes no profile and reads nlm's default one
+(`nlm config get auth.default_profile`; measured 2026-10-28 with nlm 0.15.8): when it is not
+`<profile>`, say so and stop before any download, as `print_pack.py` does. Never write a name, an
+email or an id into the repository.
 
 ## When to run
 
