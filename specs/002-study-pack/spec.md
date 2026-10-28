@@ -10,6 +10,10 @@
 for a theory sheet and a problems sheet and prints them (User Story 7, julioarguello/alfabeta#97;
 the command is julioarguello/alfabeta#106).
 
+**Amended**: 2026-10-28 — confirmed blocks are provisional until the teacher's announcement of the
+exam: a point it names that no block covers gets one video, and a video's exclusions need a source
+(FR-001, FR-022, User Story 1; julioarguello/alfabeta#121).
+
 **Input**: Operator's description (translated from Spanish and condensed): "Prepare in advance the
 material the student needs, to cut the time spent preparing exams. Short explainer videos in
 Spanish; if the subject is taught in Basque or English, explain in Spanish and give the terms in
@@ -70,6 +74,17 @@ close belongs to the unattended runner (spec 001 User Story 7) and is later work
 - Q: What is a block, and how many videos? → A: A block is an idea the exam can ask, grouped so two
   ideas students confuse stay apart. Two or three blocks per topic, one video each, a few minutes
   long.
+- Q: What may a video be told not to explain? → A: The other blocks, and what a source says is out
+  of the exam — the teacher's announcement, the teacher — with that source named. Never a textbook
+  lesson, a notes page or a Classroom item because the teacher's sheets do not practise it. Measured
+  2026-10-28 on one topic: the blocks were cut from the weight of the handouts before the notes and
+  the announcement arrived; a video's prompt excluded an idea the textbook gives a whole lesson and
+  the mind map a first-level branch, and the announcement named it as one of its three points.
+- Q: What happens when the announcement arrives after the blocks were confirmed? → A: Its points
+  are compared with the blocks; a point no block covers gets one video for that point, numbered
+  after the existing pieces. Nothing else is made again: the exception to FR-001's freeze is one
+  video per uncovered point, not a new pack. The two-or-three count yields to the announcement: a
+  pair split under FR-003 never takes the slot of a point the teacher named.
 - Q: How does the student know where to start? → A: Every piece is numbered in study order and its
   title says what it is, what about and how long; a note numbered 0 says what to do first. Titles
   are in Spanish, as the constitution asks of everything the family reads, even when the piece's
@@ -158,12 +173,13 @@ only), **the student** (a viewer of the topic's notebook) and **the teachers** (
 
 ### User Story 1 - An announced exam gets its full pack, checked before anyone sees it (Priority: P1)
 
-An exam is announced. As soon as it is known, alfabeta proposes the topic's blocks from its folder;
-once they are confirmed it makes, in the topic's notebook, one explainer video per block, a
-practice sheet, a quiz and
-flashcards in the subject's language, a study guide and a mind map. It checks every piece before
-showing it: the language of the whole text, every number, and that the practice problems do not
-reuse the teacher's data.
+An exam is announced. As soon as it is known, alfabeta proposes the topic's blocks from its folder,
+taking the announcement's points, in its order, when it has them; once they are confirmed it makes,
+in the topic's notebook, one explainer video per block, a practice sheet, a quiz and flashcards in
+the subject's language, a study guide and a mind map. When the blocks were confirmed before the
+announcement, it compares the announcement's points with them and makes one video for each point
+no block covers, and nothing else. It checks every piece before showing it: the language of the
+whole text, every number, and that the practice problems do not reuse the teacher's data.
 
 **Why this priority**: an exam is the clearest deadline the student has, and the one signal that
 needs no guessing.
@@ -185,6 +201,12 @@ and a subject with a known `language`, run the pack and check each piece against
    answer failed.
 5. **Given** a run that changed the notebook account's output language, **When** it ends, by
    success or by failure, **Then** the setting is back to what it was before the run.
+6. **Given** blocks confirmed before the announcement, **When** the announcement names a point no
+   block covers, **Then** the notebook gains one video for that point, numbered after the existing
+   pieces, and no other piece is made again.
+7. **Given** a proposed video whose exclusion names a textbook lesson, a notes page or a Classroom
+   item with no source saying it is out of the exam, **When** the blocks are shown to the family,
+   **Then** that item is shown as a question, not written into the exclusion.
 
 ---
 
@@ -410,12 +432,20 @@ and cannot judge what the notebook writes.
 
 - **FR-001**: alfabeta MUST propose a topic's blocks from its folder (class notes, Classroom
   material, textbook; not spec 005's living files, which repeat them), naming for each block the
-  files it comes from, and MUST NOT generate until they are confirmed. Once confirmed, the blocks
-  of a topic are not proposed again.
+  files it comes from, and MUST NOT generate until they are confirmed — the mind map excepted: it
+  takes no focus, so it reads the sources, not the blocks, and the proposal maps its first-level
+  branches like the textbook's lessons and the notes' pages. When the teacher's announcement of
+  the exam exists, its points, in its order, are the proposed blocks. Once
+  confirmed, the blocks of a topic are not proposed again, with one exception: an announcement
+  that arrives later reopens them for the points it names that no block covers (FR-022). A
+  video's exclusion MUST name only the other blocks and what a source says is out of the exam,
+  with that source; a textbook lesson, a notes page or a Classroom item is never excluded for not
+  being practised in the teacher's sheets.
 - **FR-002**: When sources disagree about what the exam asks, the class notes MUST win over
   Classroom and Classroom over the textbook.
 - **FR-003**: Two ideas that the teacher's material or the parent's guide name as a typical
-  confusion MUST fall in different blocks.
+  confusion MUST fall in different blocks; a point of the announcement that holds such a pair is
+  two blocks.
 
 **Generation**
 
@@ -488,8 +518,10 @@ and cannot judge what the notebook writes.
   mixing that week with earlier ones. Once it is verified, that week's «Ayer» pieces are deleted.
 - **FR-022**: As soon as an exam is known — from the Classroom agenda or declared by the family —
   alfabeta MUST propose the topic's blocks and make the exam pack of Story 1 on confirmation; with
-  no answer within one day, it makes it with the proposed blocks and says so. The family is told
-  how many afternoons remain before the exam.
+  no answer within one day, it makes it with the proposed blocks and says so. When the blocks were
+  confirmed before the announcement, it MUST compare the announcement's points with them and make
+  one explainer video per point no block covers, numbered after the existing pieces, and MUST NOT
+  make any other piece again. The family is told how many afternoons remain before the exam.
 - **FR-023**: No step may depend on detecting that a topic has ended. A material without a topic in
   Classroom goes to the notebook of its subject's most recent topic, and the family is told.
 - **FR-024**: alfabeta MUST keep, per topic, a record: blocks, each piece with its notebook id,

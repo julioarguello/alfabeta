@@ -41,32 +41,51 @@ email or an id into the repository.
 
 - **The topic is finished**: Classroom shows material in a new topic, judged by Classroom's dates, or
   the family says so. This is when videos are made — earlier, every new handout would regenerate them.
-- **An exam is announced** for the topic: run it at once, whatever the dates say.
+- **An exam is announced** for the topic: run it at once, whatever the dates say. If the blocks were
+  already confirmed, compare the announcement's points with `bloques.md`: a point no block covers
+  gets one video for that point (step 3), numbered after the existing pieces; nothing else is made
+  again.
 - **The day before an exam**, or when the family asks for the exam's sheets: alfabeta's own
   command, in [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper). It needs none
   of the steps below.
 
 ## Steps
 
-1. **Read the scope.** Rank the sources: class notes > Classroom > textbook. The teacher's material
-   says what is prioritised, not what is excluded. List the ideas an exam could ask, grouped in **two
-   or three blocks**; separate on purpose two ideas students confuse (density and concentration were
-   one such pair). Write them to `notebook/bloques.md` with the files they come from, and show them to
-   the family. **Once confirmed, the blocks are not decided again.** Photos in `notes/` become a
-   source only as a literal transcription that someone who reads the notes has checked.
+1. **Read the scope.** Rank the sources: class notes > Classroom > textbook. The teacher's sheets
+   say what is prioritised, not what is excluded; only the announcement or the teacher says what is
+   out. List the ideas an exam could ask, grouped in **two or three blocks**, or in the
+   announcement's points when it exists; separate on purpose two ideas students confuse (density and
+   concentration were one such pair; a point of the announcement holding such a pair is two blocks). When the teacher's announcement of the exam exists, its points, in its order, are
+   the blocks unless the family says otherwise. Write them to `notebook/bloques.md` with the files
+   they come from, and show them to the family. **Once confirmed, the blocks are not decided again,
+   with one exception**: an announcement that arrives after they were confirmed reopens them for the
+   points it names that no block covers (step 3). Photos in `notes/` become a source only as a
+   literal transcription that someone who reads the notes has checked.
+   - **An exclusion needs a source.** A video's `{exclude}` holds the other blocks' titles and
+     what a source says is out of the exam — the announcement, the teacher — each with that source
+     named in `bloques.md`. A textbook lesson, a notes page or a Classroom item is never an entry
+     because the handouts do not practise it: the sheets say what the teacher stresses, not what
+     the exam leaves out.
+   - **Before showing the blocks, map the sources.** Make the mind map first —
+     `NOTEBOOKLM_HL=es nlm mindmap create <nb> -y`, the one piece made before confirmation: it takes
+     no focus, so it reads the sources, not the blocks — and wait for it. Every lesson of the
+     textbook (its `## Lección` headings), every page of `notes/` and every first-level branch of
+     the mind map goes to a block or to an «out» line of `bloques.md` with its source. What maps to
+     nothing is a question for the family, never an exclusion (measured 2026-10-28; see
+     [the design page](../../docs/explanation/study-material.md)).
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
    anything the student sees, except the exam's problems sheet (see
    [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper)).
 3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time:
-   - one video per block (`--format explainer --language es-ES`);
+   - one video per block (`--format explainer --language es-ES`); after an announcement that
+     reopened confirmed blocks, only the video of each uncovered point, with the other blocks and
+     the sourced «out» lines as its `{exclude}`;
    - reports: study guide (`--format 'Study Guide' --language es`), practice sheet (`--language` the
      subject's language), glossary and parent guide (`--language es`);
    - quiz and flashcards, after the language switch below;
-   - a mind map: `NOTEBOOKLM_HL=es nlm mindmap create <nb> -y` (it takes no focus, so it covers what
-     the sources stress, which may not be every block).
 
-   Launch the videos last, or alone: they cost the most quota.
+   The mind map already exists (step 1). Launch the videos last, or alone: they cost the most quota.
 4. **Wait** with `nlm studio status <nb> --profile <profile> --full --json` until every artifact is
    `completed` (measured 2026-10-26: about an hour for three videos). Do not create a second notebook.
 5. **Verify each artifact before anyone sees it.**

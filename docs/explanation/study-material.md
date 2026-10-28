@@ -49,7 +49,7 @@ it is the worst guide to what will be asked. A worked case from 2026-10-26: the 
 pure substances and mixtures never mentions concentration, while the teacher's two exercise sheets
 drill about thirty concentration and density problems — the core of the exam.
 
-Teacher material **prioritises** the scope; it does not limit it. What the textbook covers and the
+Teacher handouts **prioritise** the scope; they do not limit it — only the announcement or the teacher does. What the textbook covers and the
 teacher never touched still exists, at low priority.
 
 Trust also has limits in the other direction. On the same date, the teacher's answer key had three
@@ -133,6 +133,7 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 |---|---|
 | One notebook per topic, owned by an adult account and shared as a viewer with every account in `notebook.share_with` (the student's personal and school accounts) | Sharing outside a company domain depends on its admin ([admin help](https://knowledge.workspace.google.com/admin/generative-ai/gemini-notebook/manage-gemini-notebook-sharing-settings)); measured 2026-10-26, the student's school domain allowed a notebook owned by a personal Gmail account to be shared with the school account as viewer, and it opened there. An adult owner avoids the 18+ limit on cinematic video |
 | Notes > Classroom > textbook for scope | The worked case above; Profesor Productivo for the notes |
+| A video's exclusions need a source: the other blocks, or what the announcement or the teacher says is out; the handouts' silence on an idea is not exclusion, and blocks confirmed before the announcement are reopened by it for the points no block covers | Measured 2026-10-28 on one topic, against the prompt files, the mind map's JSON and the announcement's capture: the blocks were cut from the weight of the teacher's problem sheets before the notes and the announcement arrived; a video's prompt excluded an idea the textbook gives a whole lesson, the mind map carried it as one of its five first-level branches, and the announcement named it as one of its three points. The family found it preparing the exam |
 | Every source carries its kind and date in its name (`APUNTES · 2026-10-14 · p2`, `CLASSROOM · …`, `LIBRO · …`), and the tutor is told the order of trust | Roca for names; the tutor instruction is a **hypothesis** |
 | Notes are transcribed literally and checked before they become a source; the student checks their own handwriting | Profesor Productivo; the student as checker is a **hypothesis** (the parent may not read the language of the notes) |
 | When material arrives: add it as a source, generate nothing | Roca (talk before generating) |
