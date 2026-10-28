@@ -1,11 +1,11 @@
 """`notebook setup`: a topic gets its two living files and they become its notebook's sources (R9).
 
 Only this command creates living files (research R6). It runs on the Mac, where `nlm` is signed in.
-It first runs the recording pass, so an adopted Markdown is in the first build; then, for each
-living file not yet recorded, it builds it in the topic's `notes/` or `classroom/` (made when
-missing), shares it read-only with the notebook's owner (and nothing else in the folder), adds it as
-a Drive source and records both ids. A recorded file that
-is gone is reported, never recreated. Old plain sources of the notes or the Classroom material are
+It first runs the recording pass, so an adopted Markdown and the topic's Classroom items are in the
+first build; then, for each living file not yet recorded, it builds it in the topic's `notes/` or
+`classroom/` (made when missing), shares it read-only with the notebook's owner (and nothing else in
+the folder), adds it as a Drive source and records both ids. A recorded file that is gone is
+reported, never recreated. Old plain sources of the notes or the Classroom material are
 listed for the family to remove; nothing is removed (FR-011).
 """
 
@@ -22,11 +22,13 @@ from alfabeta.notes.run import (
     PDF,
     ROLE,
     NotesDeps,
+    build_classroom,
     in_place,
     living_of,
     living_record,
     page_of,
     run_notes,
+    settle_classroom,
     topic_name,
 )
 
@@ -151,10 +153,12 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
 
 
 def _build(deps: NotesDeps, state: dict[str, Any], topic: str, name: str, kind: LivingKind) -> tuple[bytes, int]:
-    """From what is recorded; a cover page when nothing is. Classroom items arrive with phase 5."""
+    """From what is recorded, which the recording pass just brought up to date; a cover page when nothing is."""
+    files = cast("dict[str, dict[str, Any]]", state.setdefault("files", {}))
     if kind == LivingKind.CLASSROOM:
-        return deps.pdf.classroom(Topic(topic, name), [])
-    files = cast("dict[str, dict[str, Any]]", state.get("files", {}))
+        build = build_classroom(deps, files, topic, name)
+        settle_classroom(files, build)
+        return build.data, build.pages
     pages = sorted(
         (
             page_of(f, p)

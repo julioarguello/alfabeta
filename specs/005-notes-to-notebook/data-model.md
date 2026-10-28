@@ -34,7 +34,7 @@ One per Drive file seen under a topic folder, keyed by Drive id.
 | `topic` | Topic folder id |
 | `kind` | `notes_photo` (an image in `notes/`), `notes_transcript` (a transcription PDF in `notes/`), `notes_text` (a transcription Markdown in `notes/`, alfabeta's or adopted), `classroom_item` (a file, note or folder in `classroom/`, except the living file), `living_file` (`Apuntes · <topic>.pdf` in `notes/`, `Classroom · <topic>.pdf` in `classroom/`), `unexpected` (anything else in `notes/`, and any file at the topic folder's root; any other folder of the topic, such as `notebook/`, `exam/`, `sciencebits/` or a not yet renamed `apuntes/`, is not read) |
 | `own` | true for every file alfabeta wrote (transcriptions, living files, state, run log, reports, temporary conversions): a change to it is consumed, never an arrival (research R2), except a new name of a `notes_transcript` (a mark) and a checksum of a `notes_text` that differs from the one alfabeta recorded (a correction) |
-| `for` | `properties.alfabeta_for` of an own file: the photo or item it was made from; a run looks it up before creating (research R4) |
+| `for` | `properties.alfabeta_for` of an own file: the photo, topic or file it was made from; a run looks it up before creating (research R4) |
 | `version` | Drive's `md5Checksum`, or `modifiedTime` for a Google-native file; "a new version" means either changed |
 | `state` | See below |
 
@@ -44,7 +44,13 @@ transcription says nothing is legible), `failed` (retried on the next three runs
 `failed_final` until the photo changes), `budget_wait` (retried on the first run of each day), `gone`
 (removed or trashed in Drive; its page stays, constitution V).
 
-**States of a Classroom item**: `seen` → `in_living_file`; or `failed`, `gone`.
+**States of a Classroom item**: `seen` → `in_living_file`; or `failed` (Drive could not read a file of
+a new or changed item: left out of the build, retried on the next three runs, then `failed_final`
+until the item changes), `gone` (removed, trashed, or moved out of a topic's `classroom/`, such as
+into `reports/` or another topic's `notes/`), or `left_out` (not material: an announcement, a previous
+version, or a name without its posting date; only the last is counted, once, as unexpected). An entry
+already in the file that Drive cannot read stops that file's build instead: the file keeps its last
+revision and the run keeps its cursor.
 
 A state change is reported once; a state that persists is not reported again (FR-013).
 
@@ -105,19 +111,30 @@ source whose living file is `missing` is not read; FR-011's report covers it. Th
 
 One per Classroom item, keyed by the item: the Drive id of its file, note or folder. A material in
 `No topic` belongs to the living Classroom file of its subject's most recent topic, the topic folder
-with the latest date when the material is first seen, and stays there (spec 002 FR-023); an
-announcement (`aviso`) is not an entry. An item moved to another topic folder moves to that topic's
-file.
+with the latest date when the material is first seen, and stays there (spec 002 FR-023); while the
+subject has no other topic it waits, and goes to the first one that appears. An announcement
+(`aviso`) is not an entry. An item moved to another topic folder moves to that topic's file.
 
 | Field | Meaning |
 |---|---|
-| `item_id`, `item_version` | The item; for a folder, the latest `version` of anything inside |
+| `item_id`, `item_version` | The item; `item_version` is a digest of what the entry shows: the item's name and the path and `version` of each file inside except the student's work, its grading and previous versions. A renamed item (its title or date), a changed, added or removed file is a new version; a change to the student's work or its grading is not |
 | `title`, `posted` | From the item's name, `YYYYMMDD - <title>` (constitution, Storage) |
-| `description`, `addresses` | From `descripcion.md` and `enlaces.md`, when the item is a folder |
+| `description`, `addresses` | From `descripcion.md` (a material's) or `enunciado.md` (an assignment's instructions or a question's text), and `enlaces.md`, when the item is a folder |
 | `parts` | Each file inside, in name order, with how it is rendered: `pdf`, `export` (Google-native), `office` (copied to the Google type in `.alfabeta/conversions/`, exported, the copy trashed), `text` (Markdown), `image`, `named` (only on the cover). Never parts: any file in a `submission/` or legacy `entrega/` subfolder, any file whose name starts with `entrega - ` or `correccion`, whatever follows (spec 001's `submission` and `grading`, constitution III), and any `<name> (anterior YYYY-MM-DD)` (a previous version, replaced by the current one) |
 | `pages` | Pages in the living file |
 
-A new `item_version` replaces the entry's pages in place.
+A new `item_version` replaces the entry's pages where its posting date puts them, not added again.
+When Drive cannot read the new version, the entry is out of the file until a retry reads it: the
+previous version's files are no longer read, so the build cannot keep the entry it replaces.
+
+Every run checks each recorded item against its listing of the alfabeta folder, made afresh at the
+start of the run, so the change feed (research R2) only has to say that an item arrived or moved: a
+file removed alone from an item's folder, a rename, and an item moved out of the topics are seen with
+no change of their own. The entry of a `gone` item leaves the file in that run's rebuild: it is no
+longer the topic's material, unlike a gone photo's page, whose transcription is the family's record.
+An Office file's Google copy, made in `.alfabeta/conversions/`, carries `alfabeta_for = <the file's
+id>` and `alfabeta_role = conversion`; a copy of the same file that a stopped run left there goes to
+the trash before the next one is made.
 
 ## RunReport
 

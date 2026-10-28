@@ -1,7 +1,8 @@
 """The cloud run's records in the student's Drive (spec 005 research R2, R4; data-model.md).
 
 `.alfabeta/state.json` holds the records and is written only when one changed (SC-004);
-`.alfabeta/last-run.json` is the run's own log, with the change cursor, written every run. Three
+`.alfabeta/last-run.json` is the run's own log, with the change cursor, written every run;
+`.alfabeta/conversions/` holds an Office file's Google copy for the moment it is exported. Three
 writers share them (the cloud run, `notebook setup` and `notes run` on the Mac), so a write first
 checks that nobody wrote since the read.
 """
@@ -88,6 +89,10 @@ class NotesStateStore(Protocol):
         """The ids of every file the store wrote: their changes are echoes."""
         ...
 
+    def work_folder(self, name: str) -> str:
+        """The id of a folder inside `.alfabeta/`, made when missing."""
+        ...
+
 
 def _dumps(data: Mapping[str, Any]) -> bytes:
     return (json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode()
@@ -136,6 +141,7 @@ class DriveNotesStateStore:
         self._read: bytes | None = None  # state.json as read, None before load
         self._revision: str | None = None
         self._own: set[str] = set()
+        self._work: dict[str, str] = {}
 
     def _file(self, name: str) -> DriveFile | None:
         """Asked of Drive every time: another writer may have created it since this run started."""
@@ -209,6 +215,15 @@ class DriveNotesStateStore:
     def own_ids(self) -> frozenset[str]:
         """The `.alfabeta` folder and the files this store read or wrote."""
         return frozenset(self._own)
+
+    def work_folder(self, name: str) -> str:
+        """The id of a folder inside `.alfabeta/`, such as `conversions/` for Office copies (research R6)."""
+        if name not in self._work:
+            folder = self._state_folder(create=True)
+            assert folder is not None
+            found = self._drive.lookup(folder.id, name)
+            self._work[name] = (found if found is not None else self._drive.create_folder(folder.id, name)).id
+        return self._work[name]
 
 
 def retry_once[T](run: Callable[[], T]) -> T:

@@ -63,6 +63,8 @@ CALLS: dict[str, Callable[[ScopedDrive], object]] = {
     "listed": lambda d: d.listed(OUTSIDE),
     "made_for": lambda d: d.made_for(OUTSIDE, {"alfabeta_for": "foto-1"}),
     "share_reader": lambda d: d.share_reader(OUTSIDE, "familia@example.com"),
+    "export": lambda d: d.export(OUTSIDE),
+    "convert": lambda d: d.convert(OUTSIDE, "tema-1", "application/vnd.google-apps.document", {"alfabeta_for": "x"}),
 }
 # These take no id, or only answer: the feed drops what is outside instead of refusing (tests below).
 NO_ID = {"contains", "items", "relist", "start_page_token", "changes"}

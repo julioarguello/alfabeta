@@ -6,15 +6,16 @@ and never reach the repository or a log.
 
 from __future__ import annotations
 
+import datetime as dt
 import re
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Protocol
 
 from alfabeta.placement import SUBMISSION_FOLDER
 
 if TYPE_CHECKING:
-    import datetime as dt
     from collections.abc import Mapping
 
 # A photo that keeps failing is retried on this many later runs, then left until it changes.
@@ -31,6 +32,32 @@ _SUBMISSION_FOLDERS = frozenset({SUBMISSION_FOLDER, "entrega"})
 _PREVIOUS_VERSION = re.compile(r" \(anterior \d{4}-\d{2}-\d{2}\)(\.[^.]+)?$")
 # An announcement note spec 001 writes in `No topic`.
 _ANNOUNCEMENT = re.compile(r"^\d{8} - aviso - ")
+# How spec 001 names a Classroom item: its posting date, then its title (constitution, Storage).
+_POSTED = re.compile(r"^(\d{8}) - (.+)$")
+# A link of `enlaces.md`, `[title](address)` (spec 001 FR-017).
+_LINK = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
+
+PDF_TYPE = "application/pdf"
+DOC = "application/vnd.google-apps.document"
+SHEET = "application/vnd.google-apps.spreadsheet"
+SLIDES = "application/vnd.google-apps.presentation"
+# Google-native files Drive exports to PDF (research R6).
+EXPORTABLE = frozenset({DOC, SHEET, SLIDES, "application/vnd.google-apps.drawing"})
+# The Google type Drive copies each Office format into before exporting it (research R6).
+OFFICE_TYPES = {
+    ".doc": DOC,
+    ".docx": DOC,
+    ".odt": DOC,
+    ".rtf": DOC,
+    ".xls": SHEET,
+    ".xlsx": SHEET,
+    ".ods": SHEET,
+    ".ppt": SLIDES,
+    ".pptx": SLIDES,
+    ".odp": SLIDES,
+}
+_TEXT = frozenset({".md", ".txt"})
+_IMAGES = frozenset({".jpg", ".jpeg", ".png", ".gif", ".webp"})
 
 
 class Clock(Protocol):
@@ -73,7 +100,9 @@ class ItemState(StrEnum):
     SEEN = "seen"
     IN_LIVING_FILE = "in_living_file"
     FAILED = "failed"
+    FAILED_FINAL = "failed_final"
     GONE = "gone"
+    LEFT_OUT = "left_out"  # not material: an announcement, a previous version, a name spec 001 never writes
 
 
 _PHOTO_TRANSITIONS: Mapping[PhotoState, frozenset[PhotoState]] = {
@@ -120,11 +149,14 @@ _PHOTO_ANYTIME = frozenset({PhotoState.GONE, PhotoState.SEEN})
 
 _ITEM_TRANSITIONS: Mapping[ItemState, frozenset[ItemState]] = {
     ItemState.SEEN: frozenset({ItemState.IN_LIVING_FILE, ItemState.FAILED}),
-    ItemState.FAILED: frozenset({ItemState.IN_LIVING_FILE, ItemState.FAILED}),
+    ItemState.FAILED: frozenset({ItemState.IN_LIVING_FILE, ItemState.FAILED, ItemState.FAILED_FINAL}),
     ItemState.IN_LIVING_FILE: frozenset(),
+    ItemState.FAILED_FINAL: frozenset(),
     ItemState.GONE: frozenset(),
+    ItemState.LEFT_OUT: frozenset(),
 }
-_ITEM_ANYTIME = frozenset({ItemState.GONE, ItemState.SEEN})
+# An item can leave or stop being material from any state; a new version starts it again from `seen`.
+_ITEM_ANYTIME = frozenset({ItemState.GONE, ItemState.SEEN, ItemState.LEFT_OUT})
 
 
 class Review(StrEnum):
@@ -212,6 +244,44 @@ def is_part(name: str) -> bool:
     return not (is_student_work(name) or is_previous_version(name))
 
 
+def posted_title(name: str, *, folder: bool) -> tuple[dt.date, str] | None:
+    """The posting date and title of an item named `YYYYMMDD - <title>[.<ext>]`; None for any other name."""
+    named = _POSTED.match(name if folder else PurePosixPath(name).stem)
+    if named is None:
+        return None
+    day = named.group(1)
+    try:
+        return dt.date(int(day[:4]), int(day[4:6]), int(day[6:])), named.group(2)
+    except ValueError:
+        return None
+
+
+def part_kind(name: str, mime_type: str) -> PartKind:
+    """How a file of a Classroom item becomes pages (research R6): by Drive's type, then by extension."""
+    ext = PurePosixPath(name).suffix.lower()
+    if mime_type == PDF_TYPE or ext == ".pdf":
+        return PartKind.PDF
+    if mime_type in EXPORTABLE:
+        return PartKind.EXPORT
+    if ext in OFFICE_TYPES:
+        return PartKind.OFFICE
+    if ext in _TEXT or mime_type in ("text/markdown", "text/plain"):
+        return PartKind.TEXT
+    if ext in _IMAGES:
+        return PartKind.IMAGE
+    return PartKind.NAMED
+
+
+def addresses(links: str) -> tuple[str, ...]:
+    """The lines of an `enlaces.md` as the cover shows them: `- [title](address) · date` is `title: address · date`."""
+    found: list[str] = []
+    for raw in links.splitlines():
+        line = raw.strip()
+        if line.startswith(("- ", "* ")):
+            found.append(_LINK.sub(lambda m: f"{m.group(1)}: {m.group(2)}" if m.group(1) else m.group(2), line[2:]))
+    return tuple(found)
+
+
 @dataclass(frozen=True)
 class Topic:
     """A topic folder, keyed by its Drive id, never by its name."""
@@ -264,11 +334,19 @@ class ClassroomItem:
 
     arrival: Arrival
     state: ItemState = ItemState.SEEN
+    retries: int = 0
 
     def moved_to(self, state: ItemState) -> ClassroomItem:
-        """The same item in `state`, if the transition is allowed."""
+        """The same item in `state`, if the transition is allowed; failures count towards the cap, like a photo's."""
         if state not in _ITEM_TRANSITIONS[self.state] and state not in _ITEM_ANYTIME:
             raise ValueError(f"an item cannot go from {self.state} to {state}")
+        if state == ItemState.SEEN:
+            return replace(self, state=state, retries=0)
+        if state == ItemState.FAILED:
+            retries = self.retries + 1
+            if retries > MAX_RETRIES:
+                return replace(self, state=ItemState.FAILED_FINAL, retries=retries)
+            return replace(self, state=state, retries=retries)
         return replace(self, state=state)
 
 
