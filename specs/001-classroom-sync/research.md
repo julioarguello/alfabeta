@@ -548,6 +548,9 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
     home page, and an extractor iframe load of «Trabajo de clase» at 08:55 took 3 s; neither met a
     challenge. Page-started loads on a live session survive, as decided above; whether the
     extension's `navigate` alone kills a live session was not re-tested, on purpose.
+  - Lifetime, measured 2026-10-28: the session signed in at about 08:53 UTC was alive at 09:47 and
+    expired by 10:16, between 54 and 83 minutes after sign-in. This matches the operator's «como
+    máximo una hora»: a web-session route would need a sign-in on almost every run (#13).
 - **What Google documents** (read 2026-10-27):
   - Workspace admin help, "Set session length for Google services": the web session lasts 14 days
     by default; administrators of the Education editions can change it per organisational unit or
