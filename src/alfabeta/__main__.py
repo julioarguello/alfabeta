@@ -179,6 +179,7 @@ def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
         full_review_days=cfg.full_review_days,
         today=decisions.today(),
         last_review=plan.last_full_review(lock.data_dir / "log.jsonl"),
+        data_dir=lock.data_dir,
     )
     if args.subject:
         wanted = set(args.subject)
@@ -199,9 +200,18 @@ def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
 
 def _summary(applier: replicas.Applier, pending: list[dict[str, Any]], stopped: dict[str, str]) -> list[str]:
     """What the family reads after a sync, in Spanish (T043, FR-008)."""
-    if not (applier.added or applier.changed or applier.not_fetched or pending or stopped or applier.unknown_statuses):
+    if not (
+        applier.added
+        or applier.changed
+        or applier.not_fetched
+        or applier.withdrawn
+        or pending
+        or stopped
+        or applier.unknown_statuses
+    ):
         return ["sin cambios"]
     lines = [f"{applier.added} nuevos, {applier.changed} cambiados, {len(applier.not_fetched)} sin traer"]
+    lines += [f"retirado de Classroom: {title}" for title in applier.withdrawn]
     unlinked = [p for p in pending if p["type"] == "class_link" and p.get("visibility") == "visible"]
     hidden = [p for p in pending if p["type"] == "class_link" and p.get("visibility") != "visible"]
     matches = [p for p in pending if p["type"] == "topic_match"]
@@ -239,6 +249,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
     links = plan.linked_classes(store, cfg.subjects)
     plan_path = lock.data_dir / "plan.json"
     planned: dict[str, Any] = json.loads(plan_path.read_text()) if plan_path.is_file() else {}
+    if planned.get("applied_at"):  # applying again is not a new plan: no downloads, no full review
+        planned = {"pending_decisions": planned.get("pending_decisions", [])}
     current = store_log.load()
     applier = replicas.Applier(
         base=cfg.base,
@@ -248,7 +260,7 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
         decisions=store,
         state=json.loads(json.dumps(current)),
         today=decisions.today(),
-        downloads=list(planned.get("downloads", [])),
+        downloads=[*planned.get("downloads", []), *planned.get("already_collected", [])],
     )
     if args.subject:
         scope = [c for c, s in links.items() if s.folder in set(args.subject)]
@@ -259,6 +271,10 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
     applied = applier.apply(captures, [c for c in scope if c not in stopped], links)
     if applier.state != current:
         store_log.save(applier.state)
+    if "created_at" in planned and set(planned.get("classes", [])) <= set(applied) | set(stopped):
+        # Every class it planned is placed: the next run's first collect must not wait for any of it.
+        plan.write(planned | {"applied_at": dt.datetime.now(MADRID).isoformat()}, lock.data_dir)
+    plan.prune_captures(lock.data_dir / "captures", cfg.kept_captures)
     partial = bool(stopped)
     line = {
         "run": run,
@@ -271,7 +287,7 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
         "classes": applied,
         "added": applier.added,
         "changed": applier.changed,
-        "withdrawn": 0,
+        "withdrawn": len(applier.withdrawn),
         "not_fetched": applier.not_fetched,
         "unknown_statuses": applier.unknown_statuses,
         "pending_decisions": len(planned.get("pending_decisions", [])),
@@ -281,7 +297,7 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
     for text in _summary(applier, list(planned.get("pending_decisions", [])), stopped):
         print(f"alfabeta: {text}", file=sys.stderr)
     _emit(
-        {k: line[k] for k in ("result", "reason", "added", "changed", "unknown_statuses")}
+        {k: line[k] for k in ("result", "reason", "added", "changed", "withdrawn", "unknown_statuses")}
         | {"not_fetched": len(applier.not_fetched)}
     )
     return EXIT_OK

@@ -7,7 +7,10 @@ that changed keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)�
 attachment that never arrived is noted in its item's `enlaces.md` as «no traído». Whatever the
 scope, every replica is placed again with the decisions in force, from the last version of its
 item kept in the state, so a match confirmed after a first run moves files instead of copying them.
-Nothing is written outside the base folder, and no message shows an absolute path (FR-031).
+An item a complete capture of its class no longer shows is marked withdrawn in the state, never
+deleted; a cut-short capture withdraws nothing, an announcement is never withdrawn (the stream is
+read from one page), and an item shown again is no longer withdrawn (FR-027). Nothing is written
+outside the base folder, and no message shows an absolute path (FR-031).
 """
 
 from __future__ import annotations
@@ -167,6 +170,7 @@ class Applier:
     not_fetched: dict[str, str] = field(default_factory=dict[str, str])
     unknown_statuses: int = 0
     unreadable: list[str] = field(default_factory=list[str])
+    withdrawn: list[str] = field(default_factory=list[str])
 
     @property
     def replicas(self) -> dict[str, Any]:
@@ -216,7 +220,11 @@ class Applier:
         digest = sha256(incoming)
         destination = self.base / target.path
         if record is not None and record.get("hash") == digest and destination.exists():
-            incoming.unlink()  # verified identical: nothing to write
+            incoming.unlink()  # verified identical: nothing to write in the student's folder
+            # What made the plan ask for it again is now seen, or it would be asked for on every run.
+            record["name"], record["kind"] = attachment.name, str(attachment.kind)
+            if item.modified_at:
+                record["modified_seen"] = item.modified_at.isoformat()
             return True
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
@@ -270,8 +278,30 @@ class Applier:
             self.changed += 1
             del self.replicas[key]
 
+    def _replicas_of(self, item: str) -> list[dict[str, Any]]:
+        prefix = f"{CLASSROOM}|{item}|"
+        return [cast("dict[str, Any]", r) for k, r in self.replicas.items() if k.startswith(prefix)]
+
+    def _withdraw(self, class_id: str, shown: set[str]) -> None:
+        """Mark the items of a class its complete capture no longer shows (FR-027); nothing is deleted.
+
+        Only classwork: the stream is read from one page, which holds the posts the page loaded and
+        not the older ones, so an announcement missing from it is not one the teacher removed.
+        """
+        for raw in self.items.values():
+            if raw["class_id"] != class_id or raw["id"] in shown or raw.get("withdrawn_at"):
+                continue
+            if raw["type"] == str(ItemType.ANNOUNCEMENT):
+                continue
+            raw["withdrawn_at"] = self.today.isoformat()
+            for record in self._replicas_of(str(raw["id"])):
+                record["withdrawn_at"] = self.today.isoformat()
+            self.withdrawn.append(str(raw["title"]))
+
     def place_item(self, placer: Placer, item: Item, topic_title: str | None) -> None:
         """Every file a run places for one item."""
+        for record in self._replicas_of(item.id):  # shown again: no longer withdrawn
+            record.pop("withdrawn_at", None)
         targets = [t for t in placer.place(item, topic_title) if t.role in PLACED_ROLES]
         by_id = {a.id: a for a in (*item.attachments, *item.submission)}
         missing: list[Attachment] = []
@@ -320,6 +350,8 @@ class Applier:
             self.unknown_statuses += len(normalized.unknown_statuses)
             for item in sorted(normalized.items, key=lambda i: (i.posted_at, i.id)):
                 self.place_item(placer, item, normalized.topics.get(item.topic_id or ""))
+            if normalized.complete:  # an item it could not read is still there
+                self._withdraw(class_id, {i.id for i in normalized.items} | set(normalized.unreadable))
             applied.append(class_id)
         for raw in sorted(self.items.values(), key=lambda r: (r["posted_at"], r["id"])):
             if raw["class_id"] in applied or raw["class_id"] not in links:

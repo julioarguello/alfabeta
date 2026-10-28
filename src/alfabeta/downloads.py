@@ -4,7 +4,8 @@
 in the field) and the attachments the last plan requested: by their expected name or that name with
 the browser's « (n)» suffix, created after the plan, never a half-downloaded `.crdownload`. Two
 attachments with the same name are in different batches, and only the lowest batch still pending
-for a name can claim a file, so every file has one owner. Everything else stays where it is.
+for a name can claim a file, so every file has one owner. Everything else stays where it is. A plan
+`apply` already placed requests nothing more.
 """
 
 from __future__ import annotations
@@ -142,6 +143,8 @@ def collect(
     if not plan_path.is_file():
         return {"classes": classes, "collected": [], "pending": []}
     plan = cast("dict[str, Any]", json.loads(plan_path.read_text()))
+    if plan.get("applied_at"):
+        return {"classes": classes, "collected": [], "pending": []}
     plan_time = dt.datetime.fromisoformat(str(plan["created_at"])).timestamp()
     deadline = clock() + wait_seconds
     collected: list[str] = []
