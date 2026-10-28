@@ -99,6 +99,18 @@ def test_a_detected_exam_is_not_rejected(store: DecisionStore):
     assert store.correct("synth-i1#exam-1", {"discarded": "true"}, D2).state == DecisionState.CONFIRMED
 
 
+def test_a_correction_adds_to_the_one_before(store: DecisionStore):
+    origin = "synth-i1#exam-1"
+    store.propose([proposal(kind="detected_exam", origin=origin, target={"date": "2026-11-05"}, origin_hash="h1")], D1)
+    store.correct(origin, {"date": "2026-11-12"}, D2)
+    assert store.correct(origin, {"category": "assignment"}, D2).target == {
+        "date": "2026-11-12",
+        "category": "assignment",
+    }
+    assert store.correct(origin, {"discarded": "true"}, D2).target["discarded"] == "true"
+    assert "discarded" not in store.correct(origin, {"date": "2026-11-13"}, D2).target  # an exam after all
+
+
 @pytest.mark.parametrize("reject", [False, True])
 def test_change_supersedes_a_confirmed_or_rejected_one(store: DecisionStore, reject: bool):
     store.propose([proposal()], D1)

@@ -209,14 +209,22 @@ class DecisionStore:
         return moved
 
     def correct(self, origin: str, target: dict[str, str], on: dt.date) -> Decision:
-        """The family's correction of a detected exam; it prevails in the following runs."""
+        """The family's correction of a detected exam; it prevails in the following runs.
+
+        One correction adds to the one before: a date and then a category keep both. Correcting the date
+        or the category of a discarded exam says it is an exam after all.
+        """
         if self.in_force(DecisionType.DETECTED_EXAM, origin) is None:
             raise DecisionError("there is no detected exam with that origin")
+        merged = dict(target)
         previous = self.in_force(DecisionType.EXAM_CORRECTION, origin)
         if previous is not None:
             self._supersede(previous, on)
+            merged = {**previous.decision.target, **target}
+            if "discarded" not in target:
+                merged.pop("discarded", None)
         correction = Decision(
-            DecisionType.EXAM_CORRECTION, origin, target, "corrected by the family", DecisionState.CONFIRMED, on
+            DecisionType.EXAM_CORRECTION, origin, merged, "corrected by the family", DecisionState.CONFIRMED, on
         )
         self.records.append(Record(correction))
         return correction

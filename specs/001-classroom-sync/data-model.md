@@ -111,7 +111,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | `confidence` | `high` · `medium` · `low` | Only in proposals |
 | `state` | `proposed` → `confirmed` · `rejected`; `confirmed` or `rejected` → `superseded` | Only `confirmed` counts, except `detected_exam` (it appears in the agenda as detected) and `dismissed_candidate` (the candidate stops being pending), which count from the moment they are `proposed`; the family can reject a `dismissed_candidate` and the candidate returns to pending. A `(type, origin)` with a non-superseded decision is not proposed again; a `rejected` one, only if its origin shows a modification after the rejection. `detected_exam` is not rejected: it is discarded with an `exam_correction` |
 | `date` | date | Of the last transition |
-| `origin_hash` | SHA-256 or empty | Of the text a `detected_exam` or a `dismissed_candidate` was deduced from: an announcement's text, or a material's title and description, as `plan.json` gives it with each `exam_candidate`; if the text changes, the candidate returns to pending and the previous decision becomes `superseded`, unless the family corrected it (`exam_correction`) |
+| `origin_hash` | SHA-256 or empty | Of the text a `detected_exam` or a `dismissed_candidate` was deduced from: an announcement's text, or a material's title and description joined by a line break; `plan.json` gives this hash with each `exam_candidate`; if the text changes, the candidate returns to pending and the previous decision becomes `superseded`, unless the family corrected it (`exam_correction`) |
 
 ## Classroom item
 

@@ -95,25 +95,28 @@ Below, `alfabeta <command>` stands for that line.
    Ask the family, then `decisions confirm --type topic_match --origin <topic id>` or, for a topic
    that belongs to no book topic, the same with `--reject`: it keeps its own
    `<YYYYMMDD> - <teacher's title>` folder. Then `alfabeta plan` again.
-8. **Judge the exam candidates.** Each `exam_candidate` in `pending_decisions` is an announcement or
-   a material whose `text` names a test. Read it in its class's `language` and decide how many exams
+8. **Judge the exam candidates.** Each `exam_candidate` in `pending_decisions` is an announcement whose
+   `text`, or a material whose `title` or `text`, names a test. Read it in its class's `language` and decide how many exams
    it announces. For each one propose a `detected_exam` whose origin is `<item>#exam-<k>`, with `k` =
    1, 2… in the order the text gives them. Resolve its date against `posted_at`: `YYYY-MM-DD`, or
    `YYYY-MM-DDTHH:MM` when the text gives the time, or `""` when it cannot be resolved. If the text
    announces no exam, propose one `dismissed_candidate` whose origin is `<item>`. Copy `origin_hash`
-   from the entry into every proposal, or the candidate comes back on the next plan:
+   from the entry into every proposal: without it `propose` exits 1 and records none of the file;
+   with another text's hash the candidate comes back on the next plan. Two candidates, `<item-a>`
+   announcing an exam and `<item-b>` announcing none:
    ```json
-   [{"type": "detected_exam", "origin": "<item>#exam-1", "target": {"date": "2026-11-05",
+   [{"type": "detected_exam", "origin": "<item-a>#exam-1", "target": {"date": "2026-11-05",
      "reason": "<the words that give the date>"}, "reason": "<why it is an exam>", "confidence": "high",
      "origin_hash": "<from plan.json>"},
-    {"type": "dismissed_candidate", "origin": "<item>", "target": {}, "reason": "<why it is no exam>",
+    {"type": "dismissed_candidate", "origin": "<item-b>", "target": {}, "reason": "<why it is no exam>",
      "confidence": "medium", "origin_hash": "<from plan.json>"}]
    ```
    `alfabeta decisions propose --file <file>`. A detected exam counts from that moment, unconfirmed:
    the next `apply` puts it in the agenda, marked «detectado». In an interactive run, tell the family
-   each one with its date; what they say
+   each one with its date and each candidate you dismissed; what they say
    is a correction, `alfabeta decisions correct --origin <item>#exam-<k>` with `--date YYYY-MM-DD`,
-   `--category <category>` or, when it is no exam, `--discard`. In a scheduled run ask nothing: they
+   `--category <category>` or, when it is no exam, `--discard`; a dismissal they disagree with is
+   `alfabeta decisions confirm --type dismissed_candidate --origin <item> --reject`. In a scheduled run ask nothing: they
    stay as detected. Then `alfabeta plan` again.
 9. **Download the attachments.** `plan.json`'s `downloads` hold `url`, `expected_name` and `batch`.
    For each batch, starting at 0, load every `url` in a hidden iframe created in the Classroom tab,
@@ -131,8 +134,8 @@ Below, `alfabeta <command>` stands for that line.
     the current `plan.json`, so when subjects go one at a time, plan, download and apply each before
     planning the next. On a subject's first run, apply once
     more: it must report `added` 0 and `changed` 0. Every apply also rewrites the school year's
-    `agenda.md` and `agenda.json` if they changed; after a correction alone, `alfabeta agenda` does
-    the same without applying. Then `alfabeta lock release`.
+    `agenda.md` and `agenda.json` if they changed; after a correction alone, `alfabeta agenda`, inside
+    a run (`lock take`), does the same without applying. Then `alfabeta lock release`.
 12. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
     classes, topics to confirm, attachments not fetched, each with its link), the exams detected
     with their dates, and why a run was `partial`. The agenda is `<school year>/agenda.md`.
@@ -147,7 +150,7 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | A page's iframe `load` event came more than 30 s after its content | the extractor polls readiness instead |
 | An attachment's label reads «Archivo adjunto: <tipo>: <name>» | the extractor keeps only the name |
 | Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
-| The second `apply` over the same captures changed nothing | step 10 is the check |
+| The second `apply` over the same captures changed nothing | step 11 is the check |
 | An empty «Trabajo de clase» shows «Aún no hay tareas…» and an empty stream «Aquí se mostrarán novedades…», with no rows (2026-10-28) | the extractor takes both as loaded |
 | Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `downloads collect` falls back to comparing letters and digits |
 | The school session lasted between 54 and 83 minutes after sign-in (2026-10-28) | sign-in again is the family's; a sync that runs longer stops `partial` |
