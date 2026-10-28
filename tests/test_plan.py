@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from alfabeta import plan
+from alfabeta.classification import Classifier
 from alfabeta.decisions import DecisionStore, Proposal
 from alfabeta.model import Attachment, AttachmentKind, AttachmentRole, DecisionType, Item, ItemType, Subject
 
@@ -75,7 +76,15 @@ def test_the_sandbox_run_plans_downloads_places_and_asks(sandbox: tuple[Path, st
     assert any(" - No topic/" in p for p in paths)
     assert any(p.endswith("/20261006 - Ficha inventada de mezclas/submission/respuestas-inventadas.pdf") for p in paths)
     pending = {(p["type"], p["origin"]) for p in result["pending_decisions"]}
-    assert pending == {("class_link", "synth-3"), ("topic_match", "synth-10"), ("topic_match", "synth-11")}
+    # The Spanish exam announcement has the sandbox's proposal; the English one waits for Claude (T048).
+    assert pending == {
+        ("class_link", "synth-3"),
+        ("topic_match", "synth-10"),
+        ("topic_match", "synth-11"),
+        ("exam_candidate", "synth-32"),
+    }
+    english = next(p for p in result["pending_decisions"] if p["origin"] == "synth-32")
+    assert english["language"] == "en" and english["posted_at"] == "2026-10-24" and english["origin_hash"]
     topic = next(p for p in result["pending_decisions"] if p["origin"] == "synth-10")
     assert topic["book_topics"] == ["Tema 01 - Materia inventada"]
 
@@ -125,6 +134,7 @@ def planner(tmp_path: Path, state: dict[str, Any] | None = None, last_review: dt
         state=state or {},
         full_review_days=7,
         today=TODAY,
+        classifier=Classifier(("es",)),
         last_review=last_review,
     )
 

@@ -92,6 +92,42 @@ def test_a_second_run_without_changes_writes_nothing(box: Box):
     assert snapshot(box) == before  # SC-002: not one write, not even the same bytes again
 
 
+AGENDA = "2026-2027/agenda.json"
+
+
+def agenda_entries(box: Box) -> dict[str, dict[str, Any]]:
+    document = cast("dict[str, Any]", json.loads((box.base / AGENDA).read_text()))
+    return {e["item"]: e for e in cast("list[dict[str, Any]]", document["entries"])}
+
+
+def test_an_exam_date_between_two_captures_moves_only_that_entry(box: Box):
+    first_run(box)
+    before, state_before = agenda_entries(box), (box.data / "state.json").read_bytes()
+    # The same capture of the physics class, taken the day after the exam its stream announces (5 November).
+    later_capture(box, lambda c: c.update(captured_at="2026-11-05T16:22:00+01:00"))
+    next_run(box)
+    _, summary = box.apply()
+    after = agenda_entries(box)
+    assert after.keys() == before.keys()
+    assert sorted(k for k in after if after[k] != before[k]) == ["synth-30#exam-1"]
+    moved, was = after["synth-30#exam-1"], before["synth-30#exam-1"]
+    assert (was["list"], moved["list"]) == ("pending", "done")
+    assert {k: v for k, v in moved.items() if k != "list"} == {k: v for k, v in was.items() if k != "list"}
+    assert (box.data / "state.json").read_bytes() == state_before  # Classroom did not change
+    assert "agenda actualizada" in summary  # FR-025: an entry that changes list is a change
+
+
+def test_another_capture_with_no_date_in_between_rewrites_neither_state_nor_agenda(box: Box):
+    first_run(box)
+    assert (box.base / AGENDA).is_file()
+    before = snapshot(box)
+    later_capture(box, lambda c: None)  # one day later: no due or exam date falls in that day
+    next_run(box)
+    _, summary = box.apply()
+    assert snapshot(box) == before  # FR-025: state.json, agenda.json and agenda.md untouched
+    assert "agenda actualizada" not in summary
+
+
 def test_a_later_modification_keeps_the_previous_version(box: Box):
     first_run(box)
     old = (box.base / NOTES / "apuntes-inventados.pdf").read_bytes()

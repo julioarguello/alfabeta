@@ -99,6 +99,40 @@ def test_a_detected_exam_is_not_rejected(store: DecisionStore):
     assert store.correct("synth-i1#exam-1", {"discarded": "true"}, D2).state == DecisionState.CONFIRMED
 
 
+@pytest.mark.parametrize(
+    ("target", "fits"),
+    [
+        ({"date": "2026-11-05"}, True),
+        ({"date": "2026-11-05T09:30"}, True),
+        ({"date": ""}, True),
+        ({"date": "2026-11-05", "category": "quiz"}, True),
+        ({"date": "20261105"}, False),  # Python reads it as midnight
+        ({"date": "2026-02-30"}, False),
+        ({"date": "el jueves"}, False),
+        ({"date": "2026-11-05", "category": "examen"}, False),  # the Spanish label, not the value
+    ],
+)
+def test_a_detected_exam_carries_a_date_and_category_the_agenda_reads(target: dict[str, str], fits: bool):
+    raw_exam = raw("detected_exam", "synth-i1#exam-1", target=target, origin_hash="h1")
+    if fits:
+        assert Proposal.parse(raw_exam, D1).decision.target == target
+    else:
+        with pytest.raises(DecisionError, match="detected exam's"):
+            Proposal.parse(raw_exam, D1)
+
+
+def test_a_correction_adds_to_the_one_before(store: DecisionStore):
+    origin = "synth-i1#exam-1"
+    store.propose([proposal(kind="detected_exam", origin=origin, target={"date": "2026-11-05"}, origin_hash="h1")], D1)
+    store.correct(origin, {"date": "2026-11-12"}, D2)
+    assert store.correct(origin, {"category": "assignment"}, D2).target == {
+        "date": "2026-11-12",
+        "category": "assignment",
+    }
+    assert store.correct(origin, {"discarded": "true"}, D2).target["discarded"] == "true"
+    assert "discarded" not in store.correct(origin, {"date": "2026-11-13"}, D2).target  # an exam after all
+
+
 @pytest.mark.parametrize("reject", [False, True])
 def test_change_supersedes_a_confirmed_or_rejected_one(store: DecisionStore, reject: bool):
     store.propose([proposal()], D1)

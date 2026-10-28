@@ -17,12 +17,25 @@ from pathlib import Path
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from alfabeta import __version__, anonymize, config, decisions, downloads, guardrail, plan, replicas, sandbox, state
+from alfabeta import (
+    __version__,
+    agenda,
+    anonymize,
+    config,
+    decisions,
+    downloads,
+    guardrail,
+    plan,
+    replicas,
+    sandbox,
+    state,
+)
+from alfabeta.classification import CANDIDATE, Classifier
 from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar
 from alfabeta.google.keychain import KeychainStore
 from alfabeta.google.transport import UrllibTransport
-from alfabeta.model import AgendaCategory, DecisionType, RunMode, StopReason
+from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
 
 MADRID = ZoneInfo("Europe/Madrid")
@@ -179,6 +192,7 @@ def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
         state=state.StateStore(lock.data_dir).load(),
         full_review_days=cfg.full_review_days,
         today=decisions.today(),
+        classifier=Classifier(cfg.languages),
         last_review=plan.last_full_review(lock.data_dir / "log.jsonl"),
         data_dir=lock.data_dir,
     )
@@ -199,8 +213,13 @@ def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
     return EXIT_OK
 
 
-def _summary(applier: replicas.Applier, pending: list[dict[str, Any]], stopped: dict[str, str]) -> list[str]:
-    """What the family reads after a sync, in Spanish (T043, FR-008)."""
+def _summary(
+    applier: replicas.Applier, pending: list[dict[str, Any]], stopped: dict[str, str], agenda_written: list[str]
+) -> list[str]:
+    """What the family reads after a sync, in Spanish (T043, FR-008).
+
+    An agenda rewritten because an entry changed list is a change too (FR-025), never «sin cambios».
+    """
     if not (
         applier.added
         or applier.changed
@@ -209,6 +228,7 @@ def _summary(applier: replicas.Applier, pending: list[dict[str, Any]], stopped: 
         or pending
         or stopped
         or applier.unknown_statuses
+        or agenda_written
     ):
         return ["sin cambios"]
     lines = [f"{applier.added} nuevos, {applier.changed} cambiados, {len(applier.not_fetched)} sin traer"]
@@ -216,12 +236,17 @@ def _summary(applier: replicas.Applier, pending: list[dict[str, Any]], stopped: 
     unlinked = [p for p in pending if p["type"] == "class_link" and p.get("visibility") == "visible"]
     hidden = [p for p in pending if p["type"] == "class_link" and p.get("visibility") != "visible"]
     matches = [p for p in pending if p["type"] == "topic_match"]
+    exams = [p for p in pending if p["type"] == CANDIDATE]
     if unlinked:
         lines.append("clases sin vincular: " + ", ".join(str(p["title"]) for p in unlinked))
     if hidden:
         lines.append(f"clases ocultas o archivadas: {len(hidden)}")
     if matches:
         lines.append(f"temas por confirmar: {len(matches)}")
+    if exams:
+        lines.append(f"posibles exámenes por revisar: {len(exams)}")
+    if agenda_written:
+        lines.append("agenda actualizada")
     if applier.unknown_statuses:
         lines.append(f"estados desconocidos: {applier.unknown_statuses}")
     if applier.unreadable:
@@ -276,6 +301,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
         # Every class it planned is placed: the next run's first collect must not wait for any of it.
         plan.write(planned | {"applied_at": dt.datetime.now(MADRID).isoformat()}, lock.data_dir)
     plan.prune_captures(lock.data_dir / "captures", cfg.kept_captures)
+    # Whatever the scope, the school year's agenda from the state just saved (contracts/cli.md, apply).
+    agenda_written = _agenda_builder(cfg, lock.data_dir, applier.state).write(cfg.base)
     partial = bool(stopped)
     line = {
         "run": run,
@@ -295,12 +322,49 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
         "full_review": bool(planned.get("full_review")),
     }
     store_log.log(line)
-    for text in _summary(applier, list(planned.get("pending_decisions", [])), stopped):
+    for text in _summary(applier, list(planned.get("pending_decisions", [])), stopped, agenda_written):
         print(f"alfabeta: {text}", file=sys.stderr)
     _emit(
         {k: line[k] for k in ("result", "reason", "added", "changed", "withdrawn", "unknown_statuses")}
         | {"not_fetched": len(applier.not_fetched)}
     )
+    return EXIT_OK
+
+
+def _agenda_builder(cfg: config.StudentConfig, data_dir: Path, current: dict[str, Any]) -> agenda.AgendaBuilder:
+    """The agenda of `current` (the state), with the decisions in force and the newest captures."""
+    store = decisions.DecisionStore.open(data_dir)
+    return agenda.AgendaBuilder(
+        school_year=cfg.school_year,
+        links=plan.linked_classes(store, cfg.subjects),
+        classifier=Classifier(cfg.languages),
+        decisions=store.decisions(),
+        state=current,
+        captured=agenda.capture_instants(plan.latest_captures(data_dir / "captures")),
+    )
+
+
+def _cmd_agenda(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    try:
+        lock.renew(os.environ.get(state.RUN_ENV))
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    cfg = config.load_all(home, args.student)
+    if not cfg.base.is_dir():
+        return _fail(
+            str(StopReason.DRIVE_NOT_MOUNTED), EXIT_INVALID, "the base folder is not there; nothing was written"
+        )
+    builder = _agenda_builder(cfg, lock.data_dir, state.StateStore(lock.data_dir).load())
+    written = builder.write(cfg.base)
+    counts = builder.counts()
+    print(
+        f"alfabeta: agenda: {counts[AgendaList.PENDING]} en «Pendiente», {counts[AgendaList.DONE]} en «Hecho», "
+        f"{counts[AgendaList.POSTED]} en «Publicado»",
+        file=sys.stderr,
+    )
+    print(f"alfabeta: {'escrita: ' + ', '.join(written) if written else 'sin cambios'}", file=sys.stderr)
+    _emit({"written": written})
     return EXIT_OK
 
 
@@ -438,6 +502,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan_cmd.add_argument("--subject", action="append", default=[])
     apply_cmd = groups.add_parser("apply", help="place what this run collected in the student's base folder")
     apply_cmd.add_argument("--subject", action="append", default=[])
+    agenda_cmd = groups.add_parser("agenda", help="regenerate agenda.json and agenda.md, only if they change")
     dl = groups.add_parser("downloads", help="the browser's downloads folder").add_subparsers(
         dest="verb", required=True
     )
@@ -547,6 +612,7 @@ def build_parser() -> argparse.ArgumentParser:
         change,
         plan_cmd,
         apply_cmd,
+        agenda_cmd,
         collect,
         notes_run,
         notebook_setup,
@@ -590,6 +656,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_plan(args, home)
         if args.group == "apply":
             return _cmd_apply(args, home)
+        if args.group == "agenda":
+            return _cmd_agenda(args, home)
         if args.group == "downloads":
             return _cmd_collect(args, home)
         if args.group == "config":

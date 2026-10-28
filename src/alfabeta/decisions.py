@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, cast
 
 from alfabeta.dates import MADRID
-from alfabeta.model import Confidence, Decision, DecisionState, DecisionType
+from alfabeta.model import AgendaCategory, Confidence, Decision, DecisionState, DecisionType
 from alfabeta.state import write_atomic
 
 if TYPE_CHECKING:
@@ -76,6 +77,26 @@ class Record:
         return cls(decision, raw.get("origin_title"), tuple(raw.get("book_topics") or ()))
 
 
+# A detected exam's date as the skill writes it (SKILL.md step 8): a day, or a day and its time.
+_EXAM_DATE = re.compile(r"\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?")
+
+
+def _check_exam_target(target: dict[str, Any]) -> None:
+    """A detected exam's date and category must be ones the agenda can read, or every later run fails on them."""
+    date = str(target.get("date") or "")
+    if date:
+        valid = _EXAM_DATE.fullmatch(date) is not None
+        try:
+            dt.datetime.fromisoformat(date)
+        except ValueError:
+            valid = False
+        if not valid:
+            raise DecisionError("a detected exam's date is YYYY-MM-DD, YYYY-MM-DDTHH:MM or empty")
+    category = target.get("category")
+    if category is not None and str(category) not in {str(c) for c in AgendaCategory}:
+        raise DecisionError("a detected exam's category is one of: " + ", ".join(str(c) for c in AgendaCategory))
+
+
 @dataclass(frozen=True)
 class Proposal:
     """One proposal from Claude, with the state of its origin now."""
@@ -108,6 +129,8 @@ class Proposal:
         target = p.get("target")
         if not isinstance(target, dict):
             raise DecisionError("a proposal needs its target")
+        if kind == DecisionType.DETECTED_EXAM:
+            _check_exam_target(cast("dict[str, Any]", target))
         origin_hash = p.get("origin_hash")
         if kind in _HASHED and not origin_hash:
             raise DecisionError("a detected exam or dismissed candidate needs the hash of its text")
@@ -209,14 +232,22 @@ class DecisionStore:
         return moved
 
     def correct(self, origin: str, target: dict[str, str], on: dt.date) -> Decision:
-        """The family's correction of a detected exam; it prevails in the following runs."""
+        """The family's correction of a detected exam; it prevails in the following runs.
+
+        One correction adds to the one before: a date and then a category keep both. Correcting the date
+        or the category of a discarded exam says it is an exam after all.
+        """
         if self.in_force(DecisionType.DETECTED_EXAM, origin) is None:
             raise DecisionError("there is no detected exam with that origin")
+        merged = dict(target)
         previous = self.in_force(DecisionType.EXAM_CORRECTION, origin)
         if previous is not None:
             self._supersede(previous, on)
+            merged = {**previous.decision.target, **target}
+            if "discarded" not in target:
+                merged.pop("discarded", None)
         correction = Decision(
-            DecisionType.EXAM_CORRECTION, origin, target, "corrected by the family", DecisionState.CONFIRMED, on
+            DecisionType.EXAM_CORRECTION, origin, merged, "corrected by the family", DecisionState.CONFIRMED, on
         )
         self.records.append(Record(correction))
         return correction

@@ -25,6 +25,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Agenda `category` `exam` · `assignment` · `quiz` · `material` · `announcement` | «examen» · «entrega» · «cuestionario» · «material» · «aviso» |
 | Item `status` `pending` · `turned_in` · `turned_in_late` · `returned` · `overdue` · `missing_per_teacher` | «pendiente» · «entregada» · «entregada tarde» · «devuelta» · «vencida» · «falta según el profesor» |
 | Agenda entry `detected: true` | «detectado» |
+| Agenda entry `corrected: true` | «corregido» |
 | Agenda entry `date: null` | «sin fecha» |
 | Attachment not fetched, noted in `enlaces.md` | «no traído» |
 | Summary for the family (stderr of `apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
@@ -110,7 +111,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | `confidence` | `high` · `medium` · `low` | Only in proposals |
 | `state` | `proposed` → `confirmed` · `rejected`; `confirmed` or `rejected` → `superseded` | Only `confirmed` counts, except `detected_exam` (it appears in the agenda as detected) and `dismissed_candidate` (the candidate stops being pending), which count from the moment they are `proposed`; the family can reject a `dismissed_candidate` and the candidate returns to pending. A `(type, origin)` with a non-superseded decision is not proposed again; a `rejected` one, only if its origin shows a modification after the rejection. `detected_exam` is not rejected: it is discarded with an `exam_correction` |
 | `date` | date | Of the last transition |
-| `origin_hash` | SHA-256 or empty | Of the text a `detected_exam` or a `dismissed_candidate` was deduced from; if the text changes, the candidate returns to pending and the previous decision becomes `superseded`, unless the family corrected it (`exam_correction`) |
+| `origin_hash` | SHA-256 or empty | Of the text a `detected_exam` or a `dismissed_candidate` was deduced from: an announcement's text, or a material's title and description joined by a line break; `plan.json` gives this hash with each `exam_candidate`; if the text changes, the candidate returns to pending and the previous decision becomes `superseded`, unless the family corrected it (`exam_correction`) |
 
 ## Classroom item
 
@@ -129,7 +130,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | `description` | text | Instructions or the announcement's text |
 | `attachments` | list of `Attachment` | |
 | `submission` | list of `Attachment` | Files the student turned in |
-| `withdrawn_at` | date or empty | Kept in the state: the first complete capture of its class that no longer showed it; never set for an `announcement` (the stream is read from one page); cleared when a capture shows it again (FR-027) |
+| `withdrawn_at` | date or empty | Kept in the state: the first complete capture of its class that no longer showed it; never set for an `announcement` (the stream is read from one page); cleared when a capture shows it again (FR-027). While it is set, the item and the exams detected from it are not in the agenda |
 | `grading` | `Grading` or empty | |
 
 ### Status from the detail texts
@@ -179,7 +180,9 @@ of a `todo` capture is the capture's own `complete` flag, not per class.
 | `withdrawn_at` | date or empty | The item is no longer in a complete capture of its class; the replica is kept |
 
 Besides the replicas, `state.json` keeps each item's last normalized version (`Item`,
-with its category), which is rewritten only if it changes. The `captured_at` of each class's last capture is not
+with its due date), which is rewritten only if it changes. Its category is not kept: the
+`Classifier` gives it again from the item and the student's languages, so a change of
+`[student] languages` reaches every item at once. The `captured_at` of each class's last capture is not
 stored in the state: it is read from the most recent one in `data/captures/` (at least one always remains,
 `kept_captures` ≥ 1), which is part of the run's own records (FR-025). The agenda
 and the rules of FR-020c come from both.
@@ -202,15 +205,15 @@ Contract: [agenda.schema.json](contracts/agenda.schema.json).
 | `subject` | text | The subject's folder |
 | `list` | `pending` · `done` · `posted` | Per the FR-020c table; material and announcement go to `posted` |
 | `date_only` | boolean | `true` if Classroom gives no time |
-| `category` | `exam` · `assignment` · `quiz` · `material` · `announcement` | Exactly one; precedence exam > quiz > assignment > material > announcement |
-| `title` | text | |
-| `date` | date-time, date or empty | Empty → at the end of «Pendiente» |
+| `category` | `exam` · `assignment` · `quiz` · `material` · `announcement` | Exactly one; precedence exam > quiz > assignment > material > announcement. An assignment or question is an `exam` when its title names a test in one of the student's languages |
+| `title` | text | A detected exam's is its origin's |
+| `date` | date-time, date or empty | Empty → at the end of «Pendiente». Due date of an assignment, quiz or exam; posting date of a material or announcement; a detected exam's from its decision, the family's correction prevailing |
 | `status` | as in Item, or empty for material and announcement | |
 | `detected` | boolean | `true` if the exam comes from a text |
 | `origin` | id of the item it was deduced from | Only if `detected` |
 | `corrected` | boolean | `true` if the family corrected it |
-| `classroom_link` | URL | Without `/u/<n>` (the index is not stable); the readable agenda says to open it with the school account |
-| `folder` | relative path or empty | Empty if the item has no replica |
+| `classroom_link` | URL | Without `/u/<n>` (the index is not stable); the readable agenda says to open it with the school account. An announcement, and an exam detected from one, links to its class's stream: no page of a single post was measured |
+| `folder` | relative path or empty | The folder all the item's replicas share (what the student turned in counts from its assignment's folder); a detected exam takes its origin's. Empty if the item has no replica |
 
 ## Run (in `data/log.jsonl`)
 

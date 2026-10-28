@@ -46,6 +46,9 @@
   const EMPTY_CLASSWORK = /^Aún no hay tareas/;
   // And a class with no announcements shows this on its stream (measured 2026-10-28).
   const EMPTY_STREAM = /^Aquí se mostrarán novedades de esta clase/;
+  // A stream post's class comments sit in this block inside the post (the anonymized stream page,
+  // 2026-10-25): a link a classmate leaves there is not the announcement's attachment (FR-009).
+  const STREAM_COMMENTS = ".s2g3Xd";
 
   const clean = (text) => (text || "").replace(/\s+/g, " ").trim();
 
@@ -167,10 +170,12 @@
     return null;
   }
 
-  function attachmentsIn(nodes) {
+  // `skip`: a selector whose elements hold no attachment (a post's comments).
+  function attachmentsIn(nodes, skip = null) {
     const seen = new Map();
     for (const node of nodes) {
       for (const a of node.querySelectorAll ? node.querySelectorAll("a[href]") : []) {
+        if (skip && a.closest(skip)) continue;
         const found = attachmentOf(a);
         if (found && !seen.has(found.id)) seen.set(found.id, found);
       }
@@ -283,7 +288,7 @@
           // The label and its date can be text nodes of their own (measured 2026-10-28).
           created_text: clean(created(p).node.parentElement.textContent),
           text: body ? blockText(body) : "",
-          attachments: attachmentsIn([p]),
+          attachments: attachmentsIn([p], STREAM_COMMENTS),
         };
       });
   }

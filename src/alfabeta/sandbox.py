@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
-from alfabeta import config, decisions, plan
+from alfabeta import capture, classification, config, decisions, plan
 from alfabeta.model import DecisionType
 from alfabeta.state import RUN_ENV
 
@@ -166,6 +166,13 @@ def _downloadable_names(capture: dict[str, Any]) -> list[str]:
     return [plan.expected_name(a["name"], a["kind"]) for a in found if plan.download_url(a, 0)]
 
 
+def _exam_hash() -> str:
+    """The `origin_hash` of the sample stream's Spanish exam announcement, as Claude copies it from the plan."""
+    raw = json.loads((FIXTURES / "class-synth-1.json").read_text())
+    post = next(i for i in capture.normalize_class(raw, SCHOOL_YEAR).items if i.id == "synth-30")
+    return classification.text_hash(post)
+
+
 def _decide(data_dir: Path) -> None:
     """The decisions a sandbox run starts from: both classes linked, and one detected exam proposed."""
     on = dt.date(2026, 10, 27)
@@ -190,7 +197,7 @@ def _decide(data_dir: Path) -> None:
             "target": {"date": "2026-11-05", "reason": "the announcement names the exam's day"},
             "reason": "sandbox",
             "confidence": "medium",
-            "origin_hash": "sandbox",
+            "origin_hash": _exam_hash(),
         },
         on,
     )

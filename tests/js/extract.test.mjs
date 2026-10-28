@@ -313,6 +313,24 @@ test("each announcement is read whole, line by line, with its creation date", ()
   assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), expected);
 });
 
+// T046: a post's attachments are read; a link a classmate leaves in its class comments is not (FR-009).
+test("an announcement's attachment is read, and a link in its class comments is not", () => {
+  const doc = page("stream-announcements").window.document;
+  const body = doc.querySelector(".pco8Kc");
+  const post = body.closest("[data-stream-item-id]");
+  const file = doc.createElement("a");
+  file.setAttribute("href", "https://drive.google.com/file/d/synth-90/view");
+  file.setAttribute("aria-label", "Archivo adjunto: PDF: normas inventadas.pdf");
+  body.parentElement.appendChild(file);
+  const comment = doc.createElement("a");
+  comment.setAttribute("href", "https://example.org/enlace-inventado-de-un-comentario");
+  comment.textContent = `${MARKER} enlace de un comentario`;
+  post.querySelector(".s2g3Xd").appendChild(comment);
+  const stream = JSON.parse(JSON.stringify(extract.readStream(doc)));
+  assert.deepEqual(stream[0].attachments, [{ id: "synth-90", kind: "file", name: "normas inventadas.pdf" }]);
+  assert.ok(!JSON.stringify(stream).includes(MARKER));
+});
+
 test("a short announcement is not taken for its author, nor a comment for an announcement", async () => {
   const { result } = await capture({ plant: true, override: { "/u/5/c/synth-1": "stream-announcements" } });
   assert.ok(!JSON.stringify(result).includes(MARKER));

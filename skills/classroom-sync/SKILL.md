@@ -5,7 +5,7 @@ description: Copies the teacher's material from Google Classroom into the studen
 
 # Classroom sync — the teacher's material in its topic folder
 
-Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project, spec 001 (User Story 1).
+Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project, spec 001 (User Stories 1 and 2).
 What each piece does and why is in [the spec](../../specs/001-classroom-sync/spec.md) and its
 [research](../../specs/001-classroom-sync/research.md); the commands are in
 [contracts/cli.md](../../specs/001-classroom-sync/contracts/cli.md). This file says what to run.
@@ -95,25 +95,52 @@ Below, `alfabeta <command>` stands for that line.
    Ask the family, then `decisions confirm --type topic_match --origin <topic id>` or, for a topic
    that belongs to no book topic, the same with `--reject`: it keeps its own
    `<YYYYMMDD> - <teacher's title>` folder. Then `alfabeta plan` again.
-8. **Download the attachments.** `plan.json`'s `downloads` hold `url`, `expected_name` and `batch`.
+8. **Judge the exam candidates.** Each `exam_candidate` in `pending_decisions` is an announcement whose
+   `text`, or a material whose `title` or `text`, names a test. Read it in its class's `language` and decide how many exams
+   it announces. For each one propose a `detected_exam` whose origin is `<item>#exam-<k>`, with `k` =
+   1, 2… in the order the text gives them. Resolve its date against `posted_at`: `YYYY-MM-DD`, or
+   `YYYY-MM-DDTHH:MM` when the text gives the time, or `""` when it cannot be resolved. If the text
+   announces no exam, propose one `dismissed_candidate` whose origin is `<item>`. Copy `origin_hash`
+   from the entry into every proposal: without it `propose` exits 1 and records none of the file;
+   with another text's hash the candidate comes back on the next plan. A candidate that comes back
+   because the teacher changed its text is judged afresh: propose every exam the new text announces;
+   those proposed on the old text leave the agenda by themselves, unless the family corrected them. Two candidates, `<item-a>`
+   announcing an exam and `<item-b>` announcing none:
+   ```json
+   [{"type": "detected_exam", "origin": "<item-a>#exam-1", "target": {"date": "2026-11-05",
+     "reason": "<the words that give the date>"}, "reason": "<why it is an exam>", "confidence": "high",
+     "origin_hash": "<from plan.json>"},
+    {"type": "dismissed_candidate", "origin": "<item-b>", "target": {}, "reason": "<why it is no exam>",
+     "confidence": "medium", "origin_hash": "<from plan.json>"}]
+   ```
+   `alfabeta decisions propose --file <file>`. A detected exam counts from that moment, unconfirmed:
+   the next `apply` puts it in the agenda, marked «detectado». In an interactive run, tell the family
+   each one with its date and each candidate you dismissed; what they say
+   is a correction, `alfabeta decisions correct --origin <item>#exam-<k>` with `--date YYYY-MM-DD`,
+   `--category <category>` or, when it is no exam, `--discard`; a dismissal they disagree with is
+   `alfabeta decisions confirm --type dismissed_candidate --origin <item> --reject`. In a scheduled run ask nothing: they
+   stay as detected. Then `alfabeta plan` again.
+9. **Download the attachments.** `plan.json`'s `downloads` hold `url`, `expected_name` and `batch`.
    For each batch, starting at 0, load every `url` in a hidden iframe created in the Classroom tab,
    2–3 s apart; they arrive with no dialog (research R4). Then `alfabeta downloads collect --wait 30`
    before the next batch: a batch is how two files with the same name do not overwrite each other.
    A file that never arrives (a large video stops at Drive's virus-scan notice) is left; `apply`
    notes it as «no traído» with its link.
-9. **Before the first apply of a subject**, look at its topic folders in Drive. A `classroom/` folder
-   made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
-   other names. With the family's agreement, move it to
-   `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it. Leave
-   `Classroom · <topic>.pdf` where it is: it is `notebook setup`'s (spec 005) and a source of the
-   topic's notebook; quarantine only what is beside it.
-10. **Apply.** `alfabeta apply` (with the same `--subject`). `apply` finds what was collected through
+10. **Before the first apply of a subject**, look at its topic folders in Drive. A `classroom/` folder
+    made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
+    other names. With the family's agreement, move it to
+    `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it. Leave
+    `Classroom · <topic>.pdf` where it is: it is `notebook setup`'s (spec 005) and a source of the
+    topic's notebook; quarantine only what is beside it.
+11. **Apply.** `alfabeta apply` (with the same `--subject`). `apply` finds what was collected through
     the current `plan.json`, so when subjects go one at a time, plan, download and apply each before
     planning the next. On a subject's first run, apply once
-    more: it must report `added` 0 and `changed` 0. Then `alfabeta lock release`.
-11. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
-    classes, topics to confirm, attachments not fetched, each with its link), and why a run was
-    `partial`.
+    more: it must report `added` 0 and `changed` 0. Every apply also rewrites the school year's
+    `agenda.md` and `agenda.json` if they changed; after a correction alone, `alfabeta agenda`, inside
+    a run (`lock take`), does the same without applying. Then `alfabeta lock release`.
+12. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
+    classes, topics to confirm, attachments not fetched, each with its link), the exams detected
+    with their dates, and why a run was `partial`. The agenda is `<school year>/agenda.md`.
 
 ## Measured on real runs
 
@@ -125,7 +152,7 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | A page's iframe `load` event came more than 30 s after its content | the extractor polls readiness instead |
 | An attachment's label reads «Archivo adjunto: <tipo>: <name>» | the extractor keeps only the name |
 | Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
-| The second `apply` over the same captures changed nothing | step 10 is the check |
+| The second `apply` over the same captures changed nothing | step 11 is the check |
 | An empty «Trabajo de clase» shows «Aún no hay tareas…» and an empty stream «Aquí se mostrarán novedades…», with no rows (2026-10-28) | the extractor takes both as loaded |
 | Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `downloads collect` falls back to comparing letters and digits |
 | The school session lasted between 54 and 83 minutes after sign-in (2026-10-28) | sign-in again is the family's; a sync that runs longer stops `partial` |
