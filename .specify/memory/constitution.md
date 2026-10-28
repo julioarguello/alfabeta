@@ -209,23 +209,26 @@ Rationale: an unofficial tool must not leave the student without their notes.
   and a folder is found by the part of its name after the date. `Tema NN - title` is a topic that
   matches the textbook; a teacher's topic that is not in the textbook carries the teacher's title
   alone; `No topic` holds what Classroom posts with no topic. There are no month folders. alfabeta
-  writes no file at a topic folder's root, only inside five folders, each named for where its
-  content comes from: `notes` (the student's class notes and their living file), `classroom` (the
-  teacher's material and its living file), `sciencebits` (the textbook, under its provider's name)
-  and `notebook` (everything the topic's notebook generates); `exam` is named for its purpose,
-  holds the sheets for the day before an exam and carries no date, which goes in each file's name.
-  Every Classroom item starts with its posting date, `YYYYMMDD - <title>`.
+  writes none of its own files at a topic folder's root, only inside its folders, each named for
+  where its content comes from: `notes` (the student's class notes and their living file),
+  `classroom` (the teacher's material and its living file), the textbook's provider (`sciencebits`)
+  and `notebook` (everything else the topic's notebook generates); `exam` is named for its purpose
+  and holds the sheets for the day before an exam. `exam` carries no date: the date goes in each
+  file's name. What VII brings back from Drive keeps the place it had there. Every Classroom item
+  starts with its posting date, `YYYYMMDD - <title>`, and what the student turned in for an
+  assignment goes in its `submission` folder.
 - **Notebooks**: one per topic, named `<grade level>. <Subject>. Tema NN - <title>` (`<grade level>`
   is the student's grade level, not the school year of the folder). Material that arrives after the
   notebook is created goes into the topic's living Drive files, which are its sources (spec 005);
   only the study pack adds other sources, and never twice.
 - **Language**: everything technical is written in English: code, identifiers, CLI, configuration
   keys, data files, documentation, specs, issues, pull requests and commits. A folder name the code
-  decides is technical too, so it is in English (`notes`, `submission`, `No topic`…): a constant in
-  the code, not configuration. What the student and the family read is in Spanish: the names of the
-  files alfabeta writes, the agenda, the summary of each sync, Google Tasks and the calendar. A name
-  alfabeta takes from elsewhere keeps its own language: a topic's title (the teacher's or the
-  textbook's), a Classroom item's title, and a subject's folder (the family's configuration).
+  decides is technical too, so it is in English (`notes`, `submission`, `No topic`…): a constant
+  in the code, not configuration. What the student and the family read is in Spanish: the names
+  of the files alfabeta writes in their folder, the agenda, the summary of each sync, Google Tasks
+  and the calendar. A name alfabeta takes from elsewhere keeps its own language: a topic's title
+  (the teacher's or the textbook's), a Classroom item's title, and a subject's folder (the
+  family's configuration).
 
 ## Development workflow
 
