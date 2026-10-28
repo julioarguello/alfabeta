@@ -145,6 +145,22 @@ class Planner:
             return "renamed"
         return "review" if self.full_review else None
 
+    def _collected(self, item: Item, wanted: dict[str, Any]) -> bool:
+        """Whether a run cut before `apply` already left this attachment in `data/inbox/`.
+
+        A copy collected before the teacher's last modification is stale: it is deleted, and asked for again.
+        """
+        if self.data_dir is None:
+            return False
+        path = inbox_path(self.data_dir, wanted)
+        if not path.is_file():
+            return False
+        collected_on = dt.datetime.fromtimestamp(path.stat().st_mtime, MADRID).date()
+        if item.modified_at and collected_on < item.modified_at:
+            path.unlink()
+            return False
+        return True
+
     def _pending_classes(self, classes: dict[str, Any] | None) -> list[dict[str, Any]]:
         linked = {d.origin for d in self.decisions.decisions() if d.type == DecisionType.CLASS_LINK}
         listed = cast("list[dict[str, Any]]", classes["classes"]) if classes else []
@@ -185,7 +201,8 @@ class Planner:
         collected: list[dict[str, Any]] = []
         changes: list[dict[str, Any]] = []
         pending = self._pending_classes(classes)
-        for class_id in sorted(scope):
+        in_scope = sorted(scope)
+        for class_id in in_scope:
             raw = captures.get(class_id)
             subject = links.get(class_id)
             if raw is None or subject is None:
@@ -227,14 +244,14 @@ class Planner:
                             "expected_name": expected_name(attachment["name"], attachment["kind"]),
                             "why": why,
                         }
-                        cut = self.data_dir is not None and inbox_path(self.data_dir, wanted).is_file()
-                        (collected if cut else downloads).append(wanted)
+                        (collected if self._collected(item, wanted) else downloads).append(wanted)
         seen: Counter[str] = Counter()
         for download in downloads:
             download["batch"] = seen[download["expected_name"]]
             seen[download["expected_name"]] += 1
         return {
             "run": run,
+            "classes": [c for c in in_scope if c in links and c in captures],
             "created_at": dt.datetime.now(MADRID).isoformat(),
             "full_review": self.full_review,
             "downloads": downloads,

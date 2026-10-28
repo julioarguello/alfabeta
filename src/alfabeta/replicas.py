@@ -8,8 +8,8 @@ attachment that never arrived is noted in its item's `enlaces.md` as «no traíd
 scope, every replica is placed again with the decisions in force, from the last version of its
 item kept in the state, so a match confirmed after a first run moves files instead of copying them.
 An item a complete capture of its class no longer shows is marked withdrawn in the state, never
-deleted; a cut-short capture withdraws nothing, and an item shown again is no longer withdrawn
-(FR-027). Nothing is written outside the base folder, and no message shows an absolute path (FR-031).
+deleted; a cut-short capture withdraws nothing, an announcement is never withdrawn (the stream is
+read from one page), and an item shown again is no longer withdrawn (FR-027). Nothing is written outside the base folder, and no message shows an absolute path (FR-031).
 """
 
 from __future__ import annotations
@@ -282,9 +282,15 @@ class Applier:
         return [cast("dict[str, Any]", r) for k, r in self.replicas.items() if k.startswith(prefix)]
 
     def _withdraw(self, class_id: str, shown: set[str]) -> None:
-        """Mark the items of a class its complete capture no longer shows (FR-027); nothing is deleted."""
+        """Mark the items of a class its complete capture no longer shows (FR-027); nothing is deleted.
+
+        Only classwork: the stream is read from one page, which holds the posts the page loaded and
+        not the older ones, so an announcement missing from it is not one the teacher removed.
+        """
         for raw in self.items.values():
             if raw["class_id"] != class_id or raw["id"] in shown or raw.get("withdrawn_at"):
+                continue
+            if raw["type"] == str(ItemType.ANNOUNCEMENT):
                 continue
             raw["withdrawn_at"] = self.today.isoformat()
             for record in self._replicas_of(str(raw["id"])):

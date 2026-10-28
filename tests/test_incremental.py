@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import os
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
@@ -270,3 +271,35 @@ def test_pruning_keeps_what_it_cannot_read(tmp_path: Path):
     (tmp_path / "alfabeta-capture-x-synth-1-20261027-162200.json").write_text("not json")
     assert plan.prune_captures(tmp_path, 1) == 0
     assert (tmp_path / "alfabeta-capture-x-synth-1-20261027-162200.json").exists()
+
+
+def test_an_announcement_gone_from_the_stream_is_not_withdrawn(box: Box):
+    first_run(box)  # the stream is read from one page: an older post off it is not a removed one
+    later_capture(box, lambda c: c.update(stream=[p for p in c["stream"] if p["id"] != "synth-31"]))
+    next_run(box)
+    result, _ = box.apply()
+    assert result["withdrawn"] == 0
+
+
+def test_a_copy_collected_before_the_teachers_change_is_asked_for_again(box: Box):
+    box.collect_and_plan(drop_stop=True)  # cut before apply
+    stale = next((box.data / "inbox").glob("synth-23__synth-45/*"))
+    stale.write_bytes(b"%PDF-1.4\n% the version before the teacher's change\n")
+    os.utime(stale, (stale.stat().st_atime, dt.datetime(2026, 10, 10, tzinfo=MADRID).timestamp()))
+    later_capture(box, lambda c: item(c, "synth-23")["detail"].update(modified_text="Última modificación: 20 oct"))
+    planned = next_run(box)
+    assert "synth-45" in {d["attachment"] for d in planned["downloads"]}
+    assert "synth-45" not in {d["attachment"] for d in planned["already_collected"]}
+    box.apply()
+    new = (box.home / "sandbox-attachments" / "apuntes-inventados.pdf").read_bytes()
+    assert (box.base / NOTES / "apuntes-inventados.pdf").read_bytes() == new
+
+
+def test_a_plan_is_applied_only_once_every_class_it_planned_is(box: Box):
+    box.collect_and_plan(drop_stop=True)
+    box.apply("--subject", "Ingles")
+    assert "applied_at" not in json.loads((box.data / "plan.json").read_text())
+    box.apply()
+    assert "applied_at" in json.loads((box.data / "plan.json").read_text())
+    again, summary = box.apply()
+    assert again["added"] == 0 and "temas por confirmar: 2" in summary  # still pending, still said

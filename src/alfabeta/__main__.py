@@ -250,7 +250,7 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
     plan_path = lock.data_dir / "plan.json"
     planned: dict[str, Any] = json.loads(plan_path.read_text()) if plan_path.is_file() else {}
     if planned.get("applied_at"):  # applying again is not a new plan: no downloads, no full review
-        planned = {}
+        planned = {"pending_decisions": planned.get("pending_decisions", [])}
     current = store_log.load()
     applier = replicas.Applier(
         base=cfg.base,
@@ -271,7 +271,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
     applied = applier.apply(captures, [c for c in scope if c not in stopped], links)
     if applier.state != current:
         store_log.save(applier.state)
-    if planned:  # the next run's first collect must not wait for what this one placed
+    if "created_at" in planned and set(planned.get("classes", [])) <= set(applied) | set(stopped):
+        # Every class it planned is placed: the next run's first collect must not wait for any of it.
         plan.write(planned | {"applied_at": dt.datetime.now(MADRID).isoformat()}, lock.data_dir)
     plan.prune_captures(lock.data_dir / "captures", cfg.kept_captures)
     partial = bool(stopped)
