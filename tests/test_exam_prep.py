@@ -1,0 +1,688 @@
+"""`exam prep` with an invented student and a fake `nlm` (spec 002 US7, contracts/cli.md).
+
+The fake answers `nlm` at the runner, as the command line would, so the adapter's command lines are
+tested with the flow. No test calls nlm, Drive, pandoc or Chrome: the printer writes blank PDFs.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import re
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import pytest
+from pypdf import PdfWriter
+
+from alfabeta import __main__ as cli_main
+from alfabeta import sandbox
+from alfabeta.exam import prompts
+from alfabeta.exam.cli import cmd_exam_prep
+from alfabeta.exam.nlm import NlmNotebook
+from alfabeta.exam.prep import (
+    POLL_SECONDS,
+    SOURCE_SETTLE_SECONDS,
+    ExamDeps,
+    LivingNotes,
+    LivingNotesError,
+    Refusal,
+    Slot,
+    topic_number,
+)
+from alfabeta.exam.printing import refresh_mirrors
+from tests.conftest import MemoryStore
+
+STUDENT = "sample"
+PROFILE = "prueba"
+TODAY = dt.date(2026, 10, 28)
+TOPIC = "Tema 01 - Materia inventada"
+NOTEBOOK_TITLE = f"3º ESO. FyQ. {TOPIC}"
+EXAM_DAY = "2026-11-05"  # a Thursday
+ANNOUNCED = "20261020"
+SCOPE = "Examen del tema 1 el jueves 5: densidad {y} concentración, y los problemas de la ficha."
+NOTE_PATH = f"2026-2027/FyQ/{ANNOUNCED} - No topic/classroom/{ANNOUNCED} - aviso - Examen del tema 1 el jueves.md"
+PLACEHOLDERS = re.compile(r"\{(grade|language|subject|exam_day|scope|scope_date|slot|pages|theory)\}")
+
+
+@dataclass
+class Art:
+    id: str
+    type: str
+    title: str
+    status: str = "completed"
+    created_at: str = "2026-10-25T09:00:00Z"
+    polls_left: int = 1  # status polls before it completes; -1 never
+
+
+@dataclass
+class FakeNlm:
+    """Answers `nlm` commands the way 0.15.8 does, keeping a notebook's Studio and notes."""
+
+    session: int = 0
+    default: str = PROFILE
+    notebooks: list[dict[str, str]] = field(default_factory=lambda: [{"id": "nb-1", "title": NOTEBOOK_TITLE}])
+    studio: list[Art] = field(default_factory=lambda: [])
+    notes: list[dict[str, str]] = field(default_factory=lambda: [])
+    never: set[str] = field(default_factory=lambda: set())  # report kinds that never complete
+    missing: bool = False
+    calls: list[list[str]] = field(default_factory=lambda: [])
+    made: int = 0
+
+    def __call__(self, argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
+        if self.missing:
+            raise FileNotFoundError("nlm")
+        self.calls.append(argv)
+        verb, rest = argv[1:3], argv[3:]
+        if verb[0] != "config":
+            assert argv[-2:] == ["--profile", PROFILE], argv
+        if verb == ["login", "--check"]:
+            return self._done(self.session, "")
+        if verb == ["config", "get"]:
+            return self._done(0, f"{self.default}\n")
+        if verb == ["notebook", "list"]:
+            return self._done(0, json.dumps(self.notebooks))
+        if verb == ["studio", "status"]:
+            for art in self.studio:
+                if art.status == "in_progress" and art.polls_left > 0:
+                    art.polls_left -= 1
+                    art.status = "completed" if art.polls_left == 0 else art.status
+            listed = [vars(a) | {"artifact_id": a.id} for a in self.studio]
+            return self._done(0, json.dumps(listed))
+        if verb == ["report", "create"]:
+            self.made += 1
+            fmt = rest[rest.index("--format") + 1]
+            prompt = rest[rest.index("--prompt") + 1] if "--prompt" in rest else ""
+            kind = "guide" if fmt == "Study Guide" else "theory" if "Hoja de teoría" in prompt else "problems"
+            art = Art(f"art-{self.made}", "report", "Informe sin título", "in_progress", "2026-10-28T16:00:00Z")
+            art.polls_left = -1 if kind in self.never else 1
+            self.studio.append(art)
+            return self._done(0, json.dumps({"artifact_id": art.id, "status": "in_progress"}))
+        if verb == ["studio", "rename"]:
+            next(a for a in self.studio if a.id == rest[0]).title = rest[1]
+            return self._done(0, "renamed")
+        if verb == ["studio", "delete"]:
+            self.studio = [a for a in self.studio if a.id != rest[1]]
+            return self._done(0, "deleted")
+        if verb == ["note", "list"]:
+            return self._done(0, json.dumps({"notes": self.notes, "count": len(self.notes)}))
+        if verb == ["note", "create"]:
+            self.notes.append({"id": "note-1", "title": rest[rest.index("--title") + 1]})
+            return self._done(0, "created")
+        if verb == ["note", "update"]:
+            return self._done(0, "updated")
+        if verb == ["source", "content"]:
+            return self._done(0, json.dumps({"content": "apuntes", "char_count": 7}))
+        raise AssertionError(f"unexpected nlm call {argv}")
+
+    @staticmethod
+    def _done(code: int, out: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess([], code, out, "")
+
+    def asked(self, *verb: str) -> list[list[str]]:
+        return [c for c in self.calls if c[1 : 1 + len(verb)] == list(verb)]
+
+
+@dataclass
+class FakeLiving:
+    found: LivingNotes | None = None
+    fails: bool = False
+
+    def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
+        assert (subject, folder) == ("FyQ", f"20260915 - {TOPIC}")
+        if self.fails:
+            raise LivingNotesError("TransportError")
+        return self.found
+
+
+@dataclass
+class FakePrinter:
+    pages_of: dict[str, int] = field(default_factory=lambda: {})  # by the PDF's first words
+    fails: set[str] = field(default_factory=lambda: set())
+    printed: list[tuple[str, str, str]] = field(default_factory=lambda: [])
+
+    def print_report(self, notebook: str, artifact: str, out: Path, *, break_before: str = "") -> bool:
+        self.printed.append((artifact, out.name, break_before))
+        kind = out.name.split(" · ")[0]
+        if kind in self.fails:
+            return False
+        writer = PdfWriter()
+        for _ in range(self.pages_of.get(kind, 3)):
+            writer.add_blank_page(595, 842)
+        with out.open("wb") as handle:
+            writer.write(handle)
+        return True
+
+    def pages(self, pdf: Path) -> int:
+        from alfabeta.exam.printing import PrintPack
+
+        return PrintPack(PROFILE).pages(pdf)
+
+
+@dataclass
+class World:
+    home: Path
+    nlm: FakeNlm
+    living: FakeLiving
+    printer: FakePrinter
+    slept: list[float] = field(default_factory=lambda: [])
+    mirror_failures: int = 0
+
+    @property
+    def base(self) -> Path:
+        return sandbox.base_folder(self.home, STUDENT)
+
+    @property
+    def topic(self) -> Path:
+        return self.base / "2026-2027" / "FyQ" / f"20260915 - {TOPIC}"
+
+    @property
+    def data(self) -> Path:
+        return self.home / STUDENT / "data"
+
+    def deps(self, cfg: object, store: object) -> ExamDeps:
+        return ExamDeps(
+            notebook=NlmNotebook(PROFILE, self.nlm),
+            living=self.living,
+            printer=self.printer,
+            mirrors=lambda: self.mirror_failures,
+            sleep=self.slept.append,
+            now=lambda: dt.datetime(2026, 10, 28, 16, 0, tzinfo=dt.UTC),
+        )
+
+    def run(self, *extra: str) -> int:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--student")
+        parser.add_argument("--subject")
+        parser.add_argument("--exam", type=dt.date.fromisoformat)
+        parser.add_argument("--slot")
+        parser.add_argument("--topic")
+        args = parser.parse_args(["--student", STUDENT, "--subject", "FyQ", *extra])
+        return cmd_exam_prep(self.home, args, MemoryStore(), self.deps, lambda: TODAY)
+
+
+def entry(item: str, category: str, date: str | None, **more: Any) -> dict[str, Any]:
+    return {
+        "item": item,
+        "subject": "FyQ",
+        "list": "posted" if category == "announcement" else "pending",
+        "category": category,
+        "title": "Examen tema 1",
+        "date": date,
+        "date_only": True,
+        "status": None,
+        "detected": False,
+        "origin": None,
+        "corrected": False,
+        "classroom_link": "https://classroom.google.com/c/inventada",
+        "folder": None,
+    } | more
+
+
+def write_agenda(world: World, entries: list[dict[str, Any]]) -> None:
+    path = world.base / "2026-2027" / "agenda.json"
+    path.write_text(json.dumps({"version": 1, "school_year": "2026-2027", "entries": entries}))
+
+
+@pytest.fixture
+def world(tmp_path: Path) -> World:
+    sandbox.prepare(tmp_path, STUDENT)
+    config = tmp_path / STUDENT / "config.toml"
+    config.write_text(config.read_text().replace("enabled = false", "enabled = true"))
+    w = World(tmp_path, FakeNlm(), FakeLiving(), FakePrinter())
+    note = w.base / NOTE_PATH
+    note.parent.mkdir(parents=True)
+    note.write_text(SCOPE + "\n")
+    w.data.mkdir(exist_ok=True)
+    (w.data / "state.json").write_text(
+        json.dumps({"replicas": {"classroom|synth-30|#announcement": {"role": "announcement", "path": NOTE_PATH}}})
+    )
+    write_agenda(
+        w,
+        [
+            entry("synth-30", "announcement", "2026-10-20T10:00:00+02:00"),
+            entry("synth-30#exam-1", "exam", EXAM_DAY, detected=True, origin="synth-30"),
+        ],
+    )
+    return w
+
+
+def output(capsys: pytest.CaptureFixture[str]) -> tuple[dict[str, Any], str]:
+    out, err = capsys.readouterr()
+    return json.loads(out.strip().splitlines()[-1]), err
+
+
+# --- the prompts ------------------------------------------------------------------------------------
+
+
+def test_the_three_exam_texts_are_in_prompts_md_and_every_placeholder_is_filled():
+    for heading in (prompts.THEORY, prompts.PROBLEMS, prompts.START_NOTE):
+        names = set(re.findall(r"\{(\w+)\}", prompts.template(heading)))
+        assert names, heading
+        assert names <= {"grade", "language", "subject", "exam_day", "scope", "scope_date", "slot", "pages", "theory"}
+
+
+def test_a_value_is_never_read_again_for_placeholders_and_a_missing_one_raises():
+    assert (
+        prompts.fill("A {scope} B {slot}", {"scope": "{slot} {x}", "slot": "90 minutos"}) == "A {slot} {x} B 90 minutos"
+    )
+    with pytest.raises(prompts.PromptError, match="pages"):
+        prompts.fill("{pages} {slot}", {"slot": "x"})
+
+
+def test_dates_and_languages_in_words():
+    day = dt.date(2026, 11, 5)
+    assert (prompts.exam_day(day), prompts.day_month(day), prompts.short_day(day)) == (
+        "jueves 5 de noviembre",
+        "5 de noviembre",
+        "5 nov",
+    )
+    assert prompts.language_words("eu") == "euskera"
+    with pytest.raises(prompts.PromptError):
+        prompts.language_words("xx")
+
+
+# --- the slot and the topic -------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("given", "minutes", "words", "pages"),
+    [
+        (None, 90, "90 minutos", 4),
+        ("17:00-18:30", 90, "17:00–18:30", 4),
+        ("17:00-18:40", 100, "17:00–18:40", 5),
+        ("16:00-19:00", 180, "16:00–19:00", 8),
+    ],
+)
+def test_the_slot_sets_four_pages_per_90_minutes_rounded_up(given: str | None, minutes: int, words: str, pages: int):
+    slot = Slot.parse(given)
+    assert (slot.minutes, slot.words, slot.pages) == (minutes, words, pages)
+
+
+@pytest.mark.parametrize("given", ["18:30-17:00", "17:00", "7:00-8:00", "25:00-26:00"])
+def test_a_slot_that_is_not_one_interval_of_a_day_is_refused(given: str):
+    with pytest.raises(Refusal):
+        Slot.parse(given)
+
+
+def test_the_sheets_name_the_topic_by_its_number_or_else_by_its_name():
+    assert topic_number("20260915 - Tema 01 - Materia inventada") == "T01"
+    assert topic_number("20261001 - Proyecto de laboratorio") == "Proyecto de laboratorio"
+
+
+# --- a whole run ------------------------------------------------------------------------------------
+
+
+def test_both_sheets_are_asked_titled_and_printed_into_exam(world: World, capsys: pytest.CaptureFixture[str]):
+    code = world.run("--slot", "17:00-18:30")
+    result, err = output(capsys)
+    assert code == 0
+    assert result == {
+        "ok": True,
+        "exam_date": EXAM_DAY,
+        "guide_regenerated": False,
+        "slot_minutes": 90,
+        "pages_allowed": 4,
+        "sheets": [{"kind": "theory", "printed": True, "pages": 3}, {"kind": "problems", "printed": True, "pages": 3}],
+        "topic": 0,
+    }
+    printed = sorted(p.name for p in (world.topic / "exam").iterdir())
+    assert printed == ["Problemas tipo · T01 (5 nov).pdf", "Teoría para el examen · T01 (5 nov).pdf"]
+    # Both reports in Spanish with their own language option, every placeholder filled.
+    asked = world.nlm.asked("report", "create")
+    assert len(asked) == 2
+    for argv in asked:
+        assert argv[argv.index("--format") + 1] == "Create Your Own" and argv[argv.index("--language") + 1] == "es"
+        prompt = argv[argv.index("--prompt") + 1]
+        assert not PLACEHOLDERS.search(prompt)
+        assert SCOPE in prompt or "Problemas tipo" in prompt
+    theory = asked[0][asked[0].index("--prompt") + 1]
+    assert (
+        SCOPE in theory and "(20 de octubre)" in theory and "17:00–18:30" in theory and "Como mucho 4 páginas" in theory
+    )
+    assert "Examen del jueves 5 de noviembre" in theory
+    # Titled from the last to the first, then the start note.
+    renames = [c[3:5] for c in world.nlm.asked("studio", "rename")]
+    assert renames == [
+        ["art-2", f"EXAMEN jueves 2 · Problemas tipo · {TOPIC}"],
+        ["art-1", f"EXAMEN jueves 1 · Teoría para el examen · {TOPIC}"],
+    ]
+    [note] = world.nlm.asked("note", "create")
+    assert note[note.index("--title") + 1] == "0 · Empieza aquí"
+    assert f"«EXAMEN jueves 1 · Teoría para el examen · {TOPIC}» (17:00–18:30)" in note[note.index("--content") + 1]
+    assert world.nlm.calls.index(note) > world.nlm.calls.index(world.nlm.asked("studio", "rename")[-1])
+    # The problems sheet breaks the page before «Soluciones»; the theory sheet does not.
+    assert [(a, b) for a, _, b in world.printer.printed] == [("art-1", ""), ("art-2", "Soluciones")]
+    # The pack record holds both pieces.
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    pieces = pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["pieces"]
+    assert [(p["id"], p["kind"], p["moment"], p["verification"]) for p in pieces] == [
+        ("art-1", "exam_theory", "EXAMEN jueves", "pages_only"),
+        ("art-2", "exam_problems", "EXAMEN jueves", "pages_only"),
+    ]
+    # The topic is named; nothing absolute, no id.
+    assert f"most recent one: 20260915 - {TOPIC}" in err and "not set up yet" in err
+    assert str(world.home) not in err and "nb-1" not in err and "art-" not in err
+
+
+def test_the_numbers_follow_the_pieces_the_moment_already_holds(world: World, capsys: pytest.CaptureFixture[str]):
+    world.nlm.studio = [Art("old-1", "report", "EXAMEN jueves 1 · Teoría para el examen · Tema 00 - Otro")]
+    world.nlm.notes = [{"id": "note-0", "title": "0 · Empieza aquí"}]
+    assert world.run() == 0
+    renames = [c[4] for c in world.nlm.asked("studio", "rename")]
+    assert renames == [
+        f"EXAMEN jueves 3 · Problemas tipo · {TOPIC}",
+        f"EXAMEN jueves 2 · Teoría para el examen · {TOPIC}",
+    ]
+    assert world.nlm.asked("note", "update") and not world.nlm.asked("note", "create")
+    assert world.nlm.asked("note", "update")[0][4] == "note-0"
+
+
+def test_a_second_exam_on_the_topic_sits_beside_the_first(world: World, capsys: pytest.CaptureFixture[str]):
+    exam_dir = world.topic / "exam"
+    exam_dir.mkdir()
+    (exam_dir / "Teoría para el examen · T01 (29 oct).pdf").write_bytes(b"%PDF-1.4\n")
+    assert world.run() == 0
+    assert len(list(exam_dir.iterdir())) == 3
+
+
+def test_a_theory_sheet_longer_than_the_slot_is_printed_and_reported(world: World, capsys: pytest.CaptureFixture[str]):
+    world.printer.pages_of["Teoría para el examen"] = 6
+    assert world.run() == 0
+    result, err = output(capsys)
+    assert result["sheets"][0] == {"kind": "theory", "printed": True, "pages": 6}
+    assert "6 pages; the slot allows 4" in err
+
+
+def test_the_exam_on_a_date_and_a_named_topic(world: World, capsys: pytest.CaptureFixture[str]):
+    other = world.base / "2026-2027" / "FyQ" / "20261101 - Tema 02 - Otra materia"
+    other.mkdir()
+    world.nlm.notebooks.append({"id": "nb-2", "title": "3º ESO. FyQ. Tema 02 - Otra materia"})
+    assert world.run("--exam", EXAM_DAY, "--topic", f"20260915 - {TOPIC}") == 0
+    _, err = output(capsys)
+    assert "most recent" not in err
+    assert (world.topic / "exam" / "Problemas tipo · T01 (5 nov).pdf").is_file()
+
+
+def test_without_a_topic_the_most_recent_one_is_taken(world: World, capsys: pytest.CaptureFixture[str]):
+    (world.base / "2026-2027" / "FyQ" / "20261101 - Tema 02 - Otra materia").mkdir()
+    world.nlm.notebooks = []
+    assert world.run() == 1
+    result, err = output(capsys)
+    assert result == {"ok": False, "reason": "no_notebook"} and "Tema 02 - Otra materia" in err
+
+
+# --- the study guide (step 5) -----------------------------------------------------------------------
+
+
+def test_a_guide_made_before_the_notes_is_regenerated_before_anything_prints(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    world.nlm.studio = [Art("guide-0", "report", "6 · Guía de estudio · Materia", created_at="2026-10-25T09:00:00Z")]
+    world.living.found = LivingNotes("src-notes", "md5-new", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    assert world.run() == 0
+    result, _ = output(capsys)
+    assert result["guide_regenerated"] is True
+    [guide] = [c for c in world.nlm.asked("report", "create") if "Study Guide" in c]
+    assert guide[guide.index("--language") + 1] == "es"
+    assert ["art-1", "6 · Guía de estudio · Materia"] in [c[3:5] for c in world.nlm.asked("studio", "rename")]
+    assert [c[4] for c in world.nlm.asked("studio", "delete")] == ["guide-0"]
+    # The guide comes before both sheets are asked for.
+    assert world.nlm.calls.index(guide) < world.nlm.calls.index(world.nlm.asked("report", "create")[1])
+    # The notes source was read once and given its two minutes; the refresh record says so.
+    assert len(world.nlm.asked("source", "content")) == 1 and SOURCE_SETTLE_SECONDS in world.slept
+    refresh = json.loads((world.data / "notebook-refresh.json").read_text())
+    assert refresh["sources"]["src-notes"]["read_md5"] == "md5-new" and refresh["sources"]["src-notes"]["reads"] == 1
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    assert pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["guide"]["id"] == "art-1"
+
+
+def test_a_guide_made_after_the_notes_stays_and_a_source_already_read_is_not_read_again(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    world.nlm.studio = [Art("guide-0", "report", "Guía de estudio", created_at="2026-10-28T09:00:00Z")]
+    world.living.found = LivingNotes("src-notes", "md5-same", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    (world.data / "notebook-refresh.json").write_text(
+        json.dumps({"sources": {"src-notes": {"read_md5": "md5-same", "reads": 2}}})
+    )
+    assert world.run() == 0
+    result, _ = output(capsys)
+    assert result["guide_regenerated"] is False
+    assert not [c for c in world.nlm.asked("report", "create") if "Study Guide" in c]
+    assert not world.nlm.asked("source", "content") and not world.nlm.asked("studio", "delete")
+
+
+def test_a_topic_with_no_guide_gets_one(world: World, capsys: pytest.CaptureFixture[str]):
+    world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    assert world.run() == 0
+    result, _ = output(capsys)
+    assert result["guide_regenerated"] is True and not world.nlm.asked("studio", "delete")
+
+
+def test_drive_failing_leaves_the_guide_unchecked_and_still_prints_both(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    world.living.fails = True
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert result["ok"] is False and result["guide_regenerated"] is False
+    assert [s["printed"] for s in result["sheets"]] == [True, True]
+    assert "may be stale" in err
+
+
+def test_a_guide_that_never_completes_is_reported_and_the_sheets_still_print(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    world.nlm.never = {"guide"}
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert result["guide_regenerated"] is False and [s["printed"] for s in result["sheets"]] == [True, True]
+    assert "may be stale" in err and POLL_SECONDS in world.slept
+
+
+# --- what fails after step 5 is code 3 and stops nothing ---------------------------------------------
+
+
+def test_a_report_that_never_completes_leaves_the_other_printed(world: World, capsys: pytest.CaptureFixture[str]):
+    world.nlm.never = {"theory"}
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert result["sheets"] == [
+        {"kind": "theory", "printed": False, "pages": None},
+        {"kind": "problems", "printed": True, "pages": 3},
+    ]
+    assert "«Teoría para el examen» never completed" in err
+    assert not world.nlm.asked("note", "create")  # the start note names the theory sheet, which is not there
+    assert [c[3] for c in world.nlm.asked("studio", "rename")] == ["art-2"]
+
+
+def test_a_sheet_that_does_not_print_is_code_3(world: World, capsys: pytest.CaptureFixture[str]):
+    world.printer.fails = {"Problemas tipo"}
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert [s["printed"] for s in result["sheets"]] == [True, False] and "did not print" in err
+
+
+def test_a_mirror_that_fails_is_counted_and_stops_nothing(world: World, capsys: pytest.CaptureFixture[str]):
+    world.mirror_failures = 1
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert [s["printed"] for s in result["sheets"]] == [True, True] and "1 mirror(s)" in err
+
+
+# --- refusals: nothing asked, nothing printed --------------------------------------------------------
+
+
+def refused(world: World, capsys: pytest.CaptureFixture[str], code: int, reason: str, *extra: str) -> str:
+    assert world.run(*extra) == code
+    result, err = output(capsys)
+    assert result == {"ok": False, "reason": reason}
+    assert not world.nlm.asked("report", "create") and not world.nlm.asked("studio", "rename")
+    assert not (world.topic / "exam").exists()
+    return err
+
+
+def test_notebooks_switched_off_refuse_before_nlm_is_called(world: World, capsys: pytest.CaptureFixture[str]):
+    config = world.home / STUDENT / "config.toml"
+    config.write_text(config.read_text().replace("enabled = true", "enabled = false"))
+    err = refused(world, capsys, 1, "notebook_disabled")
+    assert "notebook.enabled" in err and world.nlm.calls == []
+
+
+@pytest.mark.parametrize(
+    ("setup", "reason", "hint"),
+    [
+        ({"missing": True}, "no_nlm", "cannot be run"),
+        ({"session": 2}, "nlm_signed_out", "nlm login --profile <profile>"),
+        ({"session": 1}, "nlm_failed", "nlm failed"),
+        ({"default": "otro"}, "nlm_not_default", "nlm config set auth.default_profile <profile>"),
+    ],
+)
+def test_nlm_not_usable_is_code_5_and_says_which(
+    world: World, capsys: pytest.CaptureFixture[str], setup: dict[str, Any], reason: str, hint: str
+):
+    for key, value in setup.items():
+        setattr(world.nlm, key, value)
+    err = refused(world, capsys, 5, reason)
+    assert hint in err and PROFILE not in err and "otro" not in err
+
+
+def test_no_agenda_is_no_exam(world: World, capsys: pytest.CaptureFixture[str]):
+    (world.base / "2026-2027" / "agenda.json").unlink()
+    refused(world, capsys, 1, "no_exam")
+
+
+def test_no_exam_on_the_date_given_or_none_to_come(world: World, capsys: pytest.CaptureFixture[str]):
+    refused(world, capsys, 1, "no_exam", "--exam", "2026-11-06")
+    write_agenda(world, [entry("synth-30#exam-1", "exam", "2026-10-01", detected=True, origin="synth-30")])
+    refused(world, capsys, 1, "no_exam")
+
+
+def test_an_exam_of_another_subject_is_not_this_subjects(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(
+        world, [entry("synth-30#exam-1", "exam", EXAM_DAY, detected=True, origin="synth-30", subject="Ingles")]
+    )
+    refused(world, capsys, 1, "no_exam")
+
+
+def test_a_classroom_assignment_exam_has_no_announcement(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [entry("assignment-9", "exam", EXAM_DAY)])
+    err = refused(world, capsys, 1, "no_announcement")
+    assert "announcement" in err
+
+
+def test_an_exam_detected_in_a_material_has_no_announcement(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [entry("material-7#exam-1", "exam", EXAM_DAY, detected=True, origin="material-7")])
+    (world.data / "state.json").write_text(
+        json.dumps({"replicas": {"classroom|material-7|#description": {"role": "description", "path": NOTE_PATH}}})
+    )
+    refused(world, capsys, 1, "no_announcement")
+
+
+def test_an_announcement_whose_note_is_gone_is_no_announcement(world: World, capsys: pytest.CaptureFixture[str]):
+    (world.base / NOTE_PATH).unlink()
+    refused(world, capsys, 1, "no_announcement")
+
+
+def test_a_topic_without_its_notebook(world: World, capsys: pytest.CaptureFixture[str]):
+    world.nlm.notebooks = [{"id": "nb-9", "title": "3º ESO. FyQ. Tema 09 - Otro"}]
+    refused(world, capsys, 1, "no_notebook")
+
+
+@pytest.mark.parametrize(
+    ("extra", "reason"),
+    [
+        (("--slot", "18:00-17:00"), "invalid_slot"),
+        (("--topic", "20990101 - Tema 99 - No existe"), "no_topic"),
+    ],
+)
+def test_usage_errors_refuse(world: World, capsys: pytest.CaptureFixture[str], extra: tuple[str, ...], reason: str):
+    refused(world, capsys, 1, reason, *extra)
+
+
+def test_a_subject_not_configured_and_an_invalid_configuration_refuse(world: World, capsys: pytest.CaptureFixture[str]):
+    assert (
+        cmd_exam_prep(
+            world.home,
+            argparse.Namespace(student=STUDENT, subject="Latín", exam=None, slot=None, topic=None),
+            MemoryStore(),
+            world.deps,
+            lambda: TODAY,
+        )
+        == 1
+    )
+    assert output(capsys)[0]["reason"] == "no_subject"
+    config = world.home / STUDENT / "config.toml"
+    config.write_text(config.read_text().replace('nlm_profile = "prueba"\n', ""))
+    err = refused(world, capsys, 1, "invalid_config")
+    assert "notebook.nlm_profile: missing" in err and world.nlm.calls == []
+
+
+def test_the_command_is_wired_into_alfabeta(world: World, capsys: pytest.CaptureFixture[str]):
+    config = world.home / STUDENT / "config.toml"
+    config.write_text(config.read_text().replace("enabled = true", "enabled = false"))
+    argv = [
+        "--home",
+        str(world.home),
+        "exam",
+        "prep",
+        "--student",
+        STUDENT,
+        "--subject",
+        "FyQ",
+        "--slot",
+        "17:00-18:30",
+    ]
+    assert cli_main.main(argv) == 1
+    assert output(capsys)[0] == {"ok": False, "reason": "notebook_disabled"}
+
+
+# --- the adapters -----------------------------------------------------------------------------------
+
+
+def test_every_nlm_command_but_config_carries_the_profile():
+    nlm = FakeNlm()
+    notebook = NlmNotebook(PROFILE, nlm)
+    notebook.check_session()
+    assert notebook.default_profile() == PROFILE
+    made = notebook.create_report("nb-1", "Study Guide", "es")
+    notebook.rename(made, "Guía")
+    notebook.delete("nb-1", made)
+    assert nlm.calls == [
+        ["nlm", "login", "--check", "--profile", PROFILE],
+        ["nlm", "config", "get", "auth.default_profile"],
+        [
+            "nlm",
+            "report",
+            "create",
+            "nb-1",
+            "--format",
+            "Study Guide",
+            "--language",
+            "es",
+            "-y",
+            "--json",
+            "--profile",
+            PROFILE,
+        ],
+        ["nlm", "studio", "rename", "art-1", "Guía", "--profile", PROFILE],
+        ["nlm", "studio", "delete", "nb-1", "art-1", "--confirm", "--profile", PROFILE],
+    ]
+
+
+def test_mirrors_are_refreshed_without_delete_and_one_not_mounted_is_counted(tmp_path: Path):
+    base, mounted, absent = tmp_path / "base", tmp_path / "mirror", tmp_path / "not-mounted"
+    base.mkdir()
+    mounted.mkdir()
+    calls: list[list[str]] = []
+
+    def runner(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    assert refresh_mirrors(base, [mounted, absent], runner) == 1
+    assert calls == [["rsync", "-rlt", "--exclude", ".DS_Store", f"{base}/", f"{mounted}/"]]

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Print a topic's Gemini Notebook study material to A4 PDF.
 
-  print_pack.py report <notebook-id> <artifact-id> <out.pdf> (--student S | --profile P)
-      one report (study guide, practice sheet, parent guide…)
+  print_pack.py report <notebook-id> <artifact-id> <out.pdf> (--student S | --profile P) [--break-before H]
+      one report (study guide, practice sheet, parent guide…); with --break-before, a new page
+      before its first heading titled H (an exam's problems sheet before «Soluciones»)
   print_pack.py topic <notebook-id> <out.pdf> (--student S | --profile P)
       the whole Studio in one document: an index first, then every report, quiz (answer key at the
       end), flashcards and mind map, in Studio order; videos appear in the index only
@@ -103,6 +104,17 @@ def fix_lists(md: str) -> str:
             out.append("")
         out.append(line)
     return "\n".join(out)
+
+
+def break_before(md: str, heading: str) -> str:
+    """A page break before the first heading whose text is `heading`, numbered or not, whatever its level."""
+    found = re.compile(
+        rf"^#{{1,6}}\s+(?:\d+[.)]\s*)?[*«\"]*{re.escape(heading)}[*»\"]*\s*$", re.M
+    ).search(md)
+    if found is None:
+        print(f"print_pack: no heading «{heading}»; no page break added", file=sys.stderr)
+        return md
+    return md[: found.start()] + '<div class="newpage"></div>\n\n' + md[found.start() :]
 
 
 def demote(md: str) -> str:
@@ -214,10 +226,12 @@ def render(md: str, out: Path, work: Path) -> None:
 
 
 def report(args: argparse.Namespace, work: Path) -> None:
-    md = download(
-        args.profile, "report", args.notebook, args.artifact, work
-    ).read_text()
-    render(fix_lists(md), Path(args.out).expanduser(), work)
+    md = fix_lists(
+        download(args.profile, "report", args.notebook, args.artifact, work).read_text()
+    )
+    if args.break_before:
+        md = break_before(md, args.break_before)
+    render(md, Path(args.out).expanduser(), work)
 
 
 def topic(args: argparse.Namespace, work: Path) -> None:
@@ -320,6 +334,9 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("report")
     r.add_argument("notebook"), r.add_argument("artifact"), r.add_argument("out")
+    r.add_argument(
+        "--break-before", metavar="HEADING", help="a new page before this heading"
+    )
     t = sub.add_parser("topic")
     t.add_argument("notebook"), t.add_argument("out")
     for s in (r, t):

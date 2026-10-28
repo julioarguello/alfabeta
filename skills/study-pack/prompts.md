@@ -22,6 +22,7 @@ one before sending; a prompt that still holds a `{` is a bug.
 | `{scope_date}` | that announcement's date, `8 de mayo` |
 | `{slot}` | the study slot, `17:00–18:30`, or `90 minutos` when none is given |
 | `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
+| `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
 
 ## Video — one per block, at most three per topic
 
@@ -97,6 +98,15 @@ Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la
 1. Mira los vídeos en orden (1, 2, 3): uno por tarde.
 2. Después de cada vídeo, haz la parte de la hoja de ejercicios de ese bloque, en papel.
 3. El día antes del examen: el test y las tarjetas. Si una respuesta tuya no coincide con una hoja, fíate de tu cuenta y pregunta en el chat.
+```
+
+## Start note — for an exam
+
+`exam prep` rewrites the start note with it once the theory sheet is in Studio (spec 002 FR-015,
+FR-029): `{theory}` is that sheet's title.
+
+```text
+Hoy, para el examen del {exam_day}: «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
 ```
 
 ## Tutor chat

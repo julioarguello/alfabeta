@@ -32,7 +32,9 @@ that fails does not stop the other.
    profile, which `nlm download` reads; otherwise code 5, saying which.
 3. Finds the exam: an `exam` item of the subject in spec 001's agenda, on `--exam` or the next one;
    none is `no_exam`. Reads its announcement: the `<YYYYMMDD> - aviso - <summary>.md` note spec 001
-   writes for it (its FR-015), text and date. An exam with no announcement, including one
+   writes for it (its FR-015), text and date, found through the `announcement` replica that
+   `data/state.json` records for the item the exam was detected in (the entry's `origin`). An exam
+   with no announcement, including one
    spec 001 detected in a material or an assignment (its FR-020b), is `no_announcement`. Both are
    code 1.
 4. Finds the topic (`--topic`, or the most recent one) and its notebook, by
@@ -44,9 +46,10 @@ that fails does not stop the other.
    measured 2026-10-27). Then it compares the time Drive gives for
    the living notes file's last revision with the study guide's creation time
    (`nlm studio status --full --json`). When the revision is later, or there is no guide, it
-   generates one (`--format 'Study Guide' --language es`), waits for it, and deletes the previous
-   one, so one guide is live (FR-033). A topic whose living files are not set up yet skips the
-   comparison and says so.
+   generates one (`--format 'Study Guide' --language es`), waits for it, gives it the previous
+   guide's title and deletes the previous one, so one guide is live (FR-033). The guide is the one
+   the pack record names, or else a completed report titled «Guía de estudio» or «Study Guide». A
+   topic whose living files are not set up yet skips the comparison and says so.
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and
    «Problems sheet — for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), every
@@ -62,16 +65,30 @@ that fails does not stop the other.
    folder, created when missing and with no date in its name, as
    `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
    `exam/Problemas tipo · TNN (<D> <mmm>).pdf`; a second exam on the same topic sits beside the
-   first, told apart by the date in those names. The problems sheet gets a page break before its
-   «Soluciones» heading, through an option of `print_pack.py report` that
-   julioarguello/alfabeta#106 adds. Then it refreshes the mirrors as the pack's step 9 does; a
-   mirror that fails is counted and stops nothing.
+   first, told apart by the date in those names. A teacher's topic with no `Tema NN` is named by
+   its folder's name after the date in place of `TNN`. The problems sheet gets a page break before
+   its «Soluciones» heading, `print_pack.py report --break-before Soluciones`. Then it refreshes
+   the mirrors as the pack's step 9 does; a mirror that fails or is not mounted is counted, stops
+   nothing and makes the run code 3.
 9. Counts the theory sheet's pages against `pages_allowed`. A longer sheet is printed and reported
    on stderr; it is not regenerated. Nothing else of either sheet is checked: not its language,
    not its numbers (FR-009, FR-036).
 
+**Records**, in the student's data folder (`~/.alfabeta/<id>/data/`), never in Drive or the
+repository:
+
+- the pack record (FR-024), `study-pack.json`: per topic, keyed by the topic folder's path under
+  `storage.base`, the live study guide (`guide`: its notebook id and the day it was made) and the
+  pieces (`pieces`: notebook id, kind, moment, title, language, verification — `pages_only` for an
+  exam sheet — the exam's date and the day it was made);
+- spec 005's refresh record, `notebook-refresh.json`: under `sources`, per source id, `read_md5`,
+  `reads` and `read_at` (spec 005 data-model, RefreshRecord).
+
 **Exit codes**: 0 ok · 1 usage or validation · 3 partial failure · 5 the notebook tool is not
-usable. When several apply, the highest wins, as in spec 005.
+usable. When several apply, the highest wins, as in spec 005. Code 1 also covers `invalid_config`,
+`no_subject`, `invalid_slot`, `no_topic`, `unknown_language` (a subject `language` with no words
+in the prompts) and `invalid_prompt`; code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
+`nlm_not_default`.
 
 **Not in this command**:
 

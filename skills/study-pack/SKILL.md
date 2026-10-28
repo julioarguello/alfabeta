@@ -142,12 +142,13 @@ the start note last, and prints them into the topic's `exam/` folder (no date in
 notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036).
 
-Until that command exists, the family can make the same two reports by hand, with no agent:
-`nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile
-<profile> -y`, one per prompt with every placeholder filled, printed with `print-report.sh`
-(step 6) under those paths; `print-report.sh` creates the topic's `exam/` folder when it is
-missing. That path skips what the command adds: regenerating a stale guide, the titles, the
-start note, the pack record and the page break before «Soluciones».
+To remake one sheet without the command, the family can ask for the same report by hand, with
+no agent: `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>"
+--profile <profile> -y`, with every placeholder of its prompt filled, printed with
+`print-report.sh` (step 6) under its path, adding `--break-before Soluciones` for the problems
+sheet; `print-report.sh` creates the topic's `exam/` folder when it is missing. That path skips
+what the command adds: regenerating a stale guide, the titles, the start note and the pack
+record.
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
 topic folder, every result computed by a script it wrote, and the family then decided that

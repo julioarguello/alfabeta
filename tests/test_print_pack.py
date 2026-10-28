@@ -114,3 +114,53 @@ def test_a_pdf_for_a_folder_the_topic_lacks_makes_the_folder(tmp_path: Path, mon
     script.render("# Guía\n", out, work)
     assert out.parent.is_dir()
     assert f"--print-to-pdf={out}" in fake.calls[-1]
+
+
+PROBLEMS = """# FyQ · Examen del jueves 5 de noviembre — Problemas tipo
+
+## 4. El más difícil de cada patrón
+
+Enunciado.
+
+## 5. Soluciones
+
+Solución.
+
+## Soluciones impresas que no cuadran
+
+| Problema | Impreso | Calculado | Qué pasa |
+"""
+
+
+def test_the_page_breaks_before_the_solutions_heading_and_not_before_the_table():
+    out = load_script().break_before(PROBLEMS, "Soluciones")
+    before, _, after = out.partition('<div class="newpage"></div>\n\n')
+    assert before.endswith("Enunciado.\n\n") and after.startswith("## 5. Soluciones\n")
+    assert out.count("newpage") == 1
+
+
+def test_a_sheet_without_that_heading_prints_unchanged_and_says_so(capsys: pytest.CaptureFixture[str]):
+    md = "# Hoja\n\nSin soluciones aparte.\n"
+    assert load_script().break_before(md, "Soluciones") == md
+    assert "no heading «Soluciones»" in capsys.readouterr().err
+
+
+def test_the_report_takes_a_heading_to_break_before(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    args = script.parse(["report", "nb-1", "art-1", "out.pdf", "--profile", "p", "--break-before", "Soluciones"])
+    assert args.break_before == "Soluciones"
+    report = tmp_path / "r.md"
+    report.write_text(PROBLEMS)
+    rendered: list[str] = []
+
+    def download(*_: object) -> Path:
+        return report
+
+    def render(md: str, out: Path, work: Path) -> None:
+        rendered.append(md)
+
+    monkeypatch.setattr(script, "download", download)
+    monkeypatch.setattr(script, "render", render)
+    script.report(args, tmp_path)
+    assert '<div class="newpage"></div>\n\n## 5. Soluciones' in rendered[0]
+    assert script.parse(["report", "nb-1", "art-1", "out.pdf", "--profile", "p"]).break_before is None
