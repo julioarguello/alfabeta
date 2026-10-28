@@ -29,6 +29,14 @@ alfabeta config check
 Expect no problem. A subject with two sessions on one weekday, or a session whose subject is not a
 `[[subjects]]` folder, is reported by its key.
 
+Two checks by hand, recorded with their date:
+
+- The calendar's sharing settings in Google Calendar list exactly the accounts of
+  `calendar.shared_with`, each able to see all event details, and no other (spec 001 FR-011b,
+  constitution VII). alfabeta cannot read sharing with the student's link (research R13).
+- The calendar policy line of the student's private configuration reads "objective facts from
+  Classroom, plus warnings that restate those facts" (spec, «Changes elsewhere»).
+
 ## 2. A dry run (slice 1)
 
 ```bash
@@ -78,7 +86,8 @@ alfabeta calendar replay --from 2026-09-07 --to 2026-10-26
 ```
 
 - **SC-001**: the first-run replay reports `past_due_warned: 0` and `handed_in_warned: 0`, and its
-  `control` shows the draft design's 16 and 7.
+  `control` counts are not 0. They were 16 and 7 on the capture of 2026-10-26; the state's statuses
+  have moved since, so record its own numbers beside those (research R10).
 - **SC-002**: the day-by-day replay's `unwarned` holds only the items posted and due with no home
   slot in between (2 measured).
 - **SC-008**: the chromatography item rings on Saturday 10 and Monday 12 October at 16:00 and on no

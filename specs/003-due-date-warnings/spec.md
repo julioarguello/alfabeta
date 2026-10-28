@@ -177,8 +177,9 @@ then with one due date moved.
 **Acceptance Scenarios**:
 
 1. **Given** a first run, **When** an item's due instant has passed, **Then** it gets no warning.
-2. **Given** a first run, **When** an item still ahead has several warnings whose time already
-   passed, **Then** they become one warning at the next home slot.
+2. **Given** a first run, **When** every warning of an item still ahead has a time that already
+   passed, **Then** they become one warning at the next home slot (FR-009); warnings still ahead
+   stay as they are.
 3. **Given** a second run with nothing changed, **When** it ends, **Then** no event was created,
    moved or deleted.
 4. **Given** a teacher who moves a due date, **When** the next sync runs, **Then** the item's

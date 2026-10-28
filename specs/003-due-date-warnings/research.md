@@ -113,7 +113,7 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   2,500 a page), compares the owned fields locally, and writes only the ones that differ: insert a
   missing one (a 409 is a cancelled copy, brought back with `status: confirmed`, spec 004 R5),
   update a different one.
-- **Rationale**: `upsert`'s one `get` per event would be about 200 reads a run. One listing reads the
+- **Rationale**: `upsert`'s one `get` per event would be several hundred reads a run by spring. One listing reads the
   same and costs one request a page. The private property also tells an owned event from a legacy
   or family one without trusting titles.
 - **The owned fields** are spec 004's (summary, description, start, end, reminders) plus the private
@@ -191,6 +191,12 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
 - **Rationale**: the success criteria are measured on the real capture, which cannot be a test
   fixture (III). A replay on the Mac measures them and keeps the result to counts and ids. The tests
   run the same code on invented agendas.
+- **The reference numbers move.** `--first-run 2026-10-26` takes the items posted by that date with
+  the statuses the state holds when the replay runs, which are later than the capture's. SC-001
+  passes when `past_due_warned` and `handed_in_warned` are 0 and the `control` counts are not: the
+  control proves the check can fire. The capture's 16 and 7 are recorded beside the state's own
+  control counts, not required to match them. SC-002, SC-004 and SC-008 do not depend on statuses,
+  so they reproduce.
 
 ## R11 — Output and the family's words
 
@@ -222,9 +228,14 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   description is an owned field, so a link another writer adds is overwritten by the next run. When
   spec 002 is planned, it passes its links to `events_for()`; this plan builds no hook for a plan that
   does not exist.
-- **Spec 001 FR-011b** (the calendar shared with every account in `calendar.shared_with`): the
-  student's link cannot read or change sharing (Observed facts), and spec 004 R5 keeps sharing a
-  step the operator does by hand. This plan does not widen the scope for it.
+- **Spec 001 FR-011b and constitution VII** (the calendar shared with every account in
+  `calendar.shared_with`, and with no other): the student's link cannot read or change sharing
+  (Observed facts), and spec 004 R5 keeps sharing a step the operator does by hand. The check is
+  therefore the family's, by hand, in quickstart step 1: the calendar's sharing settings list
+  exactly the accounts of `calendar.shared_with`, each able to see all event details, recorded
+  with its date (T019). Adding `calendar.acls.readonly` so a run could check it would mean linking
+  the student's Gmail again, with a parent's approval, for a list that changes about once a year;
+  not chosen.
 - **Spec 001 FR-020a** (one colour per category) stays out, as the spec says.
 - **Spec 004 T022** (the chat connector's account leaves the calendar's sharing) should follow
   `calendar legacy --apply`, so that no new legacy event appears.

@@ -42,7 +42,8 @@ Development: spec 001's `ruff`, strict `pyright` and `pytest`.
 - input: `<storage.base>/<school_year>/agenda.json`, gaining one key, `posted`
   ([data-model.md](data-model.md#agenda-input));
 - records: `~/.alfabeta/<student>/data/calendar/` (`items.json`, `delivery.json`,
-  `legacy-<run>.json`);
+  `legacy-<run>.json`), and one `type: calendar` line per applied run in spec 001's
+  `data/log.jsonl` (constitution V);
 - output: the family calendar (`calendar.id`), written as the linked account whose role is
   `student`.
 
@@ -56,8 +57,8 @@ command later (spec 001 FR-036); this plan does not build that.
 
 **Project Type**: subcommands of spec 001's local command (`python -m alfabeta calendar …`).
 
-**Performance Goals**: one paged listing per run, and only the writes that differ. About 200 events
-a school year at the measured rate (93 items in 7 weeks).
+**Performance Goals**: one paged listing per run, and only the writes that differ. Some 600 events a
+school year at the measured rate (93 items in 7 weeks, about 38 school weeks), one page of 2,500.
 
 **Constraints**:
 
@@ -83,9 +84,9 @@ constitution 2.2.0.
 | II. Three layers | Template keys in the repo; values in the private config; event ids and item records in `data/calendar/`; tokens stay in spec 004's keychain entries | Pass |
 | III. Minors' data | Output and logs name items by Classroom id and subjects by folder. Event titles and descriptions go only to the family's own calendar. Fixtures are invented. The delivery check records only a date and an alias | Pass |
 | IV. Read-only on school platforms | Nothing here reads or writes Classroom: the input is the agenda file. The checklist is Classroom's own page, ticked by the student (FR-024) | Pass |
-| V. Idempotent, incremental | Deterministic event ids per item and kind. Reminders are a function of the item and its recorded basis instant, never of the run's clock. A run writes only what differs (SC-005). An event whose fact left Classroom is marked and loses its reminders, never deleted. The legacy events: [research R7](research.md#r7--what-disappears-and-the-legacy-events) and Complexity Tracking | Pass, one justified exception |
+| V. Idempotent, incremental | Deterministic event ids per item and kind. Reminders are a function of the item and its recorded basis instant, never of the run's clock. A run writes only what differs (SC-005), and an applied run leaves its line in `data/log.jsonl`. An event whose fact left Classroom is marked and loses its reminders, never deleted. The legacy events: [research R7](research.md#r7--what-disappears-and-the-legacy-events) and Complexity Tracking | Pass, one justified exception |
 | VI. One isolated, tested provider | The calendar is an output, not a source. Its pure parts (placement, rule, inference, titles) have no I/O; the writer is spec 004's adapter behind `HttpTransport` | Pass |
-| VII. Outputs degrade on their own | `calendar sync` runs after the agenda is written. A broken link or a Calendar error stops only the calendar and is reported (gate 2); the folder, the agenda and the mirrors are untouched | Pass |
+| VII. Outputs degrade on their own | `calendar sync` runs after the agenda is written. A broken link or a Calendar error stops only the calendar and is reported (gate 2); the folder, the agenda and the mirrors are untouched. The calendar's sharing with `calendar.shared_with` stays the operator's by hand (spec 004 R5) and is checked by the family in quickstart step 1, since the student's link cannot read it ([research R13](research.md#r13--neighbouring-specs)) | Pass |
 | VIII. `Europe/Madrid` | Instants are built with `ZoneInfo("Europe/Madrid")`; reminder minutes are differences of instants; events carry `timeZone: "Europe/Madrid"`; tests at both changes | Pass |
 | IX. Simplicity | Standard library only; no new dependency; one subpackage; one key added to an existing contract | Pass |
 

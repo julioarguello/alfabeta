@@ -35,8 +35,17 @@ are approximate, as the timetable says; they place events, they are never a due 
 ## Placement
 
 `Placement(start, end, label)`: a timed span within one day, from
-[research R3](research.md#r3--placement). `label` is one of `class_hour`, `no_time_given`,
-`timetable_hour`, `hour_unknown`, `classroom_hour`, `inferred`, or none for a timed due.
+[research R3](research.md#r3--placement). `label` is none for a timed due, else one of these, shown
+as [contracts/events.md](contracts/events.md) writes it:
+
+| `label` | Line in the description |
+|---|---|
+| `class_hour` | «Hora de la clase, no la de publicación» |
+| `no_time_given` | «Classroom no indica hora» |
+| `inferred` | «Fecha deducida de «…»» |
+| `timetable_hour` | «Hora según horario» |
+| `hour_unknown` | «Hora no conocida» |
+| `classroom_hour` | «Hora según Classroom» |
 
 ## DueDate
 
@@ -112,6 +121,15 @@ Written atomically, mode 0600, only when its bytes change.
 | `seen_on` | The date the family saw a reminder ring on the student's phone, as they state it |
 
 Only `calendar delivery` writes it. Every run reads it and says `seen` with the date or `unseen`.
+
+## Run line (`data/log.jsonl`, spec 001's log)
+
+`calendar sync --apply` and `calendar legacy --apply` each append one line, as `book place` and
+`log notebook` do: `type: calendar` (or `calendar_legacy`), `at`, `run`, `result` (`ok` ·
+`partial` · `stopped`), `reason` if not `ok` (`link_<status>`, `no_agenda`, `write_failed`), the
+counts `created`, `updated`, `marked`, `unchanged`, `failed` (legacy: `matched`, `unmatched`,
+`deleted`), `warnings_on` and `delivery` (`seen` · `unseen`). Counts and ids only, never a title
+(constitution V, III). A dry run writes no line.
 
 ## LegacyReport (`data/calendar/legacy-<run>.json`)
 
