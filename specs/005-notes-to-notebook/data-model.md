@@ -82,6 +82,20 @@ Two per topic.
 A topic with no `file_id` is `waiting_setup`: its photos are transcribed and recorded, no living
 file is created, and the report says so.
 
+## RefreshRecord (on the Mac: `notebook-refresh.json` in the student's data folder)
+
+Written only by `notebook refresh` (FR-018), only when a field changes; never in Drive, the
+repository or a log (research R14).
+
+| Field | Meaning |
+|---|---|
+| per `source_id` | `read_md5`: the living file's `built_md5` when the owner last read that source; `read_at`: when |
+| `session` | `ok` or `signed_out`: whether the owner's `nlm` session worked on the last pass, after at most one `nlm auth refresh` |
+| `session_since` | When `session` took its value; the notice of FR-019 goes out when it turns `signed_out`, never on a pass that finds it already so |
+
+A source with no `read_md5` is read on the next pass. A source whose living file is `missing` is
+not read; FR-011's report covers it.
+
 ## ClassroomEntry
 
 One per Classroom item, keyed by the item: the Drive id of its file, note or folder. A material in

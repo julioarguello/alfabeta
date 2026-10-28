@@ -31,6 +31,9 @@ own table is the subset the requirements rest on; this one is the full list.
 | Step 3's viewer half (SC-002), same test topic: a second invented page reached the living file (`notes run`, `pages_added: 1`, the transcription equal to the page). The student's Gmail, invited as a viewer, opened the notebook and asked about the page's invented word; the operator reported no answer within five minutes. Then the owner, with nothing written in between, ran `nlm source list`, `nlm source stale` («All Drive sources are up to date»), `nlm source content`, which already held the page, and `nlm notebook query`, which answered with a citation. Asked again after that, the student's view answered too. This run does not separate two explanations: the student's access started the refresh and it landed after the five minutes, or a viewer's access does not refresh a Drive source and the owner's reads did, `source stale` having run just before the content was read. SC-002 was not met for a viewer on this attempt | The living PDF read back from Drive; the operator's report of both questions in the student's view; the four `nlm` commands as the owner at 08:40 UTC; the notebook was deleted before the owner-free repeat that quickstart step 3 describes | 2026-10-28 |
 | The owner-free repeat, on a second test topic: the student was invited as a viewer before the page existed (09:02 UTC); the page reached the living file at 09:09 UTC (`notes run`, `pages_added: 1`) and the owner touched nothing after it. The student's view, opened at 09:13 UTC, did not answer at 09:13, at about 09:56 or at 10:01 UTC (the operator could not look in between). The owner's `nlm source content` at 10:02:17 UTC still returned the cover alone, 260 characters; the next read, at 10:03:33 UTC, held the page, and the student's view answered at 10:05 UTC. A viewer's access does not refresh a Drive source; the owner's read did within 76 seconds, and the viewer then saw the page. SC-002 does not hold while only the student opens the notebook | `notes run` JSON; the living PDF read back from Drive; the operator's report of the student's view with its times; `nlm source content` as the owner, once a minute after the first read | 2026-10-28 |
 | `nlm source stale` printed «All Drive sources are up to date» while the notebook's copy lacked a page the Drive file had held for 47 minutes, and the copy was still without it 5.5 minutes later: the command did not detect that the source was behind, and did not refresh it within those minutes | `nlm source stale` at 09:56:49 UTC, `nlm source content` at 10:02:17 UTC, the same owner-free repeat, notebooklm-mcp-cli 0.15.8 | 2026-10-28 |
+| The owner's `nlm` profile on the Mac, signed in on 2026-10-26, was still valid; its Google session cookies (`SID`, `__Secure-1PSID` and the rest) expire on 2027-11-30, `SIDCC` and its variants on 2027-10-26, and it holds no `__Secure-1PSIDTS`. `nlm auth refresh --http-only` printed «HTTP-only session refresh validated» and the profile stayed valid | `nlm login --check` before and after, `nlm notebook list` as control; names and expiry dates read from the `Cookies` database of `nlm`'s own browser profile, never the values; notebooklm-mcp-cli 0.15.8 | 2026-10-28 |
+| `launchd.plist`: a job with `StartCalendarInterval` that falls due while the Mac sleeps starts once when it wakes, missed firings coalesced; one with `StartInterval` misses them | `man launchd.plist` on the operator's Mac, read | 2026-10-28 |
+| The `nlm` project's own guide to remote use says cookies copied from another computer may expire quickly or be rejected, and calls a cloud VPS or container not recommended as a persistent deployment unless manual sign-ins are accepted; its issue #166 reports copied cookies dying in about two hours on a VPS, and the maintainer advises running `nlm login` on that machine so `nlm` can refresh from its own browser profile | github.com/jacob-bd/gemini-notebook-mcp-cli `docs/REMOTE_MCP.md` and issue #166, read | 2026-10-28 |
 | The operator checked the transcription of four pages of notes made on 2026-10-26 against the photos and accepted it; it is one Markdown with a `## Página N` section per photo, each embedding the photo by name | This project's conversation of 2026-10-26; the Markdown is in the topic's `apuntes/` | 2026-10-26 |
 | Tema 01's notebook holds those notes as two plain sources titled «Apuntes · Apuntes de clase · T01.md» and «… .pdf» | `nlm source add` output of 2026-10-26 | 2026-10-26 |
 | Spec 001 places a Classroom item as `YYYYMMDD - <title>.<ext>`, as a `.md` note, or as a folder with its files, `descripcion.md` and `enlaces.md`; assignments are folders with `enunciado - <name>` and `enunciado.md`, plus the student's `entrega - <name>` and the grading `correccion.md` | `specs/001-classroom-sync/tasks.md` T027 and `data-model.md` | 2026-10-27 |
@@ -264,3 +267,53 @@ own table is the subset the requirements rest on; this one is the full list.
   (spec 004's `notify`) when it is older than `[notes] cloud_stale_hours`.
 - **Known gap**: with the Mac off and the alert email unread, a failure is seen when a page does not
   arrive.
+
+## R14 — Making the notebook take a changed living file
+
+- **Decision**: `notebook refresh --student <id>` on the Mac reads `.alfabeta/state.json` through
+  spec 004's adapter and, for each living file with a `source_id` and `health = ok` whose
+  `built_md5` differs from the `read_md5` the Mac's refresh record holds for that source, runs
+  `nlm source content <source_id> --profile <[notebook] nlm_profile>` once and records the new
+  checksum. Before the first read of a pass it checks the session (`nlm login --check`); if that
+  fails it runs `nlm auth refresh` once, in `nlm`'s default mode, which renews through `nlm`'s own
+  headless browser profile, never the family's Chrome; if the session still fails, the pass stops
+  with code 5 and the notice of FR-019. A launchd agent in the family's user session runs the pass
+  through the same `uv run --project <tools.repository>` the classroom-sync skill uses, with
+  `StartCalendarInterval` entries every `[notebook] refresh_minutes`, so a Mac that slept runs it
+  once on wake, and `RunAtLoad`, so a Mac that was shut down runs it once when the user's session
+  starts; a LaunchAgent runs only inside that session. The pass reads `state.json` through spec
+  004's adapter with its cached tree, so an idle pass lists no folder. `notebook agent install` writes the agent's plist under `~/Library/LaunchAgents/`
+  with a label built from the student id, never a name, and loads it; `notebook agent remove`
+  unloads and deletes it. The agent's standard output and error go to the student's data folder.
+- **Rationale**: the notebook takes a changed Drive file when its owner reads it, within two minutes,
+  and not when the student, a viewer, opens it (first table, 2026-10-27 and 2026-10-28). The
+  checksum comparison makes an idle pass one Drive read and no `nlm` call (SC-004). The record lives
+  on the Mac because only the Mac writes it, so it needs no revision check against the cloud
+  (R4). `StartCalendarInterval`, not `StartInterval`, because only the first runs after sleep
+  (first table). `--http-only` is not the renewal: it worked on 2026-10-28, but `nlm auth refresh
+  --help` (0.15.8) says only the default mode, through its headless browser, can renew
+  `__Secure-1PSIDTS` cookies, while `--http-only` renews the eligible ones.
+- **Alternatives**:
+  - The student opening the notebook: measured not to refresh it (first table). Rejected.
+  - `nlm source stale` to decide what to read: it reported sources up to date while they were behind,
+    on 2026-10-27 and 2026-10-28. Rejected.
+  - `nlm source sync` instead of a read: not measured, and it may act only on what `stale` reports.
+    Kept as a question; quickstart step 3b can compare it with the read.
+  - The desktop app's scheduled task: runs only while the app is open (spec, first table), the
+    dependency the operator wants gone. Rejected.
+  - Only the daily scheduled sync: a page could wait a day. Rejected.
+  - A cloud-held owner session, either a Compute Engine machine with Chrome and Chrome Remote
+    Desktop where the owner signs in by hand (Google documents that setup), or an Android master
+    token minting web cookies (the approach of the unofficial `notebooklm-py`): it would remove the
+    Mac, but neither has been measured from a datacenter, the master token is a full-account
+    credential that does not expire, and constitution III authorises an unattended credential only
+    to read the student's own material. The operator declined it for now (spec, Clarifications,
+    session 2026-10-28).
+  - The student owning the notebooks, so that his own access refreshes them: the notebooks belong to
+    an adult account to avoid under-18 limits, and the student's Gmail is supervised by Family Link
+    (decided 2026-10-26). Rejected.
+- **Questions for the quickstart**: does one read refresh every time, or does a pass need a
+  second read to confirm (step 3b)? Does the agent, started by launchd and not from a terminal or
+  the app, reach the keychain that holds the Mac's Drive link and `nlm`'s protected credentials
+  (step 3b)? How often does the owner's session need `nlm auth refresh`, and how often does FR-019
+  fire (step 8)?

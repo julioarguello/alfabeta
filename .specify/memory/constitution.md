@@ -190,8 +190,11 @@ Rationale: an unofficial tool must not leave the student without their notes.
   session (Chrome with the Claude extension, or the app's built-in browser). For reading Classroom
   with nobody present (IX), a scheduled job of the operator's Google Cloud project for alfabeta that
   reads either as a first-party client with a token, or with a headless browser whose session the
-  family started by hand — using a secret in the vault (II). Python 3.12 for the scripts; JavaScript
-  only inside the browser, to extract pages.
+  family started by hand — using a secret in the vault (II). On the Mac, alfabeta's own commands may
+  also run from a launchd agent in the family's user session, with no app open, when a spec names
+  the need (spec 005: the notebook owner's refresh, FR-018); such an agent uses the secrets already
+  on the Mac and adds none. Python 3.12 for the scripts; JavaScript only inside the browser, to
+  extract pages.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
@@ -266,4 +269,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-27
+**Version**: 2.1.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-28

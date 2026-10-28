@@ -55,6 +55,29 @@ two minutes later. Repeated so on 2026-10-28: about fifty minutes of the student
 nothing, `nlm source stale` reported the source up to date when it was not, and the owner's
 `nlm source content` brought the page in within 76 seconds (research.md has both rows).
 
+## 3b. The owner's refresh, with no app open
+
+On a test topic set up as in step 1, with the student invited to its notebook as a viewer before
+any page exists:
+
+```bash
+python -m alfabeta notebook agent install --student <id>
+```
+
+Expect: `{ok: true, agent: "installed"}`, and `launchctl print gui/$(id -u)/<label>` shows the job.
+Quit the Claude desktop app. Upload one invented photo to the topic's `apuntes/` and run
+`notes run` by hand (or wait for the cloud run once step 5 is done). From then on nobody touches the
+notebook as its owner: the student opens it and asks about a word only that page holds. Expect an
+answer within 20 minutes of `pages_added: 1` (SC-002), and in the agent's output in the data folder
+one pass with `read: 1` followed by passes with `read: 0`. Record the time from `pages_added` to the
+student's answer, and whether the source's content held the page on the first pass after the read
+(research R14's question); a pass that read the source also shows the agent reached the keychain.
+Put the Mac to sleep across a refresh time, wake it, and expect one pass within a minute of waking;
+log out and back in, and expect one pass at login. Last, without touching the owner's real profile: in a copy of the
+configuration whose `[notebook] nlm_profile` names a profile that has never signed in, add one more
+page and run `notebook refresh` by hand twice; expect code 5, one macOS notification and one agenda
+line on the first run and none on the second (FR-019).
+
 ## 4. The student's marks
 
 Rename the transcription PDF adding « (mal)», run `notes run`: the page reads «En corrección» and
@@ -96,5 +119,6 @@ enter.
 Record aggregates only, never per-photo times of the student (constitution III): pages uploaded,
 the longest and the median delay from upload to living file, pages marked, and whether any notebook
 gained a source other than its two living files (SC-005). SC-001 passes when the longest delay is
-under an hour. Remove the test
+under an hour. From the refresh agent's output: passes that read a source, passes that renewed the
+owner's session, and notices of FR-019 (research R14's second question). Remove the test
 topic, its notebook and its Drive folder by hand at the end; alfabeta removes nothing.

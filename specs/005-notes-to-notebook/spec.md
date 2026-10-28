@@ -57,14 +57,19 @@ Out of this spec:
 | The Gemini API terms require users to be 18 or older and forbid services likely to be used by minors | ai.google.dev/gemini-api/terms, read | 2026-10-27 |
 | Anthropic's Usage Policy sends "products serving minors" to additional guidelines when an organisation provides "minors with the ability to directly interact with products that incorporate our API(s)"; it sets no age bar for content a customer sends | anthropic.com/legal/aup, read. Here the operator is the customer and the student never interacts with the API: he uploads photos to his Drive. That reading is ours, not Anthropic's | 2026-10-27 |
 | The operator's Claude plan includes 200 USD a month of Claude API credit; a Console workspace for alfabeta, in the company organisation, is capped at 10 USD a month | Claude Console billing and spend-limit pages, company account | 2026-10-27 |
+| The student's own access, as a viewer, does not make the notebook take a changed living file: about fifty minutes with the notebook open and three questions left its copy without the page; one read of the source by the owner (`nlm source content`) brought it in within 76 seconds, and the student's view then answered | Quickstart step 3, owner-free repeat on a test topic: `nlm source content` once a minute as the owner, the operator's report of the student's view (research.md, first table) | 2026-10-28 |
+| The owner's `nlm` session on the Mac, signed in on 2026-10-26, still worked two days later; its Google cookies expire on 2027-11-30, and `nlm auth refresh --http-only` renewed it with no browser | `nlm login --check` before and after the refresh, `nlm notebook list` as control; cookie names and expiry dates from `nlm`'s own browser profile, never their values | 2026-10-28 |
+| A launchd job with `StartCalendarInterval` that falls due while the Mac sleeps runs once when it wakes; one with `StartInterval` skips the missed firings | `man launchd.plist` on the operator's Mac, read | 2026-10-28 |
 
 Who opens the notebook in the timing row was the owner. Whether a viewer opening it also triggers
-the refresh was not measured.
+the refresh was not measured. Measured on 2026-10-28: it does not (rows above).
 
-The consequence that shapes this spec: once a notebook holds a Drive file as a source, keeping it
-current needs only a write to Drive, which the cloud can do. Adding a source needs `nlm`, which only
+The consequence that shapes this spec: once a notebook holds a Drive file as a source, keeping its
+content current needs only a write to Drive, which the cloud can do. Adding a source needs `nlm`, which only
 works on the Mac. So each topic's notebook holds a few **living files** added once, and everything
-that arrives later goes into them.
+that arrives later goes into them. The notebook takes a changed living file only when its owner
+reads it, and that read also needs `nlm`: the Mac does it, on its own schedule and with no app open
+(Clarifications, session 2026-10-28).
 
 ## Clarifications
 
@@ -79,6 +84,17 @@ that arrives later goes into them.
   topic, kept current from the cloud like the notes. The operator expected the notebook sync to run
   in the cloud, not on the Mac; a source per item would need `nlm` on the Mac for every item.
 
+### Session 2026-10-28
+
+- Q: Only the owner's access makes the notebook take a changed living file, and the student opening
+  it does not. Who reads the source as the owner, and when? → A: A launchd agent on the family's
+  Mac, every 15 minutes, once on wake and once when the user's session starts, with no app open.
+  The operator chose it among four options offered on 2026-10-28, this one being «B»: «De momento
+  vamos a optar por B». The Mac being awake, with the family's user session logged in, is the
+  accepted condition. A cloud-held owner session — a cloud
+  machine with Chrome and Chrome Remote Desktop, or an Android master token — was considered and
+  declined for now; neither has been measured (research R14).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A photo of the notes reaches the notebook with no one at a computer (Priority: P1)
@@ -86,29 +102,33 @@ that arrives later goes into them.
 The student photographs a page of his notes and uploads it to the topic's `apuntes/` folder in his
 Drive. Without anyone starting anything, and with the Mac off, alfabeta transcribes it literally,
 leaves the transcription next to the photo as a PDF (the photo, then its text) and its Markdown, and
-adds the page to the topic's living notes file. The next time the notebook is opened, it holds that
-page.
+adds the page to the topic's living notes file. While the family's Mac is awake, the notebook holds
+that page within about twenty minutes, with nobody at the Mac; with the Mac asleep or off, it holds
+it shortly after the Mac wakes.
 
 **Why this priority**: the notes are the most trusted source (spec 002) and the one that needed a
 person at a keyboard on 2026-10-26.
 
 **Independent Test**: with the Mac off, upload two invented photos of handwritten notes to a test
-topic's `apuntes/` from a phone; after the next run, open the notebook and ask its chat about a word
-only one of the pages holds.
+topic's `apuntes/` from a phone; after the next cloud run, switch the Mac on and, without touching
+the notebook as its owner, ask its chat as the student about a word only one of the pages holds.
 
 **Acceptance Scenarios**:
 
 1. **Given** a photo uploaded to `apuntes/` from the phone with the Mac off, **When** the next cloud
    run happens, **Then** its transcription is in the same folder and its page is in the living notes
    file, after the pages already there.
-2. **Given** that run, **When** the notebook is opened, **Then** within two minutes the notebook's
-   copy of the living file holds the page, and no source was added.
+2. **Given** that run and the Mac awake, **When** the Mac's next refresh reads the changed source as
+   the owner, **Then** within two minutes the notebook's copy of the living file holds the page, the
+   student's view answers about it, and no source was added.
 3. **Given** two photos with the same content (the same file uploaded twice), **When** the run
    happens, **Then** the page is transcribed and added once and the duplicate is reported.
 4. **Given** a page that cannot be read in places, **When** it is transcribed, **Then** those places
    are marked as unreadable or doubtful, never guessed.
 5. **Given** any page in the living file, **When** the student or the tutor chat reads it, **Then**
    the page says it is an automatic transcription and whether the student has checked it.
+6. **Given** the Mac asleep or off when a living file changes, **When** it wakes, **Then** one
+   refresh runs and the notebook takes the page; nobody has to open anything.
 
 ---
 
@@ -148,8 +168,8 @@ its files, `descripcion.md` and `enlaces.md`.
 notebook only learns of it when someone runs the study pack.
 
 **Independent Test**: put one invented Classroom item into a test topic's `classroom/` folder in
-Drive; after the next run, open the notebook and ask about a fact only that item holds; run again
-and check that nothing changed.
+Drive; after the next run and the Mac's next refresh, ask the notebook as the student about a fact
+only that item holds; run again and check that nothing changed.
 
 **Acceptance Scenarios**:
 
@@ -196,8 +216,8 @@ names that idea and the piece that misses it.
 ### User Story 5 - A topic's notebook gets its living files once (Priority: P3)
 
 When a topic's notebook is created, its two living files are created with it, empty but for a cover
-page, and added to the notebook as Drive sources. That is the only step that needs the notebook tool
-on the Mac.
+page, and added to the notebook as Drive sources. That is the only step that changes a notebook's
+sources; the other use of the notebook tool on the Mac only reads them (FR-018).
 
 **Why this priority**: it happens once per topic and can be done by hand until it is automated.
 
@@ -227,8 +247,13 @@ source and one living Classroom source, and that a second run adds nothing.
   then drops the source (not measured). alfabeta never deletes or moves it; each run checks that
   each recorded living file is still in its topic folder and not trashed, and if not, reports it
   and does not recreate a second file or source.
-- **Nobody opens the notebook.** Its copy of a living file stays old until it is opened, which is
-  harmless: whoever studies opens it first.
+- **The Mac is asleep or off.** The notebook's copy of a living file stays old until the Mac's next
+  refresh after it wakes, and the student may meet the old copy meanwhile: opening the notebook as
+  the student does not refresh it (measured 2026-10-28). The operator accepted this condition
+  (Clarifications, session 2026-10-28).
+- **The owner's `nlm` session stops working.** The refresh tries `nlm auth refresh` once; if the
+  session still does not work, it stops, the family is told once on the Mac (FR-019), and the owner
+  signs in again with `nlm login`. Nothing else stops: Drive keeps receiving pages.
 - **A photo is put outside `apuntes/`**, or in the school Drive: it is not transcribed. The first is
   reported as an unexpected file; the second cannot be seen.
 - **A photo in a format the transcription does not take** (anything but JPEG, PNG or WebP, such as
@@ -319,6 +344,16 @@ source and one living Classroom source, and that a second run adds nothing.
   not recreated.
 - **FR-012**: Adding material MUST NOT regenerate any study piece. The run reports what the new
   material adds against the topic's study guide (User Story 4).
+- **FR-018**: After a living file changes, the notebook owner's account MUST read that file's
+  notebook source once, through `nlm` on the family's Mac, so the notebook takes the new revision;
+  the student's own access does not (measured 2026-10-28). A launchd agent of the Mac runs this
+  refresh every `[notebook] refresh_minutes`, once on wake and once when the user's session starts,
+  with no app open and no one at the Mac. A refresh compares each living file's last built checksum, which the cloud run records, with
+  the checksum the owner last read, and reads only the sources that differ: with nothing changed it
+  reads one record and touches no notebook. It never adds, removes or renames a source (FR-011).
+- **FR-019**: When the owner's `nlm` session does not work, even after one `nlm auth refresh`, the
+  refresh MUST stop, tell the family once on the Mac (a macOS notification and an agenda line), and
+  say it again only after the session has worked in between. Drive keeps receiving pages meanwhile.
 
 **Reporting**
 
@@ -334,9 +369,9 @@ source and one living Classroom source, and that a second run adds nothing.
 - **FR-014**: Detection, transcription, updating the living files and the report (FR-001, FR-003 to
   FR-008, FR-010 to FR-013) MUST run in the cloud, in the operator's Google Cloud project for
   alfabeta, on a schedule that does not depend on the family's Mac; the same pass can also be run on
-  the Mac by hand. The pull into the master (FR-002), Classroom capture (spec 001) and creating the
-  living files and their sources (FR-009, User Story 5) stay on the Mac. Constitution IX is amended in the same
-  pull request.
+  the Mac by hand. The pull into the master (FR-002), Classroom capture (spec 001), creating the
+  living files and their sources (FR-009, User Story 5) and the owner's refresh (FR-018) stay on the
+  Mac. Constitution IX is amended in the same pull request.
 - **FR-015**: The AI that transcribes and writes the "what it adds" report MUST be paid from the
   operator's Claude plan API credit, in the alfabeta workspace and under its monthly spend limit.
   When the limit is reached, those two steps wait and the family is told once; nothing else stops.
@@ -364,6 +399,8 @@ source and one living Classroom source, and that a second run adds nothing.
   holds it: its cover page, its pages, and the Drive files it came from.
 - **Change cursor**: the position in Drive's record of changes the last cloud run reached, and when.
 - **Run report**: what changed per topic, in Spanish, plus failures.
+- **Refresh record**: on the Mac only, per notebook source, the living file checksum the owner last
+  read, and whether the owner's `nlm` session worked on the last refresh.
 
 ## Success Criteria *(mandatory)*
 
@@ -371,8 +408,11 @@ source and one living Classroom source, and that a second run adds nothing.
 
 - **SC-001**: A photo uploaded from the phone with the Mac off is in the topic's living notes file
   within one hour, on every attempt over two weeks of real use.
-- **SC-002**: After that, the notebook answers a question only that page can answer within five
-  minutes of being opened (two minutes measured on 2026-10-27, plus margin for a larger file).
+- **SC-002**: After that, with the Mac awake and nobody touching the notebook as its owner, the
+  student's view of the notebook answers a question only that page can answer within 20 minutes of
+  the page reaching the living file: one refresh interval at the template's `refresh_minutes = 15`,
+  plus the owner's read, which brought a page in within 76 seconds on 2026-10-28, plus margin. With
+  the Mac asleep or off, within 20 minutes of it waking or of the user's session starting.
 - **SC-003**: A Classroom item that classroom-sync put into Drive is in the living Classroom file
   within one hour of the upload.
 - **SC-004**: Two consecutive runs with nothing new write nothing to Drive, the master folder or any
@@ -392,9 +432,17 @@ source and one living Classroom source, and that a second run adds nothing.
   the master. The school Drive is a mirror and is never read (constitution VII).
 - The notebook owner's account needs read access to each living file, and to nothing else (FR-009),
   as on 2026-10-27; never the whole folder with the student's work and grades. Whether the
-  notebook's viewers also need it was not measured; quickstart step 3 checks.
-- A Drive-backed PDF keeps refreshing the way it did on 2026-10-27. If Google changes it, the living
-  files fall back to being refreshed as sources by the Mac run.
+  notebook's viewers also need it was not measured; quickstart step 3 checks. On 2026-10-28 the
+  student, a viewer who owns the files in Drive, saw a refreshed page; other viewers were not
+  measured.
+- A Drive-backed PDF keeps refreshing the way it did on 2026-10-27 and 2026-10-28: when the owner
+  reads it. If Google changes it, the living files fall back to being refreshed as sources by the
+  Mac run.
+- The family's Mac is awake for part of each day, with the family's user session logged in, since a
+  launchd agent of that user runs only inside it; while the Mac sleeps or nobody is logged in, the
+  notebook waits (the operator's choice, Clarifications, session 2026-10-28).
+- The owner's `nlm` session on the Mac keeps working for weeks, renewed by `nlm auth refresh` when
+  it fails (two days measured on 2026-10-28). Quickstart step 8 measures how often FR-019 fires.
 - The transcription quality of the API model is at least that of the transcription of 2026-10-26,
   which the operator checked against the photos. Measured in the plan, on those photos.
 - At about 4 to 8 pages per topic and two subjects, transcription spends 1 to 3 USD a month,

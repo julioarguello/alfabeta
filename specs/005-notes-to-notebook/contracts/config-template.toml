@@ -21,6 +21,9 @@ title_pattern = "changeme"         # e.g. "{grade}. {subject}. {topic}"
 nlm_profile = "changeme"
 # That account's address: the only one each living file is shared with, as reader (FR-009).
 owner = "changeme@example.com"
+# Minutes between the Mac's refreshes of changed sources as the owner (FR-018, research R14); a
+# divisor of 60. The launchd agent also runs once when a sleeping Mac wakes.
+refresh_minutes = 15
 
 [cloud]
 # Read by the how-to and by the setup checks, never by the cloud run itself.
