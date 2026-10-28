@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 # Where Drive serves each kind (research R3, spike S1, measured 2026-10-26).
 _EXPORT = {"document": "document", "presentation": "presentation", "spreadsheet": "spreadsheets"}
-# What a run places: US1's roles and, from US6, the student's submissions; the grading comes later.
+# What a run places: US1's roles and, from US6, the student's submissions and the grading.
 PLACED_ROLES = frozenset(
     {
         ReplicaRole.STATEMENT,
@@ -40,6 +40,7 @@ PLACED_ROLES = frozenset(
         ReplicaRole.LINKS,
         ReplicaRole.ANNOUNCEMENT,
         ReplicaRole.SUBMISSION,
+        ReplicaRole.GRADING,
     }
 )
 

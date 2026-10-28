@@ -1,7 +1,7 @@
 """Placing the run's material in the student's base folder (spec 001 T041, FR-015…FR-019, FR-025).
 
 `apply` takes the newest capture of each class in scope, places each statement and material file
-the run collected, writes the notes (descriptions, statements, links, announcements), and records
+the run collected, writes the notes (descriptions, statements, links, announcements, gradings), and records
 every replica in the state. A file identical to its replica is only deleted from `data/`; a file
 that changed keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)» (FR-015b). An
 attachment that never arrived is noted in its item's `enlaces.md` as «no traído». Whatever the
@@ -88,8 +88,37 @@ def item_to_json(item: Item, topic_title: str | None) -> dict[str, Any]:
         "description": item.description,
         "attachments": attachments(item.attachments),
         "submission": attachments(item.submission),
-        "grading": str(item.grading.grading_state) if item.grading else None,
+        "grading": _grading_to_json(item.grading),
     }
+
+
+def _grading_to_json(grading: Grading | None) -> dict[str, Any] | None:
+    if grading is None:
+        return None
+    return {
+        "state": str(grading.grading_state),
+        "grade": grading.grade,
+        "max_points": grading.max_points,
+        "teacher_comment": grading.teacher_comment,
+        "returned_at": grading.returned_at.isoformat() if grading.returned_at else None,
+    }
+
+
+def _grading_from_json(raw: object) -> Grading | None:
+    """The grading kept in the state; a state written before #12 kept only its state, as a string."""
+    if not raw:
+        return None
+    if isinstance(raw, str):
+        return Grading(GradingState(raw))
+    found = cast("dict[str, Any]", raw)
+    returned = found.get("returned_at")
+    return Grading(
+        GradingState(found["state"]),
+        grade=found.get("grade", ""),
+        max_points=found.get("max_points", ""),
+        teacher_comment=found.get("teacher_comment", ""),
+        returned_at=dt.date.fromisoformat(returned) if returned else None,
+    )
 
 
 def item_from_json(raw: dict[str, Any]) -> tuple[Item, str | None]:
@@ -112,7 +141,7 @@ def item_from_json(raw: dict[str, Any]) -> tuple[Item, str | None]:
         description=raw.get("description", ""),
         attachments=attachments(raw.get("attachments", [])),
         submission=attachments(raw.get("submission", [])),
-        grading=Grading(GradingState(raw["grading"])) if raw.get("grading") else None,
+        grading=_grading_from_json(raw.get("grading")),
     )
     return item, raw.get("topic_title")
 
@@ -260,6 +289,10 @@ class Applier:
                 continue
             if target.role in (ReplicaRole.DESCRIPTION, ReplicaRole.ANNOUNCEMENT):
                 self._note_record(item, target, f"{item.description.strip()}\n")
+            elif target.role == ReplicaRole.GRADING and item.grading is not None:
+                self._note_record(item, target, _grading_note(item.grading))
+        if item.grading is None:
+            self._drop_note(item, ReplicaRole.GRADING)
         if links or missing:
             folder = _links_folder(targets)
             if folder is not None:
@@ -329,6 +362,32 @@ def _links_folder(targets: list[Target]) -> str | None:
     if files[0].parent.name == CLASSROOM:
         return str(files[0].parent / files[0].stem)
     return str(files[0].parent)
+
+
+_GRADING_STATES = {GradingState.GRADED: "calificada", GradingState.RETURNED: "devuelta sin nota"}
+# What the note says of a value Classroom does not show the student: never a guess (data-model «Grading»).
+NOT_SHOWN = "Classroom no la muestra"
+
+
+def _grading_note(grading: Grading) -> str:
+    """`correccion.md`: the return as Classroom shows it to the student (FR-015a).
+
+    Only the grading's own fields: the comments threads are never read (FR-009), so nothing a
+    classmate or the student wrote can reach this note.
+    """
+    returned = grading.returned_at.strftime("%d/%m/%Y") if grading.returned_at else NOT_SHOWN
+    lines = [
+        "# Corrección",
+        "",
+        f"- Estado: {_GRADING_STATES[grading.grading_state]}",
+        f"- Nota: {grading.grade or NOT_SHOWN}",
+    ]
+    if grading.max_points:
+        lines.append(f"- Puntuación máxima: {grading.max_points}")
+    lines.append(f"- Fecha de devolución: {returned}")
+    if grading.teacher_comment.strip():
+        lines += ["", "## Comentario", "", grading.teacher_comment.strip()]
+    return "\n".join(lines) + "\n"
 
 
 def _links_note(item: Item, links: list[Attachment], missing: list[Attachment]) -> str:
