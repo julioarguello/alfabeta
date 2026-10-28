@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -75,6 +76,35 @@ def test_a_complete_config_gives_each_language_its_own_texts(tmp_path: Path):
     raw, out, prefix, texts = read_config()(["raw", "out", "--config", path, "es", "en"])
     assert (raw, out, prefix) == ("raw", "out", "Tema04")
     assert texts == LANGS
+
+
+STUB_RENDER = """
+import json, pathlib
+L10N = {"en": {"toc": "Contents"}}
+def build(raw, out, lang, prefix):
+    pathlib.Path(out).mkdir(exist_ok=True)
+    (pathlib.Path(out) / f"{prefix}_{lang.upper()}.json").write_text(json.dumps([raw, L10N[lang]]))
+"""
+
+
+def test_the_build_hands_each_language_its_texts_and_the_prefix(tmp_path: Path):
+    """The glue to render.py, with a stand-in renderer: the real one needs the VM's fonts."""
+    scripts = tmp_path / "tools"
+    scripts.mkdir()
+    shutil.copyfile(SCRIPTS / "build.py", scripts / "build.py")
+    (scripts / "render.py").write_text(STUB_RENDER)
+    argv = ["raw", str(tmp_path / "out"), "--config", unit_file(tmp_path, UNIT), "es", "en"]
+    done = subprocess.run(
+        [sys.executable, str(scripts / "build.py"), *argv],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
+    )
+    assert done.returncode == 0, done.stderr
+    for lang in ("es", "en"):
+        raw, texts = json.loads((tmp_path / "out" / f"Tema04_{lang.upper()}.json").read_text())
+        assert raw == "raw" and texts == {"toc": "Contents"} | LANGS[lang]
 
 
 def test_the_renderer_names_no_topic_course_or_grade():
