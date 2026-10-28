@@ -4,7 +4,8 @@ alfabeta gathers the study material of a secondary-school student that today is 
 school's digital textbook and Google Classroom. It files it by subject and topic in the student's
 folder, which syncs with their cloud, creates a Gemini Notebook notebook per topic, and takes
 assignments and exams to a calendar the student and their family share. A family runs it on its own
-Mac with the Claude desktop app; reading Classroom with nobody present can also run as a job in the
+Mac with the Claude desktop app, and with a launchd agent for the few commands that need no app
+(Technical constraints); reading Classroom with nobody present can also run as a job in the
 family's own cloud project (IX). The repository is public.
 
 ## Core Principles

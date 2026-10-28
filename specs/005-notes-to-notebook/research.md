@@ -291,14 +291,16 @@ own table is the subset the requirements rest on; this one is the full list.
   allowlist: a handful of Drive calls, counted by T045. `nlm` and `uv` are resolved to absolute paths at install and put in
   the agent's `PATH`, since launchd's is only the system's; a missing `nlm` is its own error, never
   "not signed in". The label is `io.alfabeta.notebook-refresh.` and the first 12 hex digits of the
-  SHA-256 of the student id, so neither the id nor a name reaches `launchctl` or the system log.
+  SHA-256 of the student id, so the label carries neither the id nor a name; the job's arguments and
+  log path, which `launchctl print` shows, do carry the id, never a name.
   `notebook agent install` writes the agent's plist under `~/Library/LaunchAgents/`
   with that label and loads it; `notebook agent remove`
   unloads and deletes it. The agent's standard output and error are appended to `notebook-agent.log`
   in the student's data folder.
 - **Rationale**: the notebook takes a changed Drive file when its owner reads it, within two minutes,
   and not when the student, a viewer, opens it (first table, 2026-10-27 and 2026-10-28). The
-  checksum comparison makes an idle pass one Drive read and no `nlm` call (SC-004). The record lives
+  checksum comparison makes an idle pass a handful of Drive calls, no listing and no `nlm` call
+  (SC-004). The record lives
   on the Mac because only the Mac writes it, so it needs no revision check against the cloud
   (R4). `StartCalendarInterval`, not `StartInterval`, because only the first runs after sleep
   (first table). `--http-only` goes first because it ran on 2026-10-28 with no browser and left the
@@ -318,7 +320,7 @@ own table is the subset the requirements rest on; this one is the full list.
   - Only the daily scheduled sync: a page could wait a day. Rejected.
   - The same launchd agent also running `notes run`, so that the cloud job is not needed: then
     transcription and the living files would also wait for the Mac. Rejected; the operator wants as
-    little as possible to depend on it (plan, Complexity Tracking).
+    little as possible to depend on it (spec, Clarifications, session 2026-10-28).
   - A cloud-held owner session, either a Compute Engine machine with Chrome and Chrome Remote
     Desktop where the owner signs in by hand (Google Cloud's guide «Set up Chrome Remote Desktop for
     Linux on Compute Engine», read 2026-10-28), or an Android master token minting web cookies (the
@@ -332,7 +334,9 @@ own table is the subset the requirements rest on; this one is the full list.
     (decided 2026-10-26). Rejected.
 - **Questions for the quickstart**: does one read refresh every time, or does a pass need a
   second read to confirm (step 3b)? On 2026-10-28 the first read returned the old copy and the next,
-  76 seconds later, held the page, so whether that second read did anything is not known. Does the agent, started by launchd and not from a terminal or
+  76 seconds later, held the page, so whether that second read did anything is not known. If step 3b
+  shows the second read is what brings the page in, the confirming read arrives a whole interval
+  later and SC-002 fails: it then moves into the same pass, about two minutes after the first. Does the agent, started by launchd and not from a terminal or
   the app, reach the keychain that holds the Mac's Drive link and `nlm`'s protected credentials
   (step 3b)? How often does the owner's session need `nlm auth refresh`, and how often does FR-019
   fire (step 8)? With two students sharing one owner profile, their agents could renew it at the

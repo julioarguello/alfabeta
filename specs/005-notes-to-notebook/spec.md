@@ -92,7 +92,9 @@ reads it, and that read also needs `nlm`: the Mac does it, on its own schedule a
   Mac, every 15 minutes, once on wake and once when the user's session starts, with no app open.
   The operator chose it among four options offered on 2026-10-28, this one being «B»: «De momento
   vamos a optar por B». The Mac being awake, with the family's user session logged in, is the
-  accepted condition. A cloud-held owner session — a cloud
+  accepted condition. The operator also asked for as little as possible to depend on the Mac and on
+  starting Claude: «Quiero eliminar dependencias del mac», «necesito al máximo eliminar la
+  dependencia de arrancar Claude». A cloud-held owner session — a cloud
   machine with Chrome and Chrome Remote Desktop, or an Android master token — was considered and
   declined for now; neither has been measured (research R14).
 
