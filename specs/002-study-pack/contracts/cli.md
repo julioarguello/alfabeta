@@ -50,7 +50,9 @@ that fails does not stop the other.
    report the pack record names or, failing that, the latest-made completed report whose title
    contains «Guía de estudio» or «Study Guide» (any case, accent optional). The new guide takes
    that guide's title, and every report taken for a guide is deleted, so one is live (FR-033). A
-   topic whose living files are not set up yet skips the comparison and says so.
+   topic whose living files are not set up yet skips the comparison and says so; one whose living
+   notes file is not where `notebook setup` put it (spec 005's `health = missing`) skips it too,
+   and that is code 3, the guide possibly stale.
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and
    «Problems sheet — for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), every
@@ -79,8 +81,8 @@ that fails does not stop the other.
    on stderr; it is not regenerated. Nothing else of either sheet is checked: not its language,
    not its numbers (FR-009, FR-036).
 
-**Records**, in the student's data folder (`~/.alfabeta/<id>/data/`), never in Drive or the
-repository:
+**Records**, in the student's data folder (`~/.alfabeta/<id>/data/`), readable by its user alone,
+never in Drive or the repository:
 
 - the pack record (FR-024), `study-pack.json`: under `topics`, keyed by the topic folder's path
   under `storage.base`, `guide` (`id`, `made`: the live study guide and the day it was made) and

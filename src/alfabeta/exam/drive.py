@@ -16,6 +16,7 @@ from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, c
 from alfabeta.google.keychain import KeychainError
 from alfabeta.google.transport import TransportError, UrllibTransport
 from alfabeta.notes.model import Health, LivingKind
+from alfabeta.notes.run import in_place
 from alfabeta.notes.state import DriveNotesStateStore
 
 if TYPE_CHECKING:
@@ -61,11 +62,11 @@ class DriveLivingNotes:
         self._store = store
 
     def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
-        """From the topic's record; None when it has no living notes file set up and in place."""
+        """From the topic's record in Drive; None while it is not set up."""
         try:
             return self._read(subject, folder)
         except (accounts.LinkError, DriveError, OutsideFolderError, TransportError, KeychainError) as err:
-            raise LivingNotesError(type(err).__name__) from None
+            raise LivingNotesError("drive_failed") from err
 
     def _read(self, subject: str, folder: str) -> LivingNotes | None:
         transport = UrllibTransport()
@@ -75,25 +76,32 @@ class DriveLivingNotes:
 
 
 def living_notes_of(drive: TopicDrive, state: Mapping[str, Any], subject: str, folder: str) -> LivingNotes | None:
-    """The topic's living notes file from spec 005's records; None unless it is set up and in place."""
+    """The topic's living notes file from spec 005's records.
+
+    None while it is not set up; `LivingNotesError("missing")` when it was set up and is not where
+    `notebook setup` put it (spec 005 data-model, `health`), or the topic folder is not one in Drive.
+    """
     topics = [
         f
         for f in drive.items()
         if f.is_folder
         and f.name == folder
-        and any(drive.contains(p) and drive.listed(p).name == subject for p in f.parents)
+        and any(drive.contains(p) and drive.listed(p).name == subject and drive.listed(p).is_folder for p in f.parents)
     ]
-    if len(topics) != 1:
-        return None
-    record = cast("dict[str, dict[str, Any]]", state.get("topics", {})).get(topics[0].id, {})
+    if not topics:
+        return None  # the topic is not in Drive yet, so nothing of it is set up
+    if len(topics) > 1:
+        raise LivingNotesError("missing")
+    topic = topics[0].id
+    record = cast("dict[str, dict[str, Any]]", state.get("topics", {})).get(topic, {})
     living = cast("dict[str, dict[str, Any]]", record.get("living", {}))
     notes = living.get(str(LivingKind.NOTES)) or {}
     file_id, source, built = (str(notes.get(k) or "") for k in ("file_id", "source_id", "built_md5"))
-    if not (file_id and source and built) or notes.get("health", str(Health.OK)) != Health.OK:
+    if not (file_id and source and built):
         return None
-    if not drive.contains(file_id):
-        return None
-    modified = drive.get(file_id).modified
-    if not modified:
-        return None
-    return LivingNotes(source, built, dt.datetime.fromisoformat(modified))
+    if notes.get("health", str(Health.OK)) != Health.OK or not drive.contains(file_id):
+        raise LivingNotesError("missing")
+    file = drive.get(file_id)
+    if not in_place(drive, file, topic, LivingKind.NOTES) or not file.modified:
+        raise LivingNotesError("missing")
+    return LivingNotes(source, built, dt.datetime.fromisoformat(file.modified))

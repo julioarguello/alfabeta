@@ -44,12 +44,12 @@ class PrintPack:
                 print(f"alfabeta: {line}", file=sys.stderr)
         return done.returncode == 0 and out.is_file()
 
-    def pages(self, pdf: Path) -> int:
-        """The PDF's page count; 0 when it cannot be read."""
+    def pages(self, pdf: Path) -> int | None:
+        """The PDF's page count; None when it cannot be read."""
         try:
             return len(PdfReader(pdf).pages)
         except (OSError, PdfReadError):
-            return 0
+            return None
 
 
 def refresh_mirrors(base: Path, mirrors: Iterable[Path], runner: Runner = run_command) -> int:

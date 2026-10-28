@@ -199,14 +199,18 @@ class LivingNotes:
 
 
 class LivingNotesError(Exception):
-    """Drive or the Google link failed while step 5 looked at the living notes file."""
+    """Step 5 could not use the living notes file; `missing` when it is set up but not in place."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
 
 
 class LivingNotesReader(Protocol):
     """The topic's living notes file, from spec 005's records in Drive."""
 
     def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
-        """None while the topic's living files are not set up, or the notes file is missing."""
+        """None while the topic's living files are not set up yet; raises when the file is not in place."""
         ...
 
 
@@ -217,8 +221,8 @@ class Printer(Protocol):
         """Print one report to `out`; False when it did not print."""
         ...
 
-    def pages(self, pdf: Path) -> int:
-        """The printed PDF's page count."""
+    def pages(self, pdf: Path) -> int | None:
+        """The printed PDF's page count; None when it cannot be read."""
         ...
 
 
@@ -256,7 +260,9 @@ def _read(path: Path) -> dict[str, Any]:
 
 
 def _write(path: Path, record: dict[str, Any]) -> None:
+    """A record of the data folder, readable by its user alone (spec 005 T044)."""
     write_atomic(path, json.dumps(record, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    path.chmod(0o600)
 
 
 @dataclass
@@ -340,8 +346,13 @@ class ExamPrep:
         """Step 5; whether the guide was regenerated."""
         try:
             living = self.deps.living.living_notes(self.subject, self.folder.name)
-        except LivingNotesError:
-            _say("Drive did not answer; the class notes were not compared and the study guide may be stale")
+        except LivingNotesError as err:
+            cause = (
+                "the topic's living notes file is not where `notebook setup` put it"
+                if err.reason == "missing"
+                else "Drive did not answer"
+            )
+            _say(f"{cause}; the class notes were not compared and the study guide may be stale")
             self.partial = True
             return False
         if living is None:
@@ -390,6 +401,8 @@ class ExamPrep:
         try:
             first = self._number(self.deps.notebook.artifacts(self.notebook), moment, set(done.values()))
         except NlmError:
+            _say("the notebook's pieces could not be listed; the sheets are numbered from 1")
+            self.partial = True
             first = 1
         titles = {
             s.kind: f"{moment} {first + i} · {s.name} · {topic_name(self.folder.name)}"
@@ -443,6 +456,9 @@ class ExamPrep:
             )
             if self.deps.printer.print_report(self.notebook, done[sheet.kind], out, break_before=sheet.break_before):
                 pages[sheet.kind] = self.deps.printer.pages(out)
+                if pages[sheet.kind] is None:
+                    _say(f"«{sheet.name}» printed, but its pages could not be counted")
+                    self.partial = True
             else:
                 _say(f"«{sheet.name}» did not print")
                 self.partial = True

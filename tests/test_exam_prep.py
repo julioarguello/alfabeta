@@ -133,11 +133,12 @@ class FakeLiving:
     found: LivingNotes | None = None
     fails: bool = False
     folder: str = f"20260915 - {TOPIC}"
+    reason: str = "drive_failed"
 
     def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
         assert (subject, folder) == ("FyQ", self.folder)
         if self.fails:
-            raise LivingNotesError("TransportError")
+            raise LivingNotesError(self.reason)
         return self.found
 
 
@@ -145,6 +146,7 @@ class FakeLiving:
 class FakePrinter:
     pages_of: dict[str, int] = field(default_factory=lambda: {})  # by the PDF's first words
     fails: set[str] = field(default_factory=lambda: set())
+    uncounted: set[str] = field(default_factory=lambda: set())
     printed: list[tuple[str, str, str]] = field(default_factory=lambda: [])
 
     def print_report(self, notebook: str, artifact: str, out: Path, *, break_before: str = "") -> bool:
@@ -159,10 +161,8 @@ class FakePrinter:
             writer.write(handle)
         return True
 
-    def pages(self, pdf: Path) -> int:
-        from alfabeta.exam.printing import PrintPack
-
-        return PrintPack(PROFILE).pages(pdf)
+    def pages(self, pdf: Path) -> int | None:
+        return None if pdf.name.split(" · ")[0] in self.uncounted else PrintPack(PROFILE).pages(pdf)
 
 
 @dataclass
@@ -814,6 +814,7 @@ class FakeDrive:
 
 
 FOLDER_MIME = "application/vnd.google-apps.folder"
+PDF_MIME = "application/pdf"
 
 
 def drive_with_topic() -> FakeDrive:
@@ -823,8 +824,12 @@ def drive_with_topic() -> FakeDrive:
             "other": DriveFile("other", "Ingles", FOLDER_MIME),
             "top-1": DriveFile("top-1", f"20260915 - {TOPIC}", FOLDER_MIME, ("subj",)),
             "top-2": DriveFile("top-2", f"20260915 - {TOPIC}", FOLDER_MIME, ("other",)),
+            "n-1": DriveFile("n-1", "notes", FOLDER_MIME, ("top-1",)),
             "liv-1": DriveFile(
-                "liv-1", f"Apuntes · {TOPIC}.pdf", "application/pdf", ("n-1",), modified="2026-10-27T10:00:00.000Z"
+                "liv-1", f"Apuntes · {TOPIC}.pdf", PDF_MIME, ("n-1",), modified="2026-10-27T10:00:00.000Z"
+            ),
+            "stray": DriveFile(
+                "stray", f"Apuntes · {TOPIC}.pdf", PDF_MIME, ("top-1",), modified="2026-10-27T10:00:00.000Z"
             ),
         }
     )
@@ -840,14 +845,68 @@ def test_the_living_notes_file_is_read_from_the_topics_record_in_drive():
     assert found == LivingNotes("src-1", "md5-1", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
 
 
+def test_a_living_notes_file_not_set_up_is_none():
+    for state in ({}, notes_record(source_id=None)):
+        assert living_notes_of(drive_with_topic(), state, "FyQ", f"20260915 - {TOPIC}") is None
+    assert living_notes_of(drive_with_topic(), notes_record(), "FyQ", "20261101 - Tema 02 - Sin carpeta") is None
+
+
 @pytest.mark.parametrize(
-    "state",
-    [
-        {},
-        notes_record(source_id=None),
-        notes_record(health="missing"),
-        notes_record(file_id="gone"),
-    ],
+    "state", [notes_record(health="missing"), notes_record(file_id="gone"), notes_record(file_id="stray")]
 )
-def test_a_living_notes_file_not_set_up_or_not_in_place_is_none(state: dict[str, Any]):
-    assert living_notes_of(drive_with_topic(), state, "FyQ", f"20260915 - {TOPIC}") is None
+def test_a_living_notes_file_set_up_but_not_in_place_is_missing(state: dict[str, Any]):
+    with pytest.raises(LivingNotesError) as err:
+        living_notes_of(drive_with_topic(), state, "FyQ", f"20260915 - {TOPIC}")
+    assert err.value.reason == "missing"
+
+
+def test_a_missing_living_notes_file_is_code_3_and_says_so(world: World, capsys: pytest.CaptureFixture[str]):
+    world.living = FakeLiving(fails=True, reason="missing")
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert "not where `notebook setup` put it" in err and "may be stale" in err
+    assert [s["printed"] for s in result["sheets"]] == [True, True]
+
+
+def test_a_printed_sheet_whose_pages_cannot_be_counted_is_code_3(world: World, capsys: pytest.CaptureFixture[str]):
+    world.printer.uncounted = {"Teoría para el examen"}
+    assert world.run() == 3
+    result, err = output(capsys)
+    assert result["sheets"][0] == {"kind": "theory", "printed": True, "pages": None}
+    assert "pages could not be counted" in err
+
+
+def test_an_unreadable_pdf_has_no_page_count(tmp_path: Path):
+    broken = tmp_path / "x.pdf"
+    broken.write_bytes(b"not a pdf")
+    assert PrintPack(PROFILE).pages(broken) is None
+
+
+def test_pieces_that_cannot_be_listed_before_numbering_are_reported(world: World, capsys: pytest.CaptureFixture[str]):
+    real = world.nlm.__call__
+    polls = [0]
+
+    def flaky(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
+        if argv[1:3] == ["studio", "status"]:
+            polls[0] += 1
+            if polls[0] == 2:  # the listing once both reports completed
+                return subprocess.CompletedProcess(argv, 1, "", "error")
+        return real(argv, stdin)
+
+    deps = world.deps
+
+    def with_flaky(cfg: object, store: object) -> ExamDeps:
+        made = deps(cfg, store)
+        made.notebook = NlmNotebook(PROFILE, flaky)
+        return made
+
+    world.deps = with_flaky  # type: ignore[method-assign]
+    assert world.run() == 3
+    assert "numbered from 1" in output(capsys)[1]
+
+
+def test_the_records_are_readable_by_their_user_alone(world: World, capsys: pytest.CaptureFixture[str]):
+    world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    assert world.run() == 0
+    for name in ("study-pack.json", "notebook-refresh.json"):
+        assert (world.data / name).stat().st_mode & 0o777 == 0o600
