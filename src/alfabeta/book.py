@@ -1,9 +1,10 @@
 """A book provider's result in its topic's folder (spec 001 US4, contracts/cli.md `book place`, `log notebook`).
 
 `book place` copies what a provider built for one topic (the Science Bits skill's `TemaNN_<LANG>.pdf`
-and `.md`) into `<school-year>/<subject>/<topic>/<book>/`. `<topic>` is the subject's folder whose
-name holds `Tema NN - `, whatever its date and title, or a new `<today> - Tema NN - <title>` when
-there is none; between two such folders it never guesses. Each file is a replica keyed
+and `.md`) into `<school-year>/<subject>/<topic>/<book>/`. `<topic>` is the subject's folder named
+`Tema NN - <title>` after its date, whatever the date and the title, as `placement.book_topics` reads
+it, or a new `<today> - Tema NN - <title>` when there is none. Of two such folders it takes the one
+that already holds `<book>/`, and otherwise never guesses. Each file is a replica keyed
 `<book>|Tema NN|<file>` with its hash and version: an identical file writes nothing, a changed one
 keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)» (FR-015b). The origin is only
 read, and nothing is written outside the base folder. `log notebook` writes the line of the book's
@@ -20,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 from alfabeta.exam.printing import refresh_mirrors
 from alfabeta.google.keychain import run_command
 from alfabeta.model import ReplicaRole
-from alfabeta.placement import book_topic_number, clean, fit
+from alfabeta.placement import book_topic_number, clean, fit, undated
 from alfabeta.replicas import previous_name, sha256
 
 if TYPE_CHECKING:
@@ -96,29 +97,39 @@ class BookPlacer:
         """`state.json` «replicas»: `<source>|<item>|<attachment>` → its record."""
         return cast("dict[str, Any]", self.state.setdefault("replicas", {}))
 
-    def topic_folder(self, topic: str, number: str) -> str:
-        """The topic's folder relative to the base folder: the one holding `Tema NN - `, or a new one dated today."""
+    def topic_folder(self, topic: str, number: str, book: str) -> str:
+        """The topic's folder relative to the base folder: the subject's `Tema NN - …`, or a new one dated today.
+
+        Of two, the one already holding `book/` (a teacher's topic named like the book's, before its
+        match is confirmed, has none); any other tie is the family's to undo, never a guess.
+        """
         subject_dir = self.base / self.school_year / self.subject.folder
         found = (
-            sorted(p.name for p in subject_dir.iterdir() if p.is_dir() and f"{number} - " in p.name)
+            sorted(p.name for p in subject_dir.iterdir() if p.is_dir() and book_topic_number(undated(p.name)) == number)
             if subject_dir.is_dir()
             else []
         )
         if len(found) > 1:
-            raise BookError(
-                "ambiguous_topic", f"{len(found)} folders of {self.subject.folder} hold «{number} - »: rename one"
-            )
+            own = [name for name in found if (subject_dir / name / book).is_dir()]
+            if len(own) != 1:
+                raise BookError(
+                    "ambiguous_topic",
+                    f"{len(found)} folders of {self.subject.folder} are {number}: merge them into one",
+                )
+            found = own
         name = found[0] if found else fit(f"{self.today.strftime('%Y%m%d')} - {topic}")
         return f"{self.school_year}/{self.subject.folder}/{name}"
 
     def place(self, built: BookFiles, topic: str, number: str) -> str:
         """Every file of `built` in the topic's `<book>/`; that folder, relative to the base folder."""
-        files = built.files()
+        listed = built.files()
+        files = {fit(clean(origin.name)): origin for origin in listed}
         if not files:
             raise BookError("nothing_to_place", "the origin holds no file to place")
-        folder = f"{self.topic_folder(topic, number)}/{built.name}"
-        for origin in files:
-            name = fit(clean(origin.name))
+        if len(files) < len(listed):
+            raise BookError("name_clash", "two files of the origin would get the same name; rename one")
+        folder = f"{self.topic_folder(topic, number, built.name)}/{built.name}"
+        for name, origin in files.items():
             relative = f"{folder}/{name}"
             key = f"{built.name}|{number}|{name}"
             record = cast("dict[str, Any] | None", self.replicas.get(key))
@@ -149,8 +160,11 @@ class BookPlacer:
 def _copy(origin: Path, destination: Path) -> None:
     """Copy through a temporary file and a rename, so a cut copy never stands as the replica."""
     temporary = destination.with_name(f".{destination.name}.{os.getpid()}.tmp")
-    shutil.copyfile(origin, temporary)
-    temporary.replace(destination)
+    try:
+        shutil.copyfile(origin, temporary)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def refresh(base: Path, mirrors: Sequence[Path], runner: Runner = run_command) -> dict[str, int]:
@@ -164,7 +178,7 @@ def shares(text: str | None) -> dict[str, int]:
     if text is None:
         return dict.fromkeys(SHARES, 0)
     parts = text.split(",")
-    if len(parts) != len(SHARES) or not all(p.strip().isdigit() for p in parts):
+    if len(parts) != len(SHARES) or not all(p.strip().isdecimal() for p in parts):
         raise BookError("invalid_shares", "--shares must be <invited>,<already>,<failed>, three whole numbers")
     return {name: int(part) for name, part in zip(SHARES, parts, strict=True)}
 
@@ -178,6 +192,8 @@ def notebook_line(
     said = " ".join((reason or "").split())[:REASON_CHARS]
     if result == "failed" and not said:
         raise BookError("missing_reason", "--reason is required with --result failed")
+    if result != "failed" and reason is not None:
+        raise BookError("invalid_reason", "--reason goes only with --result failed; --shares counts failed invites")
     line: dict[str, Any] = {
         "type": "notebook",
         "at": at,

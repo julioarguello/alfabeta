@@ -96,6 +96,12 @@ def book_topic_number(name: str) -> str | None:
     return found.group(1) if found else None
 
 
+def undated(folder: str) -> str:
+    """A topic folder's name without its `YYYYMMDD - ` prefix, the part it is found by."""
+    dated = _DATED.match(folder)
+    return dated.group(2) if dated else folder
+
+
 def book_topics(subject_dir: Path, book: str) -> list[str]:
     """The book topics of a subject: folders named `… Tema NN - <title>` that hold the book's subfolder.
 
@@ -105,8 +111,7 @@ def book_topics(subject_dir: Path, book: str) -> list[str]:
         return []
     found: list[str] = []
     for folder in sorted(subject_dir.iterdir()):
-        dated = _DATED.match(folder.name)
-        rest = dated.group(2) if dated else folder.name
+        rest = undated(folder.name)
         if _BOOK_TOPIC.fullmatch(rest) and (folder / book).is_dir():
             found.append(rest)
     return found

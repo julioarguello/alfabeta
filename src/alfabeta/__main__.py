@@ -168,26 +168,32 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
         origin = Path(args.origin).expanduser()
         if not origin.is_dir():
             raise book.BookError("no_origin", "the origin folder is not there")
-        placer = book.BookPlacer(cfg.base, cfg.school_year, subject, json.loads(json.dumps(current)), decisions.today())
+    except book.BookError as err:
+        return _fail(err.reason, EXIT_INVALID, str(err))
+    placer = book.BookPlacer(cfg.base, cfg.school_year, subject, json.loads(json.dumps(current)), decisions.today())
+    line: dict[str, Any] = {
+        "type": "book",
+        "at": dt.datetime.now(MADRID).isoformat(),
+        "run": run,
+        "source": subject.book,
+        "subject": subject.folder,
+        "topic": topic,
+    }
+    try:
         folder = placer.place(sources.BookSource(subject.book, origin=origin), topic, number)
     except book.BookError as err:
         return _fail(err.reason, EXIT_INVALID, str(err))
+    except OSError:
+        # What was copied before the failure is recorded, so the next run finds it (constitution VII).
+        if placer.state != current:
+            store.save(placer.state)
+        store.log(line | {"result": "failed", "reason": "write_failed", "placed": len(placer.placed)})
+        return _fail("write_failed", EXIT_INVALID, "a file could not be written in the base folder; run it again")
     if placer.state != current:
         store.save(placer.state)
     mirrors = book.refresh(cfg.base, cfg.mirrors)
     result = "placed" if placer.placed else "unchanged"
-    store.log(
-        {
-            "type": "book",
-            "at": dt.datetime.now(MADRID).isoformat(),
-            "run": run,
-            "source": subject.book,
-            "subject": subject.folder,
-            "topic": topic,
-            "result": result,
-            "mirrors": mirrors,
-        }
-    )
+    store.log(line | {"result": result, "mirrors": mirrors})
     print(
         f"alfabeta: libro en {folder}: {len(placer.placed)} colocados, {len(placer.unchanged)} sin cambios",
         file=sys.stderr,

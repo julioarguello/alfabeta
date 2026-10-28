@@ -69,8 +69,8 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
 - Topic: `Tema NN - <title>`, two-digit `NN`, with the title in the first of `sciencebits.languages`. Its folder is
   `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>`, as the constitution names it; e.g.
   `2026-2027/<subject>/20261001 - Tema 01 - <title>`. `book place` finds it and never changes its date: the folder
-  of the subject whose name holds `Tema NN - `, whatever its date and title, and only if there is none, a new one
-  dated today. Never create a topic folder by hand: an undated or re-dated duplicate splits the topic in two.
+  of the subject named `Tema NN - <title>` after its date, whatever the date and the title (of two, the one that
+  already holds `sciencebits/`), and only if there is none, a new one dated today. Never create a topic folder by hand: an undated or re-dated duplicate splits the topic in two.
 - Folders without `Tema NN` (`<date> - <teacher's title>`, `<date> - No topic`) are Classroom's; leave them alone.
 - "The next topic" = the one after the highest `NN` among the subject's folders matching `*Tema NN - *` that already
   hold `sciencebits/`, ignoring the date prefix (and the order of units in the Science Bits class).
@@ -115,9 +115,11 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
    whole master, one way (`rsync -rlt --exclude .DS_Store`, never `--delete`), and writes its line in the run log. Its JSON gives the folder
    (relative to `storage.base`), what it `placed` and what was `unchanged`, and `mirrors` as counts (`up_to_date`,
    `failed`); a mirror that is not mounted or fails is caught up by the next run. It exits 1, writing nothing, with
-   `ambiguous_topic` when two folders of the subject hold `Tema NN - `: tell the family, who rename one, and do not
-   choose. Other refusals: `no_book` (the subject has no book), `invalid_topic`, `no_origin`, `nothing_to_place`,
-   `drive_not_mounted`, `lock_not_held`.
+   `ambiguous_topic` when two folders of the subject are topic `Tema NN` and not exactly one holds `sciencebits/`:
+   tell the family, who merge them into one, and do not choose. Other refusals: `no_book` (the subject has no book),
+   `invalid_topic`, `no_origin`, `nothing_to_place`, `name_clash` (two files would get one name), `drive_not_mounted`,
+   `lock_not_held`; `write_failed` records what it copied before the failure, and running it again completes it. On any
+   refusal or failure, `alfabeta lock release`, say what happened, and stop: the notebook step needs the placed files.
 9. **Gemini Notebook.** If `notebook.enabled` is false: `alfabeta log notebook --student <student> --topic "Tema NN -
    <title>" --result disabled`, and go to step 10. Otherwise:
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
@@ -125,11 +127,13 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
    - `nlm notebook list --json`; reuse the topic's notebook or create it with `notebook.title_pattern` (`{grade}` is
      `student.grade_level`, `{subject}` the subject's folder, `{topic}` the topic folder's name after its date;
      `--json`).
-   - **Sources, each once.** `nlm source list <id> --json` gives each source's `title`. For each file of
-     `$WORK/out`, skip it if a source has its file name as title; else `alfabeta lock renew`, then
-     `nlm source add <id> --file "<file>" --wait --wait-timeout 300`, without `--title`. nlm 0.15.8 registers a
-     `--file` source under the file's own name, and `--title` renames it afterwards (read in its source,
-     2026-10-28); repeating the step therefore adds nothing.
+   - **Sources, each once.** `nlm source list <id> --json` gives each source's `id` and `title`. For each file of
+     `$WORK/out`, skip it if a source has its file name as title and step 8 did not list it in `placed`; else
+     `alfabeta lock renew`, then `nlm source add <id> --file "<file>" --wait --wait-timeout 300`, without `--title`.
+     A file step 8 placed again had changed: once its new source is added, remove the old one, the source with that
+     title listed before the add, with `nlm source delete <source id> --confirm`, so the notebook answers from the
+     new version and holds it once. nlm 0.15.8 registers a `--file` source under the file's own name, and `--title`
+     renames it afterwards (read in its source, 2026-10-28); repeating the step therefore adds nothing.
    - **Share.** `nlm share status <id> --json`; for each account in `notebook.share_with` not yet listed:
      `nlm share invite <id> <account> --role viewer`. Never `nlm share public`. A failed invite does not undo the
      notebook: note it and report it. Measured 2026-10-26: the school domain allows a notebook owned by a personal

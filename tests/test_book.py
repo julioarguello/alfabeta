@@ -113,11 +113,16 @@ def test_the_folder_is_found_by_its_number_whatever_its_date_and_title(box: Box,
     teachers = box.base / FYQ / "20261020 - Tema 02 - Título del profesor"
     (teachers / "classroom").mkdir(parents=True)
     (teachers / "classroom" / "20261020 - Ficha inventada.pdf").write_bytes(b"%PDF de la clase")
+    # A teacher's topic that only mentions the number is not the book's topic (placement.book_topics).
+    (box.base / FYQ / "20261021 - Ejercicios del Tema 02 - repaso" / "classroom").mkdir(parents=True)
     classroom = tree(teachers / "classroom")
     done = place(box, built(tmp_path / "out", "02"), "Tema 02 - Otro título del libro")
     assert done.returncode == 0, done.stderr
     assert json.loads(done.stdout)["folder"] == f"{FYQ}/{teachers.name}/sciencebits"
-    assert [p.name for p in (box.base / FYQ).iterdir() if "Tema 02 - " in p.name] == [teachers.name]
+    assert sorted(p.name for p in (box.base / FYQ).iterdir() if "Tema 02 - " in p.name) == [
+        teachers.name,
+        "20261021 - Ejercicios del Tema 02 - repaso",
+    ]
     assert tree(teachers / "classroom") == classroom  # classroom/ of the same topic does not change
 
 
@@ -158,13 +163,15 @@ def test_a_changed_file_keeps_its_previous_version(box: Box, tmp_path: Path):
     second = built(tmp_path / "second", text="segunda")
     for name in ("Tema01_EN.md", "Tema01_EN.pdf", "Tema01_ES.md"):
         shutil.copyfile(tmp_path / "first" / name, second / name)
+    before = madrid_days()
     done = place(box, second)
+    days = before | madrid_days()
     assert done.returncode == 0, done.stderr
     result = json.loads(done.stdout)
     assert (result["placed"], len(result["unchanged"])) == (["Tema01_ES.pdf"], 3)
     folder = box.base / TOPIC_FOLDER / "sciencebits"
     [kept] = result["previous"]
-    assert kept in {f"Tema01_ES (anterior {d[:4]}-{d[4:6]}-{d[6:]}).pdf" for d in madrid_days()}
+    assert kept in {f"Tema01_ES (anterior {d[:4]}-{d[4:6]}-{d[6:]}).pdf" for d in days}
     assert (folder / kept).read_bytes() == (tmp_path / "first" / "Tema01_ES.pdf").read_bytes()
     assert (folder / "Tema01_ES.pdf").read_bytes() == (second / "Tema01_ES.pdf").read_bytes()
     found = replicas(box)
@@ -172,12 +179,65 @@ def test_a_changed_file_keeps_its_previous_version(box: Box, tmp_path: Path):
     assert found["sciencebits|Tema 01|Tema01_ES.md"]["version"] == 1
 
 
-def test_two_folders_of_one_topic_are_never_guessed_between(box: Box, tmp_path: Path):
-    (box.base / FYQ / "20261101 - Tema 01 - Repetido").mkdir()
+def test_a_second_change_the_same_day_keeps_both_previous_versions(box: Box, tmp_path: Path):
+    versions = [built(tmp_path / text, text=text) for text in ("primera", "segunda", "tercera")]
+    for origin in versions:
+        assert place(box, origin).returncode == 0
+    folder = box.base / TOPIC_FOLDER / "sciencebits"
+    kept = sorted(p for p in folder.iterdir() if p.name.startswith("Tema01_ES (anterior "))
+    assert sorted(p.suffix for p in kept) == [".md", ".md", ".pdf", ".pdf"]
+    pdfs = {p.read_bytes() for p in kept if p.suffix == ".pdf"}
+    assert pdfs == {(v / "Tema01_ES.pdf").read_bytes() for v in versions[:2]}
+    assert any(p.name.endswith(") (2).pdf") for p in kept)
+    assert replicas(box)["sciencebits|Tema 01|Tema01_ES.pdf"]["version"] == 3
+
+
+def test_of_two_folders_of_a_topic_the_one_holding_the_book_is_its(box: Box, tmp_path: Path):
+    """A teacher's topic named like the book's waits in its own folder until its match is confirmed."""
+    (box.base / FYQ / "20261101 - Tema 01 - Título del profesor" / "classroom").mkdir(parents=True)
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout)["folder"] == f"{TOPIC_FOLDER}/sciencebits"
+
+
+@pytest.mark.parametrize("both", [True, False])
+def test_two_folders_of_one_topic_are_never_guessed_between(box: Box, tmp_path: Path, both: bool):
+    second = box.base / FYQ / "20261101 - Tema 01 - Repetido"
+    second.mkdir()
+    if both:
+        (second / "sciencebits").mkdir()
+    else:
+        (box.base / TOPIC_FOLDER / "sciencebits").rmdir()
     before = written(box)
     done = place(box, built(tmp_path / "out"))
     assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "ambiguous_topic"
+    assert "merge them into one" in done.stderr
     assert written(box) == before
+
+
+def test_two_files_that_would_get_one_name_are_refused(box: Box, tmp_path: Path):
+    origin = built(tmp_path / "out")
+    (origin / "Tema01_ES:extra.md").write_text("dos")
+    (origin / "Tema01_ES-extra.md").write_text("tres")
+    before = written(box)
+    done = place(box, origin)
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "name_clash"
+    assert written(box) == before
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root writes into a read-only folder")
+def test_a_file_that_cannot_be_written_is_a_failed_line(box: Box, tmp_path: Path):
+    folder = box.base / TOPIC_FOLDER / "sciencebits"
+    folder.chmod(0o500)
+    try:
+        done = place(box, built(tmp_path / "out"))
+    finally:
+        folder.chmod(0o700)
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "write_failed"
+    assert str(box.home) not in done.stdout + done.stderr
+    line = lines(box)[-1]
+    assert (line["type"], line["result"], line["reason"], line["placed"]) == ("book", "failed", "write_failed", 0)
+    assert list(folder.iterdir()) == []  # no copy cut short stands as the replica
 
 
 @pytest.mark.parametrize(
@@ -356,6 +416,8 @@ def test_a_failed_notebook_step_carries_its_reason(box: Box):
         (("--result", "done"), "invalid_result"),
         (("--result", "created", "--shares", "2,1"), "invalid_shares"),
         (("--result", "created", "--shares", "2,-1,0"), "invalid_shares"),
+        (("--result", "created", "--shares", "²,0,0"), "invalid_shares"),
+        (("--result", "unchanged", "--reason", "2 invites failed"), "invalid_reason"),
     ],
 )
 def test_log_notebook_refuses_and_writes_no_line(box: Box, args: tuple[str, ...], reason: str):

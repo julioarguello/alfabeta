@@ -33,7 +33,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Teacher's topic folder with no book equivalent, or with its match not yet confirmed | `YYYYMMDD - <teacher's title>` |
 | Folder for what Classroom posts with no topic | `YYYYMMDD - No topic` |
 | Classroom item in `classroom/` | `YYYYMMDD - <title>` |
-| Previous version of a replica | `<name> (anterior YYYY-MM-DD)` |
+| Previous version of a replica | `<name> (anterior YYYY-MM-DD)`; a second one the same day, `<name> (anterior YYYY-MM-DD) (2)` |
 
 A topic folder's `YYYYMMDD` is the posting date of the first Classroom item placed in it, or the
 day a book provider creates it if it comes first. It is set when the folder is created and never
@@ -233,7 +233,8 @@ requests the web-route guard blocked, FR-038; absent on the token route). Each l
 `run` of its lock. The `apply` line also carries
 `mirrors`: `{up_to_date, failed}`, counts of the configured mirrors (FR-011a), never their paths.
 `book place` writes a shorter
-line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`.
+line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`;
+a placement cut short by a write error has `result: failed`, `reason: write_failed` and `placed` (how many files it copied) instead of `mirrors`.
 Its replicas are keyed `<book>|Tema NN|<file name>`, with `role` `material`.
 `log notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
 `unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data), and
