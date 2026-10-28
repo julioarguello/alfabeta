@@ -628,9 +628,9 @@ test.
 - **FR-014**: An item without a topic and an announcement MUST go to the subject's
   `<YYYYMMDD> - No topic` folder, dated by the first item placed there. There are no month folders.
 - **FR-015**: Inside `classroom/`, each item MUST be prefixed with its posting date,
-  `YYYYMMDD - <item title>`, and its form MUST depend on its type. The one file there that is not
-  an item is spec 005's living Classroom file, `Classroom · <topic>.pdf`, which this epic neither
-  writes nor reads:
+  `YYYYMMDD - <item title>`. The one file there that is not an item is spec 005's living
+  Classroom file, `Classroom · <topic>.pdf`, which this epic neither writes nor reads. An item's
+  form MUST depend on its type:
   - a **material** with a single file, no links and no description is that file; with several
     files, with links or with a description, it is a folder with its files, a `descripcion` note
     with its text if it has one and an `enlaces` note if it has links;

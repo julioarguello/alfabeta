@@ -410,7 +410,8 @@ and cannot judge what the notebook writes.
 
 - **FR-001**: alfabeta MUST propose a topic's blocks from its folder (class notes, Classroom
   material, textbook; not spec 005's living files, which repeat them), naming for each block the
-  files it comes from, and MUST NOT generate until they are confirmed. Once confirmed, the blocks of a topic are not proposed again.
+  files it comes from, and MUST NOT generate until they are confirmed. Once confirmed, the blocks
+  of a topic are not proposed again.
 - **FR-002**: When sources disagree about what the exam asks, the class notes MUST win over
   Classroom and Classroom over the textbook.
 - **FR-003**: Two ideas that the teacher's material or the parent's guide name as a typical
@@ -441,8 +442,9 @@ and cannot judge what the notebook writes.
   neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
   regenerated or reported.
-- **FR-011**: Every teacher's answer key in the topic's `classroom/` MUST be recomputed; each
-  mismatch, and each statement missing a datum, is recorded for the parent's guide.
+- **FR-011**: Every teacher's answer key in the topic's `classroom/` (not in spec 005's living
+  Classroom file, which repeats them) MUST be recomputed; each mismatch, and each statement
+  missing a datum, is recorded for the parent's guide.
 
 **The parent's material**
 

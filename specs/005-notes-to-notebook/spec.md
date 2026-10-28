@@ -103,9 +103,9 @@ reads it, and that read also needs `nlm`: the Mac does it, on its own schedule a
   then. Decided by the family on 2026-10-28 with every folder name the code decides in English
   (constitution 2.2.0, julioarguello/alfabeta#110); the cloud run's reports go in `reports/` (it
   was `Informes/`). In `classroom/` the living file is never itself a Classroom item, a file at a
-  topic folder's root is reported as unexpected, and `notebook/`, `exam/` and `sciencebits/` are
-  not read. Tema 01's two living files, set up at its root on 2026-10-27, were moved by hand into
-  their folders (edge cases).
+  topic folder's root is reported as unexpected, and any other folder of the topic is not read.
+  Tema 01's two living files, set up at its root on 2026-10-27, are moved by hand into their
+  folders (edge cases).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -265,8 +265,9 @@ source and one living Classroom source, and that a second run adds nothing.
   recreate a second file or source. Put back in its folder, it is healthy again on the next check,
   and a page transcribed meanwhile reaches it on that pass.
 - **A living file set up at the topic's root, before 2026-10-28.** Moved by hand once into its
-  folder (julioarguello/alfabeta#110); until then it is reported missing. A Drive move keeps the
-  file's id, which is what the notebook source is bound to.
+  folder (julioarguello/alfabeta#110); until then it is reported missing. A move inside Drive is
+  expected to keep the file's id, which the notebook source is bound to; whether the notebook
+  still reads the file afterwards is measured on Tema 01 when it is moved (research), not assumed.
 - **The Mac is asleep, off or logged out.** The notebook's copy of a living file stays old until the
   Mac's next refresh after it wakes or the family's session starts, and the student may meet the old
   copy meanwhile: opening the notebook as the student does not refresh it (measured 2026-10-28). The
