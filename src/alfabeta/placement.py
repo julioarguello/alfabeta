@@ -40,7 +40,7 @@ MAX_NAME_BYTES = 255
 SUMMARY_CHARS = 60
 
 _DATED = re.compile(r"^(\d{8}) - (.+)$")
-_BOOK_TOPIC = re.compile(r"Tema \d{2} - .+")
+_BOOK_TOPIC = re.compile(r"(Tema \d{2}) - .+")
 # "/" separates paths and ":" is shown as "/" by macOS; control characters are invisible in Drive.
 _FORBIDDEN = re.compile(r"[/:\x00-\x1f\x7f]")
 
@@ -88,6 +88,12 @@ def _file_name(attachment: Attachment) -> str:
 
 def _day(date: dt.date) -> str:
     return date.strftime("%Y%m%d")
+
+
+def book_topic_number(name: str) -> str | None:
+    """`Tema NN` of a book topic named `Tema NN - <title>`; None for a name of another form."""
+    found = _BOOK_TOPIC.fullmatch(name)
+    return found.group(1) if found else None
 
 
 def book_topics(subject_dir: Path, book: str) -> list[str]:

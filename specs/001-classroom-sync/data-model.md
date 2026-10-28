@@ -233,7 +233,8 @@ requests the web-route guard blocked, FR-038; absent on the token route). Each l
 `run` of its lock. The `apply` line also carries
 `mirrors`: `{up_to_date, failed}`, counts of the configured mirrors (FR-011a), never their paths.
 `book place` writes a shorter
-line: `type: book`, `at`, `run`, `source`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`.
+line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`.
+Its replicas are keyed `<book>|Tema NN|<file name>`, with `role` `material`.
 `log notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
 `unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data), and
 `shares`: `{invited, already, failed}`, counts of the accounts in `notebook.share_with` (FR-011b),

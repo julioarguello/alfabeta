@@ -101,8 +101,8 @@ account to be shared with the school account and opened there.
 | [pandoc](https://pandoc.org/installing.html), [Graphviz](https://graphviz.org/download/) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports and mind maps to PDF with them |
 | A folder synced to your cloud storage | The skills write each topic under `storage.base` and copy it to each folder in `drive.mirrors`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
-Nothing extra is needed for Python: `build.py` runs in Claude's VM, which ships `reportlab`,
-`beautifulsoup4` and `pypdf`.
+Nothing extra is needed for Python: `build.py` and its `render.py` run in Claude's VM, which ships
+`reportlab`, `beautifulsoup4` and `pypdf`.
 
 ### Set up
 
