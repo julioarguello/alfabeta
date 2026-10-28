@@ -49,7 +49,7 @@ photos (it is a dependency, not a requirement here).
 - Q: Which source wins when they disagree about what the exam asks? → A: The student's class notes,
   then Classroom, then the textbook. The teacher's material prioritises scope; it does not limit it.
 - Q: In which language is each piece? → A: Explanations, videos and the study guide in Spanish, with
-  each key term also in the exam's language. Practice, quiz and flashcards in the exam's language.
+  each key term also in the subject's language. Practice, quiz and flashcards in the subject's language.
   Everything for the parent in Spanish.
 - Q: How many notebooks per topic? → A: One. The parent's material does not go into it.
 - Q: What is a block, and how many videos? → A: A block is an idea the exam can ask, grouped so two
@@ -58,7 +58,7 @@ photos (it is a dependency, not a requirement here).
 - Q: How does the student know where to start? → A: Every piece is numbered in study order and its
   title says what it is, what about and how long; a note numbered 0 says what to do first. Titles
   are in Spanish, as the constitution asks of everything the family reads, even when the piece's
-  content is in the exam's language.
+  content is in the subject's language.
 - Q: What happens with a teacher's answer key that is wrong? → A: Every numeric answer is
   recomputed. The parent's guide shows the correct value next to the sheet's, neutrally; nothing
   the student sees repeats the wrong value or names the teacher.
@@ -80,7 +80,7 @@ only), **the student** (a viewer of the topic's notebook) and **the teachers** (
 An exam is announced. As soon as it is known, alfabeta proposes the topic's blocks from its folder;
 once they are confirmed it makes, in the topic's notebook, one explainer video per block, a
 practice sheet, a quiz and
-flashcards in the exam's language, a study guide and a mind map. It checks every piece before
+flashcards in the subject's language, a study guide and a mind map. It checks every piece before
 showing it: the language of the whole text, every number, and that the practice problems do not
 reuse the teacher's data.
 
@@ -88,13 +88,13 @@ reuse the teacher's data.
 needs no guessing.
 
 **Independent Test**: with a test topic folder holding a teacher's sheet with a known wrong answer
-and a known exam language, run the pack and check each piece against the acceptance scenarios.
+and a known language, run the pack and check each piece against the acceptance scenarios.
 
 **Acceptance Scenarios**:
 
 1. **Given** a topic folder and confirmed blocks, **When** the pack runs, **Then** the notebook has
    one video per block, a practice sheet, a quiz, flashcards, a study guide and a mind map.
-2. **Given** a subject whose exam language is Basque, **When** the pack runs, **Then** the
+2. **Given** a subject taught in Basque, **When** the pack runs, **Then** the
    practice sheet, quiz and flashcards are entirely in Basque and the videos and study guide in
    Spanish.
 3. **Given** a generated practice sheet that reuses a problem's data from the teacher's sheet,
@@ -111,7 +111,7 @@ and a known exam language, run the pack and check each piece against the accepta
 
 The parent opens the topic's `docente/` folder and finds, in Spanish, the blocks with the files
 they came from, a guide with questions to ask at home and the expected answers, the teacher's
-answer key recomputed with every mismatch marked, and a glossary in the exam's language, Spanish
+answer key recomputed with every mismatch marked, and a glossary in the subject's language, Spanish
 and English. None of it is in the notebook.
 
 **Why this priority**: the parent cannot help without it, and a wrong key discourages the student.
@@ -138,7 +138,7 @@ The student opens the topic's notebook. The first item is a note numbered 0 that
 line, the one thing to do today and how long it takes; directly under it is that piece. Every
 title says which moment it belongs to (today, yesterday, the weekly review, the exam), what it is,
 what about and how long, and none of them invites skipping it. The chat answers as a tutor: a hint
-before the answer, explanations in Spanish with the terms in the exam's language.
+before the answer, explanations in Spanish with the terms in the subject's language.
 
 **Why this priority**: a notebook the student does not know how to use is not used.
 
@@ -186,7 +186,7 @@ list, the page each piece starts on, a formula and the mind map's legibility at 
 ### User Story 5 - Something to do every day the teacher posts, and a review every week (Priority: P2)
 
 After each Classroom sync, every new material the teacher posted becomes a small piece for today in
-its topic's notebook: a short quiz and a few flashcards in the exam's language, about that material
+its topic's notebook: a short quiz and a few flashcards in the subject's language, about that material
 alone, titled «HOY» with how long it takes. What was «HOY» yesterday becomes «Ayer». Once a week, on
 a fixed day, a «REPASO SEMANA» brings one short video per idea that arrived that week and a quiz
 that mixes the week with earlier ones; that week's «Ayer» pieces then leave the list. Nothing
@@ -280,8 +280,8 @@ check that the proposed blocks include it.
   practice sheet, a quiz, flashcards, a study guide and a mind map. Class notes become a source
   as their literal transcription (spec 005, which superseded the check this requirement asked for).
 - **FR-005**: Videos and the study guide MUST be in Spanish, giving each key term also in the
-  exam's language as the class material writes it. Practice sheet, quiz and flashcards MUST be in
-  the exam's language, configured per subject.
+  subject's language (the one it is taught and examined in) as the class material writes it.
+  Practice sheet, quiz and flashcards MUST be in the subject's language, configured per subject.
 - **FR-006**: The practice sheet MUST go from a fully worked example to partly worked ones to
   problems without help, with the solutions in a separate section at the end, and MUST NOT reuse
   any numeric data of the teacher's sheets.
@@ -303,7 +303,7 @@ check that the proposed blocks include it.
 
 - **FR-012**: `docente/` in the topic folder MUST hold, in Spanish: the confirmed blocks with their
   sources; a parent's guide with questions to ask at home and the teacher's sheets translated and
-  recomputed, each mismatch marked neutrally; and a glossary (exam language, Spanish, English,
+  recomputed, each mismatch marked neutrally; and a glossary (the subject's language, Spanish, English,
   one-line definition, formula). The guide and the glossary as PDF and Markdown.
 - **FR-013**: None of the parent's material may be visible in the notebook when the run ends.
 
@@ -312,7 +312,7 @@ check that the proposed blocks include it.
 - **FR-014**: Every piece's title MUST be in Spanish and start with its moment — `HOY`, `Ayer`,
   `REPASO SEMANA` or `EXAMEN <weekday>` — followed by its number within that moment when there are
   several; it says what the piece is, what it is about and, for a video or quiz, its measured length
-  or question count, with no date and no recipient. A piece in the exam's language says so.
+  or question count, with no date and no recipient. A piece in the subject's language says so.
 - **FR-015**: When a run ends, the notebook's list MUST open with the note «0 · Empieza aquí»,
   rewritten by every run to name the one thing to do today with its duration, and directly under it
   the piece the note names. No title and no note may present a piece as optional.
@@ -334,7 +334,7 @@ check that the proposed blocks include it.
 
 - **FR-020**: Each sync that brings a new teacher's material to a subject MUST make, in the notebook
   of that material's topic, a «HOY» piece about that material alone: a quiz of about five questions
-  and about five flashcards in the exam's language. The previous «HOY» pieces are retitled «Ayer».
+  and about five flashcards in the subject's language. The previous «HOY» pieces are retitled «Ayer».
   No video is made at this moment. A material already covered never gets a second «HOY» piece.
 - **FR-021**: On a fixed weekday, set in the configuration, alfabeta MUST make a «REPASO SEMANA» per
   notebook that received material that week: one explainer video per idea that arrived, and a quiz
@@ -362,7 +362,7 @@ check that the proposed blocks include it.
 
 ### Key Entities
 
-- **Topic**: a school year, subject and topic folder, with its notebook and its exam language.
+- **Topic**: a school year, subject and topic folder, with its notebook and its subject's language.
 - **Block**: an idea the exam can ask; title, the files it comes from, confirmed or not.
 - **Piece**: something in the notebook: kind (video, report, quiz, flashcards, mind map, note),
   number, title, language, audience (student or parent), verification result.
@@ -377,8 +377,8 @@ check that the proposed blocks include it.
 
 - **SC-001**: No numeric answer the student sees differs from its recomputation, across every
   piece of every pack.
-- **SC-002**: Every text piece intended for the exam's language contains no paragraph in another
-  language, and every Spanish text piece gives each key term in the exam's language. (A video's
+- **SC-002**: Every text piece intended for the subject's language contains no paragraph in another
+  language, and every Spanish text piece gives each key term in the subject's language. (A video's
   audio cannot be checked by the run; its on-screen text is.)
 - **SC-003**: When a run ends, the notebook account's output language is what it was before the
   run, in every run, including failed ones.

@@ -71,7 +71,7 @@ experiment.
 | Short, segmented video | [MA] segmenting helps ([Rey et al. 2019](https://is.mpg.de/publications/rey2018segmenting)); edX data suggests keeping videos under six minutes ([Guo, Kim & Rubin 2014](https://www.cs.rochester.edu/hci/pubs/pdfs/edX-MOOC-video-production-and-engagement_LAS-2014.pdf)) | One short video per block of content, never a long one per topic |
 | Passive review | Re-reading, highlighting and summarising: low utility (Dunlosky) | Overviews and study guides only as a way in, each ending with questions |
 | Unrestricted AI help | [RCT] ~1,000 high-school maths students: unrestricted GPT raised practice scores and lowered exam scores by 17 %; a tutor that gave hints largely avoided the harm ([Bastani et al., PNAS 2025](https://ideas.repec.org/a/nas/journl/v122y2025pe2422633122.html)) | The tutor gives hints, never the answer first |
-| Learning in one language, tested in another | [EXP] arithmetic learned in one language is slower and more error-prone in the other ([Saalbach et al. 2013](https://boris.unibe.ch/45901/)) | Explain in the family's language if it helps understanding; practise in the exam's language |
+| Learning in one language, tested in another | [EXP] arithmetic learned in one language is slower and more error-prone in the other ([Saalbach et al. 2013](https://boris.unibe.ch/45901/)) | Explain in the family's language if it helps understanding; practise in the subject's language |
 
 The last row is the weakest link in the design: the switching-cost studies are about arithmetic,
 not science, and nobody we found measured a bilingual glossary in secondary science.
@@ -107,7 +107,7 @@ name NotebookLM took on 2026-07-16
 
 > [!WARNING]
 > The output language override applies to every notebook of the account. Switch it back after
-> generating, or the owner's other notebooks start answering in the exam's language.
+> generating, or the owner's other notebooks start answering in the subject's language.
 | Reports | `--language eu` produces a report entirely in Basque, whatever the language of the prompt. |
 | Order of the Studio list | By last modification: renaming an item moves it to the top. |
 | Renaming and deleting | A rename keeps any title verbatim (`Paso 2 · Quiz · …`); a delete removes the item cleanly, so one live version per item can be enforced. |
@@ -135,8 +135,8 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 | Notes are transcribed literally and checked before they become a source; the student checks their own handwriting | Profesor Productivo; the student as checker is a **hypothesis** (the parent may not read the language of the notes) |
 | When material arrives: add it as a source, generate nothing | Roca (talk before generating) |
 | When the teacher opens a new topic in Classroom, the previous one is closed: generate its explainer videos, one per block of content, plus the glossary | Segmenting and video length (evidence table); the topic-jump signal is a **hypothesis** to check across subjects |
-| When an exam is announced: practice in the exam's language (worked → faded → mixed problems, a quiz, flashcards) and a short plan of a few 20–25-minute sessions, kept as a note for the family — never in the calendar | Retrieval, spacing, worked examples; AI Family Network for the session length |
-| Videos and the parent's material in Spanish; practice in the exam's language | Sustatu and HABE on Basque audio quality; Saalbach on switching; the split itself is a **hypothesis** |
+| When an exam is announced: practice in the subject's language (worked → faded → mixed problems, a quiz, flashcards) and a short plan of a few 20–25-minute sessions, kept as a note for the family — never in the calendar | Retrieval, spacing, worked examples; AI Family Network for the session length |
+| Videos and the parent's material in Spanish; practice in the subject's language | Sustatu and HABE on Basque audio quality; Saalbach on switching; the split itself is a **hypothesis** |
 | Few pieces for the student, each named by what it is, what about and how long (`Vídeo 4 min · Kontzentrazioa`) | Choice overload ([Chernev et al. 2015](https://www.kellogg.northwestern.edu/faculty/research/detail/2015/when-product-assortment-leads-to-choice-overload-a-conceptual)); the count is a **hypothesis** |
 | The parent's material (topic map, recomputed answer key, translated exercises, a questioning guide with the Basque term) lives in a `docente/` folder of the Drive, not in the notebook | A viewer sees everything in Studio (sharing help) |
 | Numeric answers are recomputed before any material reaches the student | The answer-key errors above |
