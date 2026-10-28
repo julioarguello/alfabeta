@@ -46,7 +46,11 @@ Expect: a PDF and a Markdown next to the photo; one page in `Apuntes · <topic>.
 only that page holds. Run again: `pages_added: 0`, and the living file's revision does not change.
 Then add one more page and open the notebook as the student, a viewer, not as its owner: record
 whether the new page appears within five minutes (SC-002 rests on it; on 2026-10-27 only the owner
-was measured).
+was measured). On 2026-10-28 the student's view did not answer within five minutes and did after
+the owner's reads (research.md has the row). To tell a slow refresh from one only the owner
+triggers, share the notebook with the student before adding the page, then let the owner touch
+nothing: the student opens the notebook and asks at five, ten and fifteen minutes; only if none
+answers does the owner run `nlm source stale`, and the student asks again two minutes later.
 
 ## 4. The student's marks
 
