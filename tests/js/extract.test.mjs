@@ -230,6 +230,34 @@ test("an attachment is named by its file, without the label's prefix", () => {
   assert.equal(video.name, "Vídeo inventado");
 });
 
+test("an attachment labelled without its type is still named by its file", () => {
+  const doc = new JSDOM(
+    '<a href="https://drive.google.com/file/d/synth-3/view" aria-label="Archivo adjunto: imagen inventada.jpg">z</a>',
+  ).window.document;
+  assert.equal(extract.attachmentOf(doc.querySelector("a")).name, "imagen inventada.jpg");
+});
+
+test("the loader loads nothing while the tab is hidden, and goes on when it is shown", async () => {
+  const dom = new JSDOM("<body></body>", { url: "https://classroom.google.com/u/5/h", runScripts: "outside-only" });
+  dom.window.eval(SOURCE);
+  const doc = dom.window.document;
+  let state = "hidden";
+  Object.defineProperty(doc, "visibilityState", { get: () => state });
+  try {
+    const loading = dom.window.alfabetaExtract.iframeLoader(dom.window, { timeoutMs: 200, attempts: 1 })("/u/5/w/synth-1/t/all");
+    const outcome = loading.then(() => "loaded", (err) => err.message);
+    await new Promise((r) => setTimeout(r, 400));
+    assert.equal(doc.querySelectorAll("iframe").length, 0); // hidden for longer than the timeout: still waiting
+    state = "visible";
+    doc.dispatchEvent(new dom.window.Event("visibilitychange"));
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(doc.querySelectorAll("iframe").length, 1);
+    assert.equal(await outcome, "timeout"); // a blank frame never gets ready: the timeout runs once shown
+  } finally {
+    dom.window.close(); // its timers would otherwise keep the run alive
+  }
+});
+
 test("a description keeps its line breaks and joins its inline marks", () => {
   const doc = new JSDOM(
     '<div role="main"><div class="nGi02b"><span>Ejercicios 1 y 2.<br>Mañana <b>los</b> corrijo.<br><br>Saludos</span></div></div>',
