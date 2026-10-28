@@ -51,7 +51,7 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
 - Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>`, as the constitution names
   it, with the title in the first of `sciencebits.languages`; e.g. `2026-2027/FyQ/20261001 - Tema 01 - Sustancias
   puras y mezclas`. Every topic folder starts with a `YYYYMMDD - ` date (the posting date of the topic's first Classroom
-  material), and that date is never changed. To find the folder of topic NN, look in `<year>/<subject>/` for a
+  material), and that date is never changed. To find the folder of topic NN, look in `<school_year>/<subject>/` for a
   folder matching `*Tema NN - *` (two-digit `NN`), whatever its date, and reuse it. Only if none matches, create
   one dated today. Never create a second folder for a topic that already has one: an
   undated or re-dated duplicate splits the topic in two.
@@ -83,7 +83,7 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
    - **Assessments**: never open or start them; they are left out.
    - Other `n:0`/errors → relaunch them at the end. Check one zip with `items` per lesson and language.
 6. **Build.** `$WORK/unit.json`:
-   `{"prefix":"TemaNN","langs":{"<language>":{"unit":"Tema N · …","course":"<subject> · <grade_level>"},…}}`, one
+   `{"prefix":"TemaNN","langs":{"<language>":{"unit":"Tema N · …","course":"<the subject's full name> · <grade_level>"},…}}`, one
    entry per captured language, each title in its language.
    In `device_bash`: `python3 tools/build.py raw out --config unit.json <captured languages>`.
 7. **Verify.** pypdf: pages, bookmarks, table-of-contents links, extractable text. Review the `.md`. If a lesson

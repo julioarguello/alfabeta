@@ -10,7 +10,7 @@ import glob, json, os, shutil, sys, time, zipfile
 
 if len(sys.argv) != 3:
     sys.exit('usage: watch.py RAW_DIR DOWNLOADS_DIR')
-R = sys.argv[1]
+R = os.path.expanduser(sys.argv[1])
 D = os.path.expanduser(sys.argv[2])
 os.makedirs(R, exist_ok=True)
 seen = {}

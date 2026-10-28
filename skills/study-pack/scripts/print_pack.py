@@ -77,8 +77,8 @@ def require_default(profile: str) -> None:
     default = nlm(profile, "config", "get", "auth.default_profile").strip()
     if default != profile:
         sys.exit(
-            f"print_pack: nlm download reads nlm's default profile, {default!r}, not {profile!r};"
-            f" run `nlm config set auth.default_profile {profile}` first"
+            "print_pack: nlm download reads nlm's default profile, which is not the student's"
+            " notebook.nlm_profile; make it so with `nlm config set auth.default_profile <profile>`"
         )
 
 

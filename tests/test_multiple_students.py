@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import signal
@@ -44,7 +45,8 @@ def home(tmp_path: Path) -> Iterator[Path]:
     for student in STUDENTS:  # no watcher outlives its test
         lease = state.Lock(home, home / student / "data").lease()
         if lease:
-            os.kill(int(lease["pid"]), signal.SIGKILL)
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(int(lease["pid"]), signal.SIGKILL)
 
 
 def take(home: Path, student: str) -> str:

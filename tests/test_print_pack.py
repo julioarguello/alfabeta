@@ -87,5 +87,18 @@ def test_every_nlm_command_but_download_and_config_gets_the_profile(monkeypatch:
 def test_a_default_profile_other_than_the_students_stops_before_any_download(monkeypatch: pytest.MonkeyPatch):
     script = load_script()
     monkeypatch.setattr(script.subprocess, "run", FakeRun("default"))
-    with pytest.raises(SystemExit, match=r"nlm config set auth\.default_profile familia"):
+    with pytest.raises(SystemExit, match=r"nlm config set auth\.default_profile <profile>") as stop:
         script.require_default("familia")
+    assert "familia" not in str(stop.value)  # the key, never the value
+
+
+def test_the_run_checks_the_default_before_it_downloads(home: Path, monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    fake = FakeRun("default")
+    monkeypatch.setattr(script.subprocess, "run", fake)
+    monkeypatch.setattr(
+        sys, "argv", ["print_pack.py", "topic", "nb-1", "out.pdf", "--student", "sample", "--home", str(home)]
+    )
+    with pytest.raises(SystemExit):
+        script.main()
+    assert [call[1] for call in fake.calls] == ["config"]
