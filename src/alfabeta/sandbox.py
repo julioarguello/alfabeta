@@ -112,14 +112,14 @@ folder = "FyQ"
 classroom_class = "Física y Química sintética 3ºA"
 book = "sciencebits"
 book_class = "Física inventada"
-exam_language = "es"
+language = "es"
 
 [[subjects]]
 folder = "Ingles"
 classroom_class = "English Synthetic 3A"
 book = ""
 book_class = ""
-exam_language = "en"
+language = "en"
 """
 
 

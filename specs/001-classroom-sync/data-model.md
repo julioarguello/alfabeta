@@ -82,6 +82,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `classroom_class` | text | Title of the class in Classroom; only for proposing the link |
 | `book` | text or empty | Book provider (`sciencebits`) and name of its subfolder |
 | `book_class` | text or empty | Name of the class on the book's platform (e.g. the Science Bits one) |
+| `language` | language code | Language the subject is taught and examined in, as in `[student] languages` (spec 002 FR-005) |
 
 `[sciencebits] url` and `languages` accept `""` and `[]` when no subject has `book = "sciencebits"`.
 

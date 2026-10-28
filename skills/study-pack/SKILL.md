@@ -1,6 +1,6 @@
 ---
 name: study-pack
-description: Prepares a topic's study material inside its Gemini Notebook (NotebookLM) notebook — short explainer videos in Spanish per exam block, a practice sheet, quiz and flashcards in the exam language, a bilingual glossary and a parent guide with a recomputed answer key — and prints the reports to A4 PDF in the topic's Drive folder. Use with «prepara el tema N de <asignatura>» (prepare topic N of <subject>), «el tema N ha terminado» (topic N is finished) or when Classroom shows material in a new topic.
+description: Prepares a topic's study material inside its Gemini Notebook (NotebookLM) notebook — short explainer videos in Spanish per exam block, a practice sheet, quiz and flashcards in the subject's language, a bilingual glossary and a parent guide with a recomputed answer key — and prints the reports to A4 PDF in the topic's Drive folder. Use with «prepara el tema N de <asignatura>» (prepare topic N of <subject>), «el tema N ha terminado» (topic N is finished) or when Classroom shows material in a new topic.
 ---
 
 # Study pack — one topic, one notebook, a few pieces
@@ -23,7 +23,7 @@ fails, say which keys and stop. Never create the configuration or write to it.
 | `storage.base` | the topic folder |
 | `drive.mirrors` | the folders refreshed after the videos are copied (step 9); never shown, only counted |
 | `tools.repository` | the clone every command and script runs from |
-| `[[subjects]]` `folder`, `exam_language` | the subject's folder, and the language its exams are written in (`es`, `en`…) |
+| `[[subjects]]` `folder`, `language` | the subject's folder, and the language it is taught and examined in (`es`, `en`…) |
 | `notebook.title_pattern`, `notebook.nlm_profile` | the topic's notebook; the `nlm` profile of the account that owns it |
 
 Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>/`, found by
@@ -55,7 +55,7 @@ email or an id into the repository.
 3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time:
    - one video per block (`--format explainer --language es-ES`);
    - reports: study guide (`--format 'Study Guide' --language es`), practice sheet (`--language` the
-     exam language), glossary and parent guide (`--language es`);
+     subject's language), glossary and parent guide (`--language es`);
    - quiz and flashcards, after the language switch below;
    - a mind map: `NOTEBOOKLM_HL=es nlm mindmap create <nb> -y` (it takes no focus, so it covers what
      the sources stress, which may not be every block).
@@ -85,7 +85,7 @@ email or an id into the repository.
 8. **Number and order.** Every title starts with its place in the study order — videos, practice,
    quiz, flashcards, then what is only consulted (guide, mind map) — and says what it is, what
    about and how long, in Spanish — the constitution asks it of everything the family reads, and the
-   parent reads the printed index — with no date and no recipient; a piece in the exam's language
+   parent reads the printed index — with no date and no recipient; a piece in the subject's language
    says so: `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 preguntas en euskera ·
    Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
@@ -110,7 +110,7 @@ email or an id into the repository.
 > The output language that quiz and flashcards are written in is an **account-wide** setting, not a
 > notebook one, and `nlm` has no flag for it. Before generating them, open the notebook in the
 > browser, signed in as the owner, note the current value of *Settings → Output language*, and set
-> it to the exam language; after verifying them, set it back to the value you noted, even when the
+> it to the subject's language; after verifying them, set it back to the value you noted, even when the
 > run failed. Left switched, every other notebook of that account answers in that language (measured
 > 2026-10-26).
 

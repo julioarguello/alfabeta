@@ -173,7 +173,7 @@ class StudentConfig:
                 classroom_class=_str(self.data, "subjects.*.classroom_class", str(i)),
                 book=_str(self.data, "subjects.*.book", str(i), allow_empty=True),
                 book_class=_str(self.data, "subjects.*.book_class", str(i), allow_empty=True),
-                exam_language=_str(self.data, "subjects.*.exam_language", str(i)),
+                language=_str(self.data, "subjects.*.language", str(i)),
             )
             for i in range(_count(self.data, "subjects"))
         )
