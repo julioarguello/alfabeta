@@ -100,6 +100,8 @@ def test_the_run_places_every_item_or_notes_it(box: Box):
         f"{TOPIC}/20261001 - Apuntes inventados/Presentación inventada.pdf",
         f"{TOPIC}/20261001 - Apuntes inventados/descripcion.md",
         f"{TOPIC}/20261010 - Cuestionario inventado/enlaces.md",
+        f"{TOPIC}/20261006 - Ficha inventada de mezclas/entrega/respuestas-inventadas.pdf",
+        f"{TOPIC}/20261009 - Informe inventado de laboratorio/entrega/informe-inventado.pdf",
     ):
         assert expected in files
     video = (box.base / TOPIC / "20261001 - Apuntes inventados" / "enlaces.md").read_text()
@@ -120,6 +122,15 @@ def test_an_attachment_that_does_not_arrive_is_noted(box: Box):
     assert result["not_fetched"] == 1 and "1 sin traer" in summary
     note = (box.base / TOPIC / "20261006 - Ficha inventada de mezclas" / "enlaces.md").read_text()
     assert "no traído" in note and "https://drive.google.com/file/d/synth-40/view" in note
+
+
+def test_a_submission_that_does_not_arrive_is_noted(box: Box):
+    box.collect_and_plan(skip="respuestas-inventadas.pdf")
+    result, _ = box.apply()
+    folder = box.base / TOPIC / "20261006 - Ficha inventada de mezclas"
+    assert result["not_fetched"] == 1 and not (folder / "entrega").exists()
+    note = (folder / "enlaces.md").read_text()
+    assert "respuestas-inventadas.pdf" in note and "no traído" in note
 
 
 def test_an_unreadable_class_does_not_stop_the_other(box: Box):

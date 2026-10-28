@@ -179,8 +179,13 @@ class RanOn(StrEnum):
 
 
 def is_student_work(name: str) -> bool:
-    """Whether a file is the student's own work or its grading, which never enters a living file."""
-    return bool(_STUDENT_WORK.match(name))
+    """Whether a file is the student's own work or its grading, which never enters a living file.
+
+    `name` is the file's name or its path inside the item's folder: anything under `entrega/` is the
+    student's (spec 001 FR-015a, amended 2026-10-28), and so is the older `entrega - <name>`.
+    """
+    parts = name.replace("\\", "/").split("/")
+    return any(p.casefold() == "entrega" for p in parts[:-1]) or bool(_STUDENT_WORK.match(parts[-1]))
 
 
 def is_previous_version(name: str) -> bool:

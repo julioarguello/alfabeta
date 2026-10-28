@@ -31,9 +31,16 @@ if TYPE_CHECKING:
 
 # Where Drive serves each kind (research R3, spike S1, measured 2026-10-26).
 _EXPORT = {"document": "document", "presentation": "presentation", "spreadsheet": "spreadsheets"}
-# What US1 places; the student's submissions and the grading arrive with US6.
-US1_ROLES = frozenset(
-    {ReplicaRole.STATEMENT, ReplicaRole.MATERIAL, ReplicaRole.DESCRIPTION, ReplicaRole.LINKS, ReplicaRole.ANNOUNCEMENT}
+# What a run places: US1's roles and, from US6, the student's submissions; the grading comes later.
+PLACED_ROLES = frozenset(
+    {
+        ReplicaRole.STATEMENT,
+        ReplicaRole.MATERIAL,
+        ReplicaRole.DESCRIPTION,
+        ReplicaRole.LINKS,
+        ReplicaRole.ANNOUNCEMENT,
+        ReplicaRole.SUBMISSION,
+    }
 )
 
 
@@ -190,7 +197,7 @@ class Planner:
             raw_attachments = _raw_attachments(raw)
             for item in items:
                 placed = placer.place(item, normalized.topics.get(item.topic_id or ""))
-                targets = [t for t in placed if t.role in US1_ROLES]
+                targets = [t for t in placed if t.role in PLACED_ROLES]
                 for target in targets:
                     changes.append(
                         {

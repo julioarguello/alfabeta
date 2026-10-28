@@ -34,6 +34,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 NO_TOPIC = "Sin tema"
+# What the student turned in, inside the assignment's folder (FR-015a, amended 2026-10-28).
+SUBMISSION_FOLDER = "entrega"
 MAX_NAME_BYTES = 255
 SUMMARY_CHARS = 60
 
@@ -196,7 +198,7 @@ class Placer:
             if item.description:
                 targets.append(Target(ReplicaRole.DESCRIPTION, "", f"{folder}/enunciado.md"))
             targets += [
-                Target(ReplicaRole.SUBMISSION, a.id, f"{folder}/{fit('entrega - ' + _file_name(a))}")
+                Target(ReplicaRole.SUBMISSION, a.id, f"{folder}/{SUBMISSION_FOLDER}/{fit(_file_name(a))}")
                 for a in item.submission
                 if a.downloaded
             ]
