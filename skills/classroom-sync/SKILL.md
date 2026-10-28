@@ -35,7 +35,7 @@ Below, `alfabeta <command>` stands for that line.
 
 1. **Open the run.** `alfabeta config check`, then `alfabeta google check`, which refreshes every
    linked Google account and so keeps each link in use (spec 004 FR-013, FR-015). Exit 2 means an
-   account is not `ok`: the Mac shows which one, and this run skips only what it writes to Google and
+   account is not `ok`: the Mac shows which one. No step of this skill writes to Google, so the run
    goes on; say it in the report. Then `alfabeta lock take --mode interactive`; keep its
    `run`. `lock_busy` means another run holds the student: stop and say so.
 2. **Find the tab.** With `tabs_context`, find the Classroom tab the family left open. **Never open

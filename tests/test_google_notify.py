@@ -43,6 +43,10 @@ def test_a_working_link_notifies_nothing(cfg: config.StudentConfig, store: Memor
     assert seen.texts == []
 
 
+def test_every_status_but_ok_has_its_text():
+    assert set(notify._REASONS) == set(accounts.STATUSES) - {"ok"}  # pyright: ignore[reportPrivateUsage]
+
+
 @pytest.mark.parametrize("status", accounts.STATUSES[1:])
 def test_every_failure_reads_in_spanish(status: str):
     text = notify.link_failed("student", status)
@@ -63,7 +67,7 @@ def test_a_mac_that_cannot_show_it_loses_only_this_channel(error: Exception, cap
         raise error
 
     notify.MacNotifier(run=fails).notify("Texto inventado")
-    assert "no se pudo mostrar el aviso" in capsys.readouterr().err
+    assert "could not show the notification" in capsys.readouterr().err
 
 
 def test_google_check_exits_2_and_notifies_the_mac(home: Path, store: MemoryStore, monkeypatch: pytest.MonkeyPatch):

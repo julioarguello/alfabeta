@@ -58,4 +58,4 @@ class MacNotifier:
         try:
             self.run(argv)
         except (OSError, subprocess.SubprocessError):
-            print("alfabeta: no se pudo mostrar el aviso en el Mac", file=sys.stderr)
+            print("alfabeta: the Mac could not show the notification", file=sys.stderr)
