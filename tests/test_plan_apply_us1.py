@@ -141,7 +141,7 @@ def test_a_file_that_arrives_later_takes_its_no_traido_line_away(box: Box):
     folder = box.base / TOPIC / "20261006 - Ficha inventada de mezclas"
     assert "no traído" in (folder / "enlaces.md").read_text()
     box.release()
-    box.take()  # a later run: the previous plan still asks for the file, so its first collect waits on it
+    box.take()  # a later run: its own plan asks for the file the first one did not get
     assert box("sandbox", "download", "--student", "sample", "--captures").returncode == 0
     box("downloads", "collect", "--student", "sample")
     assert box("plan", "--student", "sample").returncode == 0

@@ -5,7 +5,8 @@
 what changed name, or everything when the periodic full review is due (FR-026, research R3/S1).
 What a run cut before `apply` already collected into `data/inbox/` is listed under
 `already_collected` instead of being downloaded again (FR-029). Two attachments with the same
-expected name never share a batch, so each downloaded file has one owner. Exam candidates and the matches of topics that span several book topics arrive with US2.
+expected name never share a batch, so each downloaded file has one owner. Exam candidates and the
+matches of topics that span several book topics arrive with US2.
 """
 
 from __future__ import annotations

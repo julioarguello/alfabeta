@@ -268,9 +268,12 @@ def test_apply_keeps_only_the_newest_captures_of_each_class(box: Box):
 
 
 def test_pruning_keeps_what_it_cannot_read(tmp_path: Path):
-    (tmp_path / "alfabeta-capture-x-synth-1-20261027-162200.json").write_text("not json")
+    unreadable = [tmp_path / f"alfabeta-capture-x-synth-1-2026102{n}-162200.json" for n in (6, 7)]
+    for path in unreadable:
+        path.write_text("not json")
+    # Two of them with room for one: neither is counted as the older of a pair.
     assert plan.prune_captures(tmp_path, 1) == 0
-    assert (tmp_path / "alfabeta-capture-x-synth-1-20261027-162200.json").exists()
+    assert all(path.exists() for path in unreadable)
 
 
 def test_an_announcement_gone_from_the_stream_is_not_withdrawn(box: Box):

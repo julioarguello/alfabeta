@@ -129,6 +129,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | `description` | text | Instructions or the announcement's text |
 | `attachments` | list of `Attachment` | |
 | `submission` | list of `Attachment` | Files the student turned in |
+| `withdrawn_at` | date or empty | Kept in the state: the first complete capture of its class that no longer showed it; never set for an `announcement` (the stream is read from one page); cleared when a capture shows it again (FR-027) |
 | `grading` | `Grading` or empty | |
 
 ### Status from the detail texts

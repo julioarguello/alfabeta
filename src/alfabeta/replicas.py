@@ -9,7 +9,8 @@ scope, every replica is placed again with the decisions in force, from the last 
 item kept in the state, so a match confirmed after a first run moves files instead of copying them.
 An item a complete capture of its class no longer shows is marked withdrawn in the state, never
 deleted; a cut-short capture withdraws nothing, an announcement is never withdrawn (the stream is
-read from one page), and an item shown again is no longer withdrawn (FR-027). Nothing is written outside the base folder, and no message shows an absolute path (FR-031).
+read from one page), and an item shown again is no longer withdrawn (FR-027). Nothing is written
+outside the base folder, and no message shows an absolute path (FR-031).
 """
 
 from __future__ import annotations
