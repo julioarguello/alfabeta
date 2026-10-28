@@ -104,8 +104,8 @@ reads it, and that read also needs `nlm`: the Mac does it, on its own schedule a
   (constitution 2.2.0, julioarguello/alfabeta#110); the cloud run's reports go in `reports/` (it
   was `Informes/`). In `classroom/` the living file is never itself a Classroom item, a file at a
   topic folder's root is reported as unexpected, and any other folder of the topic is not read.
-  Tema 01's two living files, set up at its root on 2026-10-27, are moved by hand into their
-  folders (edge cases).
+  Tema 01's two living files, set up at its root on 2026-10-27, were moved by hand into their
+  folders on 2026-10-28 (edge cases).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -259,15 +259,16 @@ source and one living Classroom source, and that a second run adds nothing.
 ### Edge Cases
 
 - **A living file is trashed, moved or deleted in Drive.** Google's announcement says the notebook
-  then drops the source (not measured). alfabeta never deletes or moves it; each run checks that
+  then drops the source (not measured for a trash, a deletion or a move out of the student's Drive;
+  a move between two folders of the topic kept it, next edge case). alfabeta never deletes or moves it; each run checks that
   each recorded living file is still in its own folder of the topic (`notes/` for the notes file,
   `classroom/` for the Classroom file) and not trashed, and if not, reports it and does not
   recreate a second file or source. Put back in its folder, it is healthy again on the next check,
   and a page transcribed meanwhile reaches it on that pass.
 - **A living file set up at the topic's root, before 2026-10-28.** Moved by hand once into its
-  folder (julioarguello/alfabeta#110); until then it is reported missing. A move inside Drive is
-  expected to keep the file's id, which the notebook source is bound to; whether the notebook
-  still reads the file afterwards is measured on Tema 01 when it is moved (research), not assumed.
+  folder (julioarguello/alfabeta#110); until then it is reported missing. Tema 01's two, moved in
+  the Drive for desktop mount, kept their ids, which the notebook sources are bound to, and the
+  notebook kept reading both (measured once, 2026-10-28, research).
 - **The Mac is asleep, off or logged out.** The notebook's copy of a living file stays old until the
   Mac's next refresh after it wakes or the family's session starts, and the student may meet the old
   copy meanwhile: opening the notebook as the student does not refresh it (measured 2026-10-28). The
