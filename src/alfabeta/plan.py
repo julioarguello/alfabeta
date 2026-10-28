@@ -7,7 +7,7 @@ What a run cut before `apply` already collected into `data/inbox/` is listed und
 `already_collected` instead of being downloaded again (FR-029). Two attachments with the same
 expected name never share a batch, so each downloaded file has one owner. The exam candidates of
 the `Classifier` join `pending_decisions` with the subject's language, for Claude to judge (T048);
-the matches of items whose topic spans several book topics are not planned yet.
+the matches of items whose topic spans several book topics are T039's part still to build.
 """
 
 from __future__ import annotations

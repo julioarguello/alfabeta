@@ -20,6 +20,7 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, cast
 
 from alfabeta import capture
+from alfabeta.classification import text_hash
 from alfabeta.dates import MADRID
 from alfabeta.model import (
     AgendaCategory,
@@ -120,6 +121,8 @@ def _exam_date(text: str | None) -> When | None:
     try:
         if len(text) == len("YYYY-MM-DD"):
             return dt.date.fromisoformat(text)
+        if "T" not in text:  # «20261105» is a date Python reads as midnight; it is no form of the contract
+            return None
         moment = dt.datetime.fromisoformat(text)
     except ValueError:
         return None
@@ -234,6 +237,8 @@ class AgendaBuilder:
                 continue
             item, subject = source
             correction = corrections.get(decision.origin)
+            if correction is None and decision.origin_hash != text_hash(item):
+                continue  # taken on a text the teacher has since changed: the candidate is pending again
             target = {**decision.target, **(correction.target if correction else {})}
             if target.get("discarded") == "true":
                 continue

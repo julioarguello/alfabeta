@@ -102,7 +102,9 @@ Below, `alfabeta <command>` stands for that line.
    `YYYY-MM-DDTHH:MM` when the text gives the time, or `""` when it cannot be resolved. If the text
    announces no exam, propose one `dismissed_candidate` whose origin is `<item>`. Copy `origin_hash`
    from the entry into every proposal: without it `propose` exits 1 and records none of the file;
-   with another text's hash the candidate comes back on the next plan. Two candidates, `<item-a>`
+   with another text's hash the candidate comes back on the next plan. A candidate that comes back
+   because the teacher changed its text is judged afresh: propose every exam the new text announces;
+   those proposed on the old text leave the agenda by themselves, unless the family corrected them. Two candidates, `<item-a>`
    announcing an exam and `<item-b>` announcing none:
    ```json
    [{"type": "detected_exam", "origin": "<item-a>#exam-1", "target": {"date": "2026-11-05",

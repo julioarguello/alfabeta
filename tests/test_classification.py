@@ -95,6 +95,8 @@ def test_only_the_students_languages_give_hints():
         ("Probabilitate asmatua", AgendaCategory.ASSIGNMENT),  # not a stem: «proba» is left out
         ("Ariketa asmatuak", AgendaCategory.ASSIGNMENT),
         ("Irakurri testua eta erantzun", AgendaCategory.ASSIGNMENT),  # «testua» is a text, not a test
+        ("Kontrolatu zure lana", AgendaCategory.ASSIGNMENT),  # the verb, not the test
+        ("Kontrolerako ariketak", AgendaCategory.EXAM),
         ("Test asmatua", AgendaCategory.EXAM),
     ],
 )

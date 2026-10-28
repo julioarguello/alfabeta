@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -14,7 +15,7 @@ from jsonschema import Draft202012Validator
 from alfabeta import __main__ as cli_main
 from alfabeta import decisions as decisions_module
 from alfabeta.agenda import AgendaBuilder
-from alfabeta.classification import Classifier
+from alfabeta.classification import Classifier, text_hash
 from alfabeta.dates import MADRID
 from alfabeta.model import (
     AgendaCategory,
@@ -72,7 +73,12 @@ def it(
     )
 
 
-def exam(origin: str, date: str = "2026-11-05", state: DecisionState = DecisionState.PROPOSED) -> Decision:
+ON_ITS_TEXT = "on its text"
+
+
+def exam(
+    origin: str, date: str = "2026-11-05", state: DecisionState = DecisionState.PROPOSED, origin_hash: str = ON_ITS_TEXT
+) -> Decision:
     return Decision(
         DecisionType.DETECTED_EXAM,
         origin,
@@ -80,7 +86,7 @@ def exam(origin: str, date: str = "2026-11-05", state: DecisionState = DecisionS
         "inventado",
         state,
         DAY,
-        origin_hash="inventado",
+        origin_hash=origin_hash,
     )
 
 
@@ -97,6 +103,15 @@ def builder(
     withdrawn: Iterable[str] = (),
 ) -> AgendaBuilder:
     gone = set(withdrawn)
+    items = list(items)
+    # A detected exam the test does not say otherwise of was proposed on its source's current text.
+    texts = {i.id: text_hash(i) for i in items}
+    decisions = [
+        replace(d, origin_hash=texts.get(d.origin.split("#exam-", 1)[0], d.origin_hash))
+        if d.type == DecisionType.DETECTED_EXAM and d.origin_hash == ON_ITS_TEXT
+        else d
+        for d in decisions
+    ]
     state = {
         "items": {
             i.id: item_to_json(i, None) | ({"withdrawn_at": "2026-10-20"} if i.id in gone else {}) for i in items
@@ -264,6 +279,20 @@ def test_the_familys_correction_prevails():
         AgendaCategory.MATERIAL,
         AgendaList.POSTED,
     )
+
+
+def test_an_exam_detected_on_a_text_the_teacher_changed_leaves_unless_the_family_corrected_it():
+    post = it("synth-n1", ItemType.ANNOUNCEMENT, "Aviso inventado", description="Se anula el control inventado.")
+    old = text_hash(
+        it("synth-n1", ItemType.ANNOUNCEMENT, "Aviso inventado", description="Examen y control inventados.")
+    )
+    stale = [exam("synth-n1#exam-1", origin_hash=old), exam("synth-n1#exam-2", "2026-11-12", origin_hash=old)]
+    assert sorted(entries(builder([post], stale))) == ["synth-n1"]  # the announcement alone
+    # On the new text Claude proposes one exam: the second, of the old text only, does not stay.
+    again = entries(builder([post], [exam("synth-n1#exam-1"), stale[1]]))
+    assert sorted(again) == ["synth-n1", "synth-n1#exam-1"]
+    corrected = entries(builder([post], [stale[0], correction("synth-n1#exam-1", date="2026-11-20")]))
+    assert corrected["synth-n1#exam-1"].date == dt.date(2026, 11, 20)  # the family's word stays
 
 
 def test_an_item_withdrawn_from_classroom_and_what_it_announced_are_out():

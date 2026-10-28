@@ -28,12 +28,22 @@ if TYPE_CHECKING:
 # matched as whole words, whatever their case or accents; one ending in «*» is a stem, matched with any
 # ending, because Basque adds its cases to the word («azterketan», «azterketarako»). Not measured on
 # Classroom: the smallest set that names a test in each language; a language missing here gives none.
-# Basque leaves out «proba» and «froga», and «test» is no stem: as stems they would also match
-# «probabilitatea», «frogatu» and «testua» (a text).
+# Basque leaves out «proba» and «froga», and «kontrol» and «test» are no stems: as stems they would
+# also match «probabilitatea», «frogatu», «kontrolatu» (to check) and «testua» (a text).
 EXAM_HINTS: Mapping[str, tuple[str, ...]] = {
     "es": ("examen", "examenes", "prueba", "pruebas", "control", "controles", "test", "tests"),
     "en": ("exam", "exams", "test", "tests"),
-    "eu": ("azterket*", "kontrol*", "test", "testa", "testak"),
+    "eu": (
+        "azterket*",
+        "kontrola",
+        "kontrolak",
+        "kontrolean",
+        "kontrolerako",
+        "kontrolaren",
+        "test",
+        "testa",
+        "testak",
+    ),
 }
 # The `type` of a candidate in `plan.json`'s `pending_decisions`.
 CANDIDATE = "exam_candidate"
