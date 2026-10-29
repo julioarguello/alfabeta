@@ -31,9 +31,10 @@ One line per fact that applies, in this order:
 | `Fecha deducida de «<palabras>»` | An inferred due (FR-016) |
 | `Hora de la clase, no la de publicación` | A posting (FR-018) |
 | `Hora según horario` · `Hora no conocida` · `Hora según Classroom` | An exam (FR-014, research R3) |
+| `Detectado en un aviso de Classroom` · `Corregido por la familia` | A detected exam; the second when the family corrected it (research R8) |
 | `Ya no está en Classroom` · `Classroom ya no muestra fecha de entrega` · `Examen descartado por la familia` | A «Retirado» event (research R7) |
 | `Classroom: <link>` | Always; it opens with the school account (spec 001) |
-| `Carpeta: <Drive link>` or `Carpeta: <path relative to the base folder>` | When the item has a folder (research R11) |
+| `Carpeta: <path relative to the base folder>` | When the item has a folder; the same path as in the Drive (research R11) |
 
 ## Reminders
 
@@ -43,5 +44,5 @@ while `[calendar] warnings` is `false`.
 
 ## Private extended properties
 
-`alfabeta: "1"`, `kind: posted|due|exam`, `item: <agenda item id>`. They are how a run finds its own
+`alfabeta: "<student>"` (the opaque `--student` id), `kind: posted|due|exam`, `item: <agenda item id>`. They are how a run finds its own
 events (research R5); they hold no student data.

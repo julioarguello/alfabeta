@@ -23,7 +23,7 @@ Building starts only after gate 1. Warnings are switched on only after all four.
 | # | Gate | Why | Tracked in |
 |---|---|---|---|
 | 1 | **Delivery proof.** The family watches a reminder that alfabeta set as the student's Gmail ring on the student's own phone, and records the date, the device and the account in their own words | Spec 004 never proved it: the probe's "it rang" came from a pre-written answer button, on a phone without the student's account (julioarguello/alfabeta#38 and #39, spec 004 research, Observed facts). Without it every story here is decoration (US6) | Spec 004 T021, an issue opened under julioarguello/alfabeta#30 with this plan's issues. It blocks slice 1 |
-| 2 | **A lost link is loud.** A run that cannot use the student's link says so on the Mac and stops only the Google outputs | A warning that stops silently is worse than none: the family stops checking, trusting the calendar to warn | Spec 004 T014–T016, julioarguello/alfabeta#120. It blocks slice 5, which puts the calendar in the run |
+| 2 | **A lost link is loud.** A run that cannot use the student's link says so on the Mac and stops only the Google outputs | A warning that stops silently is worse than none: the family stops checking, trusting the calendar to warn | Spec 004 T014–T016, julioarguello/alfabeta#120, closed on 2026-10-28 by julioarguello/alfabeta#122. It blocks slice 5, which puts the calendar in the run |
 | 3 | **A daily sync** before the home slot | A warning for work due the next morning exists only if a sync ran in between (FR-020) | julioarguello/alfabeta#13. It blocks slice 6 |
 | 4 | **The operator accepts the volume**: the replay's weekly counts (SC-003) | One flood teaches the student that warnings are noise (US3) | Slice 6, a family step |
 
@@ -32,7 +32,7 @@ Building starts only after gate 1. Warnings are switched on only after all four.
 **Language/Version**: Python 3.12, inside spec 001's package `src/alfabeta`.
 
 **Primary Dependencies**: none new. `zoneinfo` for `Europe/Madrid`, `tomllib` through spec 001's
-configuration loader, and spec 004's `HttpTransport`, `CalendarClient` and `ScopedDrive`.
+configuration loader, and spec 004's `HttpTransport` and `CalendarClient`.
 Development: spec 001's `ruff`, strict `pyright` and `pytest`.
 
 **Storage**:
@@ -147,7 +147,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 | Domain | `Session`, `Timetable`, `Placement`, `DueDate`, `Step`, `OwnedEvent`, `ItemRecord` | Values from the [data model](data-model.md); no I/O, no clock |
 | Rules | `place()`, `warnings()`, `reminder_minutes()`, `infer_due()`, `events_for()` | Pure functions of an agenda entry, the timetable, the item's record and the home slot |
 | Ports | `HttpTransport`, `Clock`, `RecordStore` | What the services need from outside |
-| Adapters | `CalendarClient` (spec 004, gains `list_owned`), `ScopedDrive` (spec 004, read only: a folder's link), `JsonRecordStore` | Each wraps one store or API |
+| Adapters | `CalendarClient` (spec 004, gains `list_owned` and patches instead of replacing), `JsonRecordStore` | Each wraps one store or API |
 | Services | `CalendarSync`, `Replay`, `LegacyReport` | Orchestrate per command; return results the CLI prints |
 | CLI | `calendar sync`, `replay`, `delivery`, `legacy` in `calendar/cli.py`, registered in `__main__.py` | Arguments, JSON out, Spanish lines for the family, exit codes ([contracts/cli.md](contracts/cli.md)) |
 
@@ -155,11 +155,13 @@ Changes to other specs' files, each named in the task that makes it:
 
 - `google/calendar.py` (spec 004): `EventSpec` gains `extendedProperties.private` (`alfabeta`,
   `kind`, `item`), part of the owned fields; `CalendarClient` gains `list_owned(time_min,
-  time_max)`, one paged `events.list` filtered by `privateExtendedProperty=alfabeta=1`
+  time_max)`, one paged `events.list` filtered by `privateExtendedProperty=alfabeta=<student>`;
+  `update` becomes a `PATCH` of the owned fields, so a field alfabeta does not own survives
   ([research R5](research.md#r5--identity-ownership-and-one-listing-per-run)).
 - `agenda.py`, both copies of `agenda.schema.json` and spec 001's data model: `posted` per entry,
   `version` 2.
-- `config/template.toml` and `__main__.py`'s `TABLES["calendar"]`: the keys of
+- `config/template.toml`, its byte-identical copy `specs/001-classroom-sync/contracts/config-template.toml`,
+  and `__main__.py`'s `TABLES["calendar"]` (every table the verbs read): the keys of
   [contracts/config-template.toml](contracts/config-template.toml).
 - `skills/classroom-sync/SKILL.md`: the run calls `calendar sync --apply` after the agenda is
   written (slice 5).
@@ -182,9 +184,10 @@ before its code; its proof is a quickstart step.
    session or at break time with their label, and their two warnings. Done when step 6 shows the
    stream's exams placed. Blocked by slice 2.
 4. **"For Thursday" read from the title.** Covers US5 and FR-016, FR-017, SC-004. Done when step 7's
-   replay infers exactly one date. Blocked by slice 1.
+   replay infers exactly one date. Blocked by slice 2: the proof is a replay, and an inferred due is
+   warned by the rule.
 5. **In every run, with delivery on record.** Covers US6 and FR-002, FR-019. `calendar delivery`,
-   the delivery line of every run, and the sync run calling `calendar sync --apply` after the agenda
+   `calendar sharing` (research R13), the delivery and sharing lines of every run, and the sync run calling `calendar sync --apply` after the agenda
    and after `google check`. Done when step 8 shows the run's delivery line and a broken link
    stopping only the calendar. Blocked by slice 2 and gate 2 (julioarguello/alfabeta#120).
 6. **Warnings switched on.** The family step of SC-003 and SC-006: the operator accepts the replay's

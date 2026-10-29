@@ -531,7 +531,7 @@ and cannot judge what the notebook writes.
 **Boundaries**
 
 - **FR-025**: alfabeta MUST NOT write study blocks or reminders of the study pack into the calendar,
-  and MUST NOT create events for the material. The calendar holds only objective facts from
+  and MUST NOT create events for the study pack's material. The calendar holds only objective facts from
   Classroom, plus the warnings that restate those facts (spec 003, julioarguello/alfabeta#28).
 - **FR-026**: When a topic has an exam event, its description MUST carry a link
   to the topic's Drive folder and one to its notebook, written once and not duplicated by later

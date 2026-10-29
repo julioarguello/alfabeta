@@ -39,7 +39,7 @@
   That connection is spec 004, a dependency.
 - FR-024 was settled on 2026-10-27. The operator left the account to the
   design and asked for no new tools. The list is Classroom's «Tareas pendientes» in the school
-  account, ticked with «Marcar como completada». The daily 16:00 event restates it for the operator.
+  account, ticked with «Marcar como completada».
 - Named platforms (Google Calendar, Google Tasks, Classroom) are the product's fixed surroundings,
   not implementation choices; spec 001 and spec 002 name them the same way. FR-001 and FR-005 cite
   the documentation that rules out the alternatives.

@@ -68,21 +68,22 @@ alfabeta calendar sync --apply
 alfabeta calendar legacy
 ```
 
-Read `matched` and `unmatched`; the private report `data/calendar/legacy-<run>.json` lists them.
-Step 3 gave each legacy event its owned twin. Then:
+Step 3 gave each legacy event its owned twin. The family reads the private report
+`data/calendar/legacy-<run>.json` event by event, and removes from its `matched` list any event they
+want to keep. Then, with that report:
 
 ```bash
-alfabeta calendar legacy --apply
+alfabeta calendar legacy --apply --report legacy-<run>.json
 ```
 
-Expect `deleted` equal to `matched`. The family decides about each unmatched event by hand. Then
+Expect `deleted` equal to the reviewed `matched`. The family decides about each unmatched event by hand. Then
 the operator does spec 004 T022: the chat connector's account leaves the calendar's sharing.
 
 ## 5. The rule, replayed (slice 2)
 
 ```bash
 alfabeta calendar replay --first-run 2026-10-26
-alfabeta calendar replay --from 2026-09-07 --to 2026-10-26
+alfabeta calendar replay --from 2026-09-07 --to 2026-10-26 --at 15:00
 ```
 
 - **SC-001**: the first-run replay reports `past_due_warned: 0` and `handed_in_warned: 0`, and its

@@ -56,7 +56,9 @@ Phase 0 of [plan.md](plan.md). Each decision names what it rests on. The spec's 
 
 ## R3 — Placement
 
-Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnight.
+Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnight: every
+placement is clamped to start no earlier than 00:00 and end no later than 24:00 of its day (an exam
+at 23:59 is 23:59–24:00).
 
 | What | Where | Label in the description |
 |---|---|---|
@@ -64,7 +66,7 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
 | A due date without a time, and an inferred one | Its subject's session on the due date; else break time | «Classroom no indica hora» (inferred: «Fecha deducida de «…»») |
 | A due date with a time | 30 minutes ending at the due instant, starting no earlier than 00:00 that day | none: the time is Classroom's |
 | An exam without a time | Its subject's session that day; else break time | «Hora según horario» · «Hora no conocida» |
-| An exam with a time | From that time to the end of its subject's session if the session holds that time; else 30 minutes | «Hora según Classroom» |
+| An exam with a time (a Classroom item's date, or a detected exam's) | From that time to the end of its subject's session if the session holds that time; else 30 minutes, ending no later than 24:00 | «Hora según Classroom» |
 
 - **Announcements get no event.** FR-018 names material and assignments; an announcement's fact for
   the calendar is the exam it may announce, which gets its own event. A quiz is placed and warned
@@ -108,24 +110,31 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
 
 - **Decision**: each event's id is `event_id("alfabeta|<student>|<item>|<kind>")` (spec 004's
   base32hex of SHA-256), `kind` one of `posted`, `due`, `exam`. Each event carries
-  `extendedProperties.private` `{alfabeta: "1", kind, item}`. A run lists the owned events of the
-  school year with one paged `events.list` (`privateExtendedProperty=alfabeta=1`, `singleEvents`,
-  2,500 a page), compares the owned fields locally, and writes only the ones that differ: insert a
-  missing one (a 409 is a cancelled copy, brought back with `status: confirmed`, spec 004 R5),
-  update a different one.
+  `extendedProperties.private` `{alfabeta: "<student>", kind, item}`. A run lists its owned events of
+  the school year with one paged `events.list` (`privateExtendedProperty=alfabeta=<student>`,
+  `singleEvents`, 2,500 a page), compares the owned fields locally, and writes only the ones that
+  differ: insert a missing one (a 409 is a cancelled copy, brought back with `status: confirmed`,
+  spec 004 R5), patch a different one.
+- **The school year's bounds** for the listing: from 1 September of `student.school_year`'s first
+  year to 1 September of its second, 00:00 `Europe/Madrid`, as spec 001's dates read a year.
+- **Patch, not update.** Spec 004's `CalendarClient.update` sends `PUT`, which replaces the whole
+  event and would clear a colour the family set. Slice 1 changes it to `PATCH` with the owned fields
+  only, as spec 004 T018–T019 first specified; bringing back a cancelled copy patches `status` too.
 - **Rationale**: `upsert`'s one `get` per event would be several hundred reads a run by spring. One listing reads the
   same and costs one request a page. The private property also tells an owned event from a legacy
   or family one without trusting titles.
 - **The owned fields** are spec 004's (summary, description, start, end, reminders) plus the private
   property. A hand edit of an owned field is overwritten by the next run; a field alfabeta does not
   own (colour, attendees, the family's own notes in another event) is never touched.
-- **The student id in the key** keeps two students apart if their configurations ever named one
-  calendar (I). It is the opaque id of `--student`, never a name.
+- **The student id in the key and in the property** keeps two students apart if their
+  configurations ever named one calendar (I): a run lists, compares and marks only its own
+  student's events. It is the opaque id of `--student`, never a name.
 
 ## R6 — The records
 
 - **Decision**: `data/calendar/items.json` holds, per item id, `due` (the last due value seen, ISO or
-  null), `start_on`, `basis_at` and `undated_seen_on`. `data/calendar/delivery.json` holds, per
+  null), `start_on`, `basis_at`, `undated_seen_on` and `marked`, plus the instant of the first
+  applied run (`first_apply_at`, research R7). `data/calendar/delivery.json` holds, per
   account alias, the date the family saw a reminder ring on the student's phone (FR-019). Both are
   written atomically with mode 0600, and only when their bytes change.
 - **Rationale**: the agenda carries no history and carries no timestamp by design; the facts FR-007
@@ -141,12 +150,16 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   reminders, and its title starts «Retirado ·». The description says which fact went. The run counts
   them. Nothing is deleted (V).
 - **A moved due date** moves the same event (same id) and recomputes its reminders (FR-011).
-- **Legacy events**: the events the chat connector wrote before spec 004 (all-day, no private
-  property). `calendar legacy` lists every event of the school year without the private property and
-  writes their dates and titles only to `data/calendar/legacy-<run>.json`; it prints counts. With
-  `--apply` it deletes only the legacy events that match one owned event of the same fact: the same
-  date in `Europe/Madrid`, and the item's Classroom title contained in the legacy title. Unmatched
-  ones are never touched; the report names them for the family. No run calls it.
+- **Legacy events**: the events the chat connector wrote before spec 004. `calendar legacy` selects
+  only events of the school year that hold all three marks: no alfabeta property, all-day (a
+  `start.date`, no `start.dateTime`), and `created` before alfabeta's first applied run
+  (`first_apply_at`). A timed event, or one created later, is never selected, so an event the
+  family adds by hand after that run is out of reach. A selected event matches when one owned event
+  holds the same fact: the same date in `Europe/Madrid` and the item's Classroom title contained in
+  its title. Dates and titles go only to `data/calendar/legacy-<run>.json`; the command prints counts.
+- **The family reviews before anything goes.** `--apply` takes the report the family read
+  (`--report legacy-<run>.json`) and deletes only the events it lists as `matched` and that still
+  match; it re-reads each one first. Unmatched ones are never touched. No run calls it.
 - **Alternatives**: delete every event without the property, which would remove what the family adds
   by hand; leave the legacy events, which shows every fact twice and keeps all-day events FR-023
   forbids; ask the operator to delete them by hand, which the operator declined for this project.
@@ -162,6 +175,10 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   standing rule is that it holds only facts from Classroom. An exam announced only orally therefore
   reaches the calendar only if the family adds it by hand, as an event alfabeta does not own and
   never touches. Recorded in the spec's Clarifications (Plan, 2026-10-28).
+- **A detected exam says so**: its description carries «Detectado en un aviso de Classroom», and
+  «Corregido por la familia» when corrected, as `agenda.md` marks it «detectado». A detected entry
+  owns an `exam` event only when its category is `exam`; corrected into another category it owns
+  none, because its origin item already owns its own events.
 - **Its warnings** (FR-015): 7 days before and the evening before, at the home slot, with R4's bound,
   basis and catch-up. The start date for dropping a step is the posting date of the item that
   announced it.
@@ -198,6 +215,10 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   control counts, not required to match them. SC-002, SC-004 and SC-008 do not depend on statuses,
   so they reproduce.
 
+- **The sync's hour matters.** A replay simulates the runs at `[schedule]`'s times, so a time after
+  `home_slot` loses every next-morning warning. `config check` warns when a weekday's `[schedule]`
+  time is after `home_slot`, and quickstart step 5 passes `--at` explicitly.
+
 ## R11 — Output and the family's words
 
 - **Decision**: JSON on stdout with counts and opaque ids; one Spanish line per fact the family must
@@ -205,9 +226,10 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   events marked «Retirado ·», and the delivery state («Entrega de avisos no comprobada» until a
   check is on record). No title, address, calendar id or path is printed.
 - **Event text** is in Spanish ([contracts/events.md](contracts/events.md)), restates facts only, and
-  carries the Classroom link and the item's Drive folder link. The folder link is resolved through
-  `ScopedDrive`'s cached tree; if the folder is not in Drive yet, the description names the folder's
-  path relative to the student's base folder instead.
+  carries the Classroom link and the item's folder as its path relative to the student's base
+  folder, the same path the folder has in the Drive. Not a Drive link: a link depends on the Drive's
+  live state (`ScopedDrive` walks the tree each run), so a late upload would rewrite the event with
+  no change in Classroom (FR-012) and a Drive error would block the calendar (VII).
 
 ## R12 — The switch and the delivery check
 
@@ -233,7 +255,10 @@ Every event is timed in `Europe/Madrid`, never all-day, and never crosses midnig
   (Observed facts), and spec 004 R5 keeps sharing a step the operator does by hand. The check is
   therefore the family's, by hand, in quickstart step 1: the calendar's sharing settings list
   exactly the accounts of `calendar.shared_with`, each able to see all event details, recorded
-  with its date (T019). Adding `calendar.acls.readonly` so a run could check it would mean linking
+  with its date (T019). `calendar sharing --checked-on <date>` records that check with a hash of
+  `calendar.shared_with`; every run says «Comprobar con quién se comparte el calendario» while the
+  list's hash differs from the recorded one, so a change to the list asks for the check again.
+  Adding `calendar.acls.readonly` so a run could check it would mean linking
   the student's Gmail again, with a parent's approval, for a list that changes about once a year;
   not chosen.
 - **Spec 001 FR-020a** (one colour per category) stays out, as the spec says.

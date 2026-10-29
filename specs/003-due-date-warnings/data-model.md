@@ -76,7 +76,7 @@ Rules, in order ([research R4](research.md#r4--the-rules-arithmetic)):
 4. A step whose `ring_at` is not after the item's `basis_at` is dropped. If all are dropped and a
    home slot lies after `basis_at` and within the bound, that slot is the one `catch_up` step.
 5. Handed in (`turned_in`, `turned_in_late`, `returned`) or marked «Retirado»: no steps.
-6. At most four steps remain; spec 004's `EventSpec` refuses a fifth.
+6. At most four steps remain; spec 004's `EventSpec` allows five and refuses a sixth.
 
 ## OwnedEvent
 
@@ -88,7 +88,7 @@ Rules, in order ([research R4](research.md#r4--the-rules-arithmetic)):
 | `description` | Facts and links, in Spanish ([contracts/events.md](contracts/events.md)) |
 | `start`, `end` | The placement, `timeZone: "Europe/Madrid"` |
 | `reminders` | `useDefault: false`; the warnings' minutes, or none |
-| `extendedProperties.private` | `alfabeta: "1"`, `kind`, `item` |
+| `extendedProperties.private` | `alfabeta: "<student>"`, `kind`, `item` |
 
 Which entries own which events:
 
@@ -100,6 +100,7 @@ Which entries own which events:
 | `announcement` | — | — | — |
 | `exam` with a date | — | — | yes |
 | `exam` with no date | — | — | — |
+| a detected entry (`detected: true`) of any category but `exam` | — | — | — |
 
 ## ItemRecord (`data/calendar/items.json`)
 
@@ -110,6 +111,9 @@ Which entries own which events:
 | `start_on` | FR-007: `posted`, or the date of the first run that saw the due date when `undated_seen_on` is set |
 | `basis_at` | The instant of the run that first saw the current `due` while not handed in |
 | `marked` | The fact that went, if the event is «Retirado» (`withdrawn`, `no_due`, `discarded`), else null |
+
+The file also holds `first_apply_at`, the instant of the first applied run; legacy selection
+(research R7) needs it. Placements are clamped to their day (00:00–24:00).
 
 Written atomically, mode 0600, only when its bytes change.
 
@@ -124,12 +128,24 @@ Only `calendar delivery` writes it. Every run reads it and says `seen` with the 
 
 ## Run line (`data/log.jsonl`, spec 001's log)
 
+When the sync run calls `calendar sync --apply`, it runs under that run's lock and its line carries
+that `run`. Called alone, it takes the student's lock for a run of its own and releases it.
+
 `calendar sync --apply` and `calendar legacy --apply` each append one line, as `book place` and
 `log notebook` do: `type: calendar` (or `calendar_legacy`), `at`, `run`, `result` (`ok` ·
 `partial` · `stopped`), `reason` if not `ok` (`link_<status>`, `no_agenda`, `write_failed`), the
 counts `created`, `updated`, `marked`, `unchanged`, `failed` (legacy: `matched`, `unmatched`,
 `deleted`), `warnings_on` and `delivery` (`seen` · `unseen`). Counts and ids only, never a title
 (constitution V, III). A dry run writes no line.
+
+## SharingCheck (`data/calendar/sharing.json`)
+
+| Field | Rule |
+|---|---|
+| `checked_on` | The date the family checked the calendar's sharing by hand (research R13) |
+| `list_hash` | SHA-256 of the sorted `calendar.shared_with` at that check; never the addresses |
+
+Every run compares it with the configured list and says when the check is due again.
 
 ## LegacyReport (`data/calendar/legacy-<run>.json`)
 
