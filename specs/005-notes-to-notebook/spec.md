@@ -123,6 +123,12 @@ Lessons from taking a biology topic's notes by hand, recorded for the final impl
 - Q: Who checks a transcription? → A: Nobody by hand: a doubtful reading is settled by agreement
   with another source, the topic's own first, and the source is written beside it (spec 002,
   clarification of 2026-10-29).
+- Q: Which piece does "what it adds" compare the new notes with, now that piece 0 is a plan? → A: With
+  the pack's theory: its theory guide (spec 002 FR-004) when there is one, otherwise «Resumen de
+  tus apuntes». It never uses the plan «0 · Guía de estudio», which holds no theory (spec 002 FR-015).
+  The title lookup had taken the plan, because it says «guía» too (measured on an invented pack,
+  julioarguello/alfabeta#143). A pack made the way Bio Tema 02 was holds no theory guide, so the
+  summary is the piece compared.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -236,9 +242,10 @@ names that idea and the piece that misses it.
 **Acceptance Scenarios**:
 
 1. **Given** a run that changed nothing, **When** it ends, **Then** no report is written.
-2. **Given** a run that added material the topic's study guide does not cover, **When** it ends,
-   **Then** the report names what is missing and says that regenerating spends quota and is the
-   family's decision.
+2. **Given** a run that added material the topic's theory does not cover (its theory guide, else
+   «Resumen de tus apuntes», never the plan «0 · Guía de estudio»), **When** it ends, **Then** the
+   report names what is missing and the piece it compared with, and says that regenerating spends
+   quota and is the family's decision.
 3. **Given** a failure that repeats on every run (a photo Claude keeps refusing, a spent budget),
    **When** the runs go on, **Then** it is reported once, when it starts, and once when it clears.
 
@@ -385,7 +392,8 @@ source and one living Classroom source, and that a second run adds nothing.
   notebook. A living file that is missing, trashed or outside its own folder of the topic
   (`notes/` or `classroom/`) is reported and is not recreated.
 - **FR-012**: Adding material MUST NOT regenerate any study piece. The run reports what the new
-  material adds against the topic's study guide (User Story 4).
+  material adds against the topic's theory: its theory guide (spec 002 FR-004), else «Resumen de
+  tus apuntes»; never the plan of piece 0, which holds no theory (spec 002 FR-015) (User Story 4).
 - **FR-018**: After a living file changes, the notebook owner's account MUST read that file's
   notebook source, through `nlm` on the family's Mac, on the pass that sees the change and again on
   the next pass, so the notebook takes the new revision (whether one read is enough is open,

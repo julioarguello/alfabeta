@@ -5,10 +5,11 @@
 when that diff is not empty: an idle run writes nothing (SC-004), and a condition that persists, a
 spent budget or a photo Claude keeps refusing, is reported once when it starts and once when it
 clears (User Story 4, scenario 3). Per topic with new pages, one Claude call says what the pages add
-against the study guide of the topic's printable pack, `Tema NN para imprimir · <title>.pdf` in its
-`notebook/` folder, read with `pypdf`; its `usage` goes into the month's spend ledger (FR-015). A
+against the theory of the topic's printable pack, `Tema NN para imprimir · <title>.pdf` in its
+`notebook/` folder, read with `pypdf`: its theory guide, or else «Resumen de tus apuntes», never the
+plan «0 · Guía de estudio» (spec 002 FR-015). Its `usage` goes into the month's spend ledger (FR-015). A
 comparison the budget, the key or Claude's answer stops waits in the snapshot for the next report; one
-that has no pack or no guide to compare with is said in one line and dropped. Nothing here regenerates
+that has no pack or no theory to compare with is said in one line and dropped. Nothing here regenerates
 a study piece (FR-012): the report says that is the family's decision.
 """
 
@@ -40,26 +41,29 @@ REPORTED = "reported"  # the snapshot's key in state.json
 # The study-pack skill's printable pack (its step 10): `Tema NN para imprimir · <title>.pdf`.
 _PRINTABLE = re.compile(r"^Tema \d+ para imprimir · .+\.pdf$")
 # A piece's heading in that PDF, as `print_pack.py` numbers them: `3 · Guía de estudio · …`.
-_PIECE = re.compile(r"^\s*\d+\s*·\s*(.+)$")
-_GUIDE = re.compile(r"gu[ií]a", re.IGNORECASE)
+_PIECE = re.compile(r"^\s*(\d+)\s*·\s*(.+)$")
+_PLAN = 0  # piece 0, the plan «0 · Guía de estudio» (spec 002 FR-015): it holds no theory
+_GUIDE = re.compile(r"gu[ií]a", re.IGNORECASE)  # the theory guide (spec 002 FR-004), when the pack has one
+_SUMMARY = re.compile(r"resumen de tus apuntes", re.IGNORECASE)  # else the notes condensed (FR-015)
 _HEAD_LINES = 4  # Chrome's `N / M` footer may come first in a page's extracted text
 MAX_GUIDE_CHARS = 30_000
 MAX_NOTES_CHARS = 30_000
 # What the family reads when nothing is compared (FR-012, FR-015).
-NO_PACK = "No hay «Tema NN para imprimir» en la carpeta notebook/ del tema: no se compara con la guía de estudio."
-NO_GUIDE = "El PDF para imprimir no tiene una sección de guía de estudio: no se compara."
-NO_PDF = "El PDF para imprimir no se puede leer: no se compara con la guía de estudio."
+NO_PACK = "No hay «Tema NN para imprimir» en la carpeta notebook/ del tema: no se compara con su teoría."
+NO_GUIDE = "El PDF para imprimir no tiene guía de teoría ni «Resumen de tus apuntes»: no se compara."
+NO_PDF = "El PDF para imprimir no se puede leer: no se compara con su teoría."
 WAITS = "se compara en el próximo informe"
-NO_BUDGET = f"No se compara con la guía de estudio: el presupuesto mensual de IA está agotado; {WAITS}."
-NO_KEY = f"No se compara con la guía de estudio: este sitio no tiene clave de Claude; {WAITS}."
-NO_ANSWER = f"No se compara con la guía de estudio: Claude o Drive no respondieron; {WAITS}."
+NO_BUDGET = f"No se compara con la teoría del tema: el presupuesto mensual de IA está agotado; {WAITS}."
+NO_KEY = f"No se compara con la teoría del tema: este sitio no tiene clave de Claude; {WAITS}."
+NO_ANSWER = f"No se compara con la teoría del tema: Claude o Drive no respondieron; {WAITS}."
 DECISION = (
     "Regenerar las piezas del pack (vídeos, cuestionario, guía) gasta cuota del cuaderno: es decisión de la familia."
 )
 NOTHING_TO_ADD = "Nada que añadir."
 
 INSTRUCTIONS = """\
-You compare a student's new handwritten class notes with the study guide of the same topic.
+You compare a student's new handwritten class notes with the theory of the same topic's study pack:
+its study guide, or the summary of the student's earlier notes. Below, both are called the guide.
 Answer in Spanish, for the student's family, as Markdown bullets, twelve lines at most:
 
 - an idea, a method or a procedure the notes stress that the guide does not cover, each named plainly;
@@ -360,24 +364,32 @@ def printable_pack(drive: ReportDrive, topic: str) -> DriveFile | None:
     return None
 
 
-def guide_section(pdf: bytes) -> str | None:
-    """The study guide's pages of the printable pack, as text; None when no piece is a guide.
+def guide_section(pdf: bytes) -> tuple[str, str] | None:
+    """The title and the pages, as text, of the pack's theory; None when the pack has none.
 
     `print_pack.py` prints the index first and then each piece on a new page under its numbered title.
-    A page opens a piece when one of its first lines is such a title; the guide runs from its own
-    opening page to the page before the next piece's.
+    A page opens a piece when one of its first lines is such a title, and it is the last page to start
+    with that number: the plan's table names every piece, so one of its pages may start with a row.
+    The theory is the theory guide (FR-004), else «Resumen de tus apuntes»; never the plan of piece 0,
+    which says «Guía de estudio» too (FR-015). It runs from its opening page to the next piece's.
     """
     pages = [page.extract_text() or "" for page in PdfReader(io.BytesIO(pdf)).pages]
-    opening: list[str | None] = []
+    heads: list[tuple[int, str] | None] = []
     for text in pages:
         head = [line.strip() for line in text.splitlines() if line.strip()][:_HEAD_LINES]
-        titles = [m.group(1) for line in head if (m := _PIECE.match(line))]
-        opening.append(titles[0] if titles else None)
-    start = next((i for i, title in enumerate(opening) if i > 0 and title and _GUIDE.search(title)), None)
-    if start is None:
+        titles = [(int(m.group(1)), m.group(2)) for line in head if (m := _PIECE.match(line))]
+        heads.append(titles[0] if titles else None)
+    last = {h[0]: i for i, h in enumerate(heads) if h}
+    opening = [h if h and i > 0 and last[h[0]] == i else None for i, h in enumerate(heads)]
+    theory = [(i, h[1]) for i, h in enumerate(opening) if h and h[0] != _PLAN]
+    found = next((t for t in theory if _GUIDE.search(t[1])), None) or next(
+        (t for t in theory if _SUMMARY.search(t[1])), None
+    )
+    if found is None:
         return None
+    start, title = found
     end = next((i for i in range(start + 1, len(pages)) if opening[i]), len(pages))
-    return "\n".join(pages[start:end]).strip()[:MAX_GUIDE_CHARS]
+    return title, "\n".join(pages[start:end]).strip()[:MAX_GUIDE_CHARS]
 
 
 # What `_what_it_adds` says when the comparison waits for the next report rather than being dropped.
@@ -399,6 +411,7 @@ def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges
         return [NO_PDF]  # damaged, encrypted or unusual: the run goes on (FR-013 reports, never stops)
     if guide is None:
         return [NO_GUIDE]
+    piece, theory = guide
     if deps.answerer is None:
         return [NO_KEY]
     if spent or work.budget_refused:
@@ -406,7 +419,7 @@ def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges
     pages = cast("dict[str, dict[str, Any]]", work.state.get("pages", {}))
     notes = "\n\n".join(str(pages[p]["markdown"]) for p in section.new_pages if p in pages)[:MAX_NOTES_CHARS]
     try:
-        done: Transcription = deps.answerer.answer(INSTRUCTIONS.format(notes=notes, guide=guide))
+        done: Transcription = deps.answerer.answer(INSTRUCTIONS.format(notes=notes, guide=theory))
     except ValueError:
         return [NO_ANSWER]  # an answer that is not the JSON of the Messages API
     if done.usage is not None:
@@ -417,7 +430,7 @@ def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges
     work.claude_answered = work.claude_answered or done.usage is not None
     if done.state != PhotoState.TRANSCRIBED:
         return [NO_ANSWER]
-    compared = f"Comparadas {_plural(len(section.new_pages), ('página nueva', 'páginas nuevas'))} con la guía de estudio de «{pack.name}»."
+    compared = f"Comparadas {_plural(len(section.new_pages), ('página nueva', 'páginas nuevas'))} con «{piece}» de «{pack.name}»."
     return [compared, "", done.markdown.strip(), "", DECISION]
 
 
