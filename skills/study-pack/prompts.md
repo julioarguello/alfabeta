@@ -136,7 +136,7 @@ limit (2026-10-29), done in one day or two:
 ## Summary of the notes
 
 `N · Resumen de tus apuntes · <topic>`, numbered after the videos and the mind map: what the student studies from. The notes condensed on their
-own schemes (constitution X), one part per block session, half a page each at most.
+own schemes (constitution X), one part per content block (`{blocks}`), each studied with its video, half a page each at most.
 
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`
 

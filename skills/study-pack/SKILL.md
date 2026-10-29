@@ -55,8 +55,8 @@ email or an id into the repository.
    say what is prioritised, not what is excluded; only the announcement or the teacher says what is
    out. List the ideas an exam could ask, grouped in **two or three blocks**, or in the
    announcement's points when it exists; separate on purpose two ideas students confuse (density and
-   concentration were one such pair; a point of the announcement holding such a pair is two blocks). When the teacher's announcement of the exam exists, its points, in its order, are
-   the blocks unless the family says otherwise. Write them to `notebook/bloques.md` with the files
+   concentration were one such pair; a point of the announcement holding such a pair is two blocks). When the teacher's announcement of the exam exists and no scheme in the notes sets
+   the blocks, its points, in its order, are the blocks unless the family says otherwise. Write them to `notebook/bloques.md` with the files
    they come from, and show them to the family. **Once confirmed, the blocks are not decided again,
    with one exception**: an announcement that arrives after they were confirmed reopens them for the
    points it names that no block covers (step 3). Photos in `notes/` become a source as a literal
@@ -102,7 +102,7 @@ email or an id into the repository.
      every piece, how to use each video, times with breaks, what he can do at the end. No theory;
      it points at the other pieces by number. It is the student's entry point;
    - **the summary of the notes** (`prompts.md`, «Summary of the notes»): the
-     notes condensed on their schemes, one short part per block session. It is what he studies from.
+     notes condensed on their schemes, one short part per content block, each studied with its video. It is what he studies from.
 
    The mind map already exists (step 1). Launch the videos last, or alone: they cost the most quota.
 4. **Wait** with `nlm studio status <nb> --profile <profile> --full --json` until every artifact is
@@ -139,14 +139,23 @@ email or an id into the repository.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
    folder>/notebook/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
    (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
-   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` and sits on top once the renames end (the operator, 2026-10-29); `exam prep` still writes «0 · Empieza aquí» until its code follows
-   (`nlm note create`, or `nlm note update` if it exists), naming the pieces by number and linking
-   the topic's `notebook/` folder in each of the student's Drives, and **configure the tutor chat**
-   (both in [`prompts.md`](prompts.md)).
+   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam prep`
+   still writes «0 · Empieza aquí» until its code follows. **Configure the tutor chat**
+   ([`prompts.md`](prompts.md)).
+9b. **Generate the study guide** («Study guide — 0» in [`prompts.md`](prompts.md)) now that the
+   videos are in Drive: its plan links each one (FR-039). Download it and compare it line by line
+   with the plan you wrote, links included; regenerate at most three times (FR-040). Then rename it
+   `0 · Guía de estudio · Empieza aquí` last, so it sits on top.
+
+   > [!WARNING]
+   > `exam prep` regenerates the theory guide when the notes changed after it, and it finds guides by
+   > the words «guía de estudio» in the title: it deletes every match, this plan included, until its
+   > code follows spec 002 FR-033. After running it, check that the plan is still piece 0, and
+   > generate it again if not.
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
     <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN
     para imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
-    notebook"), the start note, then each report, the quiz with its answer key at the end, the flashcards as a
+    notebook"), the study guide, then each report, the quiz with its answer key at the end, the flashcards as a
     table and the mind map drawn with Graphviz, each on a new page, in the numbered order. Run it
     after step 7, or the parent's material would print with it.
 11. **Report** to the family: what is in Studio and in what order, where the printable PDF is,

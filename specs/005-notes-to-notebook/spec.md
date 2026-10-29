@@ -428,12 +428,14 @@ source and one living Classroom source, and that a second run adds nothing.
   minors is used, and the student never interacts with the model directly.
 - **FR-016a**: Before a photo is transcribed, alfabeta MUST decide whether it is a page of notes. A
   photo that is not (a credential, a document, a person) is never transcribed, never added to a
-  notebook and never copied anywhere; the family is told which file it is, without its content, and
-  alfabeta never deletes it (2026-10-29: a printed access PIN among six photos).
+  notebook and never shared; the family is told which file it is, without its content, and
+  alfabeta never deletes it (2026-10-29: a printed access PIN among six photos). If it sits in a
+  topic folder of Drive, the copy constitution VII makes to the master and the mirrors is the only
+  one, and the report says so, so the family can move it out.
 - **FR-016b**: When the notes come from a notebook the family points at, alfabeta MUST read its
   sharing first and report, before anything else, a notebook open by link that holds the student's
-  notes or a non-note photo; it changes the sharing only on the family's word, signed in as the
-  owner, and checks the result from an account that is not a collaborator (2026-10-29: the
+  notes or a non-note photo; the sharing is changed only on the family's word, by the family or
+  with the family signed in as the owner, and alfabeta checks the result from an account that is not a collaborator (2026-10-29: the
   outside account answered `PERMISSION_DENIED` after the change).
 - **FR-016c**: Every doubtful reading of a transcription MUST be settled by agreement with another
   source — the topic's textbook in the subject's language and in Spanish, the notes' other pages,

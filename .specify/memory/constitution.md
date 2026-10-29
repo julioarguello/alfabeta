@@ -192,9 +192,10 @@ Rationale: an unofficial tool must not leave the student without their notes.
   labelled drawing — the study material of that topic MUST be built on it: its blocks, their order
   and their names follow the scheme's branches, in the student's own words. The textbook and
   Classroom are mapped onto the scheme, never the scheme onto them.
-- Every piece the student studies from (video, guide, practice, quiz, flashcards, mind map, the
-  start note, the printed topic) MUST say which branch of the scheme it covers, so the student can
-  always find it on his own page.
+- Every piece the student studies from (video, guide, summary, practice, quiz, flashcards, the
+  printed topic) MUST say which branch of the scheme it covers, so the student can always find it on
+  his own page. The mind map, made from the sources before the blocks exist, is mapped branch by
+  branch to them in the topic's blocks file instead.
 - What the sources teach and the scheme lacks is hung from the nearest branch or listed apart, and
   never reorders the scheme. A branch no source explains is a question for the family, not a gap
   the textbook's structure fills.

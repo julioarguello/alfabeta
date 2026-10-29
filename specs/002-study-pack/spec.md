@@ -199,8 +199,8 @@ done that day; the last three, what the operator decided once it was done (User 
   of five: the other three came back rewritten — one replaced every piece with sources, added a
   calculus of energy expenditure and turned the four Drive links into one generic address (FR-040).
   (2) The summary, made before the textbook in Basque was a source, gave as Basque terms the
-  Spanish words the student had written in his notes («Estómago (*estamago*)», «Hígado
-  (*higado*)») and kept an unsettled reading («*gurin gastrikoak*»); the quiz carried one invented
+  Spanish words the student had written in his notes, with his spelling, and kept a reading no
+  source had settled; the quiz carried one invented
   word (FR-041). (3) The student's account saw every Studio piece but none of the three videos,
   not even the oldest — the guide's Drive links are how he reaches them (FR-039). (4) Classroom held
   nothing for the subject and no exam was announced, so the blocks came from the notes' schemes
@@ -477,7 +477,7 @@ and cannot judge what the notebook writes.
   files it comes from, and MUST NOT generate until they are confirmed — the mind map excepted: it
   takes no focus, so it reads the sources, not the blocks, and the proposal maps its first-level
   branches like the textbook's lessons and the notes' pages. When the teacher's announcement of
-  the exam exists, its points, in its order, are the proposed blocks. Once
+  the exam exists and no scheme in the notes sets the blocks (FR-038), its points, in its order, are the proposed blocks; with a scheme, a point no branch covers is hung from the nearest branch, or gets its own video under FR-022 when no branch is near. Once
   confirmed, the blocks of a topic are not proposed again, with one exception: an announcement
   that arrives later reopens them for the points it names that no block covers (FR-022). A
   video's exclusion MUST name only the other blocks and what a source says is out of the exam,
@@ -536,8 +536,9 @@ and cannot judge what the notebook writes.
   that numbers every other piece in study order, says how to use each video (notes taken on the
   student's own scheme), gives each session its minutes and a break, and says what the student can
   do when the session ends, and holds no theory; and among the pieces «Resumen de tus apuntes»,
-  the notes condensed on their schemes, one short part per block session. The guide replaces the note «0 · Empieza aquí» (2026-10-29). `exam prep`
-  (FR-029) still writes that note until it follows this requirement. No title and no note may
+  the notes condensed on their schemes, one short part per content block (FR-001), each studied with its video. The guide replaces the note «0 · Empieza aquí» (2026-10-29). `exam prep`
+  (FR-029) still writes that note, and its FR-033 regeneration deletes this guide, until its code
+  follows this requirement. No title and no note may
   present a piece as optional.
 - **FR-016**: The notebook's chat MUST be set to answer as a tutor: a hint before the answer,
   Spanish explanations with the exam's terms, the source order of FR-002, and no attribution of a
@@ -546,7 +547,7 @@ and cannot judge what the notebook writes.
 **Printing**
 
 - **FR-017**: alfabeta MUST write one A4 PDF per topic into the topic's `notebook/`, holding an
-  index of every piece in the notebook's order, then the start note, then every piece except
+  index of every piece in the notebook's order, then the study guide, then every piece except
   videos, each on a new page: the
   quiz with its answers after its questions, the flashcards as a table, the mind map as a diagram
   that fits one page.
@@ -623,7 +624,10 @@ and cannot judge what the notebook writes.
   005's refresh does. When the topic's living notes file was last revised after the topic's study
   guide was made, the command MUST regenerate the guide (FR-004), even though the pack record
   (FR-024) holds it, before anything is printed. A guide made before the notes is never handed out
-  for an exam.
+  for an exam. That guide is the FR-004 theory guide, never the plan «0 · Guía de estudio» of
+  FR-015: the command MUST NOT regenerate, retitle or delete the plan. Until its code follows, it
+  finds guides by the words «guía de estudio» in the title and deletes every match, the plan
+  included (`src/alfabeta/exam/prep.py`, read 2026-10-29).
 - **FR-034**: The problems-sheet prompt MUST ask the notebook to put every exercise of the
   teacher's Classroom photocopies, worked examples included, into a pattern, using as few patterns
   as possible: one formula is about one pattern, and solving the same formula for another unknown
@@ -680,7 +684,7 @@ and cannot judge what the notebook writes.
   student's names for them, and `bloques.md` MUST name, for each block, the scheme and branch it
   comes from. What the textbook or Classroom teaches and no branch holds MUST be hung from the
   nearest branch or listed apart, never used to reorder the blocks; a branch no source explains is
-  a question for the family. Every piece's title or opening line, the start note and the printed
+  a question for the family. Every piece's title or opening line, the study guide (and the exam's start note) and the printed
   index MUST name the branch each piece covers. Notes without a scheme leave FR-001 as it is
   (constitution X).
 
