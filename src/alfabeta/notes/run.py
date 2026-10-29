@@ -51,7 +51,7 @@ from alfabeta.notes.model import (
     posted_title,
 )
 from alfabeta.notes.pdf import RenderedPart
-from alfabeta.notes.report import write_report
+from alfabeta.notes.report import baseline, write_report
 from alfabeta.placement import NO_TOPIC
 
 if TYPE_CHECKING:
@@ -210,6 +210,7 @@ class Pass:
     budget_refused: bool = False  # once refused, this pass makes no other call (research R5)
     no_key: bool = False
     write_failed: bool = False
+    claude_answered: bool = False  # a Claude call answered this pass: the budget is not spent
     spent_before: dict[str, Any] = field(default_factory=lambda: {})  # the ledger as the run found it
 
     def count(self, topic: str, what: str, n: int = 1) -> None:
@@ -327,6 +328,7 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
     state = deps.store.load()
     previous = deps.store.load_run_log()
     work = Pass(state, started.date().isoformat(), spent_before=copy.deepcopy(state.get("spend", {})))
+    baseline(state, Pass(state, work.today), deps.warn_pages)  # once, for records older than the report
     result = deps.feed.read(previous.page_token if previous else None, known(state))
     for gone in result.gone:
         _gone(work, gone)
@@ -472,6 +474,7 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
         else:
             record["tried_on"] = work.today
             done = deps.transcriber.transcribe(deps.drive.content(photo_id), item.mime_type)
+            work.claude_answered = work.claude_answered or done.usage is not None
             if done.usage is not None:
                 ledger = spend(work.state).add(work.today[:7], done.usage)
                 work.state["spend"] = {m: {"in": u.tokens_in, "out": u.tokens_out} for m, u in ledger.months.items()}

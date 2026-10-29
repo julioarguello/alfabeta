@@ -6,8 +6,10 @@ when that diff is not empty: an idle run writes nothing (SC-004), and a conditio
 spent budget or a photo Claude keeps refusing, is reported once when it starts and once when it
 clears (User Story 4, scenario 3). Per topic with new pages, one Claude call says what the pages add
 against the study guide of the topic's printable pack, `Tema NN para imprimir · <title>.pdf` in its
-`notebook/` folder, read with `pypdf`; its `usage` goes into the month's spend ledger (FR-015).
-Nothing here regenerates a study piece (FR-012): the report says that is the family's decision.
+`notebook/` folder, read with `pypdf`; its `usage` goes into the month's spend ledger (FR-015). A
+comparison the budget, the key or Claude's answer stops waits in the snapshot for the next report; one
+that has no pack or no guide to compare with is said in one line and dropped. Nothing here regenerates
+a study piece (FR-012): the report says that is the family's decision.
 """
 
 from __future__ import annotations
@@ -19,7 +21,9 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 
+from alfabeta.google.drive import DriveError
 from alfabeta.notes.model import Health, ItemState, Kind, LivingKind, PhotoState, Review, SpendLedger, Usage, reportable
 
 if TYPE_CHECKING:
@@ -45,9 +49,11 @@ MAX_NOTES_CHARS = 30_000
 # What the family reads when nothing is compared (FR-012, FR-015).
 NO_PACK = "No hay «Tema NN para imprimir» en la carpeta notebook/ del tema: no se compara con la guía de estudio."
 NO_GUIDE = "El PDF para imprimir no tiene una sección de guía de estudio: no se compara."
-NO_BUDGET = "No se compara con la guía de estudio: el presupuesto mensual de IA está agotado."
-NO_KEY = "No se compara con la guía de estudio: este sitio no tiene clave de Claude."
-NO_ANSWER = "No se compara con la guía de estudio: Claude no respondió; se volverá a intentar con las próximas páginas."
+NO_PDF = "El PDF para imprimir no se puede leer: no se compara con la guía de estudio."
+WAITS = "se compara en el próximo informe"
+NO_BUDGET = f"No se compara con la guía de estudio: el presupuesto mensual de IA está agotado; {WAITS}."
+NO_KEY = f"No se compara con la guía de estudio: este sitio no tiene clave de Claude; {WAITS}."
+NO_ANSWER = f"No se compara con la guía de estudio: Claude o Drive no respondieron; {WAITS}."
 DECISION = (
     "Regenerar las piezas del pack (vídeos, cuestionario, guía) gasta cuota del cuaderno: es decisión de la familia."
 )
@@ -124,14 +130,16 @@ _COUNT_LINES = {
 }
 # Conditions that last: said once when they start and once when they clear (scenario 3).
 _CONDITIONS = {
-    "budget": "el presupuesto mensual de IA está agotado: las transcripciones esperan al mes que viene",
+    "budget": "el presupuesto mensual de IA está agotado: transcribir y comparar esperan y se reintentan cada día",
     "no_key": "este sitio no tiene clave de Claude: las fotos esperan",
+    "drive_write": "Drive no aceptó una escritura: lo pendiente se reintenta en la próxima ejecución",
 }
 _LIVING_CONDITIONS = {
     "missing": "el archivo vivo «{name}» no está donde se creó: no se actualiza",
     "over": "el archivo vivo «{name}» supera las {pages} páginas",
-    "waiting": "el tema espera a que se cree su cuaderno («notebook setup»)",
 }
+_WAITING_SETUP = "el tema espera a que se cree su cuaderno («notebook setup»)"
+SETUP = "setup"  # the snapshot's key, beside the living kinds, for a topic waiting for setup
 STARTS, CLEARS = "Comienza", "Resuelto"
 
 
@@ -182,7 +190,7 @@ class TopicChanges:
 
     name: str
     lines: list[str] = field(default_factory=lambda: [])
-    new_pages: list[str] = field(default_factory=lambda: [])  # photo ids whose page is new since the last report
+    new_pages: list[str] = field(default_factory=lambda: [])  # photo ids to compare: new, or waiting since a report
     started: list[str] = field(default_factory=lambda: [])
     cleared: list[str] = field(default_factory=lambda: [])
 
@@ -222,11 +230,12 @@ def snapshot(state: dict[str, Any], work: Pass, warn_pages: int) -> dict[str, An
     topics = cast("dict[str, dict[str, Any]]", state.get("topics", {}))
     living: dict[str, dict[str, str]] = {}
     for topic, record in topics.items():
+        waiting = topic in work.counts and work.counts[topic]["waiting_setup"] > 0
+        living.setdefault(topic, {})[SETUP] = "waiting" if waiting else "none"
         for kind in LivingKind:
             found = cast("dict[str, Any] | None", record.get("living", {}).get(kind))
             if found is None or found.get("file_id") is None:
-                waiting = topic in work.counts and work.counts[topic]["waiting_setup"] > 0
-                condition = "waiting" if waiting else "none"
+                condition = "none"
             elif found.get("health") == Health.MISSING:
                 condition = "missing"
             elif int(found.get("pages", 0)) > warn_pages:
@@ -237,12 +246,26 @@ def snapshot(state: dict[str, Any], work: Pass, warn_pages: int) -> dict[str, An
     budget = work.budget_refused or any(
         r.get("state") == PhotoState.BUDGET_WAIT for r in files.values() if r.get("kind") == Kind.NOTES_PHOTO
     )
+    # A refusal of the report's own call leaves no photo waiting: it holds until a call is answered.
+    held = cast("dict[str, Any]", state.get(REPORTED, {})).get("conditions", {}).get("budget", False)
+    budget = budget or (bool(held) and not work.claude_answered)
     return {
         "files": {fid: str(r["state"]) for fid, r in sorted(files.items()) if "state" in r},
         "pages": {fid: str(p.get("review", Review.AUTOMATIC)) for fid, p in sorted(pages.items())},
         "living": living,
-        "conditions": {"budget": budget, "no_key": work.no_key},
+        "conditions": {"budget": budget, "no_key": work.no_key, "drive_write": work.write_failed},
+        "compare": {},
     }
+
+
+def baseline(state: dict[str, Any], work: Pass, warn_pages: int) -> None:
+    """Before the first report, take the records as they are as already reported.
+
+    A topic with pages before this module existed is not reported, nor compared, as new on the first
+    run that changes something; what that run changes is.
+    """
+    if REPORTED not in state and state.get("files"):
+        state[REPORTED] = snapshot(state, work, warn_pages)
 
 
 def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[str, Any]) -> Changes:
@@ -265,8 +288,9 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
         topic = str(record.get("living") or record["topic"])
         if record["kind"] == Kind.NOTES_PHOTO:
             state_now = PhotoState(after)
-            if state_now in (PhotoState.TRANSCRIBED, PhotoState.IN_LIVING_FILE):
-                section(topic).new_pages.append(fid)
+            paged = (PhotoState.TRANSCRIBED, PhotoState.IN_LIVING_FILE)
+            if state_now in paged and old_files.get(fid) not in paged:
+                section(topic).new_pages.append(fid)  # once: not again when a waiting page reaches its file
             if state_now in _PHOTO_LINES:
                 counted.setdefault(topic, Counter())[f"photo:{state_now}"] += 1
         elif record["kind"] == Kind.CLASSROOM_ITEM and ItemState(after) in _ITEM_LINES:
@@ -297,20 +321,24 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
             was = old_living.get(topic, {}).get(kind, "none")
             if was == condition:
                 continue
+            if kind == SETUP:
+                (section(topic).started if condition == "waiting" else section(topic).cleared).append(_WAITING_SETUP)
+                continue
             name = f"{LivingKind(kind).prefix} · {topics[topic]['name']}.pdf"
             pages = cast("dict[str, Any]", topics[topic].get("living", {}).get(kind, {})).get("pages", 0)
             if condition in _LIVING_CONDITIONS:
                 section(topic).started.append(_LIVING_CONDITIONS[condition].format(name=name, pages=pages))
             if was in _LIVING_CONDITIONS:
                 section(topic).cleared.append(_LIVING_CONDITIONS[was].format(name=name, pages=pages))
-    old_conditions = cast("dict[str, bool]", before.get("conditions", {}))
-    for key, text in _CONDITIONS.items():
-        is_now, was = bool(now["conditions"][key]), bool(old_conditions.get(key, False))
-        if is_now and not was:
-            changes.started.append(text)
-        elif was and not is_now:
-            changes.cleared.append(text)
+    _conditions(changes, before, now)
     return changes
+
+
+def _conditions(changes: Changes, before: dict[str, Any], now: dict[str, Any]) -> None:
+    """The run-wide conditions that start or clear (scenario 3)."""
+    old = cast("dict[str, bool]", before.get("conditions", {}))
+    changes.started = [t for k, t in _CONDITIONS.items() if now["conditions"][k] and not old.get(k, False)]
+    changes.cleared = [t for k, t in _CONDITIONS.items() if old.get(k, False) and not now["conditions"][k]]
 
 
 # --- "what it adds" (research R8) --------------------------------------------------------------------
@@ -345,26 +373,39 @@ def guide_section(pdf: bytes) -> str | None:
     return "\n".join(pages[start:end]).strip()[:MAX_GUIDE_CHARS]
 
 
-def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges) -> list[str]:
+# What `_what_it_adds` says when the comparison waits for the next report rather than being dropped.
+_DEFERRED = frozenset({NO_BUDGET, NO_KEY, NO_ANSWER})
+
+
+def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges, *, spent: bool) -> list[str]:
     """The topic's "what it adds" paragraph: one call, or the one line saying why there is none."""
     pack = printable_pack(deps.drive, topic)
     if pack is None:
         return [NO_PACK]
-    guide = guide_section(deps.drive.content(pack.id))
+    try:
+        guide = guide_section(deps.drive.content(pack.id))
+    except DriveError:
+        return [NO_ANSWER]
+    except (PyPdfError, ValueError):
+        return [NO_PDF]  # damaged or encrypted: the run goes on (FR-013 reports, never stops)
     if guide is None:
         return [NO_GUIDE]
     if deps.answerer is None:
         return [NO_KEY]
-    if work.budget_refused:
+    if spent or work.budget_refused:
         return [NO_BUDGET]
     pages = cast("dict[str, dict[str, Any]]", work.state.get("pages", {}))
     notes = "\n\n".join(str(pages[p]["markdown"]) for p in section.new_pages if p in pages)[:MAX_NOTES_CHARS]
-    done: Transcription = deps.answerer.answer(INSTRUCTIONS.format(notes=notes, guide=guide))
+    try:
+        done: Transcription = deps.answerer.answer(INSTRUCTIONS.format(notes=notes, guide=guide))
+    except ValueError:
+        return [NO_ANSWER]  # an answer that is not the JSON of the Messages API
     if done.usage is not None:
         _spend(work, done.usage)
     if done.state == PhotoState.BUDGET_WAIT:
         work.budget_refused = True
         return [NO_BUDGET]
+    work.claude_answered = work.claude_answered or done.usage is not None
     if done.state != PhotoState.TRANSCRIBED:
         return [NO_ANSWER]
     compared = f"Comparadas {_plural(len(section.new_pages), ('página nueva', 'páginas nuevas'))} con la guía de estudio de «{pack.name}»."
@@ -401,7 +442,7 @@ def render(deps: NotesDeps, work: Pass, started: dt.datetime, changes: Changes, 
     lines = [f"# Informe de apuntes · {started:%d/%m/%Y %H:%M}", "", f"Ejecución {where}."]
     for topic in sorted(changes.topics, key=lambda t: changes.topics[t].name):
         section = changes.topics[topic]
-        if section.empty:
+        if section.empty and topic not in adds:
             continue
         lines += ["", f"## {section.name}", ""]
         lines += [f"- {line}." for line in section.lines]
@@ -448,17 +489,31 @@ def write_report(deps: NotesDeps, work: Pass, started: dt.datetime) -> str | Non
     now = snapshot(work.state, work, deps.warn_pages)
     changes = diff(work.state, work, before, now)
     if changes.empty:
-        return None
+        return None  # a comparison waiting from an earlier report waits for one with something new
+    topics = cast("dict[str, dict[str, Any]]", work.state.get("topics", {}))
+    for topic, waiting in sorted(cast("dict[str, list[str]]", before.get("compare", {})).items()):
+        if topic not in changes.topics:
+            changes.topics[topic] = TopicChanges(str(topics.get(topic, {}).get("name", "tema")))
+        new = changes.topics[topic].new_pages
+        changes.topics[topic].new_pages = [*waiting, *(p for p in new if p not in waiting)]
+    # Spent today: a photo was refused this pass, or the report's own call was, on an earlier run of the
+    # same day. A budget held from another day is probed once by the comparison (research R5: a day).
+    files = cast("dict[str, dict[str, Any]]", work.state.get("files", {}))
+    refused_today = work.budget_refused or any(r.get("state") == PhotoState.BUDGET_WAIT for r in files.values())
+    spent = refused_today or (now["conditions"]["budget"] and before.get("budget_day") == work.today)
     adds = {
-        topic: _what_it_adds(deps, work, topic, section)
+        topic: _what_it_adds(deps, work, topic, section, spent=spent)
         for topic, section in sorted(changes.topics.items())
         if section.new_pages
     }
-    if work.budget_refused and not now["conditions"]["budget"]:
-        # The comparison itself met the spent budget: the condition starts with this report.
-        now["conditions"]["budget"] = True
-        if not cast("dict[str, bool]", before.get("conditions", {})).get("budget", False):
-            changes.started.append(_CONDITIONS["budget"])
+    now["compare"] = {t: changes.topics[t].new_pages for t, said in adds.items() if said[0] in _DEFERRED}
+    if work.claude_answered:
+        now["conditions"]["budget"] = False  # an answered call this pass: the budget is not spent…
+    if work.budget_refused:
+        now["conditions"]["budget"] = True  # …unless a later one, such as the comparison, was refused
+    if now["conditions"]["budget"]:
+        now["budget_day"] = work.today if work.budget_refused else before.get("budget_day", work.today)
+    _conditions(changes, before, now)
     text = render(deps, work, started, changes, adds)
     _upload(deps.drive, report_name(started), text)
     work.state[REPORTED] = now

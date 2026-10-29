@@ -13,9 +13,11 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate
 
 from alfabeta import guardrail
+from alfabeta.google.drive import DriveError
 from alfabeta.notes import report
 from alfabeta.notes.model import PhotoState, Usage
 from alfabeta.notes.run import run_notes
+from alfabeta.notes.state import DriveNotesStateStore
 from alfabeta.notes.transcribe import Transcription
 from tests.notes_fakes import (
     NOTES,
@@ -238,3 +240,114 @@ def test_the_report_name_and_the_pack_name_pass_the_guardrail():
     assert text == "Informe 20261028-1605.md"
     assert guardrail.scan_lines("x.md", [(1, text), (2, PACK)], []) == []
     assert re.fullmatch(r"Informe \d{8}-\d{4}\.md", text)
+
+
+# --- what the independent review of #70 found ------------------------------------------------------
+
+
+def with_pack(body: bytes | None = None) -> MemoryDrive:
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    drive.folder("nb1", "notebook", TOPIC)
+    drive.put("pack-1", PACK, "application/pdf", pack() if body is None else body, parent="nb1")
+    return drive
+
+
+def test_a_damaged_pack_is_one_line_and_the_run_keeps_its_records():
+    drive = with_pack(b"%PDF-1.4 roto")
+    answerer = ScriptedAnswerer()
+    result = run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=answerer))
+    assert result["ok"] and answerer.prompts == []
+    assert report.NO_PDF in reports(drive)[0]
+    assert state_of(drive)["spend"] == {"2026-10": {"in": 3000, "out": 800}}  # the transcription is kept
+
+
+def test_a_refused_comparison_holds_the_budget_until_a_call_is_answered_and_then_compares():
+    drive = with_pack()
+    answerer = ScriptedAnswerer([Transcription(PhotoState.BUDGET_WAIT)])
+    clock = FixedClock()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), clock, answerer=answerer))
+    [first] = reports(drive)
+    assert report.NO_BUDGET in first and f"- Comienza: {report._CONDITIONS['budget']}." in first
+    # A change that no Claude call answers (a format Claude does not take): the budget is not said to clear.
+    drive.put("foto-3", "c.heic", "image/heic", b"c")
+    clock.when += dt.timedelta(hours=1)
+    unsupported = ScriptedTranscriber([Transcription(PhotoState.UNSUPPORTED)])
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-3"]]), unsupported, clock, answerer=answerer))
+    assert len(reports(drive)) == 2 and "1 foto en un formato no admitido." in reports(drive)[1]
+    assert all("Resuelto" not in text for text in reports(drive))
+    assert len(answerer.prompts) == 1  # the waiting comparison waits for an answered call
+    # The next photo is answered: the budget clears once and the waiting page is compared with the new one.
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b")
+    clock.when += dt.timedelta(days=1)
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), ScriptedTranscriber(), clock, answerer=answerer))
+    last = reports(drive)[-1]
+    assert f"- Resuelto: {report._CONDITIONS['budget']}." in last
+    assert "Comparadas 2 páginas nuevas" in last and "Texto de a" in answerer.prompts[-1]
+    assert "compare" in state_of(drive)["reported"] and state_of(drive)["reported"]["compare"] == {}
+
+
+def test_a_page_waiting_for_setup_is_compared_once_not_again_when_it_reaches_its_file():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    drive.folder("nb1", "notebook", TOPIC)
+    drive.put("pack-1", PACK, "application/pdf", pack(), parent="nb1")
+    answerer = ScriptedAnswerer()
+    clock = FixedClock()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), clock, answerer=answerer))
+    [first] = reports(drive)
+    assert first.count("el tema espera a que se cree su cuaderno") == 1  # once per topic, not per file
+    set_up(drive)
+    clock.when += dt.timedelta(hours=1)
+    run_notes(deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber(), clock, answerer=answerer))
+    second = reports(drive)[-1]
+    assert "1 página nueva en el archivo vivo." in second
+    assert second.count("Resuelto: el tema espera") == 1
+    assert len(answerer.prompts) == 1  # the page was compared when it was transcribed, never again
+
+
+def test_a_drive_write_failure_is_reported_once_and_its_clearing_once():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    clock = FixedClock()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), clock))
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b")
+    upload = drive.upload
+
+    def refuse(*args: Any, **kwargs: Any) -> Any:
+        if str(args[1]).endswith("transcripción.md"):
+            raise DriveError("Drive API returned 500", 500)
+        return upload(*args, **kwargs)
+
+    drive.upload = refuse  # type: ignore[method-assign]
+    for _ in range(2):
+        clock.when += dt.timedelta(hours=1)
+        run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), ScriptedTranscriber(), clock))
+    assert len(reports(drive)) == 2 and f"- Comienza: {report._CONDITIONS['drive_write']}." in reports(drive)[1]
+    drive.upload = upload  # type: ignore[method-assign]
+    clock.when += dt.timedelta(hours=1)
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), ScriptedTranscriber(), clock))
+    assert len(reports(drive)) == 3 and f"- Resuelto: {report._CONDITIONS['drive_write']}." in reports(drive)[2]
+
+
+def test_records_older_than_the_report_are_its_baseline_not_news():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    clock = FixedClock()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), clock))
+    store = DriveNotesStateStore(drive)
+    state = store.load()
+    del state["reported"]  # what a state.json written before this module looks like
+    store.save(state)
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b")
+    drive.folder("nb1", "notebook", TOPIC)
+    drive.put("pack-1", PACK, "application/pdf", pack(), parent="nb1")
+    answerer = ScriptedAnswerer()
+    clock.when += dt.timedelta(hours=1)
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), ScriptedTranscriber(), clock, answerer=answerer))
+    last = reports(drive)[-1]
+    assert "- 1 página nueva en el archivo vivo." in last  # foto-2 only
+    assert "Texto de b" in answerer.prompts[0] and "Texto de a" not in answerer.prompts[0]
