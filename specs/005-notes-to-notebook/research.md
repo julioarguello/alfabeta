@@ -256,9 +256,13 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R12 — Limits of a notebook source
 
-- **Question, not a fact**: how large a single source may be. Google's help states limits per
-  source; they were not read for this plan. The run reports a living file over `[notes] warn_pages`
-  pages; quickstart step 7 reads the current limit.
+- **Read 2026-10-29** (quickstart step 7, first bullet) in Google's NotebookLM FAQ
+  (support.google.com/notebooklm/answer/16269187): «The current limit is 500,000 words per source or
+  up to 200MB for local uploads», «There's no page limit». The page states no limit of its own for a
+  Google Drive source and no number of sources per notebook. A living file is well under both: the
+  run still reports one over `[notes] warn_pages` pages, a readability warning for the family, not
+  Google's limit.
+- Before that reading this was a question, not a fact: the help had not been read for the plan.
 
 ## R13 — When the cloud run fails
 

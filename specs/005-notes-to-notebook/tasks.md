@@ -126,10 +126,10 @@ failure reported once.
 
 **Independent test**: upload notes holding an idea the study guide misses; the report names it.
 
-- [ ] T034 [US4] Write `write_report` in `src/alfabeta/notes/report.py`: `reports/Informe AAAAMMDD-HHMM.md` in Spanish with the state changes of `RunReport` since the last report, and the month's spend from the `SpendLedger`; "what it adds" by one Claude call per changed topic given the new pages and the study guide section of `Tema NN para imprimir · <title>.pdf` (the study-pack skill's printable PDF) extracted with `pypdf`, skipped with a line when that PDF is missing or the budget is spent; every call's `usage` into the ledger (research R8).
-- [ ] T035 [P] [US4] Test `tests/test_notes_report.py`: no report when nothing changed; a repeating failure appears once and its clearing once; the ledger sums transcriptions and "what it adds" by month; the guardrail's detectors find no name, address or id in the output.
-- [ ] T036 [US4] In the Mac's sync, list `reports/` through `ScopedDrive` and add one agenda line per report not listed before (spec 001's agenda module).
-- [ ] T037 [US4] Run quickstart step 7.
+- [x] T034 [US4] Write `write_report` in `src/alfabeta/notes/report.py`: `reports/Informe AAAAMMDD-HHMM.md` in Spanish with the state changes of `RunReport` since the last report, and the month's spend from the `SpendLedger`; "what it adds" by one Claude call per changed topic given the new pages and the study guide section of `Tema NN para imprimir · <title>.pdf` (the study-pack skill's printable PDF) extracted with `pypdf`, skipped with a line when that PDF is missing or the budget is spent; every call's `usage` into the ledger (research R8).
+- [x] T035 [P] [US4] Test `tests/test_notes_report.py`: no report when nothing changed; a repeating failure appears once and its clearing once; the ledger sums transcriptions and "what it adds" by month; the guardrail's detectors find no name, address or id in the output.
+- [x] T036 [US4] In the Mac's sync, list `reports/` through `ScopedDrive` and add one agenda line per report not listed before (spec 001's agenda module).
+- [x] T037 [US4] Run quickstart step 7. Run 2026-10-29 as far as the Mac allows (julioarguello/alfabeta#70): the source limit is read into research R12; the 0.01 USD spend limit is a Console setting the operator changes, and the Scheduler bullet needs phase 4 (julioarguello/alfabeta#67), so both wait for the cloud job.
 
 ---
 
