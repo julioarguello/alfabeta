@@ -211,10 +211,13 @@ own table is the subset the requirements rest on; this one is the full list.
 
 - **Decision**: a run that changed something writes `Informe AAAAMMDD-HHMM.md` into `reports/` at the
   root of the alfabeta folder, in Spanish. "What it adds" is one Claude call per changed topic,
-  given the new pages and the text of the study guide section of the topic's printable PDF, which
+  given the new pages and the text of the theory section of the topic's printable PDF, which
   the study-pack skill writes as `Tema NN para imprimir · <title>.pdf` in the topic's `notebook/`
   (`skills/study-pack/SKILL.md`, step 10), extracted with `pypdf`; skipped with a line when that PDF
-  is missing or the budget is spent. Every call's `usage` goes into the month's spend ledger. The
+  is missing or the budget is spent. The theory section is the piece whose title says «guía» (the
+  theory guide), else «Resumen de tus apuntes», and never piece 0, the plan «0 · Guía de estudio»
+  (spec 002 FR-015, julioarguello/alfabeta#143). A piece opens on the last page that starts with its
+  number, because the plan's table names every piece. Every call's `usage` goes into the month's spend ledger. The
   Mac's sync lists `reports/` through `ScopedDrive` and adds one agenda line per report it has not
   listed before.
 - **Rationale**: Drive is the one channel the cloud and the family share.

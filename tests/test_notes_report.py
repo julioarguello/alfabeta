@@ -35,6 +35,10 @@ from tests.test_notes_run import set_up, state_of
 PACK = "Tema 01 para imprimir · Materia inventada.pdf"
 GUIDE_TEXT = "La materia se clasifica en sustancias puras y mezclas ZORONGO-GUIA"
 QUIZ_TEXT = "Pregunta 1: qué es una disolución ZORONGO-TEST"
+PLAN = "0 · Guía de estudio · Empieza aquí"
+PLAN_TEXT = "Bloque A, los vídeos: 45 minutos; descanso de 15 minutos ZORONGO-PLAN"
+SUMMARY = "Resumen de tus apuntes · Materia inventada"
+SUMMARY_TEXT = "Sustancias puras (substantzia puruak): un solo componente ZORONGO-RESUMEN"
 
 
 def pdf(*pages: list[str]) -> bytes:
@@ -55,6 +59,19 @@ def pack() -> bytes:
         ["Tema 01 - Materia inventada", "✎ 3 · Guía de estudio · Materia | en este documento", "▶ 1 · Vídeo"],
         ["1 / 3", "3 · Guía de estudio · Materia inventada", GUIDE_TEXT],
         ["4 · Test 10 preguntas · Materia inventada", QUIZ_TEXT],
+    )
+
+
+def plan_pack(*theory: list[str], plan: tuple[list[str], ...] = ()) -> bytes:
+    """A pack printed after #128: the index, the plan «0 · …» (spec 002 FR-015), then the other pieces."""
+    return pdf(
+        ["Tema 01 - Materia inventada", f"✎ {PLAN} | en este documento", "▶ 1 · Vídeo · Bloque A"],
+        ["1 / 7", PLAN, "Nº Pieza Para qué", f"3 · {SUMMARY}", PLAN_TEXT],
+        *plan,
+        ["2 / 7", "2 · Mapa mental · Materia inventada", "materia - sustancias puras - mezclas"],
+        *theory,
+        ["3 / 7", f"3 · {SUMMARY}", SUMMARY_TEXT],
+        ["4 / 7", "4 · Test 10 preguntas · Materia inventada", QUIZ_TEXT],
     )
 
 
@@ -190,11 +207,26 @@ def test_what_it_adds_compares_the_new_pages_with_the_guide_only_and_pays_into_t
         and "en este documento" not in prompt
     )
     assert "### Qué aportan los apuntes nuevos" in text
-    assert f"Comparadas 1 página nueva con la guía de estudio de «{PACK}»." in text
+    assert f"Comparadas 1 página nueva con «Guía de estudio · Materia inventada» de «{PACK}»." in text
     assert "- La guía no cubre los métodos de separación de mezclas." in text
     assert report.DECISION in text and "es decisión de la familia" in text
     assert state_of(drive)["spend"] == {"2026-10": {"in": 8000, "out": 1000}}  # 3000+5000, 800+200
     assert "- Esta ejecución: 8.000 tokens de entrada y 1.000 de salida." in text
+    clean(text)
+
+
+def test_what_it_adds_compares_a_post_128_pack_with_its_summary_never_its_plan():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    drive.folder("nb1", "notebook", TOPIC)
+    drive.put("pack-1", PACK, "application/pdf", plan_pack(), parent="nb1")
+    answerer = ScriptedAnswerer()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=answerer))
+    [prompt] = answerer.prompts
+    assert SUMMARY_TEXT in prompt and "ZORONGO-PLAN" not in prompt
+    [text] = reports(drive)
+    assert f"Comparadas 1 página nueva con «{SUMMARY}» de «{PACK}»." in text
     clean(text)
 
 
@@ -230,10 +262,39 @@ def test_no_key_is_one_line_and_one_condition():
 
 
 def test_the_guide_section_is_the_guides_pages_only():
-    section = report.guide_section(pack())
-    assert section is not None and GUIDE_TEXT in section and QUIZ_TEXT not in section
+    section = text_of(report.guide_section(pack()))
+    assert GUIDE_TEXT in section and QUIZ_TEXT not in section
     assert "en este documento" not in section  # the index's row names the guide but is not it
     assert report.guide_section(pdf(["Índice", "3 · Guía de estudio · X"], ["4 · Test", QUIZ_TEXT])) is None
+
+
+def text_of(section: tuple[str, str] | None) -> str:
+    assert section is not None
+    return section[1]
+
+
+def test_the_plan_is_never_the_section_and_the_summary_stands_in_for_a_missing_guide():
+    # Spec 002 FR-015: piece 0 says «Guía de estudio» but holds no theory; the theory is the summary.
+    title, text = report.guide_section(plan_pack()) or ("", "")
+    assert title == SUMMARY and SUMMARY_TEXT in text
+    assert "ZORONGO-PLAN" not in text and QUIZ_TEXT not in text
+
+
+def test_a_theory_guide_wins_over_the_summary():
+    guide = ["2 / 7", "2 · Guía de estudio · Materia inventada", GUIDE_TEXT]
+    text = text_of(report.guide_section(plan_pack(guide)))
+    assert GUIDE_TEXT in text and SUMMARY_TEXT not in text and "ZORONGO-PLAN" not in text
+
+
+def test_a_plan_page_whose_table_row_names_a_piece_is_not_that_piece():
+    # The plan's table lists every piece by its title: a page of the plan may start with one.
+    more = ["2 / 7", f"3 · {SUMMARY} | Para estudiar", "Bloque B, comprobar: 30 minutos ZORONGO-PLAN"]
+    text = text_of(report.guide_section(plan_pack(plan=(more,))))
+    assert SUMMARY_TEXT in text and "ZORONGO-PLAN" not in text
+
+
+def test_a_pack_with_only_the_plan_has_no_section():
+    assert report.guide_section(pdf(["Índice"], ["1 / 2", PLAN, PLAN_TEXT], ["4 · Test", QUIZ_TEXT])) is None
 
 
 def test_the_report_name_and_the_pack_name_pass_the_guardrail():
