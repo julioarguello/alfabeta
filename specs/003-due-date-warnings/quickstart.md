@@ -11,7 +11,7 @@ folder.
 - Spec 001's agenda exists: `<storage.base>/<school_year>/agenda.json`, version 2 (slice 1).
 - Spec 004's link of the student's Gmail is `ok`: `alfabeta google check`.
 - **Gate 1** for slice 1 on: the family has watched a reminder set as the student's Gmail ring on
-  the student's own phone, and stated the date, and the account by its alias, in their own words; no address and nothing that identifies the device (the device and the account's details stay in the private data folder)
+  the student's own phone, and stated the date, and the account by its alias, in their own words; no address, and nothing about the device is recorded, here or anywhere
   (spec 004 T021). A pre-written answer is not a measurement.
 - The student's phone shows the family calendar through the student's personal Gmail only. If it
   also shows it through the school account, every event appears twice there; the family removes one
@@ -49,6 +49,9 @@ dated work and no session; each is either added to the timetable or accepted (it
 break time).
 
 ## 3. Facts on the timetable (slice 1)
+
+First, spec 004 T022: the operator removes the chat connector's account from the calendar's
+sharing, so no event is written outside alfabeta after this step (research R13).
 
 ```bash
 alfabeta calendar sync --apply

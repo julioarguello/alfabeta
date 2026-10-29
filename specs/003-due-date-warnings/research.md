@@ -117,8 +117,10 @@ at 23:59 is 23:59–24:00).
   `singleEvents`, 2,500 a page), compares the owned fields locally, and writes only the ones that
   differ: insert a missing one (a 409 is a cancelled copy, brought back with `status: confirmed`,
   spec 004 R5), patch a different one.
-- **The school year's bounds** for the listing: from 1 September of `student.school_year`'s first
-  year to 1 September of its second, 00:00 `Europe/Madrid`, as spec 001's dates read a year.
+- **The listing's window** is derived from what the run owns: from the earliest to the day after
+  the latest date among the agenda's entries and the records (`items.json`), 00:00
+  `Europe/Madrid`, so no owned event falls outside it. A 409 on insert is answered with `get`,
+  compare and patch only if different, so even an event outside the window costs no write.
 - **Patch, not update.** Spec 004's `CalendarClient.update` sends `PUT`, which replaces the whole
   event and would clear a colour the family set. Slice 1 changes it to `PATCH` with the owned fields
   only, as spec 004 T018–T019 first specified; bringing back a cancelled copy patches `status` too.
@@ -199,8 +201,8 @@ at 23:59 is 23:59–24:00).
   description and a title naming the day it was posted with no purpose form. Requiring the purpose
   form and the session rules them out (SC-004).
 - **An inferred date** is a date-only due: placed in that session, warned with FR-005's cutoff, and
-  its description says «Fecha deducida de «<words>»». It is recomputed each run from the title;
-  nothing is stored.
+  its description says «Fecha deducida de «<words>»». It is recomputed each run from the title; the
+  record keeps it as `due` with `source: inferred`, like any due date.
 
 ## R10 — Replay
 
@@ -245,8 +247,9 @@ at 23:59 is 23:59–24:00).
   not refuse to write reminders without one (US6, scenario 1): gate 1 and slice 6 order the steps,
   and the run's line keeps the gap visible.
 - **What the family records** is what they saw, in their own words. In an issue or the repository:
-  the date and the account's alias only, no address and nothing that identifies the device; the
-  device and the account's details stay in the private data folder (constitution III). An alias is
+  the date and the account's alias only, no address, and nothing about the device is
+  recorded, here or anywhere (constitution III: only what the function needs). `delivery.json`
+  holds the alias and the date, nothing else. An alias is
   never a name: it says the account's role (`student`). A pre-written answer is not a measurement (spec 004's correction of 2026-10-27).
 
 ## R13 — Neighbouring specs

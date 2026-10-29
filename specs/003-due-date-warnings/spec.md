@@ -201,9 +201,9 @@ then with one due date moved.
 **Acceptance Scenarios**:
 
 1. **Given** a first run, **When** an item's due instant has passed, **Then** it gets no warning.
-2. **Given** a first run, **When** every warning of an item still ahead has a time that already
-   passed, **Then** they become one warning at the next home slot (FR-009); warnings still ahead
-   stay as they are.
+2. **Given** a first run, **When** every earlier warning of an item still ahead has a time that
+   already passed, **Then** only its last warning remains, at the next home slot before the bound
+   (FR-009); if the last one passed too, it gets none and the run names it (FR-020).
 3. **Given** a second run with nothing changed, **When** it ends, **Then** no event was created,
    moved or deleted.
 4. **Given** a teacher who moves a due date, **When** the next sync runs, **Then** the item's
@@ -482,7 +482,7 @@ tick the teacher also sees.
 ### Measurable Outcomes
 
 - **SC-001**: A first run on the capture of 2026-10-26 writes 0 warnings for items past due and 0 for
-  items handed in. Control: with FR-005 and FR-010 disabled, the same run writes 16 and 7 on that
+  items handed in. Control: with FR-005 and FR-010 disabled (and no item's basis instant applied), the same run writes 16 and 7 on that
   capture; a replay on a later state, whose statuses have moved, passes when its own control is not
   0 (research R10).
 - **SC-002**: Replaying the capture day by day, every dated item not handed in gets at least one

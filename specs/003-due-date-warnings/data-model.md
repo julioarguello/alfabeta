@@ -114,10 +114,12 @@ Which entries own which events:
 | `due` | The last due value a run saw (ISO, or null), with its `source` (`classroom` · `inferred`); an inferred due's `start_on` is `posted` |
 | `undated_seen_on` | The date of the first run that saw the item with no due date, or null |
 | `start_on` | FR-007: `posted`, or the date of the first run that saw the due date when `undated_seen_on` is set |
-| `basis_at` | The instant of the run that first saw the current `due` while not handed in; set to the first run with `warnings = true` when that is later |
+| `basis_at` | The instant of the run that first saw the current `due` while not handed in; set to the run that switched warnings on (`warnings_on_at`) when that is later |
 | `marked` | The date the event became «Retirado» (its fact left the agenda; the agenda does not say why), else null |
 
-The file also holds `first_apply_at`, the instant of the first applied run; legacy selection
+The file also holds `first_apply_at`, the instant of the first applied run, and `warnings_on_at`,
+the instant of the latest applied run that found `warnings = true` after one that found it false
+(switching off and on again moves it); legacy selection
 (research R7) needs it. Placements are clamped to their day (00:00–24:00).
 
 Written atomically, mode 0600, only when its bytes change.
@@ -138,7 +140,7 @@ that `run`. Called alone, it takes the student's lock for a run of its own and r
 
 `calendar sync --apply` and `calendar legacy --apply` each append one line, as `book place` and
 `log notebook` do: `type: calendar` (or `calendar_legacy`), `at`, `run`, `result` (`ok` ·
-`partial` · `stopped`), `reason` if not `ok` (`link_<status>`, `no_agenda`, `write_failed`), the
+`partial` · `stopped`), `reason` if not `ok` (`link_<status>`, `no_agenda`, `old_agenda`, `no_student_account`, `write_failed`), the
 counts `created`, `updated`, `marked`, `unchanged`, `failed` (legacy: `matched`, `unmatched`,
 `deleted`), `warnings_on` and `delivery` (`seen` · `unseen`). Counts and ids only, never a title
 (constitution V, III). A dry run writes no line.
