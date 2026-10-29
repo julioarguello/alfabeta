@@ -122,7 +122,13 @@ Decisions the plan took where the spec was silent or the data did not reach; eac
   the account that sets it, and the student sets none (FR-001, FR-015). Only exams in the agenda
   are warned.
 - On the first run with `warnings = true`, every item's basis instant becomes that run's, so items
-  whose steps passed while warnings were off get FR-009's one catch-up warning.
+  whose earlier steps passed while warnings were off keep only their last warning, which is FR-009's
+  one warning at the next home slot.
+- An inferred due date cannot be corrected by the family in this spec: no decision type corrects a
+  due date (spec 001), and the inference is narrow (one measured case, SC-004). The event says it was
+  deduced and from which words; a wrong one is reported to be fixed in the rule.
+- FR-009 needs no extra step for a due date: the last warning is the last home slot before the
+  bound, so it is the "next home slot" once the others passed (data model, Step and Warning).
 - An event whose fact left Classroom (a withdrawn item, a due date no longer shown, an exam the
   family discarded) is kept, loses its reminders and is titled «Retirado ·»; alfabeta deletes no
   event of its own (constitution V, research R7).
@@ -319,7 +325,7 @@ tick the teacher also sees.
 - A due time near midnight (23:59): the due-date event ends at the due instant and never runs into
   the next day.
 - A school holiday on an inferred weekday: the timetable has no holiday calendar, so the inferred
-  date is labelled as deduced and the family can correct it.
+  date is labelled as deduced. This spec gives the family no way to correct it (Plan, 2026-10-28).
 - Daylight-saving changes (the next one in March 2027).
 - A sync that did not run: a warning for the next morning's work may not exist; the run that comes
   after says which items it could not warn about in time.
@@ -349,7 +355,7 @@ tick the teacher also sees.
 
 **When**
 
-- **FR-005**: No warning MAY exist after its item's due instant. A due date without a time MUST stay
+- **FR-005**: A warning MUST NOT exist after its item's due instant. A due date without a time MUST stay
   a date: no due hour is invented (Classroom's help does not say what time it means). The time its
   event is drawn at (FR-023) is not a due hour, and the event says «Classroom no indica hora». For
   computing warnings, its cutoff is the start of the due date, so its last warning is the day
@@ -428,7 +434,7 @@ tick the teacher also sees.
 
 **Placement and the checklist**
 
-- **FR-023**: No event alfabeta writes MAY be all-day. A posting, a due date without a time, and an
+- **FR-023**: An event alfabeta writes MUST NOT be all-day. A posting, a due date without a time, and an
   exam without a time sit in their subject's session that day; when the subject has no session that
   day (weekends and holidays included), at break time (configured; 10:00–10:25 in the timetable of
   2026–2027). A due date with a time sits in a 30-minute event that ends at that time. An exam with a
@@ -459,8 +465,8 @@ tick the teacher also sees.
 - **Session**: one slot of the timetable — weekday, start, end, subject. Times are approximate (the
   timetable says so).
 - **Class mapping**: a Classroom class identifier → a timetable subject.
-- **Due date**: date, optional time, and where it came from (Classroom's field, inferred from named
-  words, the family).
+- **Due date**: date, optional time, and where it came from (Classroom's field, or inferred from
+  named words).
 - **Warning**: a reminder on an item's due-date or exam event — step (28, 14 or 7 days before, half
   the window, the evening before), the instant it rings (a home slot), set as the student.
 - **Exam**: subject, date, source (a Classroom item, a stream post, the family's correction), placed

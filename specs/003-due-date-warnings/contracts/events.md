@@ -32,7 +32,7 @@ One line per fact that applies, in this order:
 | `Hora de la clase, no la de publicación` | A posting (FR-018) |
 | `Hora según horario` · `Hora no conocida` · `Hora según Classroom` | An exam (FR-014, research R3) |
 | `Detectado en un aviso de Classroom` · `Corregido por la familia` | A detected exam; the second when the family corrected it (research R8) |
-| `Ya no está en Classroom` · `Classroom ya no muestra fecha de entrega` · `Examen descartado por la familia` | A «Retirado» event (research R7) |
+| `Ya no figura en la agenda` | A «Retirado» event: the agenda no longer holds its fact, for whatever reason (research R7) |
 | `Classroom: <link>` | Always; it opens with the school account (spec 001) |
 | `Carpeta: <path relative to the base folder>` | When the item has a folder; the same path as in the Drive (research R11) |
 

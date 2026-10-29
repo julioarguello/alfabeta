@@ -2,8 +2,9 @@
 
 Run on the family's Mac, from the repository clone, after each slice's pull request is merged. The
 commands are `uv run python -m alfabeta --home ~/.alfabeta <command> --student <id>`; below they
-are shortened to `alfabeta <command>`. Record each result in the slice's issue as counts and opaque
-ids only: no title, name, address or calendar id.
+are shortened to `alfabeta <command>`. Record each result in the slice's issue as counts only:
+no title, name, address, calendar id or Classroom id. Lists of items stay in the private data
+folder.
 
 ## Prerequisites
 
@@ -60,7 +61,7 @@ alfabeta calendar sync --apply
   date-only dues in their session or at 10:00–10:25; a timed due ending at its time.
 - **SC-009**, with the student, the same day: every «Entrega ·» event is, item by item, what
   Classroom's «Tareas pendientes» shows as pending with a date («Asignado» with a date, and «Sin
-  entregar»). Record the two counts and any item id that differs.
+  entregar»). Record the two counts and how many items differ.
 
 ## 4. The legacy events (slice 1)
 
@@ -76,8 +77,9 @@ want to keep. Then, with that report:
 alfabeta calendar legacy --apply --report legacy-<run>.json
 ```
 
-Expect `deleted` equal to the reviewed `matched`. The family decides about each unmatched event by hand. Then
-the operator does spec 004 T022: the chat connector's account leaves the calendar's sharing.
+Expect `deleted` equal to the reviewed `matched`. The family decides about each unmatched event by
+hand. Spec 004 T022 (the chat connector's account leaves the calendar's sharing) comes before step
+3's first `--apply`, so no connector event is created after it.
 
 ## 5. The rule, replayed (slice 2)
 

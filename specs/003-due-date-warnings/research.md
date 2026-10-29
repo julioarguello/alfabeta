@@ -43,7 +43,8 @@ Phase 0 of [plan.md](plan.md). Each decision names what it rests on. The spec's 
 - **Decision**: FR-013's mapping of classes to subjects is spec 001's `class_link` decision, already
   by class id. The timetable is a `[[timetable]]` array of sessions, each `weekday`, `start`, `end`
   and `subject`, where `subject` is a `[[subjects]]` folder. `[calendar]` gains `home_slot`
-  (`"16:00"`), `break_start` and `break_end` (`"10:00"`, `"10:25"`) and `warnings` (`false`).
+  (the student's own time), `break_start` and `break_end` (the school's break), `warnings`
+  (`false`) and `enabled` (`false`): every value lives in the private configuration.
 - **Validation** (a configuration problem named by its key, never its value, as spec 001's loader
   does): weekday is one of the seven English names; times are `HH:MM`; `end` after `start`; the
   subject is a configured folder; two sessions of one subject on one weekday are a warning, not an error,
@@ -148,7 +149,10 @@ at 23:59 is 23:59–24:00).
 
 - **An item that leaves the agenda** (withdrawn from Classroom, spec 001 FR-027), **a due date
   Classroom no longer shows**, and **an exam the family discarded**: the owned event stays, loses its
-  reminders, and its title starts «Retirado ·». The description says which fact went. The run counts
+  reminders, and its title starts «Retirado ·». The description says only «Ya no figura en la agenda»: the agenda drops withdrawn items, discarded
+  exams and detected exams waiting for the family's re-confirmation alike, without saying why, so
+  naming a reason would state a fact alfabeta does not have. A detected exam that comes back gets its
+  event and reminders back. The run counts
   them. Nothing is deleted (V).
 - **A moved due date** moves the same event (same id) and recomputes its reminders (FR-011).
 - **Legacy events**: the events the chat connector wrote before spec 004. `calendar legacy` selects
@@ -201,8 +205,9 @@ at 23:59 is 23:59–24:00).
 ## R10 — Replay
 
 - **Decision**: `calendar replay --from <date> --to <date>` simulates one run a day at the sync time
-  `[schedule]` gives that weekday (or `--at HH:MM`), over the state's items, and never calls Google.
-  Each simulated day sees the items posted by then, with no status (the past statuses are not kept,
+  `[schedule]` gives that weekday (or `--at HH:MM`), over the agenda's entries, and never calls Google.
+  Each simulated day sees the entries whose `posted` is on or before it (the agenda holds no posting
+  hour, so an item posted that day counts as seen by that day's run, an optimistic assumption), with no status (the past statuses are not kept,
   Observed facts). `--first-run <date>` instead simulates one run on that date with today's
   statuses. It prints weekly counts of reminders, of days with a reminder and of all events (SC-003),
   plus the checks of SC-001, SC-002, SC-004, SC-008 and SC-010, by opaque id.
@@ -241,7 +246,8 @@ at 23:59 is 23:59–24:00).
   and the run's line keeps the gap visible.
 - **What the family records** is what they saw, in their own words. In an issue or the repository:
   the date and the account's alias only, no address and nothing that identifies the device; the
-  device and the account's details stay in the private data folder (constitution III). A pre-written answer is not a measurement (spec 004's correction of 2026-10-27).
+  device and the account's details stay in the private data folder (constitution III). An alias is
+  never a name: it says the account's role (`student`). A pre-written answer is not a measurement (spec 004's correction of 2026-10-27).
 
 ## R13 — Neighbouring specs
 
@@ -264,5 +270,6 @@ at 23:59 is 23:59–24:00).
   the student's Gmail again, with a parent's approval, for a list that changes about once a year;
   not chosen.
 - **Spec 001 FR-020a** (one colour per category) stays out, as the spec says.
-- **Spec 004 T022** (the chat connector's account leaves the calendar's sharing) should follow
-  `calendar legacy --apply`, so that no new legacy event appears.
+- **Spec 004 T022** (the chat connector's account leaves the calendar's sharing) comes before the
+  first `calendar sync --apply`: legacy selection takes only events created before that run, so a
+  connector event written later could never be cleaned up.

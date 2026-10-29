@@ -50,7 +50,7 @@ Development: spec 001's `ruff`, strict `pyright` and `pytest`.
 **Testing**: `pytest` with invented agendas, an invented timetable, a frozen clock and a fake
 transport. Fixtures at both daylight-saving changes (2026-10-25 and 2027-03-28). No test calls
 Google. The success criteria measured on the real capture (SC-001…SC-004, SC-008, SC-010) run as
-quickstart steps on the Mac with `calendar replay`, which prints counts and opaque ids only.
+quickstart steps on the Mac with `calendar replay`, which prints counts and abbreviated ids only.
 
 **Target Platform**: macOS, the family's Mac. The cloud runner of spec 001 US7 may call the same
 command later (spec 001 FR-036); this plan does not build that.
@@ -86,7 +86,7 @@ constitution 2.2.0.
 | IV. Read-only on school platforms | Nothing here reads or writes Classroom: the input is the agenda file. The checklist is Classroom's own page, ticked by the student (FR-024) | Pass |
 | V. Idempotent, incremental | Deterministic event ids per item and kind. Reminders are a function of the item and its recorded basis instant, never of the run's clock. A run writes only what differs (SC-005), and an applied run leaves its line in `data/log.jsonl`. An event whose fact left Classroom is marked and loses its reminders, never deleted. The legacy events: [research R7](research.md#r7--what-disappears-and-the-legacy-events) and Complexity Tracking | Pass, one justified exception |
 | VI. One isolated, tested provider | The calendar is an output, not a source. Its pure parts (placement, rule, inference, titles) have no I/O; the writer is spec 004's adapter behind `HttpTransport` | Pass |
-| VII. Outputs degrade on their own | `calendar sync` runs after the agenda is written. A broken link or a Calendar error stops only the calendar and is reported (gate 2); the folder, the agenda and the mirrors are untouched. The calendar's sharing with `calendar.shared_with` stays the operator's by hand (spec 004 R5) and is checked by the family in quickstart step 1, since the student's link cannot read it ([research R13](research.md#r13--neighbouring-specs)) | Pass |
+| VII. Outputs degrade on their own | The calendar is an output enabled by `[calendar] enabled` (false in the template). `calendar sync` runs after the agenda is written. A broken link or a Calendar error stops only the calendar and is reported (gate 2); the folder, the agenda and the mirrors are untouched. The calendar's sharing with `calendar.shared_with` stays the operator's by hand (spec 004 R5) and is checked by the family in quickstart step 1, since the student's link cannot read it ([research R13](research.md#r13--neighbouring-specs)) | Pass |
 | VIII. `Europe/Madrid` | Instants are built with `ZoneInfo("Europe/Madrid")`; reminder minutes are differences of instants; events carry `timeZone: "Europe/Madrid"`; tests at both changes | Pass |
 | IX. Simplicity | Standard library only; no new dependency; one subpackage; one key added to an existing contract | Pass |
 
@@ -124,7 +124,7 @@ src/alfabeta/calendar/
 ├── events.py       # agenda entry → the events it owns, titles and descriptions in Spanish (FR-003, FR-018, FR-024)
 ├── records.py      # data/calendar/items.json and delivery.json (FR-007, FR-019)
 ├── sync.py         # list owned events, diff, write, mark, report (FR-010, FR-011, FR-012, FR-020)
-├── replay.py       # day-by-day simulation over the state, counts only (SC-001…SC-004, SC-008, SC-010)
+├── replay.py       # day-by-day simulation over the agenda, counts only (SC-001…SC-004, SC-008, SC-010)
 ├── legacy.py       # events the chat connector wrote: report, and matched deletion on command
 └── cli.py          # `calendar sync|replay|delivery|sharing|legacy`
 src/alfabeta/google/calendar.py   # gains list_owned() and the private extended property on EventSpec

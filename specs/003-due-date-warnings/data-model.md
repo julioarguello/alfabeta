@@ -27,6 +27,7 @@ the repository except the template keys. Times are `Europe/Madrid`.
 | `subject` | `[[timetable]] subject` | A `[[subjects]] folder`. Two sessions of one subject on one weekday are a `config check` warning; placement uses the first |
 | `home_slot` | `[calendar] home_slot` | `HH:MM`, every day of the week (FR-008) |
 | `break_start`, `break_end` | `[calendar]` | `HH:MM`, the break every day (FR-023) |
+| `enabled` | `[calendar] enabled` | `false` writes nothing to the calendar (constitution VII) |
 | `warnings` | `[calendar] warnings` | `true` writes reminders; `false` writes events only (research R12) |
 
 `Timetable.session(subject, day)` returns that subject's session on that weekday or none. Times
@@ -61,7 +62,7 @@ Its **instant** is `day` at `time`; a date-only due has instead a **cutoff**, th
 
 | Field | Rule |
 |---|---|
-| `step` | `d28` · `d14` · `d7` · `half` · `last` (due dates, FR-006); `d7` · `eve` (exams, FR-015); `catch_up` (FR-009) |
+| `step` | `d28` · `d14` · `d7` · `half` · `last` (due dates, FR-006); `d7` · `eve` (exams, FR-015); `catch_up` (FR-009, exams only) |
 | `day` | The day it rings, at `home_slot` |
 | `ring_at` | `day` at `home_slot`, zone-aware |
 | `minutes` | `event start − ring_at`, whole minutes, 0…40,320 |
@@ -73,8 +74,12 @@ Rules, in order ([research R4](research.md#r4--the-rules-arithmetic)):
 2. `g = due day − start day`. From 2 to 7, `half = due day − ⌈g/2⌉`. From 8, `d14` and `d7`; above
    28, `d28`, moved one day later while its minutes exceed 40,320.
 3. A step other than `last` on or before the start day is dropped; two steps on one day are one.
-4. A step whose `ring_at` is not after the item's `basis_at` is dropped. If all are dropped and a
-   home slot lies after `basis_at` and within the bound, that slot is the one `catch_up` step.
+4. A step whose `ring_at` is not after the item's `basis_at` is dropped. For a due date this is
+   FR-009 already: `last` is the last home slot within the bound, so when the earlier steps have
+   passed, `last` is the one warning left, at the next home slot; when `last` itself has passed, no
+   home slot is left and the item is `late` (FR-020). For an exam, whose bound is its start, if
+   every step is dropped and a home slot lies after `basis_at` and before the start (an exam after
+   16:00 seen on its own day), that slot is the one `catch_up` step.
 5. Handed in (`turned_in`, `turned_in_late`, `returned`) or marked «Retirado»: no steps. An exam that took place (`list: done`) keeps the steps it had, all past, so nothing is rewritten.
 6. At most four steps remain; spec 004's `EventSpec` allows five and refuses a sixth.
 
@@ -110,7 +115,7 @@ Which entries own which events:
 | `undated_seen_on` | The date of the first run that saw the item with no due date, or null |
 | `start_on` | FR-007: `posted`, or the date of the first run that saw the due date when `undated_seen_on` is set |
 | `basis_at` | The instant of the run that first saw the current `due` while not handed in; set to the first run with `warnings = true` when that is later |
-| `marked` | The fact that went, if the event is «Retirado» (`withdrawn`, `no_due`, `discarded`), else null |
+| `marked` | The date the event became «Retirado» (its fact left the agenda; the agenda does not say why), else null |
 
 The file also holds `first_apply_at`, the instant of the first applied run; legacy selection
 (research R7) needs it. Placements are clamped to their day (00:00–24:00).
@@ -145,7 +150,8 @@ counts `created`, `updated`, `marked`, `unchanged`, `failed` (legacy: `matched`,
 | `checked_on` | The date the family checked the calendar's sharing by hand (research R13) |
 | `list_hash` | SHA-256 of the sorted `calendar.shared_with` at that check; never the addresses |
 
-Every run compares it with the configured list and says when the check is due again.
+Written with mode 0600. Every run compares it with the configured list and says when the check is
+due again.
 
 ## LegacyReport (`data/calendar/legacy-<run>.json`)
 
