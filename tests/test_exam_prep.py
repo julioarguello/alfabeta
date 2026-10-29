@@ -354,7 +354,7 @@ def test_both_sheets_are_asked_titled_and_printed_into_exam(world: World, capsys
         ["art-1", f"EXAMEN jueves 1 · Teoría para el examen · {TOPIC}"],
     ]
     [note] = world.nlm.asked("note", "create")
-    assert note[note.index("--title") + 1] == "0 · Empieza aquí"
+    assert note[note.index("--title") + 1] == "EXAMEN jueves · Empieza aquí"
     assert f"«EXAMEN jueves 1 · Teoría para el examen · {TOPIC}» (17:00–18:30)" in note[note.index("--content") + 1]
     assert world.nlm.calls.index(note) > world.nlm.calls.index(world.nlm.asked("studio", "rename")[-1])
     # The problems sheet breaks the page before «Soluciones»; the theory sheet does not.
@@ -373,7 +373,7 @@ def test_both_sheets_are_asked_titled_and_printed_into_exam(world: World, capsys
 
 def test_the_numbers_follow_the_pieces_the_moment_already_holds(world: World, capsys: pytest.CaptureFixture[str]):
     world.nlm.studio = [Art("old-1", "report", "EXAMEN jueves 1 · Teoría para el examen · Tema 00 - Otro")]
-    world.nlm.notes = [{"id": "note-0", "title": "0 · Empieza aquí"}]
+    world.nlm.notes = [{"id": "note-1", "title": "EXAMEN jueves · Empieza aquí"}]
     assert world.run() == 0
     renames = [c[4] for c in world.nlm.asked("studio", "rename")]
     assert renames == [
@@ -381,7 +381,18 @@ def test_the_numbers_follow_the_pieces_the_moment_already_holds(world: World, ca
         f"EXAMEN jueves 2 · Teoría para el examen · {TOPIC}",
     ]
     assert world.nlm.asked("note", "update") and not world.nlm.asked("note", "create")
-    assert world.nlm.asked("note", "update")[0][4] == "note-0"
+    assert world.nlm.asked("note", "update")[0][4] == "note-1"
+
+
+def test_the_exam_start_note_is_not_a_second_zero_and_leaves_the_old_one_alone(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    # FR-015: piece 0 is the plan; the retired note «0 · Empieza aquí» is neither rewritten nor removed.
+    world.nlm.notes = [{"id": "note-0", "title": "0 · Empieza aquí"}]
+    assert world.run() == 0
+    [note] = world.nlm.asked("note", "create")
+    assert note[note.index("--title") + 1] == "EXAMEN jueves · Empieza aquí"
+    assert not world.nlm.asked("note", "update") and not world.nlm.asked("note", "delete")
 
 
 def test_a_second_exam_on_the_topic_sits_beside_the_first(world: World, capsys: pytest.CaptureFixture[str]):
@@ -441,6 +452,40 @@ def test_a_guide_made_before_the_notes_is_regenerated_before_anything_prints(
     assert refresh["sources"]["src-notes"]["read_md5"] == "md5-new" and refresh["sources"]["src-notes"]["reads"] == 1
     pack = json.loads((world.data / "study-pack.json").read_text())
     assert pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["guide"]["id"] == "art-1"
+
+
+PLAN = "0 · Guía de estudio · Empieza aquí"
+
+
+def test_regenerating_a_stale_guide_leaves_the_plan_untouched(world: World, capsys: pytest.CaptureFixture[str]):
+    # FR-033 regenerates the FR-004 theory guide, never the plan of FR-015, though both say «guía de estudio».
+    world.nlm.studio = [
+        Art("guide-0", "report", "6 · Guía de estudio · Materia", created_at="2026-10-24T09:00:00Z"),
+        Art("plan-0", "report", PLAN, created_at="2026-10-25T09:00:00Z"),
+    ]
+    world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    assert world.run() == 0
+    result, _ = output(capsys)
+    assert result["guide_regenerated"] is True
+    renames = [c[3:5] for c in world.nlm.asked("studio", "rename")]
+    assert ["art-1", "6 · Guía de estudio · Materia"] in renames
+    assert not [r for r in renames if r[0] == "plan-0" or r[1] == PLAN]
+    assert [c[4] for c in world.nlm.asked("studio", "delete")] == ["guide-0"]
+    assert [a.title for a in world.nlm.studio if a.id == "plan-0"] == [PLAN]
+
+
+def test_a_plan_made_after_the_notes_does_not_pass_for_a_fresh_guide(world: World, capsys: pytest.CaptureFixture[str]):
+    # The pack generates the plan last, so it is usually the newest report that says «guía de estudio».
+    world.nlm.studio = [
+        Art("guide-0", "report", "6 · Guía de estudio · Materia", created_at="2026-10-25T09:00:00Z"),
+        Art("plan-0", "report", PLAN, created_at="2026-10-28T09:00:00Z"),
+    ]
+    world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
+    assert world.run() == 0
+    result, _ = output(capsys)
+    assert result["guide_regenerated"] is True
+    assert [c[4] for c in world.nlm.asked("studio", "delete")] == ["guide-0"]
+    assert [a.title for a in world.nlm.studio if a.id == "plan-0"] == [PLAN]
 
 
 def test_a_guide_made_after_the_notes_stays_and_a_source_already_read_is_not_read_again(
