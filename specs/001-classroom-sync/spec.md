@@ -190,11 +190,12 @@ for the final implementation.
   (`book place`). An empty class MUST be reported as such in the run's report («clase vacía en
   Classroom»), so the family knows the scope will come from the notes and the book, not read as a
   failed sync.
-- Q: What does the Science Bits capture need from the browser? → A: Two site settings for
-  learning-bits.com, set by the family: pop-ups allowed (the site alerts «ventanas emergentes
-  bloqueadas» when `window.open` returns nothing, and the modal froze the tab) and automatic
-  downloads allowed (only the first lesson zip arrived until it was set). Lesson discovery must not
-  stub `window.open` with `null` (julioarguello/alfabeta#130). The tab stays in front: a hidden tab
+- Q: What does the Science Bits capture need from the browser? → A: Automatic downloads allowed for
+  learning-bits.com, set by the family (only the first lesson zip arrived until it was set). The
+  site alerts «Tu navegador tiene bloqueadas las ventanas emergentes.» whenever `window.open`
+  returns nothing, and the modal froze the tab: lesson discovery must not stub `window.open` with
+  `null` (julioarguello/alfabeta#130). The family also allows pop-ups, so the student can open
+  lessons himself; the capture does not depend on it. The tab stays in front: a hidden tab
   throttled the discovery's timers until its call timed out.
 - Q: What else broke on the way? → A: The collector copied two zips left in the downloads folder
   by an earlier topic five days before, under the same names, into this topic's raw folder; the
