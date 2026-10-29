@@ -85,6 +85,7 @@ def notes_deps(cfg: StudentConfig, store: TokenStore, ran_on: RanOn) -> tuple[No
         prices=cfg.notes_prices,
         warn_pages=cfg.notes_warn_pages,
         ran_on=ran_on,
+        answerer=transcriber,
     )
     return deps, drive
 
