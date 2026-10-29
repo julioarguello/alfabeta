@@ -279,9 +279,10 @@ own table is the subset the requirements rest on; this one is the full list.
   checksum; the next pass reads that source once more and marks it done (the data model's
   `reads`). The confirming read covers the open question below at the cost of one `nlm` call per
   change; if quickstart step 3b shows one read is enough, it goes. Before the first read of a pass it checks the session (`nlm login --check`); if that
-  fails it renews it with `nlm auth refresh --http-only`, which needs no browser, and, if the session
-  still fails, once with `nlm auth refresh` in its default mode, which renews through `nlm`'s own
-  headless browser profile, never the family's Chrome; if the session still fails, the pass stops
+  fails it renews it with `nlm auth refresh --http-only`, which needs no browser; the unattended pass tries nothing else, because an alfabeta run must never
+  bring up a browser on its own (decided 2026-10-29, #105). `nlm auth refresh` in its default mode,
+  through `nlm`'s own headless browser profile, runs only from `notebook refresh --browser`, which the
+  family starts. If the session still fails, the pass stops
   with code 5 and the notice of FR-019. A launchd agent in the family's user session runs the pass
   through the same `uv run --project <tools.repository>` the classroom-sync skill uses, with
   `StartCalendarInterval` entries every `[notebook] refresh_minutes`, so a Mac that slept runs it

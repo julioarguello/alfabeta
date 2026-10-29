@@ -379,7 +379,8 @@ source and one living Classroom source, and that a second run adds nothing.
   the checksum the owner last read, and reads only the sources that differ or await their confirming
   read: with nothing changed it reads one record, lists no Drive folder and touches no notebook. It never adds, removes or renames a source (FR-011).
 - **FR-019**: When the owner's `nlm` session does not work, even after renewing it once with
-  `nlm auth refresh --http-only` and once in that command's default mode (research R14), the
+  `nlm auth refresh --http-only` (research R14; the unattended pass never renews through a browser,
+  which only `notebook refresh --browser`, started by the family, does), the
   refresh MUST stop and tell the family on the Mac: a macOS notification when the session turns
   failing, given again only after it has worked in between, and an agenda line from the Mac's sync
   while it stays failing. Drive keeps receiving pages meanwhile.
