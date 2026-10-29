@@ -35,12 +35,13 @@ from alfabeta import (
 from alfabeta.classification import CANDIDATE, Classifier
 from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar
-from alfabeta.google.keychain import KeychainStore
+from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, cache_path
+from alfabeta.google.keychain import KeychainError, KeychainStore
 from alfabeta.google.notify import MacNotifier
-from alfabeta.google.transport import UrllibTransport
+from alfabeta.google.transport import TransportError, UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
-from alfabeta.notes import refresh
+from alfabeta.notes import refresh, watch
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -347,7 +348,7 @@ def _summary(
     return lines
 
 
-def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
+def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) -> int:
     lock = _lock(home, args.student)
     run = os.environ.get(state.RUN_ENV)
     try:
@@ -393,8 +394,10 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
         # Every class it planned is placed: the next run's first collect must not wait for any of it.
         plan.write(planned | {"applied_at": dt.datetime.now(MADRID).isoformat()}, lock.data_dir)
     plan.prune_captures(lock.data_dir / "captures", cfg.kept_captures)
-    # Whatever the scope, the school year's agenda from the state just saved (contracts/cli.md, apply).
-    agenda_written = _agenda_builder(cfg, lock.data_dir, applier.state).write(cfg.base)
+    # Whatever the scope, the school year's agenda from the state just saved (contracts/cli.md, apply),
+    # with one line per report the cloud left in Drive (spec 005 T036).
+    reports = _list_reports(cfg, lock.data_dir, keychain)
+    agenda_written = _agenda_builder(cfg, lock.data_dir, applier.state, reports).write(cfg.base)
     partial = bool(stopped)
     line = {
         "run": run,
@@ -423,8 +426,10 @@ def _cmd_apply(args: argparse.Namespace, home: Path) -> int:
     return EXIT_OK
 
 
-def _agenda_builder(cfg: config.StudentConfig, data_dir: Path, current: dict[str, Any]) -> agenda.AgendaBuilder:
-    """The agenda of `current` (the state), with the decisions in force and the newest captures."""
+def _agenda_builder(
+    cfg: config.StudentConfig, data_dir: Path, current: dict[str, Any], reports: list[str]
+) -> agenda.AgendaBuilder:
+    """The agenda of `current`: the decisions in force, the newest captures, notices and report lines."""
     store = decisions.DecisionStore.open(data_dir)
     return agenda.AgendaBuilder(
         school_year=cfg.school_year,
@@ -434,7 +439,36 @@ def _agenda_builder(cfg: config.StudentConfig, data_dir: Path, current: dict[str
         state=current,
         captured=agenda.capture_instants(plan.latest_captures(data_dir / "captures")),
         notices=refresh.agenda_notices(data_dir),  # spec 005 FR-019, while the owner's session fails
+        reports=reports,
     )
+
+
+def _list_reports(cfg: config.StudentConfig, data_dir: Path, store: KeychainStore) -> list[str]:
+    """List `reports/` in the student's Drive and record the new reports; the agenda's lines (spec 005 T036).
+
+    A link that is not usable, a Drive that does not answer or a Mac without the keychain skips the
+    listing and the sync goes on with what was recorded (constitution VII); the line says only why.
+    """
+    try:
+        transport = UrllibTransport()
+        token = accounts.access_token(cfg, _student_account(cfg), store, transport)
+        drive = ScopedDrive.open_root(transport, token, cfg.drive_root, cache_path(cfg))
+        new = watch.list_reports(drive, data_dir)
+    except (
+        config.ConfigError,
+        accounts.LinkError,
+        DriveError,
+        OutsideFolderError,
+        TransportError,
+        KeychainError,
+        OSError,
+        ValueError,  # a cache or an answer that is not the JSON expected
+    ) as err:
+        print(f"alfabeta: reports not listed this run ({type(err).__name__})", file=sys.stderr)
+    else:
+        if new:
+            print(f"alfabeta: {len(new)} new report(s) of the notes in Drive", file=sys.stderr)
+    return watch.report_lines(data_dir)
 
 
 def _cmd_agenda(args: argparse.Namespace, home: Path) -> int:
@@ -448,7 +482,9 @@ def _cmd_agenda(args: argparse.Namespace, home: Path) -> int:
         return _fail(
             str(StopReason.DRIVE_NOT_MOUNTED), EXIT_INVALID, "the base folder is not there; nothing was written"
         )
-    builder = _agenda_builder(cfg, lock.data_dir, state.StateStore(lock.data_dir).load())
+    builder = _agenda_builder(
+        cfg, lock.data_dir, state.StateStore(lock.data_dir).load(), watch.report_lines(lock.data_dir)
+    )
     written = builder.write(cfg.base)
     counts = builder.counts()
     print(
@@ -778,7 +814,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.group == "plan":
             return _cmd_plan(args, home)
         if args.group == "apply":
-            return _cmd_apply(args, home)
+            return _cmd_apply(args, home, store)
         if args.group == "agenda":
             return _cmd_agenda(args, home)
         if args.group == "downloads":

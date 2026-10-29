@@ -10,7 +10,9 @@ timestamp, and each file is rewritten only if its bytes change. An item withdraw
 
 A notice is a line for the family at the top of `agenda.md` while a condition holds, such as the
 notebook owner's session not working (spec 005 FR-019; spec 004 research R9, its third channel). It
-is not an entry: `agenda.json` never carries it.
+is not an entry: `agenda.json` never carries it. Neither do the lines of «Informes de apuntes» at the
+end of `agenda.md`, one per report the cloud run left in Drive (spec 005 T036), built from the
+Mac's own record of them.
 """
 
 from __future__ import annotations
@@ -78,6 +80,7 @@ CORRECTED = "corregido"
 NO_DATE = "sin fecha"
 OPEN_WITH = "Los enlaces de Classroom se abren con la cuenta del colegio."
 NOTHING = "Nada."
+REPORTS = "Informes de apuntes"
 _BOXES = {AgendaList.PENDING: "- [ ] ", AgendaList.DONE: "- [x] ", AgendaList.POSTED: "- "}
 # Classroom's own abbreviations («13 sept»), as dates.py reads them (FR-021).
 _MONTHS = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")
@@ -177,6 +180,7 @@ class AgendaBuilder:
     state: Mapping[str, Any]
     captured: Mapping[str, dt.datetime]
     notices: Sequence[str] = ()  # lines at the top of agenda.md, in Spanish, with no date
+    reports: Sequence[str] = ()  # «Informes de apuntes» at the end, newest first, in Spanish (spec 005 T036)
 
     def _items(self) -> dict[str, tuple[Item, Subject]]:
         """The items of the linked classes that Classroom still shows."""
@@ -293,10 +297,12 @@ class AgendaBuilder:
         for listed in _LISTS:
             rows = [self._line(e) for e in found if e.list == listed]
             lines += ["", f"## {LIST_NAMES[listed]}", "", *(rows or [NOTHING])]
+        if self.reports:
+            lines += ["", f"## {REPORTS}", "", *(f"- {line}" for line in self.reports)]
         return "\n".join(lines) + "\n"
 
     def _line(self, entry: AgendaEntry) -> str:
-        parts = [_shown(entry.date), entry.subject, CATEGORY_NAMES[entry.category], " ".join(entry.title.split())]
+        parts = [shown(entry.date), entry.subject, CATEGORY_NAMES[entry.category], " ".join(entry.title.split())]
         if entry.status is not None:
             parts.append(STATUS_NAMES[entry.status])
         if entry.detected:
@@ -320,7 +326,7 @@ class AgendaBuilder:
         return written
 
 
-def _shown(when: When | None) -> str:
+def shown(when: When | None) -> str:
     """A date as Classroom shows it, in Madrid: «13 oct», «13 oct, 8:00», or «sin fecha» (FR-021)."""
     if when is None:
         return NO_DATE

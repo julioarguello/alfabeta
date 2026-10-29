@@ -61,6 +61,7 @@ CALLS: dict[str, Callable[[ScopedDrive], object]] = {
     "head_revision": lambda d: d.head_revision(OUTSIDE),
     "ancestors": lambda d: d.ancestors(OUTSIDE),
     "lookup": lambda d: d.lookup(OUTSIDE, "state.json"),
+    "listing": lambda d: d.listing(OUTSIDE),
     "listed": lambda d: d.listed(OUTSIDE),
     "made_for": lambda d: d.made_for(OUTSIDE, {"alfabeta_for": "foto-1"}),
     "share_reader": lambda d: d.share_reader(OUTSIDE, "familia@example.com"),
@@ -312,3 +313,24 @@ def test_two_items_with_one_name_are_an_error_not_a_guess(tmp_path: Path):
     t.responses.append(listing(file("a", "tema-1", "state.json"), file("b", "tema-1", "state.json")))
     with pytest.raises(DriveError, match="more than one"):
         drive.lookup("tema-1", "state.json")
+
+
+def test_listing_one_folder_asks_one_query_and_joins_the_allowlist(tmp_path: Path):
+    # The Mac's sync lists `reports/` alone (spec 005 T036): a look-up, then that folder, never the tree.
+    t = FakeTransport([json_response(200, folder("raiz", "root", "alfabeta"))])
+    drive = ScopedDrive.open_root(t, "acceso", "alfabeta", cached(tmp_path))
+    with pytest.raises(OutsideFolderError):
+        drive.listing("informes")  # not found yet: refused before any request
+    t.responses += [listing(folder("informes", "raiz", "reports"))]
+    reports = drive.lookup("raiz", "reports")
+    assert reports is not None
+    t.responses += [
+        listing(
+            file("inf-2", "informes", "Informe 20261029-0815.md"), file("inf-1", "informes", "Informe 20261028-1605.md")
+        )
+    ]
+    found = drive.listing("informes")
+    assert [f.name for f in found] == ["Informe 20261028-1605.md", "Informe 20261029-0815.md"]
+    assert len(t.calls) == 3 and drive.contains("inf-1")
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(t.calls[-1][1]).query)["q"][0]
+    assert q == "'informes' in parents and trashed = false"

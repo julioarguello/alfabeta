@@ -241,6 +241,18 @@ class ScopedDrive:
             self._tree[item.id] = item
         return found[0] if found else None
 
+    def listing(self, folder_id: str) -> list[DriveFile]:
+        """What is directly inside a folder of the allowlist, asked of Drive now, sorted by name.
+
+        One query, where `open` walks the whole tree: a pass opened with `open_root` reaches one
+        folder by `lookup` and lists only it (spec 005 T036). What it finds joins the allowlist.
+        """
+        self._folder(folder_id)
+        found = sorted(self._query(f"{_quote(folder_id)} in parents and trashed = false"), key=lambda f: (f.name, f.id))
+        for item in found:
+            self._tree[item.id] = item
+        return found
+
     def content(self, file_id: str) -> bytes:
         """The file's bytes."""
         self._inside(file_id)

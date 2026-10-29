@@ -123,6 +123,9 @@ class MemoryDrive:
         found = (f for f in self.files.values() if folder_id in f.parents and not f.trashed)
         return sorted(found, key=lambda f: (f.name, f.id))
 
+    def listing(self, folder_id: str) -> list[DriveFile]:
+        return self.children(folder_id)
+
     def export(self, file_id: str, mime_type: str = "application/pdf") -> bytes:
         self.exports.append(file_id)
         self._readable(file_id)
