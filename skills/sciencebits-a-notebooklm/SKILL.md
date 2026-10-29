@@ -86,10 +86,11 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
 2. **Open Science Bits.** `preview_start(sciencebits.url)` (if it asks for permission: `request_access` scope "site").
    If the login page or "Your session has expired" shows up: ask the user to sign in in the browser pane,
    ticking "Remember me on this device", and wait for their "ready". Never type credentials.
-   The browser needs two site settings for learning-bits.com, which the family sets (never you):
-   «Pop-ups and redirects → Allow» and «Automatic downloads → Allow». Measured 2026-10-29 in Chrome:
-   without the second, only the first lesson zip arrives and the rest wait for it. Check that the
-   first two zips reached `raw/` before leaving the capture alone.
+   In Chrome (Claude in Chrome), learning-bits.com needs «Automatic downloads → Allow», which the
+   family sets in the site's settings (never you). Measured 2026-10-29: without it only the first
+   lesson zip arrived and the rest waited for it. The family also allows «Pop-ups and redirects» so
+   the student can open lessons himself (the operator's decision, 2026-10-29); the capture does not
+   depend on it, since discovery stubs `window.open` and the capture uses an iframe.
 3. **Find the topic.** `get_page_text` lists classes and units. With `find`, locate "Acceder a la unidad" (Go to the
    unit) and navigate to that URL. Note the title in each of `sciencebits.languages` (same URL with
    `/intranet/<language>/`, e.g. `/intranet/en/`).
@@ -101,7 +102,8 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
    Poll `window.__orch` with short calls (<40 s): `results`, `current`, `stopped`,
    `document.getElementById('__fr')?.contentWindow.__job?.n`; between polls, `alfabeta lock renew`, then
    `device_bash "sleep 170; ls …/raw"`.
-   ~3–5 min per lesson. Tell the user how long it will take and that nobody should open Science Bits on another device.
+   After the first two lessons, check that their zips reached `raw/`; if not, the browser is holding
+   the downloads (step 2). ~3–5 min per lesson. Tell the user how long it will take and that nobody should open Science Bits on another device.
    - `SESSION_EXPIRED` → ask them to sign in again and relaunch what is missing.
    - `NOT_AVAILABLE` → that language does not exist for the unit (units edited by the teacher); skip it.
    - **Assessments**: never open or start them; they are left out.

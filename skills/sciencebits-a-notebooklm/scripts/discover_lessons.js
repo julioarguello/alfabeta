@@ -5,8 +5,9 @@
   const hex2s = h => h.match(/../g).map(b => String.fromCharCode(parseInt(b, 16))).join('');
   const opened = [];
   const orig = window.open;
-  // Science Bits alerts «ventanas emergentes bloqueadas» when window.open returns nothing, and the
-  // alert freezes the tab (measured 2026-10-29), so the stub hands back a stand-in window.
+  // Science Bits alerts «Tu navegador tiene bloqueadas las ventanas emergentes.» when window.open
+  // returns nothing, and the alert freezes the tab (measured 2026-10-29). With a window it only calls
+  // newwindow.focus() (read in the page the same day), so the stub hands back a stand-in window.
   window.open = (u) => { opened.push(u); return { closed: false, focus() {}, close() {}, location: {} }; };
   const btns = [...document.querySelectorAll('[onclick^="verleccion1"]')];
   for (const b of btns) { b.click(); await new Promise(r => setTimeout(r, 600)); }
