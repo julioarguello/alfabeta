@@ -150,7 +150,8 @@ email or an id into the repository.
    > [!WARNING]
    > `exam prep` regenerates the theory guide when the notes changed after it, and it finds guides by
    > the words «guía de estudio» in the title: it deletes every match, this plan included, until its
-   > code follows spec 002 FR-033. After running it, check that the plan is still piece 0, and
+   > code follows spec 002 FR-033, and gives the new theory guide the plan's title. After running it,
+   > check by its content that piece 0 is still the plan (the table of pieces, no theory), and
    > generate it again if not.
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
     <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN

@@ -280,8 +280,10 @@ Gemini notebook lists none of them.
 
 ### User Story 3 - The student opens the notebook and knows what to do today (Priority: P1)
 
-The student opens the topic's notebook. The first item is a note numbered 0 that says, in one
-line, the one thing to do today and how long it takes; directly under it is that piece. Every
+The student opens the topic's notebook. The first item is «0 · Guía de estudio», the plan: every
+piece by its number, how to use each video, how long each block takes and its breaks, with each
+video linked to its copy in his Drive (FR-015, FR-039; it replaced, on 2026-10-29, a note
+numbered 0 that named the one thing to do today). Every
 title says which moment it belongs to (today, yesterday, the weekly review, the exam), what it is,
 what about and how long, and none of them invites skipping it. The chat answers as a tutor: a hint
 before the answer, explanations in Spanish with the terms in the subject's language.
@@ -626,8 +628,9 @@ and cannot judge what the notebook writes.
   (FR-024) holds it, before anything is printed. A guide made before the notes is never handed out
   for an exam. That guide is the FR-004 theory guide, never the plan «0 · Guía de estudio» of
   FR-015: the command MUST NOT regenerate, retitle or delete the plan. Until its code follows, it
-  finds guides by the words «guía de estudio» in the title and deletes every match, the plan
-  included (`src/alfabeta/exam/prep.py`, read 2026-10-29).
+  finds guides by the words «guía de estudio» in the title, gives the new theory guide the newest
+  match's title — the plan's — and deletes every match, the plan included (`src/alfabeta/exam/prep.py`,
+  read 2026-10-29).
 - **FR-034**: The problems-sheet prompt MUST ask the notebook to put every exercise of the
   teacher's Classroom photocopies, worked examples included, into a pattern, using as few patterns
   as possible: one formula is about one pattern, and solving the same formula for another unknown
