@@ -103,8 +103,8 @@ Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la
 The pack's first piece: `0 · Guía de estudio · Empieza aquí`, a report, so every viewer sees it. It
 is **only the plan** — order, sessions, minutes, breaks, what the student can do at the end — and
 points at the other pieces by number. **No theory**: the operator found the first version, plan plus
-content, "muy densa" (2026-10-29). It replaces the ordinary start note below; `exam prep` still
-writes its own. Write the plan yourself, with the real numbers and the notes' pages, and check
+content, "muy densa" (2026-10-29). It replaces the ordinary start note below; `exam prep` writes its
+own under its moment. Write the plan yourself, with the real numbers and the notes' pages, and check
 after downloading that it came back unchanged, or regenerate.
 
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`
@@ -159,8 +159,9 @@ is a hypothesis.
 
 ## Start note — for an exam
 
-`exam prep` rewrites the start note with it once the theory sheet is in Studio (spec 002 FR-015,
-FR-029): `{theory}` is that sheet's title.
+`exam prep` writes it once the theory sheet is in Studio, as the note `EXAMEN <weekday> · Empieza
+aquí`, rewritten by a second run for the same exam; a note «0 · …» is the pack's and stays as it
+is (spec 002 FR-015, FR-029): `{theory}` is that sheet's title.
 
 ```text
 Hoy, para el examen del {exam_day}: «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.

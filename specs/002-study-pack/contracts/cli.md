@@ -48,7 +48,8 @@ that fails does not stop the other.
    (`nlm studio status --full --json`). When the revision is later, or there is no guide, it
    generates one (`--format 'Study Guide' --language es`) and waits for it. The guide is the
    report the pack record names or, failing that, the latest-made completed report whose title
-   contains «Guía de estudio» or «Study Guide» (any case, accent optional). The new guide takes
+   contains «Guía de estudio» or «Study Guide» (any case, accent optional) and does not start with
+   `0 ·`: piece 0 is the plan (FR-015), never compared, retitled or deleted. The new guide takes
    that guide's title, and every report taken for a guide is deleted, so one is live (FR-033). A
    topic whose living files are not set up yet skips the comparison and says so; one whose living
    notes file is not where `notebook setup` put it (spec 005's `health = missing`) skips it too,
@@ -61,7 +62,8 @@ that fails does not stop the other.
 7. Titles them as pieces of the moment `EXAMEN <weekday>` (FR-014), numbered after the pieces that
    moment already holds: `EXAMEN <weekday> <n> · Teoría para el examen · <topic>` and
    `EXAMEN <weekday> <n+1> · Problemas tipo · <topic>`, renamed from the last to the first as the
-   pack's step 8 does. Then it rewrites the start note «0 · Empieza aquí» last, with «Start note —
+   pack's step 8 does. Then it writes the start note «EXAMEN <weekday> · Empieza aquí» last (rewriting it on a second
+   run for the same exam, and leaving a note «0 · …» as it is), with «Start note —
    for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), naming the theory sheet as
    today's task (FR-015), and records both pieces and any regenerated guide in the pack record
    (FR-024). A second run for the same exam asks for two new reports, numbered after these, and

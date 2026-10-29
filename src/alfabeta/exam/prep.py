@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 EXIT_OK, EXIT_INVALID, EXIT_PARTIAL, EXIT_NLM = 0, 1, 3, 5
 EXAM_FOLDER = "exam"
-START_TITLE = "0 · Empieza aquí"
+START_TITLE = "Empieza aquí"  # after the moment: piece 0 is the pack's plan (FR-015)
 SOLUTIONS = "Soluciones"
 PACK_RECORD = "study-pack.json"
 DEFAULT_MINUTES = 90
@@ -53,6 +53,7 @@ _SLOT = re.compile(r"^(\d{2}):(\d{2})-(\d{2}):(\d{2})$")
 _TOPIC_NUMBER = re.compile(r"\bTema (\d{2})\b")
 _ANNOUNCEMENT = re.compile(r"^(\d{8}) - aviso - .+\.md$")
 _GUIDE = re.compile(r"gu[ií]a de estudio|study guide", re.IGNORECASE)
+_PLAN = re.compile(r"^0\s*·")  # piece 0, the plan «0 · Guía de estudio» (FR-015): never a theory guide
 EN_DASH = "\u2013"  # between the slot's clock times, as `prompts.md` writes them
 
 
@@ -316,12 +317,19 @@ class ExamPrep:
         self.deps.sleep(SOURCE_SETTLE_SECONDS)
 
     def _guide(self, living: LivingNotes, pack: dict[str, Any]) -> bool:
-        """Regenerate the study guide when it predates the notes' last revision, or there is none (FR-033)."""
+        """Regenerate the study guide when it predates the notes' last revision, or there is none (FR-033).
+
+        The plan of piece 0 also says «guía de estudio»; it is never taken for the guide, so it is never
+        compared, retitled or deleted.
+        """
         recorded = cast("dict[str, Any]", pack.get("guide", {})).get("id")
         guides = [
             a
             for a in self.deps.notebook.artifacts(self.notebook)
-            if a.type == "report" and a.status == COMPLETED and (a.id == recorded or _GUIDE.search(a.title))
+            if a.type == "report"
+            and a.status == COMPLETED
+            and not _PLAN.match(a.title)
+            and (a.id == recorded or _GUIDE.search(a.title))
         ]
         current = next((a for a in guides if a.id == recorded), None) or max(
             guides, key=lambda a: a.created_at or dt.datetime.min.replace(tzinfo=dt.UTC), default=None
@@ -416,9 +424,11 @@ class ExamPrep:
                     self.deps.notebook.rename(done[sheet.kind], titles[sheet.kind])
             theory = self.sheets[0].kind
             if theory in done:
-                start = next((n for n in self.deps.notebook.notes(self.notebook) if n.title.startswith("0 ·")), None)
+                # The moment's own note; a «0 · …» note is the pack's, retired by FR-015, and left as it is.
+                title = f"{moment} · {START_TITLE}"
+                start = next((n for n in self.deps.notebook.notes(self.notebook) if n.title == title), None)
                 self.deps.notebook.write_note(
-                    self.notebook, start.id if start else None, START_TITLE, self.start_note(titles[theory])
+                    self.notebook, start.id if start else None, title, self.start_note(titles[theory])
                 )
         except NlmError:
             _say("the notebook did not take the titles or the start note")

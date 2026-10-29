@@ -140,19 +140,15 @@ email or an id into the repository.
    folder>/notebook/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
    (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
    fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam prep`
-   still writes «0 · Empieza aquí» until its code follows. **Configure the tutor chat**
+   writes its own note under its moment, `EXAMEN <weekday> · Empieza aquí`. **Configure the tutor chat**
    ([`prompts.md`](prompts.md)).
 9b. **Generate the study guide** («Study guide — 0» in [`prompts.md`](prompts.md)) now that the
    videos are in Drive: its plan links each one (FR-039). Download it and compare it line by line
    with the plan you wrote, links included; regenerate at most three times (FR-040). Then rename it
    `0 · Guía de estudio · Empieza aquí` last, so it sits on top.
 
-   > [!WARNING]
-   > `exam prep` regenerates the theory guide when the notes changed after it, and it finds guides by
-   > the words «guía de estudio» in the title: it deletes every match, this plan included, until its
-   > code follows spec 002 FR-033, and gives the new theory guide the plan's title. After running it,
-   > check by its content that piece 0 is still the plan (the table of pieces, no theory), and
-   > generate it again if not.
+   `exam prep` regenerates the theory guide when the notes changed after it, and never touches this
+   plan: a report whose title starts with `0 ·` is never taken for a guide (spec 002 FR-033).
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
     <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN
     para imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
@@ -184,7 +180,7 @@ topic's study guide when it was made before the class notes, asks the notebook f
 with the prompts «Theory sheet — for an exam» and «Problems sheet — for an exam» of
 [`prompts.md`](prompts.md), titles them `EXAMEN <weekday> <n> · Teoría para el examen · <topic>`
 and `… <n+1> · Problemas tipo · …`, numbered after the pieces the moment already holds, rewrites
-the start note last, and prints them into the topic's `exam/` folder (no date in its name) as
+its start note `EXAMEN <weekday> · Empieza aquí` last, and prints them into the topic's `exam/` folder (no date in its name) as
 `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
 `exam/Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
 (`notebook.enabled = false`), `nlm` is signed out or failing, or the exam, its announcement or the
