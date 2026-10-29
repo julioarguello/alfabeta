@@ -7,6 +7,10 @@ from the state (each item's last normalized version and its replicas), the decis
 `data/captures/`. Nothing in them depends on the day they are generated, so they carry no
 timestamp, and each file is rewritten only if its bytes change. An item withdrawn from Classroom
 (FR-027) is no longer a fact of the agenda, nor is an exam deduced from it.
+
+A notice is a line for the family at the top of `agenda.md` while a condition holds, such as the
+notebook owner's session not working (spec 005 FR-019; spec 004 research R9, its third channel). It
+is not an entry: `agenda.json` never carries it.
 """
 
 from __future__ import annotations
@@ -172,6 +176,7 @@ class AgendaBuilder:
     decisions: Sequence[Decision]
     state: Mapping[str, Any]
     captured: Mapping[str, dt.datetime]
+    notices: Sequence[str] = ()  # lines at the top of agenda.md, in Spanish, with no date
 
     def _items(self) -> dict[str, tuple[Item, Subject]]:
         """The items of the linked classes that Classroom still shows."""
@@ -281,7 +286,10 @@ class AgendaBuilder:
     def to_markdown(self, entries: Sequence[AgendaEntry] | None = None) -> str:
         """`agenda.md`: «Pendiente», «Hecho» and «Publicado», in Spanish."""
         found = self.entries() if entries is None else entries
-        lines = [f"# Agenda {self.school_year}", "", OPEN_WITH]
+        lines = [f"# Agenda {self.school_year}", ""]
+        for notice in self.notices:
+            lines += [notice, ""]
+        lines.append(OPEN_WITH)
         for listed in _LISTS:
             rows = [self._line(e) for e in found if e.list == listed]
             lines += ["", f"## {LIST_NAMES[listed]}", "", *(rows or [NOTHING])]

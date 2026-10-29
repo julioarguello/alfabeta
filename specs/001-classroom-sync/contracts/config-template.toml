@@ -1,5 +1,5 @@
 # alfabeta's configuration template (spec 001 FR-001; spec 004 adds [storage], [calendar] id and [google];
-# spec 005 adds [notes] and three [notebook] keys; spec 002 adds language to [[subjects]]).
+# spec 005 adds [notes] and four [notebook] keys; spec 002 adds language to [[subjects]]).
 # Each student copies this file to ~/.alfabeta/<student>/config.toml and changes the changeme values.
 # A key that is missing, extra, changes type or contains changeme stops alfabeta (FR-003);
 # `alfabeta --home <dir> config check --student <id>` lists every such key, never its value.
@@ -79,6 +79,10 @@ nlm_profile = "changeme"            # e.g. "family"
 # That account's address: the only one each topic's living files are shared with, as reader
 # (spec 005 FR-009, spec 001 FR-011b).
 owner = "changeme@example.com"
+# Minutes between the Mac's refreshes of changed living files as the notebook owner (spec 005
+# FR-018, research R14); a divisor of 60. The launchd agent also runs once when a sleeping Mac wakes
+# and once when the session starts. Only `notebook agent install` reads it: run that again after a change.
+refresh_minutes = 15
 
 [notes]
 # Claude model that transcribes the photos of the student's notes (spec 005 research R5).

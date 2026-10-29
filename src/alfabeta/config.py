@@ -226,6 +226,16 @@ class StudentConfig:
         return _str(self.data, "notebook.nlm_profile")
 
     @property
+    def notebook_refresh_minutes(self) -> int:
+        """Minutes between the launchd agent's refreshes as the notebook owner (spec 005 FR-018)."""
+        return _int(self.data, "notebook.refresh_minutes")
+
+    @property
+    def tools_repository(self) -> Path:
+        """The clone of the alfabeta repository the skills and the launchd agent run with `uv run`."""
+        return _local(_str(self.data, "tools.repository"))
+
+    @property
     def notebook_owner(self) -> str:
         """The address each living file is shared with, as reader; never shown."""
         return _str(self.data, "notebook.owner")

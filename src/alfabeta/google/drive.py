@@ -2,7 +2,9 @@
 
 The `drive` scope reaches the whole of the student's Drive; this adapter does not. It resolves the
 alfabeta folder once, lists everything under it on every run, and refuses any id outside that set
-before a request is sent. No other module calls the Drive API.
+before a request is sent. No other module calls the Drive API. The owner's refresh of spec 005
+(research R14) opens it with `open_root` instead, which lists nothing: its allowlist is the root and
+what `lookup` finds by name from it.
 """
 
 from __future__ import annotations
@@ -130,12 +132,21 @@ class ScopedDrive:
     @classmethod
     def open(cls, transport: HttpTransport, token: str, root_path: str, cache: Path) -> ScopedDrive:
         """Resolve the root (cached in `cache`), then list the tree under it for this run's allowlist."""
+        drive = cls.open_root(transport, token, root_path, cache)
+        drive.relist()
+        return drive
+
+    @classmethod
+    def open_root(cls, transport: HttpTransport, token: str, root_path: str, cache: Path) -> ScopedDrive:
+        """Resolve the root (cached in `cache`) and list nothing: one request with the cache warm.
+
+        The whole tree took 171 requests on 2026-10-27 (spec 005 research); a pass that needs one file
+        reaches it by name with `lookup`, which adds what it finds to the allowlist.
+        """
         probe = cls(transport, token, DriveFile("", "", FOLDER), {})
         root = probe._cached_root(cache, root_path) or probe._resolve(root_path)
         write_atomic(cache, json.dumps({"root_id": root.id, "root_path": root_path}, indent=1) + "\n")
-        drive = cls(transport, token, root, {root.id: root})
-        drive.relist()
-        return drive
+        return cls(transport, token, root, {root.id: root})
 
     def relist(self) -> None:
         """List the tree under the root again; spec 005's first run does, after taking its cursor."""

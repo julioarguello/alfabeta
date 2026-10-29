@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import logging
+import urllib.parse
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -166,6 +167,48 @@ def test_a_nested_root_walks_its_path_and_quotes_names(tmp_path: Path):
     drive = ScopedDrive.open(t, "acceso", "Familia d'Ana/alfabeta", tmp_path / "drive.json")
     assert drive.root.id == "raiz"
     assert "d%5C%27Ana" in t.calls[0][1]  # the quote is escaped inside the query
+
+
+# --- the root-only open of the owner's refresh (spec 005 T044, research R14) -----------------------
+
+
+def cached(tmp_path: Path) -> Path:
+    cache = tmp_path / "drive.json"
+    cache.write_text(json.dumps({"root_id": "raiz", "root_path": "alfabeta"}, indent=1) + "\n")
+    return cache
+
+
+def test_the_root_only_open_reads_the_cached_root_and_lists_nothing(tmp_path: Path):
+    t = FakeTransport([json_response(200, folder("raiz", "root", "alfabeta"))])
+    drive = ScopedDrive.open_root(t, "acceso", "alfabeta", cached(tmp_path))
+    assert len(t.calls) == 1  # one GET of the root by id; no `in parents` listing at all
+    method, url, _, _ = t.calls[0]
+    assert method == "GET" and "/files/raiz?" in url and "parents" not in urllib.parse.unquote(url.split("?")[0])
+    assert drive.root.id == "raiz" and drive.items() == []
+
+
+def test_the_root_only_open_still_refuses_what_it_has_not_found(tmp_path: Path):
+    t = FakeTransport([json_response(200, folder("raiz", "root", "alfabeta"))])
+    drive = ScopedDrive.open_root(t, "acceso", "alfabeta", cached(tmp_path))
+    with pytest.raises(OutsideFolderError):
+        drive.content("ficha-1")  # inside Drive's alfabeta folder, but not looked up: not allowed yet
+    assert len(t.calls) == 1
+    t.responses += [listing(file("ficha-1", "raiz", "state.json")), json_response(200, {"headRevisionId": "r1"})]
+    found = drive.lookup("raiz", "state.json")
+    assert found is not None and drive.head_revision("ficha-1") == "r1"  # a look-up joins the allowlist
+
+
+def test_the_root_only_open_without_a_cache_resolves_the_path_and_caches_it(tmp_path: Path):
+    t = FakeTransport([listing(folder("raiz", "root", "alfabeta"))])
+    drive = ScopedDrive.open_root(t, "acceso", "alfabeta", tmp_path / "drive.json")
+    assert drive.root.id == "raiz" and len(t.calls) == 1
+    assert json.loads((tmp_path / "drive.json").read_text()) == {"root_id": "raiz", "root_path": "alfabeta"}
+
+
+def test_the_root_only_open_refuses_a_trashed_root(tmp_path: Path):
+    t = FakeTransport([json_response(200, {**folder("raiz", "root", "alfabeta"), "trashed": True})])
+    with pytest.raises(DriveError, match="trash"):
+        ScopedDrive.open_root(t, "acceso", "alfabeta", cached(tmp_path))
 
 
 # --- the change feed (spec 005 T006) -------------------------------------------------------------

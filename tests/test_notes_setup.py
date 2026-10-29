@@ -47,6 +47,15 @@ class FakeNotebook:
     def list_sources(self, notebook: str) -> list[Source]:
         return list(self.sources)
 
+    def read_source(self, source_id: str) -> None:
+        raise AssertionError("setup never reads a source")
+
+    def session_ok(self) -> bool:
+        raise AssertionError("setup never checks the session")
+
+    def renew_session(self, browser: bool) -> bool:
+        raise AssertionError("setup never renews the session")
+
 
 class SetupDriveFake(MemoryDrive):
     def items(self):

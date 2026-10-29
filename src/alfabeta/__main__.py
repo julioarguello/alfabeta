@@ -40,6 +40,7 @@ from alfabeta.google.notify import MacNotifier
 from alfabeta.google.transport import UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
+from alfabeta.notes import refresh
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -66,6 +67,8 @@ TABLES = {
     "notes": ("google", "drive", "notes"),
     "notebook": ("student", "google", "drive", "notes", "notebook"),
 }
+# `notebook agent` reads only the clone it runs and the refresh interval (spec 005 T046).
+AGENT_TABLES = ("tools", "notebook")
 
 
 def _cmd_config_check(home: Path, student: str) -> int:
@@ -430,6 +433,7 @@ def _agenda_builder(cfg: config.StudentConfig, data_dir: Path, current: dict[str
         decisions=store.decisions(),
         state=current,
         captured=agenda.capture_instants(plan.latest_captures(data_dir / "captures")),
+        notices=refresh.agenda_notices(data_dir),  # spec 005 FR-019, while the owner's session fails
     )
 
 
@@ -675,6 +679,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     notebook_setup = notebook.add_parser("setup", help="the topic's two living files, added as sources")
     notebook_setup.add_argument("--topic", required=True, help="<subject>/<topic folder>")
+    notebook_refresh = notebook.add_parser("refresh", help="the owner reads each changed living file's source")
+    notebook_refresh.add_argument(
+        "--browser",
+        action="store_true",
+        help="also renew the owner's session through nlm's own browser profile; only with someone at the Mac",
+    )
+    agent = notebook.add_parser("agent", help="the launchd agent that runs `notebook refresh`").add_subparsers(
+        dest="action", required=True
+    )
+    agent_install = agent.add_parser("install", help="write the agent in ~/Library/LaunchAgents and load it")
+    agent_remove = agent.add_parser("remove", help="unload the agent and delete it")
     exam = groups.add_parser("exam", help="the sheets for the day before an exam (spec 002)").add_subparsers(
         dest="verb", required=True
     )
@@ -719,6 +734,9 @@ def build_parser() -> argparse.ArgumentParser:
         collect,
         notes_run,
         notebook_setup,
+        notebook_refresh,
+        agent_install,
+        agent_remove,
         exam_prep,
         claude_set,
     ):
@@ -769,9 +787,14 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_config_check(home, args.student)
         if args.group == "exam":
             return exam_cli.cmd_exam_prep(home, args, store)
+        if args.group == "notebook" and args.verb == "agent":
+            agent_cfg = config.load(home, args.student, AGENT_TABLES)
+            return notes_cli.cmd_notebook_agent(agent_cfg, home, args.action)
         cfg = config.load(home, args.student, TABLES[args.group])
         if args.group == "notes":
             return notes_cli.cmd_notes_run(cfg, store)
+        if args.group == "notebook" and args.verb == "refresh":
+            return notes_cli.cmd_notebook_refresh(cfg, store, browser=args.browser)
         if args.group == "notebook":
             return notes_cli.cmd_notebook_setup(cfg, store, args.topic)
         if args.group == "google":
