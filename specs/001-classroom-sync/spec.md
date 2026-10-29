@@ -583,7 +583,8 @@ test.
   touch the master or the mirrors (FR-036): its `apply` skips both.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
-  permission to see all event details (built by the reminders epic), and each topic notebook a skill
+  permission to see all event details (the operator shares it by hand; spec 003 research R13 checks
+  it), and each topic notebook a skill
   creates with each account in `notebook.share_with`, as viewer. From spec 005
   (julioarguello/alfabeta#44) on, each topic's two living files are shared, as reader, with the
   account in `notebook.owner`, and with no other. An account already shared with is

@@ -35,7 +35,7 @@ and the [constitution](.specify/memory/constitution.md).
 | `sciencebits-a-notebooklm` | Skill in [`skills/sciencebits-a-notebooklm/`](skills/sciencebits-a-notebooklm/SKILL.md) | Captures a Science Bits topic screen by screen, builds a navigable PDF and a Markdown file per language (Spanish, Basque, English), files them by school year, subject and topic, and creates the topic's notebook. |
 | `classroom-sync` | Specification in [`specs/001-classroom-sync/`](specs/001-classroom-sync/spec.md); implementation tracked in [epic #1](https://github.com/julioarguello/alfabeta/issues/1) | Is designed to copy the teacher's material from Classroom into the same topic folders, read-only, and keep an agenda of assignments and exams. |
 | `study-pack` | Skill in [`skills/study-pack/`](skills/study-pack/SKILL.md); the reasons in [About preparing study material in advance](docs/explanation/study-material.md) | Prepares a few pieces per finished topic inside its notebook — short explainer videos, practice, quiz and flashcards in the subject's language — prints a glossary and a guide with a recomputed answer key for the parent, and prints the whole topic as one A4 PDF. |
-| Calendar | Design in the [roadmap](docs/roadmap.md#calendar) | One calendar per student, holding only objective facts from Classroom — assignments, exams, posted material — never study blocks. |
+| Calendar | Design in the [roadmap](docs/roadmap.md#calendar) | One calendar per student, holding only objective facts from Classroom — assignments, exams, posted material — plus warnings that restate them, never study blocks. |
 
 ## How it fits together
 

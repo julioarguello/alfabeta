@@ -96,7 +96,7 @@ close belongs to the unattended runner (spec 001 User Story 7) and is later work
 - Q: Can it all be printed? → A: Yes: one A4 PDF per topic in the topic's Drive folder, with every
   piece except the videos, the mind map included; and each of the parent's documents as its own PDF.
 - Q: Does any of this go in the calendar? → A: No study blocks and no reminders: the calendar holds
-  only facts read from Classroom.
+  only facts read from Classroom. (Revised by spec 003: plus warnings that restate those facts.)
 - Q: May an exam's calendar event point to the topic's material? → A: Yes: the description of the
   exam event that is already there carries two links, to the topic's Drive folder and to its
   notebook. No new event is created for it.
@@ -530,8 +530,9 @@ and cannot judge what the notebook writes.
 
 **Boundaries**
 
-- **FR-025**: alfabeta MUST NOT write study blocks or reminders into the calendar, and MUST NOT
-  create events for the material.
+- **FR-025**: alfabeta MUST NOT write study blocks or reminders of the study pack into the calendar,
+  and MUST NOT create events for the study pack's material. The calendar holds only objective facts from
+  Classroom, plus the warnings that restate those facts (spec 003, julioarguello/alfabeta#28).
 - **FR-026**: When a topic has an exam event, its description MUST carry a link
   to the topic's Drive folder and one to its notebook, written once and not duplicated by later
   runs.
