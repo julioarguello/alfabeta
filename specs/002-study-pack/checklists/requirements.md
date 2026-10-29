@@ -62,6 +62,10 @@
 - Iteration 7, checked 2026-10-28 (constitution 2.2.0, julioarguello/alfabeta#110): the rest of
   the pack goes in the topic's `notebook/` (FR-012, FR-017, FR-019, User Stories 2 and 4; it was
   `docente/` and the topic's root), the class notes in `notes/` (User Story 6). No marker added.
+- Iteration 8, checked 2026-10-29 (constitution 2.3.0, julioarguello/alfabeta#128): FR-038 and the
+  clarification of that day — when the notes hold a scheme, the blocks are its branches and every
+  piece names its branch. FR-001 and FR-002 are unchanged: the ranking decides scope, the schemes
+  decide layout. No marker added.
 - The spec names `nlm`, `pandoc`, Graphviz and Chrome only under Dependencies; the mechanisms belong
   to the plan.
 - Not yet run: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`. The

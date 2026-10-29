@@ -107,6 +107,23 @@ reads it, and that read also needs `nlm`: the Mac does it, on its own schedule a
   Tema 01's two living files, set up at its root on 2026-10-27, were moved by hand into their
   folders on 2026-10-28 (edge cases).
 
+
+### Session 2026-10-29
+
+Lessons from taking a biology topic's notes by hand, recorded for the final implementation.
+
+- Q: Can the notes arrive some other way than photos in `notes/`? → A: Yes. The family pointed at a
+  notebook the student had made with six photos as sources. `nlm source content` gives each image
+  as an `lh3.googleusercontent.com` address that answers without a session; it serves a 384×512
+  thumbnail, and the same address with `=s0` appended served the original 960×1280 (measured).
+- Q: Is every photo the family gives a page of notes? → A: No. One of the six was a printed
+  access PIN, a credential, among the notes. The notebook holding it was owned by the student's
+  personal account and open to anyone with the link. The operator had it restricted, and kept the
+  photo ("quizás tenga otros datos").
+- Q: Who checks a transcription? → A: Nobody by hand: a doubtful reading is settled by agreement
+  with another source, the topic's own first, and the source is written beside it (spec 002,
+  clarification of 2026-10-29).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A photo of the notes reaches the notebook with no one at a computer (Priority: P1)
@@ -409,6 +426,21 @@ source and one living Classroom source, and that a second run adds nothing.
   student's Drive, the notebook owner's notebook, the operator's Google Cloud project for alfabeta,
   and Claude through the alfabeta workspace (constitution III, 1.6.0). No model whose terms exclude
   minors is used, and the student never interacts with the model directly.
+- **FR-016a**: Before a photo is transcribed, alfabeta MUST decide whether it is a page of notes. A
+  photo that is not (a credential, a document, a person) is never transcribed, never added to a
+  notebook and never shared; the family is told which file it is, without its content, and
+  alfabeta never deletes it (2026-10-29: a printed access PIN among six photos). If it sits in a
+  topic folder of Drive, the copy constitution VII makes to the master and the mirrors is the only
+  one, and the report says so, so the family can move it out.
+- **FR-016b**: When the notes come from a notebook the family points at, alfabeta MUST read its
+  sharing first and report, before anything else, a notebook open by link that holds the student's
+  notes or a non-note photo; the sharing is changed only on the family's word, by the family or
+  with the family signed in as the owner, and alfabeta checks the result from an account that is not a collaborator (2026-10-29: the
+  outside account answered `PERMISSION_DENIED` after the change).
+- **FR-016c**: Every doubtful reading of a transcription MUST be settled by agreement with another
+  source — the topic's textbook in the subject's language and in Spanish, the notes' other pages,
+  Classroom, then an external reference — with that source beside the settled word; a word no
+  source settles stays marked with the sources tried. There is no human reviewer.
 - **FR-017**: The cloud run MUST hold its own Google link, made with an OAuth client of its own, and
   its own Claude key in that project's secret store, readable only by the run's service account,
   never in the repository, the configuration, a log or an error message. The Mac keeps its own
