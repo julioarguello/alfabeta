@@ -10,7 +10,7 @@ ids only: no title, name, address or calendar id.
 - Spec 001's agenda exists: `<storage.base>/<school_year>/agenda.json`, version 2 (slice 1).
 - Spec 004's link of the student's Gmail is `ok`: `alfabeta google check`.
 - **Gate 1** for slice 1 on: the family has watched a reminder set as the student's Gmail ring on
-  the student's own phone, and stated the date, the device and the account in their own words
+  the student's own phone, and stated the date, and the account by its alias, in their own words; no address and nothing that identifies the device (the device and the account's details stay in the private data folder)
   (spec 004 T021). A pre-written answer is not a measurement.
 - The student's phone shows the family calendar through the student's personal Gmail only. If it
   also shows it through the school account, every event appears twice there; the family removes one
@@ -138,5 +138,6 @@ Only when gate 3's daily sync runs (julioarguello/alfabeta#13).
    in the slice's issue with its date.
 3. Set `warnings = true` in the private configuration, then `alfabeta calendar sync --apply`.
 4. After a week: record the reminders written per day (from the run's JSON) and, in the family's
-   words, whether the student's phone rang for them. Nothing is recorded as received unless someone
+   words, whether the student's phone rang for them, and that the operator's own account got no
+  notification (FR-002). Nothing is recorded as received unless someone
    saw it (FR-019).

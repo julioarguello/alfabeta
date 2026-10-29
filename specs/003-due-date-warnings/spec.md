@@ -114,6 +114,15 @@ Decisions the plan took where the spec was silent or the data did not reach; eac
   all (spec 001 proposes its link).
 - An announcement gets no event of its own; the exam it announces does. A quiz is placed and warned
   like an assignment (FR-018, research R3).
+- The delivery check on the student's phone (spec 004 T021) blocks building, not planning: the plan
+  makes it gate 1, ahead of the first slice. A merged plan does not mean the check is done.
+- What a delivery check puts in an issue or the repository is the date and the account's alias, no
+  address and nothing that identifies the device (constitution III).
+- An exam the family adds by hand carries no warning on the student's phone: a reminder belongs to
+  the account that sets it, and the student sets none (FR-001, FR-015). Only exams in the agenda
+  are warned.
+- On the first run with `warnings = true`, every item's basis instant becomes that run's, so items
+  whose steps passed while warnings were off get FR-009's one catch-up warning.
 - An event whose fact left Classroom (a withdrawn item, a due date no longer shown, an exam the
   family discarded) is kept, loses its reminders and is titled «Retirado ·»; alfabeta deletes no
   event of its own (constitution V, research R7).
@@ -136,7 +145,7 @@ posted, and read the warnings produced for the short-gap items.
 
 1. **Given** a Maths sheet posted on a Monday and due Tuesday at 08:00, and a sync on Monday before
    the home slot
-   afternoon, **When** warnings are computed, **Then** its due-date event (Tuesday 07:30–08:00)
+   **When** warnings are computed, **Then** its due-date event (Tuesday 07:30–08:00)
    carries one reminder that rings at Monday's home slot.
 2. **Given** an assignment whose status becomes «Entregado», «Calificado» or «Entregado con retraso»,
    **When** the next sync runs, **Then** its pending warnings are gone and its due-date event stays.

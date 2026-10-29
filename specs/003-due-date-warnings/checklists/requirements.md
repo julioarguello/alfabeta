@@ -43,5 +43,5 @@
 - Named platforms (Google Calendar, Google Tasks, Classroom) are the product's fixed surroundings,
   not implementation choices; spec 001 and spec 002 name them the same way. FR-001 and FR-005 cite
   the documentation that rules out the alternatives.
-- Blockers for `/speckit-plan`: spec 004 (the connection), and the delivery check on the student's
-  phone with his Gmail (FR-019).
+- Blockers: spec 004 (the connection) blocked planning. The delivery check on the student's phone
+  (FR-019, spec 004 T021) blocks building, not planning (Plan, 2026-10-28).

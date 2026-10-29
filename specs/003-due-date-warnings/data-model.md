@@ -24,7 +24,7 @@ the repository except the template keys. Times are `Europe/Madrid`.
 |---|---|---|
 | `weekday` | `[[timetable]] weekday` | `monday` … `sunday` |
 | `start`, `end` | `[[timetable]] start`, `end` | `HH:MM`, `end` after `start`, same day |
-| `subject` | `[[timetable]] subject` | A `[[subjects]] folder`; at most one session per subject and weekday |
+| `subject` | `[[timetable]] subject` | A `[[subjects]] folder`. Two sessions of one subject on one weekday are a `config check` warning; placement uses the first |
 | `home_slot` | `[calendar] home_slot` | `HH:MM`, every day of the week (FR-008) |
 | `break_start`, `break_end` | `[calendar]` | `HH:MM`, the break every day (FR-023) |
 | `warnings` | `[calendar] warnings` | `true` writes reminders; `false` writes events only (research R12) |
@@ -75,7 +75,7 @@ Rules, in order ([research R4](research.md#r4--the-rules-arithmetic)):
 3. A step other than `last` on or before the start day is dropped; two steps on one day are one.
 4. A step whose `ring_at` is not after the item's `basis_at` is dropped. If all are dropped and a
    home slot lies after `basis_at` and within the bound, that slot is the one `catch_up` step.
-5. Handed in (`turned_in`, `turned_in_late`, `returned`) or marked «Retirado»: no steps.
+5. Handed in (`turned_in`, `turned_in_late`, `returned`) or marked «Retirado»: no steps. An exam that took place (`list: done`) keeps the steps it had, all past, so nothing is rewritten.
 6. At most four steps remain; spec 004's `EventSpec` allows five and refuses a sixth.
 
 ## OwnedEvent
@@ -106,10 +106,10 @@ Which entries own which events:
 
 | Field | Rule |
 |---|---|
-| `due` | The last due value a run saw (ISO, or null) |
+| `due` | The last due value a run saw (ISO, or null), with its `source` (`classroom` · `inferred`); an inferred due's `start_on` is `posted` |
 | `undated_seen_on` | The date of the first run that saw the item with no due date, or null |
 | `start_on` | FR-007: `posted`, or the date of the first run that saw the due date when `undated_seen_on` is set |
-| `basis_at` | The instant of the run that first saw the current `due` while not handed in |
+| `basis_at` | The instant of the run that first saw the current `due` while not handed in; set to the first run with `warnings = true` when that is later |
 | `marked` | The fact that went, if the event is «Retirado» (`withdrawn`, `no_due`, `discarded`), else null |
 
 The file also holds `first_apply_at`, the instant of the first applied run; legacy selection

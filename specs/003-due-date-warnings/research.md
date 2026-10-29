@@ -46,8 +46,9 @@ Phase 0 of [plan.md](plan.md). Each decision names what it rests on. The spec's 
   (`"16:00"`), `break_start` and `break_end` (`"10:00"`, `"10:25"`) and `warnings` (`false`).
 - **Validation** (a configuration problem named by its key, never its value, as spec 001's loader
   does): weekday is one of the seven English names; times are `HH:MM`; `end` after `start`; the
-  subject is a configured folder; no subject has two sessions on one weekday (the spec's
-  assumption, enforced so "its session that day" stays unambiguous); the break and every session
+  subject is a configured folder; two sessions of one subject on one weekday are a warning, not an error,
+  and placement uses the first (the spec's assumption holds for 2026–2027; another student's
+  timetable must still load, principle I); the break and every session
   end the same day.
 - **Rationale**: the agenda already speaks in subject folders; a second mapping by class id would be
   a second declaration of the same fact. A linked subject with no session is valid: its events sit
@@ -238,8 +239,9 @@ at 23:59 is 23:59–24:00).
   <date>` records the family's check; every run states whether a check is on record. The code does
   not refuse to write reminders without one (US6, scenario 1): gate 1 and slice 6 order the steps,
   and the run's line keeps the gap visible.
-- **What the family records** is what they saw, in their own words: the date, the device and the
-  account. A pre-written answer is not a measurement (spec 004's correction of 2026-10-27).
+- **What the family records** is what they saw, in their own words. In an issue or the repository:
+  the date and the account's alias only, no address and nothing that identifies the device; the
+  device and the account's details stay in the private data folder (constitution III). A pre-written answer is not a measurement (spec 004's correction of 2026-10-27).
 
 ## R13 — Neighbouring specs
 

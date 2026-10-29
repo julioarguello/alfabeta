@@ -22,8 +22,8 @@ Building starts only after gate 1. Warnings are switched on only after all four.
 
 | # | Gate | Why | Tracked in |
 |---|---|---|---|
-| 1 | **Delivery proof.** The family watches a reminder that alfabeta set as the student's Gmail ring on the student's own phone, and records the date, the device and the account in their own words | Spec 004 never proved it: the probe's "it rang" came from a pre-written answer button, on a phone without the student's account (julioarguello/alfabeta#38 and #39, spec 004 research, Observed facts). Without it every story here is decoration (US6) | Spec 004 T021, an issue opened under julioarguello/alfabeta#30 with this plan's issues. It blocks slice 1 |
-| 2 | **A lost link is loud.** A run that cannot use the student's link says so on the Mac and stops only the Google outputs | A warning that stops silently is worse than none: the family stops checking, trusting the calendar to warn | Spec 004 T014–T016, julioarguello/alfabeta#120, closed on 2026-10-28 by julioarguello/alfabeta#122. It blocks slice 5, which puts the calendar in the run |
+| 1 | **Delivery proof.** The family watches a reminder that alfabeta set as the student's Gmail ring on the student's own phone, and records the date, and the account by its alias, in their own words; no address and nothing that identifies the device | Spec 004 never proved it: the probe's "it rang" came from a pre-written answer button, on a phone without the student's account (julioarguello/alfabeta#38 and #39, spec 004 research, Observed facts). Without it every story here is decoration (US6) | Spec 004 T021, an issue opened under julioarguello/alfabeta#30 with this plan's issues. It blocks slice 1 |
+| 2 | **A lost link is loud.** A run that cannot use the student's link says so on the Mac and stops only the Google outputs | A warning that stops silently is worse than none: the family stops checking, trusting the calendar to warn | Spec 004 T014–T016, julioarguello/alfabeta#120, closed on 2026-10-28 by julioarguello/alfabeta#122; its live run, spec 004 T017, is still pending and quickstart step 8 repeats it. It blocks slice 5, which puts the calendar in the run |
 | 3 | **A daily sync** before the home slot | A warning for work due the next morning exists only if a sync ran in between (FR-020) | julioarguello/alfabeta#13. It blocks slice 6 |
 | 4 | **The operator accepts the volume**: the replay's weekly counts (SC-003) | One flood teaches the student that warnings are noise (US3) | Slice 6, a family step |
 
@@ -42,7 +42,7 @@ Development: spec 001's `ruff`, strict `pyright` and `pytest`.
 - input: `<storage.base>/<school_year>/agenda.json`, gaining one key, `posted`
   ([data-model.md](data-model.md#agenda-input));
 - records: `~/.alfabeta/<student>/data/calendar/` (`items.json`, `delivery.json`,
-  `legacy-<run>.json`), and one `type: calendar` line per applied run in spec 001's
+  `legacy-<run>.json`, `sharing.json`), and one `type: calendar` line per applied run in spec 001's
   `data/log.jsonl` (constitution V);
 - output: the family calendar (`calendar.id`), written as the linked account whose role is
   `student`.
@@ -126,7 +126,7 @@ src/alfabeta/calendar/
 ├── sync.py         # list owned events, diff, write, mark, report (FR-010, FR-011, FR-012, FR-020)
 ├── replay.py       # day-by-day simulation over the state, counts only (SC-001…SC-004, SC-008, SC-010)
 ├── legacy.py       # events the chat connector wrote: report, and matched deletion on command
-└── cli.py          # `calendar sync|replay|delivery|legacy`
+└── cli.py          # `calendar sync|replay|delivery|sharing|legacy`
 src/alfabeta/google/calendar.py   # gains list_owned() and the private extended property on EventSpec
 src/alfabeta/agenda.py            # gains `posted` per entry; agenda.json version 2
 tests/
@@ -149,7 +149,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 | Ports | `HttpTransport`, `Clock`, `RecordStore` | What the services need from outside |
 | Adapters | `CalendarClient` (spec 004, gains `list_owned` and patches instead of replacing), `JsonRecordStore` | Each wraps one store or API |
 | Services | `CalendarSync`, `Replay`, `LegacyReport` | Orchestrate per command; return results the CLI prints |
-| CLI | `calendar sync`, `replay`, `delivery`, `legacy` in `calendar/cli.py`, registered in `__main__.py` | Arguments, JSON out, Spanish lines for the family, exit codes ([contracts/cli.md](contracts/cli.md)) |
+| CLI | `calendar sync`, `replay`, `delivery`, `sharing`, `legacy` in `calendar/cli.py`, registered in `__main__.py` | Arguments, JSON out, Spanish lines for the family, exit codes ([contracts/cli.md](contracts/cli.md)) |
 
 Changes to other specs' files, each named in the task that makes it:
 
