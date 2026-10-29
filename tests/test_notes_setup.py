@@ -197,5 +197,9 @@ def test_setup_builds_the_classroom_file_with_the_items_already_in_classroom():
     state = json.loads(drive.bodies[drive.named(STATE)[0]])
     assert state["files"]["ficha"]["state"] == "in_living_file"
     writes = list(drive.updates)
-    run_notes(deps(drive, feed, ScriptedTranscriber()))  # the next run finds it built already
+    run_notes(deps(drive, feed, ScriptedTranscriber()))  # the next run finds it built already…
+    # …and reports to the family that the topic's files are built (US4): the report, its snapshot, the log.
+    assert drive.updates[len(writes) :] == ["Informe 20261027-0900.md", "state.json", "last-run.json"]
+    writes = list(drive.updates)
+    run_notes(deps(drive, feed, ScriptedTranscriber()))  # then nothing changes: only the run log
     assert drive.updates[len(writes) :] == ["last-run.json"]
