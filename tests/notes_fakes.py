@@ -120,8 +120,13 @@ class MemoryDrive:
             raise DriveError("Drive API returned 500", 500)
 
     def children(self, folder_id: str) -> list[DriveFile]:
+        if not self.contains(folder_id):
+            raise OutsideFolderError  # as ScopedDrive: an id outside the listing is refused
         found = (f for f in self.files.values() if folder_id in f.parents and not f.trashed)
         return sorted(found, key=lambda f: (f.name, f.id))
+
+    def listing(self, folder_id: str) -> list[DriveFile]:
+        return self.children(folder_id)
 
     def export(self, file_id: str, mime_type: str = "application/pdf") -> bytes:
         self.exports.append(file_id)
@@ -292,6 +297,24 @@ class ScriptedTranscriber:
 
 
 @dataclass
+class ScriptedAnswerer:
+    """The report's "what it adds": answers in order; with nothing scripted, a fixed Spanish bullet."""
+
+    answers: list[Transcription] = field(default_factory=lambda: [])
+    prompts: list[str] = field(default_factory=lambda: [])
+
+    def answer(self, prompt: str) -> Transcription:
+        self.prompts.append(prompt)
+        if self.answers:
+            return self.answers.pop(0)
+        from alfabeta.notes.model import Usage
+
+        return Transcription(
+            PhotoState.TRANSCRIBED, "- La guía no cubre los métodos de separación de mezclas.\n", Usage(5000, 200)
+        )
+
+
+@dataclass
 class FixedClock:
     when: dt.datetime = field(default_factory=lambda: dt.datetime(2026, 10, 27, 9, 0, tzinfo=MADRID))
 
@@ -305,6 +328,7 @@ def deps(
     transcriber: ScriptedTranscriber | None,
     clock: FixedClock | None = None,
     warn_pages: int = 100,
+    answerer: ScriptedAnswerer | None = None,
 ) -> NotesDeps:
     return NotesDeps(
         drive=drive,
@@ -317,6 +341,7 @@ def deps(
         prices=(2.0, 10.0),
         warn_pages=warn_pages,
         ran_on=RanOn.CLOUD,
+        answerer=answerer,
     )
 
 

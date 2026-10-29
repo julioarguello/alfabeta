@@ -2,7 +2,8 @@
 
 One Claude Messages API call per photo, through spec 004's `HttpTransport`, the one module allowed
 to open a socket. The key is the place's own (constitution II): the Mac's in its keychain, the
-cloud's in its secret store.
+cloud's in its secret store. The same client answers the report's one text question per changed
+topic, "what it adds" (research R8), under the same budget.
 """
 
 from __future__ import annotations
@@ -23,6 +24,8 @@ API = "https://api.anthropic.com/v1/messages"
 # The newest API version (2026-10-21): no sampling parameters are sent, which it rejects.
 API_VERSION = "2026-10-21"
 MAX_TOKENS = 16000
+# A "what it adds" answer is a few lines of Spanish (research R8).
+ANSWER_TOKENS = 1500
 # Reading handwriting is not a reasoning task; quickstart step 2 measures quality and cost at this level.
 EFFORT = "low"
 # A 10 MB photo and a page of Markdown take longer than spec 004's 30 s default.
@@ -65,6 +68,14 @@ class Transcriber(Protocol):
         ...
 
 
+class Answerer(Protocol):
+    """Answers one text question; the report's "what it adds" (research R8)."""
+
+    def answer(self, prompt: str) -> Transcription:
+        """One question, one call; `transcribed` means answered, the text in `markdown`."""
+        ...
+
+
 def _budget_refused(status: int, error: dict[str, Any], headers: dict[str, str]) -> bool:
     """A credit or spend-limit refusal (research R5): waits for a day, not a retry.
 
@@ -100,26 +111,29 @@ class ClaudeTranscriber:
         """JPEG, PNG or WebP up to 10 MB only; anything else is `unsupported` without a call."""
         if mime_type not in TRANSCRIBABLE or len(image) > MAX_PHOTO_BYTES:
             return Transcription(PhotoState.UNSUPPORTED)
+        content: list[dict[str, Any]] = [
+            {
+                "type": "image",
+                "source": {"type": "base64", "media_type": mime_type, "data": base64.b64encode(image).decode()},
+            },
+            {"type": "text", "text": INSTRUCTIONS},
+        ]
+        done = self._ask(content, MAX_TOKENS)
+        if done.state == PhotoState.TRANSCRIBED and done.markdown.strip() == UNREADABLE:
+            return Transcription(PhotoState.UNREADABLE, usage=done.usage)
+        return done
+
+    def answer(self, prompt: str) -> Transcription:
+        """One text question, one call; the same refusals as a photo's (research R5)."""
+        return self._ask([{"type": "text", "text": prompt}], ANSWER_TOKENS)
+
+    def _ask(self, content: list[dict[str, Any]], max_tokens: int) -> Transcription:
+        """One Messages API call; `transcribed` with the text, or why there is none."""
         body = {
             "model": self._model,
-            "max_tokens": MAX_TOKENS,
+            "max_tokens": max_tokens,
             "output_config": {"effort": EFFORT},
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": mime_type,
-                                "data": base64.b64encode(image).decode(),
-                            },
-                        },
-                        {"type": "text", "text": INSTRUCTIONS},
-                    ],
-                }
-            ],
+            "messages": [{"role": "user", "content": content}],
         }
         headers = {"x-api-key": self._key, "anthropic-version": API_VERSION, "content-type": "application/json"}
         try:
@@ -139,6 +153,4 @@ class ClaudeTranscriber:
         markdown = "\n".join(str(b.get("text", "")) for b in blocks if b.get("type") == "text").strip()
         if not markdown:
             return Transcription(PhotoState.FAILED, usage=usage)
-        if markdown == UNREADABLE:
-            return Transcription(PhotoState.UNREADABLE, usage=usage)
         return Transcription(PhotoState.TRANSCRIBED, markdown + "\n", usage)

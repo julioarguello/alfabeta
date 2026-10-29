@@ -4,12 +4,14 @@ The pass reads the records and the run log, reads the change feed from the curso
 arrived, transcribes the pending photos, writes each page's Markdown and PDF next to its photo, checks
 every recorded Classroom item against this run's listing, and rebuilds the living files of every
 topic that changed. It never creates a living file: only `notebook setup` does (research R6). It
-writes `state.json` only when a record changed, and the run log always. It calls no study-pack
-generation (FR-012).
+writes `state.json` only when a record changed, and the run log always. A run that changed
+something leaves the family's report in `reports/` (report.py). It calls no study-pack generation
+(FR-012).
 """
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -49,6 +51,7 @@ from alfabeta.notes.model import (
     posted_title,
 )
 from alfabeta.notes.pdf import RenderedPart
+from alfabeta.notes.report import baseline, write_report
 from alfabeta.placement import NO_TOPIC
 
 if TYPE_CHECKING:
@@ -57,7 +60,7 @@ if TYPE_CHECKING:
     from alfabeta.notes.model import Clock
     from alfabeta.notes.pdf import PdfBuilder
     from alfabeta.notes.state import NotesStateStore
-    from alfabeta.notes.transcribe import Transcriber
+    from alfabeta.notes.transcribe import Answerer, Transcriber
 
 FOR = "alfabeta_for"
 ROLE = "alfabeta_role"
@@ -139,6 +142,19 @@ class NotesDrive(Protocol):
         """The file carrying these public properties, asked of Drive now."""
         ...
 
+    @property
+    def root(self) -> DriveFile:
+        """The alfabeta folder, where `reports/` sits."""
+        ...
+
+    def lookup(self, folder_id: str, name: str) -> DriveFile | None:
+        """The item with that name in the folder, asked of Drive now."""
+        ...
+
+    def create_folder(self, parent_id: str, name: str) -> DriveFile:
+        """A new folder."""
+        ...
+
     def upload(
         self, parent_id: str, name: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
     ) -> DriveFile:
@@ -178,6 +194,7 @@ class NotesDeps:
     prices: tuple[float, float]
     warn_pages: int
     ran_on: RanOn
+    answerer: Answerer | None = None  # the report's "what it adds" (research R8); None: no key here
 
 
 @dataclass
@@ -193,6 +210,8 @@ class Pass:
     budget_refused: bool = False  # once refused, this pass makes no other call (research R5)
     no_key: bool = False
     write_failed: bool = False
+    claude_answered: bool = False  # a Claude call answered this pass: the budget is not spent
+    spent_before: dict[str, Any] = field(default_factory=lambda: {})  # the ledger as the run found it
 
     def count(self, topic: str, what: str, n: int = 1) -> None:
         """Add to one of the topic's report counts."""
@@ -308,7 +327,8 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
     started = deps.clock.now()
     state = deps.store.load()
     previous = deps.store.load_run_log()
-    work = Pass(state, started.date().isoformat())
+    work = Pass(state, started.date().isoformat(), spent_before=copy.deepcopy(state.get("spend", {})))
+    baseline(state, Pass(state, work.today), deps.warn_pages)  # once, for records older than the report
     result = deps.feed.read(previous.page_token if previous else None, known(state))
     for gone in result.gone:
         _gone(work, gone)
@@ -327,6 +347,10 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
                 rebuild(deps, work, topic)
             except DriveError:
                 work.write_failed = True
+    try:
+        write_report(deps, work, started)  # before the save: its calls' usage and its snapshot go with it
+    except DriveError:
+        work.write_failed = True
     deps.store.save(state)
     failed = work.write_failed or any(c["failed"] for c in work.counts.values())
     run_result = RunResult.PARTIAL if failed else RunResult.OK
@@ -450,6 +474,7 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
         else:
             record["tried_on"] = work.today
             done = deps.transcriber.transcribe(deps.drive.content(photo_id), item.mime_type)
+            work.claude_answered = work.claude_answered or done.usage is not None
             if done.usage is not None:
                 ledger = spend(work.state).add(work.today[:7], done.usage)
                 work.state["spend"] = {m: {"in": u.tokens_in, "out": u.tokens_out} for m, u in ledger.months.items()}
