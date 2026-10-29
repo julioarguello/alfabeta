@@ -99,7 +99,7 @@ channel that does not need that link.
 
 **Goal**: an event written as the student carries his own reminder, and his phone rings.
 
-**Independent test**: quickstart step 5. It unblocks spec 003's plan.
+**Independent test**: quickstart step 5. It unblocks building spec 003 (its gate 1; the plan went ahead, 2026-10-28).
 
 - [ ] T018 [P] [US2] Write `tests/test_google_calendar.py`. It covers:
   - insert with a deterministic base32hex id of 5 to 1024 characters, "lowercase letters a-v and digits 0-9";
@@ -107,7 +107,7 @@ channel that does not need that link.
   - patch only when an owned field differs;
   - a 409 on insert leads to get, then update with `status: confirmed` (research R5);
   - `timeZone` is `Europe/Madrid`.
-- [ ] T019 [US2] Implement `src/alfabeta/google/calendar.py`, the `CalendarClient`: `get`, `insert`, `patch`, `delete`, `upsert`. It writes only to the configured family calendar id.
+- [ ] T019 [US2] (The `patch` part is done by spec 003 T007–T008.) Implement `src/alfabeta/google/calendar.py`, the `CalendarClient`: `get`, `insert`, `patch`, `delete`, `upsert`. It writes only to the configured family calendar id.
 - [ ] T020 [US2] Add `calendar probe` and `calendar probe-clean` to `src/alfabeta/__main__.py` per `contracts/cli.md`.
 - [ ] T021 [US2] Run quickstart step 5 with the family, on the student's phone. Record:
   - the date the notification was seen (spec 003, FR-019);
@@ -167,7 +167,7 @@ each file.
 
 ```text
 spec 001 T001–T026 ─▶ Phase 1 ─▶ Phase 2 ─▶ US1 (Phase 3) ─┬─▶ US4 (Phase 4)
-                                                          ├─▶ US2 (Phase 5) ─▶ spec 003 plan
+                                                          ├─▶ US2 (Phase 5) ─▶ spec 003 build
                                                           └─▶ US3 (Phase 6)
 Phases 4–6 ─▶ Phase 7 (T033 also needs #13's schedule)
 ```

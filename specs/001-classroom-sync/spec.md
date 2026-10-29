@@ -178,6 +178,31 @@ replaces the local MCP design of julioarguello/alfabeta#2.
   sync that found no `… - No topic` folder would make one beside the old one and move the replicas
   into it.
 
+
+### Session 2026-10-29
+
+Lessons from preparing a biology exam by hand, with the family's Chrome (Claude in Chrome), recorded
+for the final implementation.
+
+- Q: What happens to a linked class whose teacher posts nothing in Classroom? → A: Measured: the
+  biology class was linked, and its capture came back complete with no topics, no items and no
+  stream posts; no subject folder had ever been made. The topic folder came from the book provider
+  (`book place`). An empty class MUST be reported as such in the run's report («clase vacía en
+  Classroom»), so the family knows the scope will come from the notes and the book, not read as a
+  failed sync.
+- Q: What does the Science Bits capture need from the browser? → A: Two site settings for
+  learning-bits.com, set by the family: pop-ups allowed (the site alerts «ventanas emergentes
+  bloqueadas» when `window.open` returns nothing, and the modal froze the tab) and automatic
+  downloads allowed (only the first lesson zip arrived until it was set). Lesson discovery must not
+  stub `window.open` with `null` (julioarguello/alfabeta#130). The tab stays in front: a hidden tab
+  throttled the discovery's timers until its call timed out.
+- Q: What else broke on the way? → A: The collector copied two zips left in the downloads folder
+  by an earlier topic five days before, under the same names, into this topic's raw folder; the
+  build's renderer reads its fonts from a fixed Linux path and fails on the Mac. Both are
+  requirements below (FR-022a, FR-022b). Capturing three languages took about three minutes a
+  lesson; the operator dropped English to finish in time, and the terms the study pack needed were
+  in the subject's language, captured last.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures and launches alfabeta), **the student**
@@ -583,7 +608,8 @@ test.
   touch the master or the mirrors (FR-036): its `apply` skips both.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
-  permission to see all event details (built by the reminders epic), and each topic notebook a skill
+  permission to see all event details (the operator shares it by hand; spec 003 research R13 checks
+  it), and each topic notebook a skill
   creates with each account in `notebook.share_with`, as viewer. From spec 005
   (julioarguello/alfabeta#44) on, each topic's two living files are shared, as reader, with the
   account in `notebook.owner`, and with no other. An account already shared with is
@@ -787,6 +813,16 @@ Example of the resulting structure (invented names):
 
 - **FR-022**: The Science Bits skill MUST read the per-student configuration and leave its files in
   the `sciencebits` subfolder of the topic's folder.
+- **FR-022a**: The Science Bits capture MUST take only the zips its own run downloaded: a zip in the
+  downloads folder older than the run's start is ignored, whatever its name (measured 2026-10-29:
+  two zips of an earlier topic were taken as this topic's lessons 1 and 2).
+- **FR-022b**: The textbook build MUST run on the family's Mac as well as anywhere else: no fixed
+  operating-system path for its fonts; the fonts it needs travel with the tool or are found, and a
+  missing font stops the build naming it.
+- **FR-022c**: The capture MUST queue the subject's own language first, then the others the
+  configuration lists, so that a capture cut short still holds the language the exam and the study
+  pack's terms need; and it MUST check after the first two lessons that their zips arrived, saying
+  which browser setting to look at when they did not.
 - **FR-023**: alfabeta MUST NOT read from or write to the previous cloud (Dropbox). What was captured
   there before this epic stays as it is; if it is wanted in the new structure, it is captured again.
 

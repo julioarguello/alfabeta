@@ -186,6 +186,26 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - A new dependency MUST justify in the plan why the standard library or what is already there is
   not enough.
 
+### X. The student's own schemes lead the study material
+
+- When the student's class notes hold a scheme — a tree, a concept map, a chain of arrows, a
+  labelled drawing — the study material of that topic MUST be built on it: its blocks, their order
+  and their names follow the scheme's branches, in the student's own words. The textbook and
+  Classroom are mapped onto the scheme, never the scheme onto them.
+- Every piece the student studies from (video, guide, summary, practice, quiz, flashcards, the
+  printed topic) MUST say which branch of the scheme it covers, so the student can always find it on
+  his own page. The mind map, made from the sources before the blocks exist, is mapped branch by
+  branch to them in the topic's blocks file instead.
+- What the sources teach and the scheme lacks is hung from the nearest branch or listed apart, and
+  never reorders the scheme. A branch no source explains is a question for the family, not a gap
+  the textbook's structure fills.
+- Where the notes hold no scheme, the order of the sources (notes, then Classroom, then textbook)
+  sets the structure as before.
+
+Rationale: the operator observed with the first physics-and-chemistry topic that material laid out
+in the textbook's order left the student lost, while his notes carried schemes the material did not
+follow (2026-10-29).
+
 ## Technical constraints
 
 - **Environment**: the Claude desktop app with access to the Mac, and a browser with the student's
@@ -281,4 +301,4 @@ Rationale: an unofficial tool must not leave the student without their notes.
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.2.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-28
+**Version**: 2.3.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-29

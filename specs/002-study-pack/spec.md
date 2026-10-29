@@ -96,7 +96,7 @@ close belongs to the unattended runner (spec 001 User Story 7) and is later work
 - Q: Can it all be printed? → A: Yes: one A4 PDF per topic in the topic's Drive folder, with every
   piece except the videos, the mind map included; and each of the parent's documents as its own PDF.
 - Q: Does any of this go in the calendar? → A: No study blocks and no reminders: the calendar holds
-  only facts read from Classroom.
+  only facts read from Classroom. (Revised by spec 003: plus warnings that restate those facts.)
 - Q: May an exam's calendar event point to the topic's material? → A: Yes: the description of the
   exam event that is already there carries two links, to the topic's Drive folder and to its
   notebook. No new event is created for it.
@@ -165,6 +165,48 @@ done that day; the last three, what the operator decided once it was done (User 
   «cuaderno» was rejected, because for a student it means their own notes. The operator decided
   it with the exam sheets' folder (constitution 2.2.0, julioarguello/alfabeta#110); the class notes
   are in `notes/` (it was `apuntes/`).
+
+### Session 2026-10-29
+
+- Q: When the student's notes hold schemes, what shape does the study material take? → A: The
+  schemes' shape. The blocks, their order and their names are the scheme's branches, in the
+  student's words; the textbook and Classroom are hung from those branches, and every piece says
+  which branch it covers. The operator asked for it after seeing the physics-and-chemistry Tema 01
+  pack laid out in the textbook's order leave the student lost, and made it constitutional
+  (constitution 2.3.0, principle X; julioarguello/alfabeta#128). The source ranking of FR-002 is
+  unchanged: it decides what the exam asks, the schemes decide how the material is laid out.
+- Q: Who checks the transcription of the student's notes? → A: Nobody by hand. The operator said
+  there will be no human reviewer: each doubtful reading is settled by agreement with another
+  source — the topic's own first (textbook in both languages, the other pages of the notes,
+  Classroom), an external reference only if none settles it — and the source is written beside the
+  word. A word no source settles stays marked with the sources tried.
+- Q: What does the student open first? → A: «0 · Guía de estudio». The operator asked that the
+  material be in order and that 0 be the study guide, telling him very briefly how to use each video
+  (taking notes), what is expected of him once the session is over, with times that are not
+  aggressive, and breaks (FR-015). The separate start note goes.
+- Q: Where does the theory go, then? → A: Not in the guide. Seeing the first guide (plan plus
+  content) the operator found it too dense — "se va a agobiar" — and asked for the guide to hold
+  only how to study, pointing at the other pieces, and for a summary to study from, condensing the
+  student's notes: «Resumen de tus apuntes», on the notes' schemes, one short part per
+  session (FR-015).
+- Q: How does the student reach the videos, when a viewer may not see them in the notebook? → A:
+  Through Drive, always. The operator checked on the student's account that the notebook showed
+  every piece but the three videos, and asked that the guide link each video straight to its copy
+  in the topic's `notebook/` folder in Drive, whether the notebook shows it or not, so he never
+  gets lost (FR-039).
+- Q: What went wrong generating the pack by hand on 2026-10-29? → A: Four things, measured on
+  one biology topic. (1) Asking the notebook to copy the guide's plan verbatim worked two times out
+  of five: the other three came back rewritten — one replaced every piece with sources, added a
+  calculus of energy expenditure and turned the four Drive links into one generic address (FR-040).
+  (2) The summary, made before the textbook in Basque was a source, gave as Basque terms the
+  Spanish words the student had written in his notes, with his spelling, and kept a reading no
+  source had settled; the quiz carried one invented
+  word (FR-041). (3) The student's account saw every Studio piece but none of the three videos,
+  not even the oldest — the guide's Drive links are how he reaches them (FR-039). (4) Classroom held
+  nothing for the subject and no exam was announced, so the blocks came from the notes' schemes
+  alone and every textbook lesson without a branch stayed a question for the family; the operator
+  capped the whole topic at two hours of study, two 45-minute blocks with a 15-minute break
+  (FR-042).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -238,8 +280,10 @@ Gemini notebook lists none of them.
 
 ### User Story 3 - The student opens the notebook and knows what to do today (Priority: P1)
 
-The student opens the topic's notebook. The first item is a note numbered 0 that says, in one
-line, the one thing to do today and how long it takes; directly under it is that piece. Every
+The student opens the topic's notebook. The first item is «0 · Guía de estudio», the plan: every
+piece by its number, how to use each video, how long each block takes and its breaks, with each
+video linked to its copy in his Drive (FR-015, FR-039; it replaced, on 2026-10-29, a note
+numbered 0 that named the one thing to do today). Every
 title says which moment it belongs to (today, yesterday, the weekly review, the exam), what it is,
 what about and how long, and none of them invites skipping it. The chat answers as a tutor: a hint
 before the answer, explanations in Spanish with the terms in the subject's language.
@@ -435,7 +479,7 @@ and cannot judge what the notebook writes.
   files it comes from, and MUST NOT generate until they are confirmed — the mind map excepted: it
   takes no focus, so it reads the sources, not the blocks, and the proposal maps its first-level
   branches like the textbook's lessons and the notes' pages. When the teacher's announcement of
-  the exam exists, its points, in its order, are the proposed blocks. Once
+  the exam exists and no scheme in the notes sets the blocks (FR-038), its points, in its order, are the proposed blocks; with a scheme, a point no branch covers is hung from the nearest branch, or gets its own video under FR-022 when no branch is near. Once
   confirmed, the blocks of a topic are not proposed again, with one exception: an announcement
   that arrives later reopens them for the points it names that no block covers (FR-022). A
   video's exclusion MUST name only the other blocks and what a source says is out of the exam,
@@ -490,9 +534,14 @@ and cannot judge what the notebook writes.
   `REPASO SEMANA` or `EXAMEN <weekday>` — followed by its number within that moment when there are
   several; it says what the piece is, what it is about and, for a video or quiz, its measured length
   or question count, with no date and no recipient. A piece in the subject's language says so.
-- **FR-015**: When a run ends, the notebook's list MUST open with the note «0 · Empieza aquí»,
-  rewritten by every run to name the one thing to do today with its duration, and directly under it
-  the piece the note names. No title and no note may present a piece as optional.
+- **FR-015**: When a run ends, the notebook's list MUST open with «0 · Guía de estudio», a report
+  that numbers every other piece in study order, says how to use each video (notes taken on the
+  student's own scheme), gives each session its minutes and a break, and says what the student can
+  do when the session ends, and holds no theory; and among the pieces «Resumen de tus apuntes»,
+  the notes condensed on their schemes, one short part per content block (FR-001), each studied with its video. The guide replaces the note «0 · Empieza aquí» (2026-10-29). `exam prep`
+  (FR-029) still writes that note, and its FR-033 regeneration deletes this guide, until its code
+  follows this requirement. No title and no note may
+  present a piece as optional.
 - **FR-016**: The notebook's chat MUST be set to answer as a tutor: a hint before the answer,
   Spanish explanations with the exam's terms, the source order of FR-002, and no attribution of a
   source to a person.
@@ -500,7 +549,7 @@ and cannot judge what the notebook writes.
 **Printing**
 
 - **FR-017**: alfabeta MUST write one A4 PDF per topic into the topic's `notebook/`, holding an
-  index of every piece in the notebook's order, then the start note, then every piece except
+  index of every piece in the notebook's order, then the study guide, then every piece except
   videos, each on a new page: the
   quiz with its answers after its questions, the flashcards as a table, the mind map as a diagram
   that fits one page.
@@ -530,8 +579,9 @@ and cannot judge what the notebook writes.
 
 **Boundaries**
 
-- **FR-025**: alfabeta MUST NOT write study blocks or reminders into the calendar, and MUST NOT
-  create events for the material.
+- **FR-025**: alfabeta MUST NOT write study blocks or reminders of the study pack into the calendar,
+  and MUST NOT create events for the study pack's material. The calendar holds only objective facts from
+  Classroom, plus the warnings that restate those facts (spec 003, julioarguello/alfabeta#28).
 - **FR-026**: When a topic has an exam event, its description MUST carry a link
   to the topic's Drive folder and one to its notebook, written once and not duplicated by later
   runs.
@@ -577,7 +627,11 @@ and cannot judge what the notebook writes.
   005's refresh does. When the topic's living notes file was last revised after the topic's study
   guide was made, the command MUST regenerate the guide (FR-004), even though the pack record
   (FR-024) holds it, before anything is printed. A guide made before the notes is never handed out
-  for an exam.
+  for an exam. That guide is the FR-004 theory guide, never the plan «0 · Guía de estudio» of
+  FR-015: the command MUST NOT regenerate, retitle or delete the plan. Until its code follows, it
+  finds guides by the words «guía de estudio» in the title, gives the new theory guide the newest
+  match's title — the plan's — and deletes every match, the plan included (`src/alfabeta/exam/prep.py`,
+  read 2026-10-29).
 - **FR-034**: The problems-sheet prompt MUST ask the notebook to put every exercise of the
   teacher's Classroom photocopies, worked examples included, into a pattern, using as few patterns
   as possible: one formula is about one pattern, and solving the same formula for another unknown
@@ -605,6 +659,38 @@ and cannot judge what the notebook writes.
   configuration, when `nlm` is signed out or failing, and when the exam, its announcement or the
   topic's notebook is not found (constitution VII). A report that fails later is reported, and the
   other one is still printed.
+
+- **FR-039**: The study guide MUST link every video to its copy in the student's Drive (the topic's
+  `notebook/` folder, step 9 of the skill), with a direct link to the file, and the folder itself
+  once, whether or not the notebook shows the video to a viewer (measured 2026-10-29: the
+  student's account saw every Studio piece except the three videos). The copy is made, and its link
+  read, before the guide is generated.
+
+- **FR-040**: A piece whose text alfabeta writes (the study guide's plan) MUST be checked line by
+  line against that text after it is downloaded, links included, and generated again until it
+  matches, at most three times; if it still does not match, the run says so and the family is
+  told, rather than leaving a rewritten guide in the notebook. Measured 2026-10-29: two of five
+  verbatim requests came back verbatim.
+- **FR-041**: Every term in the subject's language that a piece gives the student MUST come from the
+  textbook in that language or from the teacher's material; a word from the notes is used as such
+  a term only when one of those confirms it. So the textbook in the subject's language MUST be a
+  source of the notebook before the summary, the quiz, the flashcards, the glossary or the parent
+  guide are generated, and each is checked for words in another language given as the subject's.
+- **FR-042**: The guide's plan MUST fit the whole topic in two hours at most: study blocks of 45
+  minutes with a 15-minute break between them (an hour and a half of study), done in one day or
+  two; block A the videos with the student's own scheme and its comparison, block B the practice,
+  quiz and flashcards (the operator, 2026-10-29).
+
+**Structure from the student's schemes**
+
+- **FR-038**: When the topic's class notes hold a scheme (a tree, a concept map, a chain of arrows,
+  a labelled drawing), the proposed blocks MUST be its branches, in its order and with the
+  student's names for them, and `bloques.md` MUST name, for each block, the scheme and branch it
+  comes from. What the textbook or Classroom teaches and no branch holds MUST be hung from the
+  nearest branch or listed apart, never used to reorder the blocks; a branch no source explains is
+  a question for the family. Every piece's title or opening line, the study guide (and the exam's start note) and the printed
+  index MUST name the branch each piece covers. Notes without a scheme leave FR-001 as it is
+  (constitution X).
 
 ### Key Entities
 

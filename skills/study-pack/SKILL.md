@@ -55,17 +55,29 @@ email or an id into the repository.
    say what is prioritised, not what is excluded; only the announcement or the teacher says what is
    out. List the ideas an exam could ask, grouped in **two or three blocks**, or in the
    announcement's points when it exists; separate on purpose two ideas students confuse (density and
-   concentration were one such pair; a point of the announcement holding such a pair is two blocks). When the teacher's announcement of the exam exists, its points, in its order, are
-   the blocks unless the family says otherwise. Write them to `notebook/bloques.md` with the files
+   concentration were one such pair; a point of the announcement holding such a pair is two blocks). When the teacher's announcement of the exam exists and no scheme in the notes sets
+   the blocks, its points, in its order, are the blocks unless the family says otherwise. Write them to `notebook/bloques.md` with the files
    they come from, and show them to the family. **Once confirmed, the blocks are not decided again,
    with one exception**: an announcement that arrives after they were confirmed reopens them for the
-   points it names that no block covers (step 3). Photos in `notes/` become a source only as a
-   literal transcription that someone who reads the notes has checked.
+   points it names that no block covers (step 3). Photos in `notes/` become a source as a literal
+   transcription. Nobody reviews it by hand: every doubtful reading is settled by agreement with
+   another source — first the topic's own (the textbook in the subject's language and in Spanish,
+   the other pages of the notes, Classroom), then an external reference if none settles it — and the
+   transcription writes the source beside the settled word. A word no source settles stays marked,
+   naming the sources tried; a guess is never written as a reading.
    - **An exclusion needs a source.** A video's `{exclude}` holds the other blocks' titles and
      what a source says is out of the exam — the announcement, the teacher — each with that source
      named in `bloques.md`. A textbook lesson, a notes page or a Classroom item is never an entry
      because the handouts do not practise it: the sheets say what the teacher stresses, not what
      the exam leaves out.
+   - **The notes' schemes are the skeleton** (constitution X, spec 002 FR-038). Before anything
+     else, list every scheme in the notes — a tree, a concept map, a chain of arrows, a labelled
+     drawing — with its page. When there is one, the blocks are its branches, in its order and
+     with the student's own names; `bloques.md` names the scheme and branch of each block, and the
+     textbook's lessons and Classroom's items are hung from a branch, never the other way round.
+     What no branch holds goes to the nearest branch or to a line apart; a branch no source
+     explains is a question for the family. Every prompt's `{block}` and every piece's title then
+     names its branch, so the student finds it on his own page.
    - **Before showing the blocks, map the sources.** Make the mind map first —
      `NOTEBOOKLM_HL=es nlm mindmap create <nb> -y`, the one piece made before confirmation: it takes
      no focus, so it reads the sources, not the blocks — and wait for it. Every lesson of the
@@ -84,6 +96,13 @@ email or an id into the repository.
    - reports: study guide (`--format 'Study Guide' --language es`), practice sheet (`--language` the
      subject's language), glossary and parent guide (`--language es`);
    - quiz and flashcards, after the language switch below;
+
+   - **the study guide, piece 0**, generated after step 9 has copied the videos to Drive, since it
+     links each one there (FR-039) (`prompts.md`, «Study guide — 0»): only the plan — the order of
+     every piece, how to use each video, times with breaks, what he can do at the end. No theory;
+     it points at the other pieces by number. It is the student's entry point;
+   - **the summary of the notes** (`prompts.md`, «Summary of the notes»): the
+     notes condensed on their schemes, one short part per content block, each studied with its video. It is what he studies from.
 
    The mind map already exists (step 1). Launch the videos last, or alone: they cost the most quota.
 4. **Wait** with `nlm studio status <nb> --profile <profile> --full --json` until every artifact is
@@ -108,8 +127,9 @@ email or an id into the repository.
    viewer can see them: run it as soon as step 6 ends. Few pieces is a design hypothesis (see the
    design page); Tema 01 ended with six to work through plus two to consult. Say so when a topic
    goes past that.
-8. **Number and order.** Every title starts with its place in the study order — videos, practice,
-   quiz, flashcards, then what is only consulted (guide, mind map) — and says what it is, what
+8. **Number and order.** Every title starts with its place in the study order — `0` the study
+   guide, then videos, the mind map and the summary of the notes (both used to compare the scheme
+   the student draws while watching), then practice, quiz, flashcards — and says what it is, what
    about and how long, in Spanish — the constitution asks it of everything the family reads, and the
    parent reads the printed index — with no date and no recipient; a piece in the subject's language
    says so: `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 preguntas en euskera ·
@@ -119,14 +139,24 @@ email or an id into the repository.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
    folder>/notebook/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
    (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
-   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **Add the start note** `0 · Empieza aquí` last, so it sits on top
-   (`nlm note create`, or `nlm note update` if it exists), naming the pieces by number and linking
-   the topic's `notebook/` folder in each of the student's Drives, and **configure the tutor chat**
-   (both in [`prompts.md`](prompts.md)).
+   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam prep`
+   still writes «0 · Empieza aquí» until its code follows. **Configure the tutor chat**
+   ([`prompts.md`](prompts.md)).
+9b. **Generate the study guide** («Study guide — 0» in [`prompts.md`](prompts.md)) now that the
+   videos are in Drive: its plan links each one (FR-039). Download it and compare it line by line
+   with the plan you wrote, links included; regenerate at most three times (FR-040). Then rename it
+   `0 · Guía de estudio · Empieza aquí` last, so it sits on top.
+
+   > [!WARNING]
+   > `exam prep` regenerates the theory guide when the notes changed after it, and it finds guides by
+   > the words «guía de estudio» in the title: it deletes every match, this plan included, until its
+   > code follows spec 002 FR-033, and gives the new theory guide the plan's title. After running it,
+   > check by its content that piece 0 is still the plan (the table of pieces, no theory), and
+   > generate it again if not.
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
     <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN
     para imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
-    notebook"), the start note, then each report, the quiz with its answer key at the end, the flashcards as a
+    notebook"), the study guide, then each report, the quiz with its answer key at the end, the flashcards as a
     table and the mind map drawn with Graphviz, each on a new page, in the numbered order. Run it
     after step 7, or the parent's material would print with it.
 11. **Report** to the family: what is in Studio and in what order, where the printable PDF is,
@@ -191,17 +221,21 @@ plan (`nlm` reports the tier as `PRO_CONSUMER`).
 | `nlm` asks for English by default; reports and videos take `--language`, quiz and flashcards do not | the account-wide switch above |
 | Studio is ordered by last modification; a rename keeps the title verbatim and moves the item to the top | rename in reverse order |
 | Viewers are read-only and see every Studio artifact except videos: of five video overviews in one notebook, both viewer accounts saw only the oldest, in the list and by direct link; regenerating the hidden ones did not help | material for the parent leaves Studio; every video is also downloaded to the topic folder, and the start note links that folder |
+| Measured 2026-10-29 on a second notebook: the student's account saw every Studio piece and none of the three videos, not even the oldest | the guide links each video to its Drive copy (spec 002 FR-039) |
+| Measured 2026-10-29: a «copy this verbatim» report came back verbatim two times out of five; the others were rewritten, links lost | check the guide line by line and regenerate, at most three times (FR-040) |
 | 3 videos and 3 reports took about 79 % of a 5-hour usage window and about 4 % of the weekly one (`nlm usage`) | one topic per window; videos last |
 | The tutor prompt worked as hints-before-answers, and in one sample attributed a note to the teacher | the prompt forbids attributing authorship |
 | Videos asked for 3–4 minutes lasted 4–5; a quiz asked for 10 questions had 12 | name the real count and duration, from the download |
 | `NOTEBOOKLM_HL=es` made a mind map come out in Spanish; whether it does the same for quiz and flashcards was not measured | try it before the account-wide switch |
+| Measured 2026-10-29: `NOTEBOOKLM_HL=eu` made a quiz come out entirely in Basque with the account's output language untouched; 10 questions where 12 were asked; one invented word and two Spanish-shaped terms when the notebook held no Basque textbook yet | use `NOTEBOOKLM_HL=<subject language>` for quiz and flashcards first; add the textbook in the subject's language as a source before generating them |
 | `nlm download flashcards -f markdown` prints the raw card structure; `-f json` is clean | `print_pack.py` reads JSON |
 
 Whether the chat reads notes, and what the student sees as a viewer, were not settled on that date.
 
 ## Never
 
-- Put study blocks or reminders in the calendar: it holds only facts from Classroom.
+- Put study blocks or reminders in the calendar: it holds only facts from Classroom and the
+  warnings that restate them, which `calendar sync` writes (spec 003).
 - Show the student a wrong value from a teacher's key anywhere but the exam's problems sheet (its
   table of printed answers that do not match, and the solution of that same exercise), or name the
   teacher as wrong.

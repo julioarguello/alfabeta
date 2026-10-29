@@ -28,6 +28,8 @@ sending; a prompt that still holds a `{` is a bug.
 | `{scope_date}` | that announcement's date, `8 de mayo` |
 | `{slot}` | the study slot, `17:00–18:30`, or `90 minutos` when none is given |
 | `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
+| `{topic}` | the topic folder's name after its date, `Tema 02 - La nutrición humana` |
+| `{plan}` | the study plan the agent writes for guide 0 (its section below) |
 | `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
 
 ## Video — one per block, plus one per point of the announcement no block covers
@@ -95,6 +97,55 @@ Hoja de teoría para estudiar mañana un examen, para un alumno de {grade} que d
 ```text
 Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · Examen del {exam_day} — Problemas tipo». Usa solo los problemas de las fotocopias que el profesor ha puesto en Classroom, ejemplos resueltos incluidos. 1) Nombra cada fotocopia con su fecha. 2) Reparte todos los problemas en el menor número de patrones posible: una fórmula es un patrón, y usarla al derecho o al revés, despejando otra incógnita, es el mismo patrón; un patrón también puede ser una cadena de fórmulas o una clasificación sin fórmula. Pon una tabla Patrón | Problemas | El más difícil en la que cada problema esté en un solo patrón; señala los problemas que se repiten en dos fotocopias y marca con ★ los que el profesor mandó hacer. 3) Di en qué orden repasarlos, unos diez minutos por patrón. 4) Para cada patrón, el problema más difícil, uno de los mandados si lo hay: su enunciado copiado tal cual en su idioma, su traducción al castellano y por qué es el más difícil; puedes añadir otro del mismo patrón para si sobra tiempo. 5) Después, bajo el título «Soluciones», cada uno de esos problemas resuelto con su planteamiento. 6) Al final, bajo el título «Soluciones impresas que no cuadran», recalcula cada resultado que imprimen las fotocopias, compáralo con la precisión con que está impreso y pon en una tabla Problema | Impreso | Calculado | Qué pasa cada uno que no coincida, y cada enunciado al que le falte un dato con el resultado de cada lectura. Si la diferencia solo viene de redondear antes del final, dilo junto a su solución y no lo pongas en la tabla. No culpes ni nombres a nadie. Cada término, primero en {language} y después en castellano. Comprueba dos veces cada número.
 ```
+
+## Study guide — 0, the entry point
+
+The pack's first piece: `0 · Guía de estudio · Empieza aquí`, a report, so every viewer sees it. It
+is **only the plan** — order, sessions, minutes, breaks, what the student can do at the end — and
+points at the other pieces by number. **No theory**: the operator found the first version, plan plus
+content, "muy densa" (2026-10-29). It replaces the ordinary start note below; `exam prep` still
+writes its own. Write the plan yourself, with the real numbers and the notes' pages, and check
+after downloading that it came back unchanged, or regenerate.
+
+`nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`
+
+```text
+Copia TAL CUAL el bloque de texto en Markdown de abajo, sin cambiar ni una palabra, ni un número, ni el orden, y sin añadir nada antes ni después: ni título, ni introducción, ni teoría, ni explicaciones, ni despedida.
+
+{plan}
+```
+
+`{plan}` is Markdown the agent writes, in Spanish, short. The whole topic fits in **two hours at
+most: two 45-minute blocks with a 15-minute break** (an hour and a half of study), the operator's
+limit (2026-10-29), done in one day or two:
+
+- a table `Nº | Pieza | Para qué`, 0 first, **every video linked straight to its copy in Drive**
+  (`https://drive.google.com/file/d/<id>/view`; Drive for desktop gives the id as the file's
+  `com.google.drivefs.item-id#S` extended attribute), and the topic's `notebook/` folder linked once
+  — always, whether the notebook shows the video or not (spec 002 FR-039);
+- **block A, the videos**: for each one, the student draws his own scheme while watching (branches
+  and short sentences, with the word in the subject's language), then compares its branches with the
+  notebook's mind map (it carries no text) and its text with that block's part of the summary,
+  correcting only the essentials in another colour;
+- the 15-minute break, away from screens;
+- **block B, checking**: practice, quiz, flashcards, each with its minutes, and five minutes to mark
+  in his scheme what he got wrong;
+- **what he can do when it ends**: draw his schemes without looking and explain each branch in one
+  sentence, with the word in the subject's language.
+
+## Summary of the notes
+
+`N · Resumen de tus apuntes · <topic>`, numbered after the videos and the mind map: what the student studies from. The notes condensed on their
+own schemes (constitution X), one part per content block (`{blocks}`), each studied with its video, half a page each at most.
+
+`nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`
+
+```text
+Resumen para estudiar, corto y fácil de leer, para un alumno de {grade} que da la asignatura en {language}. Título: «Resumen de tus apuntes · {topic}». Condensa SOLO lo que dicen los apuntes del alumno, siguiendo sus esquemas y con sus mismas palabras; usa el libro solo para aclarar o corregir una rama, nunca para añadir temas nuevos. Una parte por bloque, cada una de media página como máximo, en este orden: {blocks}. Formato de cada parte: el esquema como lista con sangría, en el orden de sus apuntes; cada rama con UNA sola línea corta de explicación y el término en {language} entre paréntesis. Al final de cada parte, una línea «Lo que más se confunde:» con la confusión típica de esa parte. Sin introducción, sin conclusiones, sin preguntas, sin tablas largas.
+```
+
+First used 2026-10-29 for one biology topic; whether these times and this length suit the student
+is a hypothesis.
 
 ## Start note
 

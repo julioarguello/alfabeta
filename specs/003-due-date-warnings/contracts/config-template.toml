@@ -1,0 +1,23 @@
+# Keys this spec adds to spec 001's config/template.toml.
+# Every value is an example. The student's real file lives outside the repository.
+
+[calendar]
+# (id and shared_with are spec 004's and spec 001's.)
+# Whether alfabeta writes the calendar at all (constitution VII: an output enabled by configuration).
+enabled = false
+# The one time of day warnings ring, every day of the week, weekends and holidays included (FR-008).
+home_slot = "changeme"              # e.g. "17:30"
+# The school's break, every day: events of a subject with no session that day sit here (FR-023).
+break_start = "changeme"            # e.g. "11:00"
+break_end = "changeme"              # e.g. "11:30"
+# Whether due-date and exam events carry their warnings as reminders. false writes the events only.
+# Switch it on only after the delivery check is on record and the replay's counts are accepted (SC-003, SC-006).
+warnings = false
+
+[[timetable]]
+# One table per session of the school's timetable. The subject is a [[subjects]] folder.
+# Two sessions of one subject on one weekday are a warning; the first places events. Times "HH:MM".
+weekday = "changeme"                # e.g. "monday"
+start = "changeme"                  # e.g. "09:00"
+end = "changeme"                    # e.g. "09:55"
+subject = "changeme"                # e.g. "Mates"

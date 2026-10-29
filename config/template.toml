@@ -35,7 +35,7 @@ mirrors = ["changeme"]              # e.g. ["~/Library/CloudStorage/GoogleDrive-
 # The family calendar alfabeta writes to, as the student's Gmail (spec 004). Never printed.
 id = "changeme@group.calendar.google.com"
 # Accounts the student's calendar is shared with, each with permission to see all event details
-# (FR-011b; the calendar is built by the reminders epic). [] for none.
+# (FR-011b; the operator shares it by hand, spec 003 research R13 checks it). [] for none.
 shared_with = ["changeme@example.org"]
 
 [downloads]
