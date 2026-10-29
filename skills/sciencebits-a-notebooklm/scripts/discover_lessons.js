@@ -5,7 +5,9 @@
   const hex2s = h => h.match(/../g).map(b => String.fromCharCode(parseInt(b, 16))).join('');
   const opened = [];
   const orig = window.open;
-  window.open = (u) => { opened.push(u); return null; };
+  // Science Bits alerts «ventanas emergentes bloqueadas» when window.open returns nothing, and the
+  // alert freezes the tab (measured 2026-10-29), so the stub hands back a stand-in window.
+  window.open = (u) => { opened.push(u); return { closed: false, focus() {}, close() {}, location: {} }; };
   const btns = [...document.querySelectorAll('[onclick^="verleccion1"]')];
   for (const b of btns) { b.click(); await new Promise(r => setTimeout(r, 600)); }
   window.open = orig;

@@ -86,6 +86,10 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
 2. **Open Science Bits.** `preview_start(sciencebits.url)` (if it asks for permission: `request_access` scope "site").
    If the login page or "Your session has expired" shows up: ask the user to sign in in the browser pane,
    ticking "Remember me on this device", and wait for their "ready". Never type credentials.
+   The browser needs two site settings for learning-bits.com, which the family sets (never you):
+   «Pop-ups and redirects → Allow» and «Automatic downloads → Allow». Measured 2026-10-29 in Chrome:
+   without the second, only the first lesson zip arrives and the rest wait for it. Check that the
+   first two zips reached `raw/` before leaving the capture alone.
 3. **Find the topic.** `get_page_text` lists classes and units. With `find`, locate "Acceder a la unidad" (Go to the
    unit) and navigate to that URL. Note the title in each of `sciencebits.languages` (same URL with
    `/intranet/<language>/`, e.g. `/intranet/en/`).
