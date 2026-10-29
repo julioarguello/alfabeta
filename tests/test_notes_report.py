@@ -8,6 +8,7 @@ import re
 from dataclasses import replace
 from typing import Any
 
+import pytest
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate
@@ -351,3 +352,54 @@ def test_records_older_than_the_report_are_its_baseline_not_news():
     last = reports(drive)[-1]
     assert "- 1 página nueva en el archivo vivo." in last  # foto-2 only
     assert "Texto de b" in answerer.prompts[0] and "Texto de a" not in answerer.prompts[0]
+
+
+# --- what the re-review of #70 found ---------------------------------------------------------------
+
+
+def test_a_waiting_comparison_of_a_topic_that_left_drive_is_dropped_not_a_crash():
+    drive = with_pack()
+    drive.folder("ap2", "notes", "t9")
+    drive.folder("t9", "20261101 - Tema 09 - Otro", "fyq")
+    answerer = ScriptedAnswerer([Transcription(PhotoState.BUDGET_WAIT)])
+    clock = FixedClock()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), clock, answerer=answerer))
+    assert state_of(drive)["reported"]["compare"] == {TOPIC: ["foto-1"]}
+    for fid in [f for f, item in drive.files.items() if TOPIC in item.parents or f == TOPIC]:
+        del drive.files[fid]  # the topic folder and everything under it moved out of alfabeta/
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b", parent="ap2")
+    clock.when += dt.timedelta(days=1)
+    feed = ScriptedFeed(drive, [["foto-2"]])
+    result = run_notes(deps(drive, feed, ScriptedTranscriber(), clock, answerer=answerer))
+    assert result["ok"] and state_of(drive)["reported"]["compare"] == {}
+
+
+def test_the_budget_does_not_flap_while_a_refused_photo_still_waits():
+    drive = MemoryDrive.topic()
+    for n in (1, 2):
+        drive.put(f"foto-{n}", f"{n}.jpg", "image/jpeg", str(n).encode())
+    set_up(drive)
+    clock = FixedClock()
+    refused = ScriptedTranscriber([Transcription(PhotoState.BUDGET_WAIT)])
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), refused, clock))
+    assert f"- Comienza: {report._CONDITIONS['budget']}." in reports(drive)[0]
+    clock.when += dt.timedelta(hours=1)  # the limit is raised: the same day, another photo is answered
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), ScriptedTranscriber(), clock))
+    clock.when += dt.timedelta(hours=1)
+    run_notes(deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber(), clock))
+    said = "".join(reports(drive))
+    assert said.count(f"Comienza: {report._CONDITIONS['budget']}") == 1
+    assert said.count(f"Resuelto: {report._CONDITIONS['budget']}") == 0  # foto-1 still waits for its day
+
+
+@pytest.mark.parametrize("error", [NotImplementedError("filtro"), KeyError("/Root"), RecursionError()])
+def test_any_error_of_the_pdf_parser_is_one_line(monkeypatch: pytest.MonkeyPatch, error: BaseException):
+    def broken(pdf: bytes) -> str | None:
+        raise error
+
+    monkeypatch.setattr(report, "guide_section", broken)
+    drive = with_pack()
+    result = run_notes(
+        deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=ScriptedAnswerer())
+    )
+    assert result["ok"] and report.NO_PDF in reports(drive)[0]

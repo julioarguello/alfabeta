@@ -21,9 +21,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from pypdf import PdfReader
-from pypdf.errors import PyPdfError
 
-from alfabeta.google.drive import DriveError
+from alfabeta.google.drive import DriveError, OutsideFolderError
 from alfabeta.notes.model import Health, ItemState, Kind, LivingKind, PhotoState, Review, SpendLedger, Usage, reportable
 
 if TYPE_CHECKING:
@@ -153,6 +152,10 @@ class ReportDrive(Protocol):
 
     def listed(self, item_id: str) -> DriveFile:
         """The item as the run's listing holds it."""
+        ...
+
+    def contains(self, item_id: str) -> bool:
+        """Whether the item is under the root, as listed this run."""
         ...
 
     def lookup(self, folder_id: str, name: str) -> DriveFile | None:
@@ -346,7 +349,11 @@ def _conditions(changes: Changes, before: dict[str, Any], now: dict[str, Any]) -
 
 def printable_pack(drive: ReportDrive, topic: str) -> DriveFile | None:
     """The topic's `Tema NN para imprimir · <title>.pdf` in its `notebook/`, or None."""
-    for folder in drive.children(topic):
+    try:
+        listed = drive.children(topic)
+    except OutsideFolderError:
+        return None  # moved out of the alfabeta folder or trashed since its pages arrived
+    for folder in listed:
         if folder.is_folder and folder.name == NOTEBOOK_FOLDER:
             found = [f for f in drive.children(folder.id) if not f.is_folder and _PRINTABLE.match(f.name)]
             return sorted(found, key=lambda f: f.name)[0] if found else None
@@ -383,11 +390,13 @@ def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges
     if pack is None:
         return [NO_PACK]
     try:
-        guide = guide_section(deps.drive.content(pack.id))
+        data = deps.drive.content(pack.id)
     except DriveError:
         return [NO_ANSWER]
-    except (PyPdfError, ValueError):
-        return [NO_PDF]  # damaged or encrypted: the run goes on (FR-013 reports, never stops)
+    try:
+        guide = guide_section(data)
+    except Exception:  # a third-party parser over a file the run did not write: PyPdfError and others
+        return [NO_PDF]  # damaged, encrypted or unusual: the run goes on (FR-013 reports, never stops)
     if guide is None:
         return [NO_GUIDE]
     if deps.answerer is None:
@@ -492,6 +501,8 @@ def write_report(deps: NotesDeps, work: Pass, started: dt.datetime) -> str | Non
         return None  # a comparison waiting from an earlier report waits for one with something new
     topics = cast("dict[str, dict[str, Any]]", work.state.get("topics", {}))
     for topic, waiting in sorted(cast("dict[str, list[str]]", before.get("compare", {})).items()):
+        if not deps.drive.contains(topic) or topic not in topics:
+            continue  # the topic left the alfabeta folder: its waiting comparison goes with it
         if topic not in changes.topics:
             changes.topics[topic] = TopicChanges(str(topics.get(topic, {}).get("name", "tema")))
         new = changes.topics[topic].new_pages
@@ -507,10 +518,8 @@ def write_report(deps: NotesDeps, work: Pass, started: dt.datetime) -> str | Non
         if section.new_pages
     }
     now["compare"] = {t: changes.topics[t].new_pages for t, said in adds.items() if said[0] in _DEFERRED}
-    if work.claude_answered:
-        now["conditions"]["budget"] = False  # an answered call this pass: the budget is not spent…
     if work.budget_refused:
-        now["conditions"]["budget"] = True  # …unless a later one, such as the comparison, was refused
+        now["conditions"]["budget"] = True  # the comparison itself met the spent budget
     if now["conditions"]["budget"]:
         now["budget_day"] = work.today if work.budget_refused else before.get("budget_day", work.today)
     _conditions(changes, before, now)

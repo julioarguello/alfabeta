@@ -120,6 +120,8 @@ class MemoryDrive:
             raise DriveError("Drive API returned 500", 500)
 
     def children(self, folder_id: str) -> list[DriveFile]:
+        if not self.contains(folder_id):
+            raise OutsideFolderError  # as ScopedDrive: an id outside the listing is refused
         found = (f for f in self.files.values() if folder_id in f.parents and not f.trashed)
         return sorted(found, key=lambda f: (f.name, f.id))
 
