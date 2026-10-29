@@ -21,6 +21,7 @@ from alfabeta import (
     __version__,
     agenda,
     anonymize,
+    book,
     config,
     decisions,
     downloads,
@@ -28,6 +29,7 @@ from alfabeta import (
     plan,
     replicas,
     sandbox,
+    sources,
     state,
 )
 from alfabeta.classification import CANDIDATE, Classifier
@@ -126,6 +128,92 @@ def _cmd_log_stop(args: argparse.Namespace, home: Path) -> int:
         with contextlib.suppress(state.LockError):
             lock.release(run)
     _emit({"ok": True})
+    return EXIT_OK
+
+
+def _cmd_log_notebook(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        line = book.notebook_line(
+            run, dt.datetime.now(MADRID).isoformat(), args.topic, args.result, args.reason, args.shares
+        )
+        lock.renew(run)
+    except book.BookError as err:
+        return _fail(err.reason, EXIT_INVALID, str(err))
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    config.load_all(home, args.student)
+    state.StateStore(lock.data_dir).log(line)
+    _emit({"ok": True})
+    return EXIT_OK
+
+
+def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        lock.renew(run)
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    cfg = config.load_all(home, args.student)
+    if not cfg.base.is_dir():
+        return _fail(
+            str(StopReason.DRIVE_NOT_MOUNTED), EXIT_INVALID, "the base folder is not there; nothing was written"
+        )
+    store = state.StateStore(lock.data_dir)
+    current = store.load()
+    try:
+        subject = book.book_subject(cfg.subjects, args.subject)
+        topic, number = book.book_topic(args.topic)
+        origin = Path(args.origin).expanduser()
+        if not origin.is_dir():
+            raise book.BookError("no_origin", "the origin folder is not there")
+    except book.BookError as err:
+        return _fail(err.reason, EXIT_INVALID, str(err))
+    placer = book.BookPlacer(cfg.base, cfg.school_year, subject, json.loads(json.dumps(current)), decisions.today())
+    line: dict[str, Any] = {
+        "type": "book",
+        "at": dt.datetime.now(MADRID).isoformat(),
+        "run": run,
+        "source": subject.book,
+        "subject": subject.folder,
+        "topic": topic,
+    }
+    try:
+        folder = placer.place(sources.BookSource(subject.book, origin=origin), topic, number)
+    except book.BookError as err:
+        return _fail(err.reason, EXIT_INVALID, str(err))
+    except OSError:
+        # What was copied before the failure is recorded, so the next run finds it (constitution VII).
+        if placer.state != current:
+            store.save(placer.state)
+        store.log(line | {"result": "failed", "reason": "write_failed", "placed": len(placer.placed)})
+        return _fail("write_failed", EXIT_INVALID, "a file could not be written in the base folder; run it again")
+    if placer.state != current:
+        store.save(placer.state)
+    mirrors = book.refresh(cfg.base, cfg.mirrors)
+    result = "placed" if placer.placed else "unchanged"
+    store.log(line | {"result": result, "mirrors": mirrors})
+    print(
+        f"alfabeta: libro en {folder}: {len(placer.placed)} colocados, {len(placer.unchanged)} sin cambios",
+        file=sys.stderr,
+    )
+    if placer.previous:
+        print(f"alfabeta: versiones anteriores guardadas: {len(placer.previous)}", file=sys.stderr)
+    if cfg.mirrors:
+        print(f"alfabeta: espejos al día: {mirrors['up_to_date']}, fallidos: {mirrors['failed']}", file=sys.stderr)
+    _emit(
+        {
+            "ok": True,
+            "result": result,
+            "folder": folder,
+            "placed": placer.placed,
+            "unchanged": placer.unchanged,
+            "previous": placer.previous,
+            "mirrors": mirrors,
+        }
+    )
     return EXIT_OK
 
 
@@ -560,6 +648,18 @@ def build_parser() -> argparse.ArgumentParser:
     log = groups.add_parser("log", help="the run log").add_subparsers(dest="verb", required=True)
     stop = log.add_parser("stop", help="write the stopped line of a run halted before apply")
     stop.add_argument("--reason", required=True)
+    log_notebook = log.add_parser("notebook", help="write the line of a book topic's notebook step")
+    log_notebook.add_argument("--topic", required=True, help="Tema NN - <title>")
+    log_notebook.add_argument("--result", required=True, help=", ".join(book.NOTEBOOK_RESULTS))
+    log_notebook.add_argument("--reason", help="short, without student data; required with failed")
+    log_notebook.add_argument("--shares", help="<invited>,<already>,<failed>: counts over [notebook] share_with")
+    book_group = groups.add_parser("book", help="a book provider's result (spec 001 US4)").add_subparsers(
+        dest="verb", required=True
+    )
+    book_place = book_group.add_parser("place", help="place what a book provider built in its topic's folder")
+    book_place.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
+    book_place.add_argument("--topic", required=True, help="Tema NN - <title>")
+    book_place.add_argument("--origin", required=True, help="the folder where the provider left its files")
 
     cfg_group = groups.add_parser("config", help="the student's configuration").add_subparsers(
         dest="verb", required=True
@@ -607,6 +707,8 @@ def build_parser() -> argparse.ArgumentParser:
         renew,
         release,
         stop,
+        log_notebook,
+        book_place,
         propose,
         confirm,
         correct,
@@ -650,7 +752,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.group == "lock":
             return _cmd_lock(args, home)
         if args.group == "log":
-            return _cmd_log_stop(args, home)
+            return _cmd_log_stop(args, home) if args.verb == "stop" else _cmd_log_notebook(args, home)
+        if args.group == "book":
+            return _cmd_book_place(args, home)
         if args.group == "decisions":
             return _cmd_decisions(args, home)
         if args.group == "plan":

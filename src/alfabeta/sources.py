@@ -1,9 +1,9 @@
 """Where items come from (spec 001 data-model, Source).
 
 A source has a `name`, which is also its subfolder inside each topic folder (`classroom`, or the
-book provider's name such as `sciencebits`), and yields normalized items. `ClassroomSource` reads
-the extractor's captures (US1) and `BookSource` a book provider's result (US4); both are filled in
-with their stories, and this module fixes the shape the placer and `apply` rely on.
+book provider's name such as `sciencebits`). `ClassroomSource` yields the normalized items of the
+extractor's captures (US1); `BookSource` is the directory where a book provider left what it built
+for one topic (US4), whose `files()` `book place` copies as they are.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
+    from pathlib import Path
 
     from alfabeta.capture import ClassCapture
     from alfabeta.model import Item
@@ -57,10 +58,11 @@ class ClassroomSource:
 
 @dataclass(frozen=True)
 class BookSource:
-    """A book provider's result for one subject; its name is the provider's (`sciencebits`)."""
+    """A book provider's result for one topic, in `origin`; its name is the provider's (`sciencebits`)."""
 
     provider: str
     items_seen: tuple[Item, ...] = ()
+    origin: Path | None = None
 
     @property
     def name(self) -> str:
@@ -70,3 +72,9 @@ class BookSource:
     def items(self) -> Iterator[Item]:
         """The book's items."""
         yield from self.items_seen
+
+    def files(self) -> list[Path]:
+        """The files the provider built: the regular files at the top of `origin`, by name; hidden ones are not its."""
+        if self.origin is None or not self.origin.is_dir():
+            return []
+        return sorted(p for p in self.origin.iterdir() if p.is_file() and not p.name.startswith("."))

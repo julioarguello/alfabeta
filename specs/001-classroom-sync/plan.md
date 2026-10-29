@@ -69,7 +69,7 @@ year.
 
 | Principle | How the plan meets it | Status |
 |---|---|---|
-| I. The student is configuration | `--student <id>` (an opaque alias) selects a folder `~/.alfabeta/<id>/`; the code knows no students, schools, school years, grade levels or accounts. Science Bits' existing `build.py` defaults to a specific grade level, subject and topic: T057 removes those defaults and makes their configuration mandatory | Temporary exception until T057 (see Complexity Tracking) |
+| I. The student is configuration | `--student <id>` (an opaque alias) selects a folder `~/.alfabeta/<id>/`; the code knows no students, schools, school years, grade levels or accounts. Science Bits' `build.py` takes the topic's texts only from its mandatory `--config` (T057, #10) | Pass |
 | II. Three layers that never mix | `config/template.toml` in the repo; `config.toml` outside it; decisions, state and other data in `data/`; keys validated against the template; guardrail in pre-commit and CI with a self-test | Pass |
 | III. Minors' data | Nothing personal in URLs (the account is located by its `/u/<n>` index, comparing the email locally), in the log (opaque ids, relative paths, never the absolute path of the root) or in the repository: test pages are synthetic (only the structure of the real ones; every text and attribute invented). Classmates' comments and names are not stored. The student's grades, gradings and submissions are stored because they are study material, and they go to a family folder, not to third parties | Pass |
 | IV. Read-only on the school's platforms | The extractor only reads the DOM; it navigates only to the home page, «Trabajo de clase» (Classwork), the stream and the detail page; it never follows forms or quizzes and never clicks the «Tu trabajo» (Your work) panel (a `jsdom` test checks this); it detects anti-bot challenges and stops; at least 2 s between pages. Reading a question's detail page is not opening a quiz: opening one means answering it or following its form, and S3 checks that reading it changes nothing (if it did, questions are read from the listing only) | Pass |
@@ -280,12 +280,13 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title>/<book>/` inside the Drive root (the subfolder is
   the value of `book`), with the same hash and previous-version rules as Classroom, and then brings the
   mirrors up to date as `apply` does. It reuses the
-  existing folder whose name contains `Tema NN - `, whatever its date; only if there is none does it
-  create one dated today.
+  existing folder named `Tema NN - <title>` after its date, whatever the date and the title (of two,
+  the one already holding `<book>/`); only if there is none does it create one dated today.
 - It neither reads nor writes Dropbox; what was captured there before stays as it is.
 - The Gemini Notebook notebook stays as today, enabled or not with `[notebook] enabled`, until
-  epic 3. In the `nlm` step the skill lists the notebook's sources and adds only the missing ones
-  (constitution V: repeating a topic does not duplicate sources). It then shares the notebook as
+  epic 3. In the `nlm` step the skill lists the notebook's sources, adds only the missing ones and replaces
+  the source of a file `book place` placed again because it changed (constitution V: repeating a topic
+  does not duplicate sources, and a change reaches the notebook). It then shares the notebook as
   viewer with each account in `[notebook] share_with` that `nlm share status` does not already list
   (`nlm share invite <id> <account> --role viewer`; FR-011b). Measured 2026-10-26: the school domain
   allows a notebook owned by a personal Gmail account to be shared with the school account as
@@ -337,7 +338,6 @@ guardian email summaries (research R16).
 |---|---|---|
 | Node and `jsdom` as development dependencies (IX) | The constitution requires testing every extractor against saved pages, and the extractor is JavaScript | Reimplementing the extraction in Python would duplicate the logic and would not test the code that runs in the browser |
 | `jsonschema` as a development dependency (IX) | Tests check captures and agendas against the full contracts | Checking the whole schema by hand in the tests would repeat the contract in code; at runtime the essential keys are checked by hand, with no dependency |
-| Defaults for a specific grade level, subject and topic in Science Bits' existing `build.py` (I), until T057 | They have been on `main` since before this spec; T057, in the US4 phase, removes them | Removing them in the spec PR would mix code into a documentation-only PR (Development workflow) |
 | A scheduled cloud job (IX), for User Story 7 only | The operator excludes their Mac and their browser from the unattended read, and the read must happen with nobody present (constitution 2.0.0, the second named need after spec 005, measured 2026-10-27) | The desktop app's scheduled task needs the Mac on and the operator's browser; GitHub Actions publishes its logs in a public repository; IX (2.0.0) commits a Mac-off need to the operator's Google Cloud project (research R17) |
 | A vault for a minor's sign-in credential (III), for User Story 7 only | The school session is too short to reuse and Google refuses an automated password sign-in, so an unattended read needs a stored token (or, in the fallback, the password); III (2.0.0) permits it under limits | Reusing only a hand-signed session fails because the session expires «cada nada» (R16); a password typed live is impossible for Claude and barred for everyone before 2.0.0 (research R15) |
 | Playwright for Python and its Chromium as a runtime dependency (IX), in the runner's image only (web route only) | The web route must start a browser with no person in front of it, give it a session, and guard it request by request; the standard library cannot drive a browser | The Claude extension and the built-in browser need the Mac and a model; Chrome's remote debugging protocol by hand would rewrite what Playwright already tests; the token route needs no browser at all |

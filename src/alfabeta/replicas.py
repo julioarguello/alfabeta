@@ -164,8 +164,17 @@ def item_from_json(raw: dict[str, Any]) -> tuple[Item, str | None]:
     return item, raw.get("topic_title")
 
 
-def _previous_name(path: Path, today: dt.date) -> Path:
-    return path.with_name(f"{path.stem} (anterior {today.isoformat()}){path.suffix}")
+def previous_name(path: Path, today: dt.date) -> Path:
+    """Where a replica's previous version goes when it changes: «<name> (anterior YYYY-MM-DD)» (FR-015b).
+
+    A second change the same day numbers it « (2)», « (3)»…: a rename onto the first would delete it.
+    """
+    stem = f"{path.stem} (anterior {today.isoformat()})"
+    candidate, number = path.with_name(f"{stem}{path.suffix}"), 1
+    while candidate.exists():
+        number += 1
+        candidate = path.with_name(f"{stem} ({number}){path.suffix}")
+    return candidate
 
 
 @dataclass
@@ -243,7 +252,7 @@ class Applier:
             return True
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
-            shutil.move(str(destination), _previous_name(destination, self.today))
+            shutil.move(str(destination), previous_name(destination, self.today))
         shutil.move(str(incoming), destination)
         self.replicas[key] = {
             "role": str(target.role),

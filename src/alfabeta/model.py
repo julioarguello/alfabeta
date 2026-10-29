@@ -172,6 +172,7 @@ class StopReason(StrEnum):
     SESSION_EXPIRED = "session_expired"
     CHALLENGE = "challenge"
     UNEXPECTED_UI = "unexpected_ui"
+    TIMEOUT = "timeout"
     DRIVE_NOT_MOUNTED = "drive_not_mounted"
     LOCK_BUSY = "lock_busy"
     LOCK_NOT_HELD = "lock_not_held"
