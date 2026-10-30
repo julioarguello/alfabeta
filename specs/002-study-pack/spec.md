@@ -767,8 +767,10 @@ and cannot judge what the notebook writes.
     lesson its blocks do not cover (FR-044). A rejected split leaves the topic whole, and is
     proposed again only at the next of those moments. A confirmed subtopic is never split again.
   - **The first split of an existing topic** turns the `Tema NN` folder into subtopic `A`, which
-    holds the lessons its pack's blocks already cover (`bloques.md`), named in the split decision
-    the family confirms. The folder is renamed `Tema NNA - <title>`, keeping its date, its contents
+    holds the lessons the confirmed split decision gives it: those its pack's blocks already cover
+    (`bloques.md`) when the topic has a pack, or the first lessons in order when the split is made
+    at its first pack. If it is made at its first pack, A has nothing to keep: before any piece is
+    made, its notebook's whole-topic textbook is replaced by A's own lessons, as for a new subtopic. The folder is renamed `Tema NNA - <title>`, keeping its date, its contents
     and its Drive id, so its living files and their notebook sources stay where they are (spec 005
     FR-011 forbids moving them; a rename of their parent moves nothing); its notebook is renamed the
     same way (`nlm notebook rename`) and keeps its pack, which is subtopic A's; alfabeta's records

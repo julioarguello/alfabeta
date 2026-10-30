@@ -423,8 +423,9 @@ source and one living Classroom source, and that a second run adds nothing.
   second.
 - **FR-011**: alfabeta MUST NOT delete, rename or move a living file, nor remove a source from a
   notebook, except two: a changed textbook file the book provider places again replaces its old
-  source (the Science Bits skill's step 9), and the case spec 002 FR-043 allows on the family's
-  word (subtopic A's whole-topic textbook, when its mind map is remade). A living file that is missing, trashed or outside its own folder of the topic
+  source (the Science Bits skill's step 9), and a subtopic split (spec 002 FR-043) replacing
+  subtopic A's whole-topic textbook with its own lessons — before A's first piece when the split
+  is made at the topic's first pack, or when A's mind map is remade, on the family's word. A living file that is missing, trashed or outside its own folder of the topic
   (`notes/` or `classroom/`) is reported and is not recreated.
 - **FR-012**: Adding material MUST NOT regenerate any study piece. The run reports what the new
   material adds against the topic's theory: its theory guide (spec 002 FR-004), else «Resumen de
