@@ -241,6 +241,10 @@ the final implementation.
   all 10 on that block (one drew on the excretion lesson's paragraph about water vapour in exhaled
   air, still about breathing). Per-block pieces inside one notebook are possible; the operator
   still chose one notebook per subtopic.
+- Q: How is an exam over several subtopics prepared? → A: By preparing each of its subtopics'
+  notebooks (the operator: «que preparar un examen sea preparar todos los cuadernos»), rather than
+  a temporary exam notebook or the last subtopic's notebook holding everyone's sources, which were
+  the two alternatives put to him (FR-045).
 - Q: Does the 45-minute limit still hold with five videos? → A: The limit is the length of a study
   block, not of the topic. The guide gives each video about 15 minutes (watch, draw his own scheme,
   compare it), so a videos block holds three; five videos and the checking block do not fit in two
@@ -762,14 +766,16 @@ and cannot judge what the notebook writes.
   - material that redoes a subtopic's scheme makes that subtopic's pack again, only on the family's
     word, and only that subtopic's.
 
-  A piece that covers more than one subtopic is never made as material arrives: only for an exam
-  (FR-045).
-- **FR-045**: An exam that covers several subtopics MUST get its mixed pieces (a quiz and a practice
-  sheet over every subtopic it names) and the sheets for the day before (`exam prep`, FR-029 onward) from the
-  sources of all those subtopics. [NEEDS CLARIFICATION: proposed on 2026-10-30, not yet confirmed
-  by the operator — a temporary exam notebook whose sources are the named subtopics' living files
-  and textbook, made when the exam is known and deleted after it; the alternative is to make the
-  mixed pieces in the notebook of the last subtopic, adding the others' sources there.]
+  No piece covers more than one subtopic, an exam's included (FR-045).
+- **FR-045**: Preparing an exam that covers several subtopics MUST mean preparing each of their
+  notebooks, as for any topic: `exam prep` runs once per subtopic the exam names, from that
+  subtopic's own sources, and its sheets for the day before are printed together in the
+  subtopics' order; the study slot is shared among them, and the plan says which part of the slot
+  each one takes. No notebook spans subtopics and no piece mixes them (the operator, 2026-10-30:
+  «que preparar un examen sea preparar todos los cuadernos»). What this gives up is mixed practice
+  across subtopics and questions that join them (the blood carrying oxygen from the lungs and
+  nutrients from the intestine crosses three Bio subtopics); a mixed piece is added only if a real
+  exam shows such questions, measured against that exam.
 
 **Structure from the student's schemes**
 
