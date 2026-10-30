@@ -648,8 +648,8 @@ and cannot judge what the notebook writes.
   sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014),
   numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
   them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's `exam/` folder,
-  whose name carries no date: `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
-  `exam/Problemas tipo · TNN (<D> <mmm>).pdf`, with the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
+  whose name carries no date: `exam/Teoría para el examen · TNN[X] (<D> <mmm>).pdf` and
+  `exam/Problemas tipo · TNN[X] (<D> <mmm>).pdf`, with the topic's or subtopic's number and the exam's date. The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level. Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
@@ -658,7 +658,8 @@ and cannot judge what the notebook writes.
   reviews with the student, as observed 2026-10-28. No agent writes either sheet.
 - **FR-030**: The exam's scope MUST come from the teacher's announcement of the exam, as spec 001
   captures it (text and date). The topic is the one the family names, or else the subject's most
-  recent topic (FR-023): spec 001 files announcements outside any topic. The theory sheet quotes the
+  recent topic (FR-023): spec 001 files announcements outside any topic. An exam over several
+  subtopics names each of them (FR-045). The theory sheet quotes the
   announcement in its language with its date, its sections are the announcement's points in the
   announcement's order, and it says what of the topic the announcement leaves out. When the exam has
   no captured announcement, including an exam spec 001 detected in a material or an assignment, the
@@ -729,8 +730,9 @@ and cannot judge what the notebook writes.
   When that textbook lacks lessons the topic covers, they MUST be captured first; only if the
   capture fails is a term taken from an external reference, named in the transcription and in
   `bloques.md`, and every prompt then lists the terms to use (measured 2026-10-30: capture had
-  stopped at lesson 5 of 9). A term list given to a prompt MUST be taken from the textbook's text
-  by search, never written from memory, and every piece is checked against it after download:
+  stopped at lesson 5 of 9). A term list given to a prompt MUST be taken by search from the
+  textbook's text (or, for lessons it lacks, from the external reference named above), never
+  written from memory, and every piece is checked against it after download:
   on 2026-10-30 a list written by hand carried «heste mehea» where the textbook says «heste
   meharra», the quiz and the flashcards that received it used it, and the summary and the practice
   sheet, given no list for those blocks, wrote «azido grasoak», «higadoa» and «peristalpikoak»; all
@@ -743,39 +745,61 @@ and cannot judge what the notebook writes.
   as many days as its blocks need, and the guide says which day each block belongs to. Nothing is
   marked optional to make it fit. (The operator capped the topic at two hours on 2026-10-29; on
   2026-10-30 the topic grew to five videos and the cap became per block.)
+
 **Subtopics of a textbook topic**
 
-- **FR-043**: In a subject with a textbook, a textbook topic MUST be split along its lessons into
-  subtopics, and each subtopic MUST be handled as a topic of its own (constitution 2.4.0): its folder
-  `<YYYYMMDD> - Tema NNX - <title>`, its notebook, its `bloques.md` and its pack, made with every
-  rule of this spec as for any topic. A subtopic holds one lesson, or consecutive lessons whose
-  blocks fit one study day (three videos at most, FR-042); a lesson the notes never treat on its own
-  (an introduction, an experiment) joins the subtopic that follows it. Its title is its lesson's,
-  or one naming the lessons it groups. The letters follow the lessons' order and never change once
-  given. A split is a proposal the family confirms (`alfabeta decisions`); a confirmed subtopic is
-  never split again. Inside a subtopic the blocks are its scheme's branches (FR-038). A topic short
-  enough for one study day has a single subtopic and keeps its `Tema NN` name. Subjects without a
-  textbook are not split by this requirement; how they are is decided when the family first
-  prepares one (2026-10-30).
-- **FR-044**: When new material reaches a textbook topic, each page or item MUST first be matched to
-  the lesson whose heading covers it (spec 005 FR-020), and then:
-  - a lesson that already belongs to a subtopic sends it to that subtopic, where it produces the
-    "what it adds" report only (spec 005 FR-012);
-  - a lesson with no subtopic yet proposes one (FR-043); confirming it creates its folder, its
-    notebook and its pack, and nothing of the other subtopics is made again;
+- **FR-043**: In a subject with a textbook, alfabeta MUST propose splitting a textbook topic along
+  its lessons into subtopics, and each confirmed subtopic MUST be handled as a topic of its own
+  (constitution 2.4.0): its folder `<YYYYMMDD> - Tema NNX - <title>`, its notebook, its
+  `bloques.md` and its pack, made with every rule of this spec as for any topic.
+  - **What a subtopic holds**, read from the textbook alone: one lesson; a lesson with no content
+    of its own (an introduction, an experiment, a recap) joins the lesson after it. Consecutive
+    lessons are one subtopic when the family says so, or when one scheme of the notes spans them
+    and cannot be cut by branch (constitution X: the textbook is hung from the scheme, never the
+    reverse). Its title is its lesson's, or one naming the lessons it groups; its letter follows the
+    lessons' order and never changes once given.
+  - **When**: the split is proposed when material arrives for a lesson outside the topic's
+    confirmed subtopics (FR-044), as a decision the family confirms or rejects (`alfabeta
+    decisions`). A rejected split leaves the topic whole, and is proposed again only when material
+    for yet another lesson arrives. A confirmed subtopic is never split again.
+  - **The first split of an existing topic** turns the `Tema NN` folder into subtopic `A`: the
+    folder is renamed `Tema NNA - <title>`, keeping its date, its contents and its Drive id, so its
+    living files and their notebook sources stay where they are (spec 005 FR-011 forbids moving
+    them; a rename of their parent moves nothing); its notebook is renamed the same way and keeps
+    its pack, which is subtopic A's; alfabeta's records follow the rename in the same step. Only
+    lessons outside subtopic A get new folders. A topic never split keeps its `Tema NN` name.
+  - **Its sources**: each subtopic's notebook takes the textbook of its own lessons only (the
+    topic's textbook Markdown cut at its `## Lección` headings), so no piece of it, the mind map
+    included, reads another subtopic's lessons; its `sciencebits/` folder holds the whole topic's
+    files (spec 001 FR-013).
+  - **Its date**: the posting date of its first Classroom material, or the day it is created when
+    notes or the split create it (spec 001 FR-012).
+  - Inside a subtopic the blocks are its scheme's branches (FR-038). Subjects without a textbook
+    are not split by this requirement; how they are is decided when the family first prepares one
+    (2026-10-30).
+- **FR-044**: When new material reaches a textbook topic, each page or item MUST be matched to the
+  lesson whose heading covers it, and the run reports it (spec 005 FR-020); alfabeta moves nothing
+  on its own. Then:
+  - in the folder of the subtopic that holds its lesson, it produces the "what it adds" report
+    only (spec 005 FR-012);
+  - for a lesson that no confirmed subtopic holds, it proposes a subtopic (FR-043); confirming it
+    creates its folder, its notebook and its pack, the family or the agent at its word moves the
+    pages there, and nothing of the other subtopics is made again;
   - material that redoes a subtopic's scheme makes that subtopic's pack again, only on the family's
     word, and only that subtopic's.
 
   No piece covers more than one subtopic, an exam's included (FR-045).
 - **FR-045**: Preparing an exam that covers several subtopics MUST mean preparing each of their
-  notebooks, as for any topic: `exam prep` runs once per subtopic the exam names, from that
-  subtopic's own sources, and its sheets for the day before are printed together in the
-  subtopics' order; the study slot is shared among them, and the plan says which part of the slot
-  each one takes. No notebook spans subtopics and no piece mixes them (the operator, 2026-10-30:
-  «que preparar un examen sea preparar todos los cuadernos»). What this gives up is mixed practice
-  across subtopics and questions that join them (the blood carrying oxygen from the lungs and
-  nutrients from the intestine crosses three Bio subtopics); a mixed piece is added only if a real
-  exam shows such questions, measured against that exam.
+  notebooks (the operator, 2026-10-30: «que preparar un examen sea preparar todos los cuadernos»):
+  `exam prep` takes one `--topic` per subtopic the exam covers and, for each, asks that subtopic's
+  own notebook for its two sheets, from its own sources, as FR-029 to FR-037 describe for a topic.
+  The study slot is shared in equal parts among them, in the subtopics' order, and each theory
+  sheet's plan covers its part only. A sheet's sections are the announcement's points its
+  subtopic's blocks cover (FR-030); a point no subtopic covers is listed on every sheet as not
+  covered. No notebook spans subtopics and no piece mixes them. What this gives up is mixed
+  practice across subtopics and questions that join them (the blood carrying oxygen from the lungs
+  and nutrients from the intestine crosses three Bio subtopics); a mixed piece is added only if a
+  real exam shows such questions, measured against that exam.
 
 **Structure from the student's schemes**
 

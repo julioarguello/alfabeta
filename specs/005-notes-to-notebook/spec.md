@@ -144,7 +144,8 @@ implementation.
 - Q: Which topic were they? → A: The family could not tell whether they made one topic, two or
   three. Matched against the textbook's lesson headings they were all the topic already in
   progress: digestion (lessons 3–5), the respiratory system (lesson 6), the circulatory system
-  (lesson 7). The report names that match for each new page (FR-020).
+  (lesson 7). The report names that match for each new page, and the subtopic it belongs to once
+  spec 002 FR-043 splits the topic (FR-020; code: julioarguello/alfabeta#146).
 - Q: What does a phone photo of a spiral notebook look like? → A: Four of the eight clearly showed
   the other side of the sheet through the paper, mirrored, and the other four faintly; one page was written sideways, a tree
   turned 90°. The transcription reads only the ink of the photographed side, and the stored page is

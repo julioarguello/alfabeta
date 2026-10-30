@@ -212,7 +212,8 @@ for the final implementation.
   book topic and sends a matched item to the subtopic its content covers (FR-013). Measured the
   same day: the code finds book topics with `Tema \d{2} - ` (`src/alfabeta/placement.py:43`), so a
   `Tema 02B - …` folder is not found today and `book place` would make a second `Tema 02 - …`
-  beside it. No subtopic folder is created until the code accepts the form.
+  beside it. No subtopic folder is created until the code accepts the form
+  (julioarguello/alfabeta#146).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -632,14 +633,15 @@ test.
   folder's root (constitution 2.2.0): beside the sources' folders sit `notes/` (spec 005),
   `notebook/` and `exam/` (spec 002). The first level is the school year (`2026-2027`), as in
   Science Bits today. Every topic folder starts with the posting date of its first Classroom
-  material (`YYYYMMDD - `), or with the day it is created if a book provider creates it first. The
+  material (`YYYYMMDD - `), or with the day it is created if a book provider, the student's notes or
+  a subtopic split (spec 002 FR-043) create it first. The
   date is set when the folder is created and MUST NOT change: alfabeta MUST find an existing topic
   folder by the part of its name after the date, whatever the date, and reuse it.
 - **FR-013**: Only a class linked to a configured subject is synced: alfabeta proposes
   the link from the class title stated in the configuration, the family confirms it once,
   and from then on the class identifier counts, not its title. Topic folders MUST be
-  named after the book topic (`<YYYYMMDD> - Tema NN - <title>`) when the subject has a book (the
-  book topics are the folders whose name contains `Tema NN - <title>`, whatever their date, that
+  named after the book topic (`<YYYYMMDD> - Tema NN[X] - <title>`) when the subject has a book (the
+  book topics are the folders whose name contains `Tema NN[X] - <title>`, whatever their date, that
   already have their book's subfolder in the Drive),
   and each teacher's topic MUST be matched to them as follows:
   - alfabeta proposes the match from everything it has: the number, the title in
