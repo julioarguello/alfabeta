@@ -782,7 +782,7 @@ and cannot judge what the notebook writes.
     language's textbook Markdown cut at that file's own lesson headings (`## Lección N:`,
     `## Ikasgaia N:`, `## Lesson N:`) — so no piece of it, the mind map included, reads another
     subtopic's lessons; its `sciencebits/` folder holds the whole topic's files (spec 001 FR-013).
-    Subtopic A of a first split is the one exception: its notebook already holds the whole topic's
+    Subtopic A of a split made after its pack is the one exception: its notebook already holds the whole topic's
     textbook, and its kept pack was made over its own blocks. A piece made for A later is asked
     with its blocks as focus (measured 2026-10-30: a quiz focused on one block of a five-block
     notebook came back 10 of 10 on that block); remaking A's mind map, which takes no focus, first

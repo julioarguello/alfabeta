@@ -405,7 +405,9 @@ source and one living Classroom source, and that a second run adds nothing.
   read-only with the account in `[notebook] owner` (the one
   that owns the notebooks) and with no other, and adds each, once, to the topic's notebook as a
   Drive source. Material that arrives later goes into them; no other source is added for it.
-- **FR-010**: Notes pages go into the living notes file in the order they were first seen. Each
+- **FR-010**: Notes pages go into the living notes file in the order they were first seen; a page
+  moved to another subtopic's `notes/` (spec 002 FR-044) leaves the first living file and enters the
+  second, as an item moved to another topic does. Each
   Classroom item, whether a file, a note or a folder (User Story 3), goes into the living Classroom
   file as one entry: a cover page (title, posting date, description and addresses from
   `descripcion.md` and `enlaces.md`), then the pages of each of its files: entries in posting
