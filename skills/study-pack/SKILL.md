@@ -45,6 +45,15 @@ email or an id into the repository.
   already confirmed, compare the announcement's points with `bloques.md`: a point no block covers
   gets one video for that point (step 3), numbered after the existing pieces; nothing else is made
   again.
+- **New notes reach a textbook topic** (spec 002 FR-043, FR-044): match each page to the textbook
+  lesson whose heading covers it — pages on a new body system or chapter are usually a later lesson
+  of the same textbook topic, not a new topic. A lesson that already has a subtopic: the page goes
+  to that subtopic's `notes/` and gets the "what it adds" report, nothing more. A lesson with no
+  subtopic yet: propose the subtopic (`Tema NNX - <lesson title>`, one lesson or consecutive
+  lessons that fit one study day); once the family confirms it, make its folder and notebook and run
+  every step below for it alone. Never make again a piece of another subtopic, and never make a
+  piece that spans subtopics outside an exam. If the textbook in the subject's language lacks the
+  new lessons, capture them before the quiz and the flashcards (FR-041).
 - **The day before an exam**, or when the family asks for the exam's sheets: alfabeta's own
   command, in [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper). It needs none
   of the steps below.

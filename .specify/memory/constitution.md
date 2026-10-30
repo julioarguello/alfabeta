@@ -223,12 +223,16 @@ follow (2026-10-29).
 - **Storage**: one master folder per student on disk, uploaded to the cloud their configuration
   sets, plus zero or more one-way mirrors with the same content in the student's other accounts.
   Structure shared by every source:
-  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/<folder>/`.
+  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/<folder>/`.
   Every topic folder starts with a date, the posting date of its first Classroom material, so the
   student places each topic in time; the date is set when the folder is created and never changes,
   and a folder is found by the part of its name after the date. `Tema NN - title` is a topic that
-  matches the textbook; a teacher's topic that is not in the textbook carries the teacher's title
-  alone; `No topic` holds what Classroom posts with no topic. There are no month folders. alfabeta
+  matches the textbook. A textbook topic too long for one study pack is split along its lessons
+  into **subtopics**, and each subtopic is a topic in its own right — its own folder, notebook and
+  pack: `Tema NNX - title`, with `X` a letter (`A`, `B`, `C`…) in the order of its lessons and the
+  title of the lessons it holds (spec 002). A teacher's topic that is not in the textbook carries
+  the teacher's title alone; `No topic` holds what Classroom posts with no topic. There are no
+  month folders. alfabeta
   writes none of its own files at a topic folder's root, only inside its folders, each named for
   where its content comes from: `notes` (the student's class notes and their living file),
   `classroom` (the teacher's material and its living file), the textbook's provider (`sciencebits`)
@@ -237,8 +241,8 @@ follow (2026-10-29).
   file's name. What VII brings back from Drive keeps the place it had there. Every Classroom item
   starts with its posting date, `YYYYMMDD - <title>`, and what the student turned in for an
   assignment goes in its `submission` folder.
-- **Notebooks**: one per topic, named `<grade level>. <Subject>. Tema NN - <title>` (`<grade level>`
-  is the student's grade level, not the school year of the folder). Material that arrives after the
+- **Notebooks**: one per topic, a subtopic included, named `<grade level>. <Subject>. Tema NN[X] -
+  <title>` (`<grade level>` is the student's grade level, not the school year of the folder). Material that arrives after the
   notebook is created goes into the topic's living Drive files, which are its sources (spec 005);
   only the study pack adds other sources, and never twice.
 - **Language**: everything technical is written in English: code, identifiers, CLI, configuration
@@ -301,4 +305,4 @@ follow (2026-10-29).
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.3.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-29
+**Version**: 2.4.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-30

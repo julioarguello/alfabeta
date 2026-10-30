@@ -204,6 +204,16 @@ for the final implementation.
   lesson; the operator dropped English to finish in time, and the terms the study pack needed were
   in the subject's language, captured last.
 
+### Session 2026-10-30
+
+- Q: Can a book topic hold more than one folder? → A: Yes, from constitution 2.4.0. A textbook
+  topic too long for one study pack is split along its lessons into subtopics, each with its own
+  folder `Tema NNX - <title>` and notebook (spec 002 FR-043). Placement treats each subtopic as a
+  book topic and sends a matched item to the subtopic its content covers (FR-013). Measured the
+  same day: the code finds book topics with `Tema \d{2} - ` (`src/alfabeta/placement.py:43`), so a
+  `Tema 02B - …` folder is not found today and `book place` would make a second `Tema 02 - …`
+  beside it. No subtopic folder is created until the code accepts the form.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures and launches alfabeta), **the student**
@@ -617,7 +627,7 @@ test.
   not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
   count, never by address.
 - **FR-012**: Inside the root, the structure MUST be common to every source:
-  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/<source>/`,
+  `<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/<source>/`,
   with `classroom` and `sciencebits` as this epic's sources. alfabeta writes nothing at a topic
   folder's root (constitution 2.2.0): beside the sources' folders sit `notes/` (spec 005),
   `notebook/` and `exam/` (spec 002). The first level is the school year (`2026-2027`), as in
@@ -652,6 +662,12 @@ test.
   - While a match is unconfirmed, its items do not go to the book topic: they are synced in the
     teacher's topic's own folder, as if it had no equivalent in the book, and the summary asks for
     confirmation. Confirming the match moves them to the book topic's folder.
+  - A book topic split into subtopics (constitution 2.4.0, spec 002 FR-043) is a set of folders
+    `<YYYYMMDD> - Tema NNX - <title>`, each a book topic for this requirement, with its book's
+    subfolder holding the whole topic's book files. An item matched to that book topic goes to the
+    subtopic whose lessons its content covers, proposed per item and confirmed like the case above;
+    while unconfirmed it goes to the subtopic with the latest date, and the summary asks.
+    `book place` writes a topic's files into every one of its subtopics' book subfolders.
 - **FR-014**: An item without a topic and an announcement MUST go to the subject's
   `<YYYYMMDD> - No topic` folder, dated by the first item placed there. There are no month folders.
 - **FR-015**: Inside `classroom/`, each item MUST be prefixed with its posting date,
