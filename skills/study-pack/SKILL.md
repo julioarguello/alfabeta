@@ -51,8 +51,9 @@ email or an id into the repository.
   a confirmed subtopic holds: the "what it adds" report, nothing more. A lesson no subtopic holds:
   propose a subtopic (`Tema NNX - <lesson title>`; a lesson with no content of its own joins the
   next; lessons one scheme spans stay together). On a first split the existing `Tema NN` folder and
-  its notebook are renamed `Tema NNA - …` and keep their pack. Once the family confirms, make the
-  new folder and notebook (its textbook source: only its own lessons, cut at `## Lección`), move the
+  its notebook are renamed `Tema NNA - …` and keep their pack, holding the lessons its blocks cover;
+  later pieces for A are asked with their block as focus. Once the family confirms, make the
+  new folder and notebook (its textbook source: only its own lessons, each language's file cut at its own lesson heading, `## Lección N:` / `## Ikasgaia N:`), move the
   pages there on the family's word, and run every step below for that subtopic alone. Never make
   again a piece of another subtopic, and never make a piece that spans subtopics, an exam's
   included (FR-045: `exam prep` once per subtopic). If the textbook in the subject's language lacks

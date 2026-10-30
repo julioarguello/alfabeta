@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}`; `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
+| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -20,7 +20,9 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 - `--topic`: the exam's topic folder, or once per subtopic when the exam covers several subtopics
   of a textbook topic (FR-045): each gets its own two sheets from its own notebook, an equal part of
   the slot, and the announcement's points its blocks cover. Without it, the subject's most recent
-  topic folder (FR-023), named on stderr. The announcement does not give the topic: spec 001 files every announcement in
+  topic folder (FR-023), named on stderr; when that folder is a subtopic, the command refuses with
+  `subtopics_unnamed` (code 1, nothing asked of a notebook) and asks for one `--topic` per subtopic
+  the exam covers, since the announcement does not say which. The announcement does not give the topic: spec 001 files every announcement in
   the subject's `<YYYYMMDD> - No topic` folder (its FR-014).
 
 **What it does, in order.** Steps 1 to 4 ask the notebook for nothing; a refusal there prints

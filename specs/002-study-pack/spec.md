@@ -235,7 +235,7 @@ the final implementation.
   counting about 25 pieces for the whole Bio topic in one notebook). Inside a subtopic the blocks
   still follow the student's scheme (FR-038). A redone scheme reaches only its own subtopic
   (FR-043, FR-044). Subjects without a textbook are left as they are until the family first
-  prepares one of them.
+  prepares one of them. The code is julioarguello/alfabeta#146.
 - Q: Can a piece be held to one part of a notebook? → A: Measured: a quiz of 10 questions asked
   with a focus on the respiratory block of the Bio notebook, which held five blocks, came back with
   all 10 on that block (one drew on the excretion lesson's paragraph about water vapour in exhaled
@@ -618,7 +618,7 @@ and cannot judge what the notebook writes.
   notebook that received material that week: one explainer video per idea that arrived, and a quiz
   mixing that week with earlier ones. Once it is verified, that week's «Ayer» pieces are deleted.
 - **FR-022**: As soon as an exam is known — from the Classroom agenda or declared by the family —
-  alfabeta MUST propose the topic's blocks and make the exam pack of Story 1 on confirmation; with
+  alfabeta MUST, for the topic or for each subtopic the exam covers (FR-045), propose the blocks and make the exam pack of Story 1 on confirmation; with
   no answer within one day, it makes it with the proposed blocks and says so. When the blocks were
   confirmed before the announcement, it MUST compare the announcement's points with them and make
   one explainer video per point no block covers, numbered after the existing pieces, and MUST NOT
@@ -762,16 +762,26 @@ and cannot judge what the notebook writes.
     confirmed subtopics (FR-044), as a decision the family confirms or rejects (`alfabeta
     decisions`). A rejected split leaves the topic whole, and is proposed again only when material
     for yet another lesson arrives. A confirmed subtopic is never split again.
-  - **The first split of an existing topic** turns the `Tema NN` folder into subtopic `A`: the
-    folder is renamed `Tema NNA - <title>`, keeping its date, its contents and its Drive id, so its
-    living files and their notebook sources stay where they are (spec 005 FR-011 forbids moving
-    them; a rename of their parent moves nothing); its notebook is renamed the same way and keeps
-    its pack, which is subtopic A's; alfabeta's records follow the rename in the same step. Only
-    lessons outside subtopic A get new folders. A topic never split keeps its `Tema NN` name.
-  - **Its sources**: each subtopic's notebook takes the textbook of its own lessons only (the
-    topic's textbook Markdown cut at its `## Lección` headings), so no piece of it, the mind map
-    included, reads another subtopic's lessons; its `sciencebits/` folder holds the whole topic's
-    files (spec 001 FR-013).
+  - **The first split of an existing topic** turns the `Tema NN` folder into subtopic `A`, which
+    holds the lessons its pack's blocks already cover (`bloques.md`), named in the split decision
+    the family confirms. The folder is renamed `Tema NNA - <title>`, keeping its date, its contents
+    and its Drive id, so its living files and their notebook sources stay where they are (spec 005
+    FR-011 forbids moving them; a rename of their parent moves nothing); its notebook is renamed the
+    same way (`nlm notebook rename`) and keeps its pack, which is subtopic A's; alfabeta's records
+    follow the rename in the same step. Only lessons outside subtopic A get new folders. A mirror
+    keeps the old `Tema NN` folder beside the renamed one, since mirrors are never pruned (spec 001);
+    the family is told. A topic never split keeps its `Tema NN` name, and counts as holding the
+    lessons its pack's blocks cover.
+  - **Its sources**: a new subtopic's notebook takes the textbook of its own lessons only — each
+    language's textbook Markdown cut at that file's own lesson headings (`## Lección N:`,
+    `## Ikasgaia N:`, `## Lesson N:`) — so no piece of it, the mind map included, reads another
+    subtopic's lessons; its `sciencebits/` folder holds the whole topic's files (spec 001 FR-013).
+    Subtopic A of a first split is the one exception: its notebook already holds the whole topic's
+    textbook, and its kept pack was made over its own blocks. A piece made for A later is asked
+    with its blocks as focus (measured 2026-10-30: a quiz focused on one block of a five-block
+    notebook came back 10 of 10 on that block); remaking A's mind map, which takes no focus, first
+    replaces the whole-topic textbook source with A's own lessons — on the family's word, the one
+    case where a source leaves a notebook (spec 005 FR-011).
   - **Its date**: the posting date of its first Classroom material, or the day it is created when
     notes or the split create it (spec 001 FR-012).
   - Inside a subtopic the blocks are its scheme's branches (FR-038). Subjects without a textbook
@@ -782,7 +792,8 @@ and cannot judge what the notebook writes.
   on its own. Then:
   - in the folder of the subtopic that holds its lesson, it produces the "what it adds" report
     only (spec 005 FR-012);
-  - for a lesson that no confirmed subtopic holds, it proposes a subtopic (FR-043); confirming it
+  - for a lesson that no confirmed subtopic holds (an unsplit topic holds the lessons its pack's
+    blocks cover), it proposes a subtopic (FR-043); confirming it
     creates its folder, its notebook and its pack, the family or the agent at its word moves the
     pages there, and nothing of the other subtopics is made again;
   - material that redoes a subtopic's scheme makes that subtopic's pack again, only on the family's
