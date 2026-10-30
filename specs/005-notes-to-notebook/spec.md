@@ -130,6 +130,31 @@ Lessons from taking a biology topic's notes by hand, recorded for the final impl
   julioarguello/alfabeta#143). A pack made the way Bio Tema 02 was holds no theory guide, so the
   summary is the piece compared.
 
+### Session 2026-10-30
+
+Lessons from taking eight more pages of the same topic by hand, recorded for the final
+implementation.
+
+- Q: How did the pages arrive? → A: By email. The parent photographed them and mailed them to
+  himself: five photos attached, about 5 MB each at 3472×4624, and three that the mail client had
+  moved to the sender's own Drive, outside any topic folder, leaving only links in the message.
+  None reached `notes/`, so no run would have seen them (edge case below). Reading the message
+  raw returned 46 MB, which a tool's output cannot hold; saved to a file, the attachments came out
+  whole with a MIME parser.
+- Q: Which topic were they? → A: The family could not tell whether they made one topic, two or
+  three. Matched against the textbook's lesson headings they were all the topic already in
+  progress: digestion (lessons 3–5), the respiratory system (lesson 6), the circulatory system
+  (lesson 7). The report names that match for each new page, and the subtopic it belongs to once
+  spec 002 FR-043 splits the topic (FR-020; code: julioarguello/alfabeta#146).
+- Q: What does a phone photo of a spiral notebook look like? → A: Four of the eight clearly showed
+  the other side of the sheet through the paper, mirrored, and the other four faintly; one page was written sideways, a tree
+  turned 90°. The transcription reads only the ink of the photographed side, and the stored page is
+  turned upright so the printed living file reads straight.
+- Q: What settles a term when the textbook in the subject's language lacks the lesson? → A: Its
+  capture stopped at lesson 5; the external reference of FR-016c (the Basque Wikipedia articles on
+  the respiratory system, blood and the heart) settled «Bronceolak», «Albeolak», «Glabulo zoriak»,
+  «Odol odiak» and the heart's labels. One label stayed unsettled, with the sources tried.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A photo of the notes reaches the notebook with no one at a computer (Priority: P1)
@@ -303,11 +328,19 @@ source and one living Classroom source, and that a second run adds nothing.
 - **A photo is put outside `notes/`**, or in the school Drive: it is not transcribed. At the topic
   folder's root or deeper in `notes/` it is reported as an unexpected file; in `notebook/`, `exam/`
   or `sciencebits/` it is not read; in the school Drive it cannot be seen.
+- **Photos sent by email, or left in someone's Drive root.** alfabeta reads no mailbox and no Drive
+  outside the topic folders, so they reach no topic until someone puts them in `notes/`. Measured
+  2026-10-30: eight pages arrived that way. Whether alfabeta should read a mailbox the family names
+  is a question for the family; it needs a scope spec 004 does not grant.
 - **A photo in a format the transcription does not take** (anything but JPEG, PNG or WebP, such as
   HEIC, or a scanned PDF), or over 10 MB: it is reported as not supported, with what to upload
   instead, and is not retried until it changes.
 - **A photo is rotated, blurred or not of notes.** It is transcribed with its doubtful parts marked,
-  or reported as not readable and left out of the living file.
+  or reported as not readable and left out of the living file. A page written sideways is turned
+  upright before it goes into the living file.
+- **The other side of the sheet shows through.** Ink from the reverse page appears mirrored and
+  faint (clearly in four of eight photos, faintly in the rest, 2026-10-30); it is never
+  transcribed as part of the page.
 - **A photo is deleted after its page reached the living file.** The page stays; the family is told
   (constitution V).
 - **The AI budget is spent** for the month: transcription and the "what it adds" report wait,
@@ -372,7 +405,9 @@ source and one living Classroom source, and that a second run adds nothing.
   read-only with the account in `[notebook] owner` (the one
   that owns the notebooks) and with no other, and adds each, once, to the topic's notebook as a
   Drive source. Material that arrives later goes into them; no other source is added for it.
-- **FR-010**: Notes pages go into the living notes file in the order they were first seen. Each
+- **FR-010**: Notes pages go into the living notes file in the order they were first seen; a page
+  moved to another subtopic's `notes/` (spec 002 FR-044) leaves the first living file and enters the
+  second, as an item moved to another topic does. Each
   Classroom item, whether a file, a note or a folder (User Story 3), goes into the living Classroom
   file as one entry: a cover page (title, posting date, description and addresses from
   `descripcion.md` and `enlaces.md`), then the pages of each of its files: entries in posting
@@ -389,7 +424,10 @@ source and one living Classroom source, and that a second run adds nothing.
   (spec 002 FR-023). An item moved to another topic leaves the first living file and enters the
   second.
 - **FR-011**: alfabeta MUST NOT delete, rename or move a living file, nor remove a source from a
-  notebook. A living file that is missing, trashed or outside its own folder of the topic
+  notebook, except two: a changed textbook file the book provider places again replaces its old
+  source (the Science Bits skill's step 9), and a subtopic split (spec 002 FR-043) replacing
+  subtopic A's whole-topic textbook with its own lessons — before A's first piece when the split
+  is made at the topic's first pack, or when A's mind map is remade, on the family's word. A living file that is missing, trashed or outside its own folder of the topic
   (`notes/` or `classroom/`) is reported and is not recreated.
 - **FR-012**: Adding material MUST NOT regenerate any study piece. The run reports what the new
   material adds against the topic's theory: its theory guide (spec 002 FR-004), else «Resumen de
@@ -449,6 +487,12 @@ source and one living Classroom source, and that a second run adds nothing.
   source — the topic's textbook in the subject's language and in Spanish, the notes' other pages,
   Classroom, then an external reference — with that source beside the settled word; a word no
   source settles stays marked with the sources tried. There is no human reviewer.
+- **FR-020**: The report of FR-013 MUST name, for each notes page that reached a living file, the
+  textbook lesson whose heading covers it, and say so when that lesson belongs to another topic or
+  subtopic than the folder the page sits in (spec 002 FR-043), when it belongs to no subtopic yet
+  (which proposes one, spec 002 FR-044), or when no lesson covers it. It never moves the page: placing
+  it elsewhere is the family's decision (measured 2026-10-30: eight pages the family took for up
+  to three topics were lessons 3–7 of the topic in progress).
 - **FR-017**: The cloud run MUST hold its own Google link, made with an OAuth client of its own, and
   its own Claude key in that project's secret store, readable only by the run's service account,
   never in the repository, the configuration, a log or an error message. The Mac keeps its own

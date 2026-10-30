@@ -208,6 +208,58 @@ done that day; the last three, what the operator decided once it was done (User 
   capped the whole topic at two hours of study, two 45-minute blocks with a 15-minute break
   (FR-042).
 
+### Session 2026-10-30
+
+Lessons from extending the same biology topic by hand with eight new pages of notes, recorded for
+the final implementation.
+
+- Q: Do new pages about another body system mean a new topic? → A: Not by themselves. The pages on
+  the respiratory and the circulatory systems looked like a second and a third topic; the textbook
+  topic already being studied holds both as its lessons 6 and 7. A page belongs to the textbook
+  topic whose lesson headings cover it (FR-044); the family had expected the respiratory system and
+  did not see it because the page's title was in the subject's language («Arnas aparatua»).
+- Q: How does a pack grow when the notes add blocks? → A: Not the way it was done by hand that day.
+  The run kept the three digestion videos, added one video per new block and made the summary,
+  mind map, practice sheet, quiz, flashcards and guide again over five blocks. That broke spec 005
+  FR-012 (adding material regenerates nothing), redid what the student already had, and made every
+  topic-wide piece denser — the operator's complaint: «es un tema muy extenso … cómo hacemos para
+  que no sea muy denso?». A panel of four advisors and a devil's advocate (run by hand, the same
+  evening) agreed that the density came from topic-wide pieces regenerated on growth, not from a
+  missing boundary, and that no per-subject «strategy» setting is needed; it split on what the
+  stable unit is.
+- Q: What is the stable unit, then? → A: For a subject with a textbook, the textbook's lessons: they
+  are known before any notes arrive, so new material falls into a slot that already exists (the
+  operator: «el propio libro marca los subtemas»). A long textbook topic is split along them into
+  subtopics, and each subtopic is treated as a topic of its own — folder, notebook and pack
+  (constitution 2.4.0; the operator chose it over one notebook with subtopic-numbered pieces, after
+  counting about 25 pieces for the whole Bio topic in one notebook). Inside a subtopic the blocks
+  still follow the student's scheme (FR-038). A redone scheme reaches only its own subtopic
+  (FR-043, FR-044). Subjects without a textbook are left as they are until the family first
+  prepares one of them. The code is julioarguello/alfabeta#146.
+- Q: Can a piece be held to one part of a notebook? → A: Measured: a quiz of 10 questions asked
+  with a focus on the respiratory block of the Bio notebook, which held five blocks, came back with
+  all 10 on that block (one drew on the excretion lesson's paragraph about water vapour in exhaled
+  air, still about breathing). Per-block pieces inside one notebook are possible; the operator
+  still chose one notebook per subtopic.
+- Q: How is an exam over several subtopics prepared? → A: By preparing each of its subtopics'
+  notebooks (the operator: «que preparar un examen sea preparar todos los cuadernos»), rather than
+  a temporary exam notebook or the last subtopic's notebook holding everyone's sources, which were
+  the two alternatives put to him (FR-045).
+- Q: Does the 45-minute limit still hold with five videos? → A: The limit is the length of a study
+  block, not of the topic. The guide gives each video about 15 minutes (watch, draw his own scheme,
+  compare it), so a videos block holds three; five videos and the checking block do not fit in two
+  hours without cutting what he does with each video. The topic takes as many blocks as it needs,
+  at most two a day with the 15-minute break between them (FR-042).
+- Q: Which terms when the textbook in the subject's language lacks a lesson? → A: Its capture had
+  stopped at lesson 5 when the session expired; lessons 6 and 7 had no Basque source in the
+  notebook. The run settled each Basque term against an external reference (the Basque Wikipedia
+  articles on the respiratory system, blood and the heart) and passed the list to every prompt
+  explicitly. Capturing the missing lessons comes first; the external reference is the fallback
+  (FR-041).
+- Q: Does `nlm download` take the profile like the other commands? → A: No. It reads `nlm`'s default
+  profile only, so the run sets `auth.default_profile` to the notebook owner's profile and restores
+  it afterwards (measured 2026-10-28 and again 2026-10-30, `nlm` 0.15.8).
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who launches alfabeta and helps at home, reading Spanish
@@ -566,7 +618,8 @@ and cannot judge what the notebook writes.
   notebook that received material that week: one explainer video per idea that arrived, and a quiz
   mixing that week with earlier ones. Once it is verified, that week's «Ayer» pieces are deleted.
 - **FR-022**: As soon as an exam is known — from the Classroom agenda or declared by the family —
-  alfabeta MUST propose the topic's blocks and make the exam pack of Story 1 on confirmation; with
+  alfabeta MUST, for the topic or for each subtopic the exam covers (FR-045; the proposal asks the
+  family which subtopics those are), propose the blocks and make the exam pack of Story 1 on confirmation; with
   no answer within one day, it makes it with the proposed blocks and says so. When the blocks were
   confirmed before the announcement, it MUST compare the announcement's points with them and make
   one explainer video per point no block covers, numbered after the existing pieces, and MUST NOT
@@ -596,8 +649,8 @@ and cannot judge what the notebook writes.
   sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014),
   numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
   them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's `exam/` folder,
-  whose name carries no date: `exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
-  `exam/Problemas tipo · TNN (<D> <mmm>).pdf`, with the topic's number and the exam's date. The prompts are fixed texts of the repository, filled
+  whose name carries no date: `exam/Teoría para el examen · TNN[X] (<D> <mmm>).pdf` and
+  `exam/Problemas tipo · TNN[X] (<D> <mmm>).pdf`, with the topic's or subtopic's number and the exam's date. The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level. Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
@@ -606,7 +659,8 @@ and cannot judge what the notebook writes.
   reviews with the student, as observed 2026-10-28. No agent writes either sheet.
 - **FR-030**: The exam's scope MUST come from the teacher's announcement of the exam, as spec 001
   captures it (text and date). The topic is the one the family names, or else the subject's most
-  recent topic (FR-023): spec 001 files announcements outside any topic. The theory sheet quotes the
+  recent topic (FR-023): spec 001 files announcements outside any topic. An exam over several
+  subtopics names each of them (FR-045). The theory sheet quotes the
   announcement in its language with its date, its sections are the announcement's points in the
   announcement's order, and it says what of the topic the announcement leaves out. When the exam has
   no captured announcement, including an exam spec 001 detected in a material or an assignment, the
@@ -674,10 +728,97 @@ and cannot judge what the notebook writes.
   a term only when one of those confirms it. So the textbook in the subject's language MUST be a
   source of the notebook before the summary, the quiz, the flashcards, the glossary or the parent
   guide are generated, and each is checked for words in another language given as the subject's.
-- **FR-042**: The guide's plan MUST fit the whole topic in two hours at most: study blocks of 45
-  minutes with a 15-minute break between them (an hour and a half of study), done in one day or
-  two; block A the videos with the student's own scheme and its comparison, block B the practice,
-  quiz and flashcards (the operator, 2026-10-29).
+  When that textbook lacks lessons the topic covers, they MUST be captured first; only if the
+  capture fails is a term taken from an external reference, named in the transcription and in
+  `bloques.md`, and every prompt then lists the terms to use (measured 2026-10-30: capture had
+  stopped at lesson 5 of 9). A term list given to a prompt MUST be taken by search from the
+  textbook's text (or, for lessons it lacks, from the external reference named above), never
+  written from memory, and every piece is checked against it after download:
+  on 2026-10-30 a list written by hand carried «heste mehea» where the textbook says «heste
+  meharra», the quiz and the flashcards that received it used it, and the summary and the practice
+  sheet, given no list for those blocks, wrote «azido grasoak», «higadoa» and «peristalpikoak»; all
+  four were made again with the list taken from the textbook.
+- **FR-042**: The guide's plan MUST be built from study blocks of 45 minutes at most, two a day at
+  most, with a 15-minute break away from screens between them; a videos block holds at most three
+  videos (about 15 minutes each: watch, draw his own scheme, compare it with the mind map and the
+  summary), and the checking block (practice, quiz, flashcards, marking what he got wrong) comes
+  after the last videos block. A topic of up to three videos fits in one day; a larger one takes
+  as many days as its blocks need, and the guide says which day each block belongs to. Nothing is
+  marked optional to make it fit. (The operator capped the topic at two hours on 2026-10-29; on
+  2026-10-30 the topic grew to five videos and the cap became per block.)
+
+**Subtopics of a textbook topic**
+
+- **FR-043**: In a subject with a textbook, alfabeta MUST propose splitting a textbook topic along
+  its lessons into subtopics, and each confirmed subtopic MUST be handled as a topic of its own
+  (constitution 2.4.0): its folder `<YYYYMMDD> - Tema NNX - <title>`, its notebook, its
+  `bloques.md` and its pack, made with every rule of this spec as for any topic.
+  - **What a subtopic holds**, read from the textbook alone: one lesson; a lesson with no content
+    of its own (an introduction, an experiment, a recap) joins the lesson after it. Consecutive
+    lessons are one subtopic when the family says so, or when one scheme of the notes spans them
+    and cannot be cut by branch (constitution X: the textbook is hung from the scheme, never the
+    reverse). Its title is its lesson's, or one naming the lessons it groups; its letter follows the
+    lessons' order and never changes once given.
+  - **When**: a topic with no pack yet holds all its lessons and is never split while it has none.
+    The split is proposed, as a decision the family confirms or rejects (`alfabeta decisions`), in
+    two moments only: when the topic's first pack is about to be made and the lessons its material
+    covers would not fit one study day (more than three videos, FR-042) — subtopics are then
+    proposed instead of one pack; and when the topic already has a pack and material arrives for a
+    lesson its blocks do not cover (FR-044). A rejected split leaves the topic whole, and is
+    proposed again only at the next of those moments. A confirmed subtopic is never split again.
+  - **The first split of an existing topic** turns the `Tema NN` folder into subtopic `A`, which
+    holds the lessons the confirmed split decision gives it: those its pack's blocks already cover
+    (`bloques.md`) when the topic has a pack, or the first lessons in order when the split is made
+    at its first pack. If it is made at its first pack, A has nothing to keep: before any piece is
+    made, its notebook's whole-topic textbook is replaced by A's own lessons, as for a new subtopic. The folder is renamed `Tema NNA - <title>`, keeping its date, its contents
+    and its Drive id, so its living files and their notebook sources stay where they are (spec 005
+    FR-011 forbids moving them; a rename of their parent moves nothing); its notebook is renamed the
+    same way (`nlm notebook rename`) and keeps its pack, which is subtopic A's; alfabeta's records
+    follow the rename in the same step. Only lessons outside subtopic A get new folders. A mirror
+    keeps the old `Tema NN` folder beside the renamed one, since mirrors are never pruned (spec 001);
+    the family is told. A topic never split keeps its `Tema NN` name, and counts as holding the
+    lessons its pack's blocks cover.
+  - **Its sources**: a new subtopic's notebook takes the textbook of its own lessons only — each
+    language's textbook Markdown cut at that file's own lesson headings (`## Lección N:`,
+    `## Ikasgaia N:`, `## Lesson N:`) — so no piece of it, the mind map included, reads another
+    subtopic's lessons; its `sciencebits/` folder holds the whole topic's files (spec 001 FR-013).
+    Subtopic A of a split made after its pack is the one exception: its notebook already holds the whole topic's
+    textbook, and its kept pack was made over its own blocks. A piece made for A later is asked
+    with its blocks as focus (measured 2026-10-30: a quiz focused on one block of a five-block
+    notebook came back 10 of 10 on that block); remaking A's mind map, which takes no focus, first
+    replaces the whole-topic textbook source with A's own lessons, on the family's word (spec 005
+    FR-011). Until then A's kept pieces, its mind map included, are A's, not a piece across
+    subtopics.
+  - **Its date**: the posting date of its first Classroom material, or the day it is created when
+    notes or the split create it (spec 001 FR-012).
+  - Inside a subtopic the blocks are its scheme's branches (FR-038). Subjects without a textbook
+    are not split by this requirement; how they are is decided when the family first prepares one
+    (2026-10-30).
+- **FR-044**: When new material reaches a textbook topic, each page or item MUST be matched to the
+  lesson whose heading covers it, and the run reports it (spec 005 FR-020); alfabeta moves nothing
+  on its own. Then:
+  - in the folder of the subtopic that holds its lesson, it produces the "what it adds" report
+    only (spec 005 FR-012);
+  - for a lesson that no confirmed subtopic holds, in a topic that already has a pack (an unsplit
+    topic with a pack holds the lessons its blocks cover; one without a pack holds every lesson and
+    proposes nothing here, FR-043), it proposes a subtopic; confirming it
+    creates its folder, its notebook and its pack, the family or the agent at its word moves the
+    pages there, and nothing of the other subtopics is made again;
+  - material that redoes a subtopic's scheme makes that subtopic's pack again, only on the family's
+    word, and only that subtopic's.
+
+  No piece covers more than one subtopic, an exam's included (FR-045).
+- **FR-045**: Preparing an exam that covers several subtopics MUST mean preparing each of their
+  notebooks (the operator, 2026-10-30: «que preparar un examen sea preparar todos los cuadernos»):
+  `exam prep` takes one `--topic` per subtopic the exam covers and, for each, asks that subtopic's
+  own notebook for its two sheets, from its own sources, as FR-029 to FR-037 describe for a topic.
+  The study slot is shared in equal parts among them, in the subtopics' order, and each theory
+  sheet's plan covers its part only. A sheet's sections are the announcement's points its
+  subtopic's blocks cover (FR-030); a point no subtopic covers is listed on every sheet as not
+  covered. No notebook spans subtopics and no piece mixes them. What this gives up is mixed
+  practice across subtopics and questions that join them (the blood carrying oxygen from the lungs
+  and nutrients from the intestine crosses three Bio subtopics); a mixed piece is added only if a
+  real exam shows such questions, measured against that exam.
 
 **Structure from the student's schemes**
 

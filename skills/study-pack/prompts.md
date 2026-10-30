@@ -115,9 +115,12 @@ Copia TAL CUAL el bloque de texto en Markdown de abajo, sin cambiar ni una palab
 {plan}
 ```
 
-`{plan}` is Markdown the agent writes, in Spanish, short. The whole topic fits in **two hours at
-most: two 45-minute blocks with a 15-minute break** (an hour and a half of study), the operator's
-limit (2026-10-29), done in one day or two:
+`{plan}` is Markdown the agent writes, in Spanish, short. It is built from **blocks of 45 minutes
+at most, two a day at most, with a 15-minute break between them** (spec 002 FR-042). A videos
+block holds three videos at most, about 15 minutes each; the checking block comes after the last
+videos block. Up to three videos is one day (block A, break, block B); five videos is two days:
+day 1 block A1 (three videos), break, block A2 (two videos); day 2 the checking block. Each block
+says its day. Nothing is marked optional to make it fit:
 
 - a table `Nº | Pieza | Para qué`, 0 first, **every video linked straight to its copy in Drive**
   (`https://drive.google.com/file/d/<id>/view`; Drive for desktop gives the id as the file's

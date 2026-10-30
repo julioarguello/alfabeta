@@ -67,7 +67,7 @@ languages = ["changeme"]            # e.g. ["es", "en"]
 [notebook]
 # Whether the Gemini Notebook notebook of each topic is created (epic 3; the Science Bits skill already does it).
 enabled = false
-# The constitution sets the name: «<grade level>. <Subject>. Tema NN - <title>».
+# The constitution sets the name: «<grade level>. <Subject>. Tema NN[X] - <title>» (X: a subtopic's letter).
 # Accounts each topic notebook is shared with as viewer (FR-011b). [] for none.
 share_with = ["changeme@example.org"]
 # Name of each topic's notebook, used to find it (spec 005 research R9): {grade} is the grade level,

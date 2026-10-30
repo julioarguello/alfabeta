@@ -26,8 +26,8 @@ fails, say which keys and stop. Never create the configuration or write to it.
 | `[[subjects]]` `folder`, `language` | the subject's folder, and the language it is taught and examined in (`es`, `en`…) |
 | `notebook.title_pattern`, `notebook.nlm_profile` | the topic's notebook; the `nlm` profile of the account that owns it |
 
-Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN - <title>/`, found by
-`*Tema NN - *` whatever its date, holding only folders: `notes/` (the student's class notes),
+Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN[X] - <title>/` (`X` a
+subtopic's letter, spec 002 FR-043), found by `*Tema NN - *` or `*Tema NNX - *` whatever its date, holding only folders: `notes/` (the student's class notes),
 `classroom/` (the teacher's material), `sciencebits/` (the textbook), `notebook/` (everything this
 skill generates) and `exam/` (the sheets for the day before an exam). Nothing goes at its root. The
 notebook is the one whose title matches
@@ -45,6 +45,20 @@ email or an id into the repository.
   already confirmed, compare the announcement's points with `bloques.md`: a point no block covers
   gets one video for that point (step 3), numbered after the existing pieces; nothing else is made
   again.
+- **New notes reach a textbook topic** (spec 002 FR-043, FR-044): match each page to the textbook
+  lesson whose heading covers it — pages on a new body system or chapter are usually a later lesson
+  of the same textbook topic, not a new topic — and report it; move nothing on your own. A lesson
+  a confirmed subtopic holds: the "what it adds" report, nothing more. A lesson no subtopic holds:
+  propose a subtopic (`Tema NNX - <lesson title>`; a lesson with no content of its own joins the
+  next; lessons one scheme spans stay together). On a first split the existing `Tema NN` folder and
+  its notebook are renamed `Tema NNA - …` and keep their pack, holding the lessons its blocks cover;
+  later pieces for A are asked with their block as focus. Once the family confirms, make the
+  new folder and notebook (its textbook source: only its own lessons, each language's file cut at its own lesson heading, `## Lección N:` / `## Ikasgaia N:`), move the
+  pages there on the family's word, and run every step below for that subtopic alone. Never make
+  again a piece of another subtopic, and never make a piece that spans subtopics, an exam's
+  included (FR-045: `exam prep` once per subtopic). If the textbook in the subject's language lacks
+  the new lessons, capture them before the summary, the quiz, the flashcards, the glossary or the
+  parent guide (FR-041).
 - **The day before an exam**, or when the family asks for the exam's sheets: alfabeta's own
   command, in [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper). It needs none
   of the steps below.
