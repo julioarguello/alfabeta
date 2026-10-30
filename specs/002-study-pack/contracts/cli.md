@@ -41,7 +41,8 @@ that fails does not stop the other.
    with no announcement, including one
    spec 001 detected in a material or an assignment (its FR-020b), is `no_announcement`. Both are
    code 1.
-4. Finds the topic (`--topic`, or the most recent one) and its notebook, by
+4. Finds each topic (every `--topic`, or the most recent one, `subtopics_unnamed` when that is a
+   subtopic) and its notebook, by
    `notebook.title_pattern`. No notebook is `no_notebook`, code 1.
 5. Brings the notebook's class-notes source up to date as `notebook refresh` does (spec 005
    FR-018): when the topic's living notes file's `built_md5` differs from the refresh record's
@@ -101,7 +102,7 @@ never in Drive or the repository:
 usable. Steps 1 to 4 stop at the first refusal, in their order; from step 5 on, when several
 apply, the highest wins, as in spec 005. An argument argparse cannot read (`--exam notadate`) is
 its own code 2, as in spec 001. Code 1 also covers `invalid_config`, `no_subject`, `invalid_slot`,
-`no_topic`, `unreadable_agenda` and `unreadable_state` (spec 001's `agenda.json` or
+`no_topic`, `subtopics_unnamed`, `unreadable_agenda` and `unreadable_state` (spec 001's `agenda.json` or
 `data/state.json` is not readable JSON), `unknown_language` (a subject `language` code with no
 Spanish name in `src/alfabeta/exam/prompts.py`) and `invalid_prompt` (a heading of `prompts.md`
 the command reads is missing or renamed); code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or

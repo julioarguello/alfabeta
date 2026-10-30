@@ -618,7 +618,8 @@ and cannot judge what the notebook writes.
   notebook that received material that week: one explainer video per idea that arrived, and a quiz
   mixing that week with earlier ones. Once it is verified, that week's «Ayer» pieces are deleted.
 - **FR-022**: As soon as an exam is known — from the Classroom agenda or declared by the family —
-  alfabeta MUST, for the topic or for each subtopic the exam covers (FR-045), propose the blocks and make the exam pack of Story 1 on confirmation; with
+  alfabeta MUST, for the topic or for each subtopic the exam covers (FR-045; the proposal asks the
+  family which subtopics those are), propose the blocks and make the exam pack of Story 1 on confirmation; with
   no answer within one day, it makes it with the proposed blocks and says so. When the blocks were
   confirmed before the announcement, it MUST compare the announcement's points with them and make
   one explainer video per point no block covers, numbered after the existing pieces, and MUST NOT
@@ -758,10 +759,13 @@ and cannot judge what the notebook writes.
     and cannot be cut by branch (constitution X: the textbook is hung from the scheme, never the
     reverse). Its title is its lesson's, or one naming the lessons it groups; its letter follows the
     lessons' order and never changes once given.
-  - **When**: the split is proposed when material arrives for a lesson outside the topic's
-    confirmed subtopics (FR-044), as a decision the family confirms or rejects (`alfabeta
-    decisions`). A rejected split leaves the topic whole, and is proposed again only when material
-    for yet another lesson arrives. A confirmed subtopic is never split again.
+  - **When**: a topic with no pack yet holds all its lessons and is never split while it has none.
+    The split is proposed, as a decision the family confirms or rejects (`alfabeta decisions`), in
+    two moments only: when the topic's first pack is about to be made and the lessons its material
+    covers would not fit one study day (more than three videos, FR-042) — subtopics are then
+    proposed instead of one pack; and when the topic already has a pack and material arrives for a
+    lesson its blocks do not cover (FR-044). A rejected split leaves the topic whole, and is
+    proposed again only at the next of those moments. A confirmed subtopic is never split again.
   - **The first split of an existing topic** turns the `Tema NN` folder into subtopic `A`, which
     holds the lessons its pack's blocks already cover (`bloques.md`), named in the split decision
     the family confirms. The folder is renamed `Tema NNA - <title>`, keeping its date, its contents
@@ -780,8 +784,9 @@ and cannot judge what the notebook writes.
     textbook, and its kept pack was made over its own blocks. A piece made for A later is asked
     with its blocks as focus (measured 2026-10-30: a quiz focused on one block of a five-block
     notebook came back 10 of 10 on that block); remaking A's mind map, which takes no focus, first
-    replaces the whole-topic textbook source with A's own lessons — on the family's word, the one
-    case where a source leaves a notebook (spec 005 FR-011).
+    replaces the whole-topic textbook source with A's own lessons, on the family's word (spec 005
+    FR-011). Until then A's kept pieces, its mind map included, are A's, not a piece across
+    subtopics.
   - **Its date**: the posting date of its first Classroom material, or the day it is created when
     notes or the split create it (spec 001 FR-012).
   - Inside a subtopic the blocks are its scheme's branches (FR-038). Subjects without a textbook
@@ -792,8 +797,9 @@ and cannot judge what the notebook writes.
   on its own. Then:
   - in the folder of the subtopic that holds its lesson, it produces the "what it adds" report
     only (spec 005 FR-012);
-  - for a lesson that no confirmed subtopic holds (an unsplit topic holds the lessons its pack's
-    blocks cover), it proposes a subtopic (FR-043); confirming it
+  - for a lesson that no confirmed subtopic holds, in a topic that already has a pack (an unsplit
+    topic with a pack holds the lessons its blocks cover; one without a pack holds every lesson and
+    proposes nothing here, FR-043), it proposes a subtopic; confirming it
     creates its folder, its notebook and its pack, the family or the agent at its word moves the
     pages there, and nothing of the other subtopics is made again;
   - material that redoes a subtopic's scheme makes that subtopic's pack again, only on the family's
