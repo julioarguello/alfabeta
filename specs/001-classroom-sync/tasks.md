@@ -214,7 +214,7 @@ it stops, and tells the family once, when the secret stops working.
 
 **Independent Test**: quickstart scenario 11.
 
-**⚠️ GATE**: the spikes T071–T073 come first and leave no code on `main`. Pass criteria (plan): S4
+**⚠️ GATE**: the spikes T071–T073 come first and leave no code on `main`. S4 failed on 2026-10-31 (research R15), so US7 now rests on S5/S6. Pass criteria (plan): S4
 passes if one read-only Classroom call succeeds for the real account through the token route;
 S5 passes if the web route signs in and reads without evasion and the family would sign in at most
 once a week (SC-012); S6 passes if a read's background calls can be told from writes (else the web
