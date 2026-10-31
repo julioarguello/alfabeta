@@ -627,6 +627,8 @@ test.
   account in `notebook.owner`, and with no other. An account already shared with is
   not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
   count, never by address.
+  A shared notebook also leaves its link in the topic's `notebook/` folder, since a viewer does
+  not see it listed until opening it once (spec 002 FR-047).
 - **FR-012**: Inside the root, the structure MUST be common to every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/<source>/`,
   with `classroom` and `sciencebits` as this epic's sources. alfabeta writes nothing at a topic

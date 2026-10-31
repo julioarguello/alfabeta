@@ -280,6 +280,16 @@ the final implementation.
   treat that the notes repeat, one of them three times inside a box (glucose «entering the
   mitochondrion»). The first three were corrected in the summaries; the last three became
   questions for the family.
+- Q: Why did the student not see three notebooks shared with him? → A: A shared notebook is not
+  listed for the viewer until it is opened once through its link (FR-047). Measured 2026-10-31:
+  the three biology notebooks, shared as viewer with both of the student's accounts and listed by
+  `nlm share status` as active, appeared in neither account's list («Todos», «Compartido conmigo»);
+  once each was opened through its link, it was listed. nlm 0.15.8 asks for the notice email
+  (`add_collaborator(..., notify=True)`, read in its source); whether it arrived was not checked.
+  Google documents this only for NotebookLM Enterprise group shares
+  ([Share notebooks](https://docs.cloud.google.com/agentspace/notebooklm-enterprise/docs/share-notebooks)).
+  The operator decided that the link goes where the student already looks: the topic's
+  `notebook/` folder and the printed topic.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -879,6 +889,17 @@ and cannot judge what the notebook writes.
     decides, and the pieces it touches are made again.
   - New pages that reach a topic later are checked the same way, and the report names each
     correction and each question (spec 005 FR-020).
+
+- **FR-047**: A shared notebook MUST reach the student through its link, not through the share
+  alone (measured 2026-10-31: not listed for a viewer until opened once by its link). Once it is
+  shared, the topic's `notebook/` folder MUST hold a one-page PDF, «Abrir el cuaderno.pdf», with
+  the notebook's title and its link, mirrored like the rest of the folder; and the printed topic
+  MUST carry the same link under its title, on the first page. The link is the one `nlm notebook
+  get` returns; alfabeta never builds it. A PDF and not a shortcut file (`.url`, `.webloc`), since
+  the student opens the folder in Drive, which shows a PDF; that Drive's viewer follows the link
+  is not yet measured and the first topic it is written for checks it. Writing it again leaves
+  the same file; a failed write does not undo the share and is reported like a failed share
+  (spec 001 FR-011b).
 
 ### Key Entities
 
