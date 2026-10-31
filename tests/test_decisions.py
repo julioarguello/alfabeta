@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from alfabeta.decisions import DecisionError, DecisionStore, Proposal
+from alfabeta.decisions import DecisionError, DecisionStore, Proposal, Subtopic, subtopics
 from alfabeta.model import DecisionState, DecisionType
 
 if TYPE_CHECKING:
@@ -235,3 +235,80 @@ def test_the_commands_need_the_lock_and_renew_it(tmp_path: Path):
         assert cli(tmp_path, *args, run="otro-run").returncode == 1
     finally:
         cli(tmp_path, "lock", "release", "--student", "s9", run=run)
+
+
+# --- the subtopics of a split textbook topic (spec 002 FR-043) -----------------------------------------
+
+
+def sub(letter: str, lessons: str, title: str = "Lección inventada", on: dt.date = D1) -> Proposal:
+    return proposal(on, kind="subtopic", origin=f"Bio/Tema 02{letter}", target={"title": title, "lessons": lessons})
+
+
+def test_a_split_is_one_subtopic_decision_each_and_only_confirmed_ones_count(store: DecisionStore):
+    store.propose([sub("A", "1,2,3,4,5", "Nutrientes y digestión"), sub("B", "6"), sub("C", "7")], D1)
+    assert subtopics(store.decisions(), "Bio", "Tema 02") == []
+    for letter in "AB":
+        store.confirm(DecisionType.SUBTOPIC, f"Bio/Tema 02{letter}", D2)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02C", D2, reject=True)
+    assert subtopics(store.decisions(), "Bio", "Tema 02") == [
+        Subtopic("A", "Nutrientes y digestión", (1, 2, 3, 4, 5)),
+        Subtopic("B", "Lección inventada", (6,)),
+    ]
+    assert subtopics(store.decisions(), "Bio", "Tema 03") == [] and subtopics(store.decisions(), "FyQ", "Tema 02") == []
+
+
+@pytest.mark.parametrize(
+    ("origin", "target"),
+    [
+        ("Bio/Tema 02", {"title": "x", "lessons": "1"}),
+        ("Tema 02B", {"title": "x", "lessons": "1"}),
+        ("Bio/Tema 02b", {"title": "x", "lessons": "1"}),
+        ("Bio/Tema 02B", {"title": " ", "lessons": "1"}),
+        ("Bio/Tema 02B", {"title": "x", "lessons": ""}),
+        ("Bio/Tema 02B", {"title": "x", "lessons": "6,5"}),
+        ("Bio/Tema 02B", {"title": "x", "lessons": "6,6"}),
+        ("Bio/Tema 02B", {"title": "x", "lessons": "0"}),
+        ("Bio/Tema 02B", {"title": "x", "lessons": "6-7"}),
+    ],
+)
+def test_a_subtopic_that_does_not_fit_is_refused(origin: str, target: dict[str, str]):
+    with pytest.raises(DecisionError):
+        proposal(kind="subtopic", origin=origin, target=target)
+
+
+def test_a_lesson_in_two_subtopics_writes_nothing(store: DecisionStore):
+    store.propose([sub("A", "1,2,3,4,5")], D1)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02A", D1)
+    with pytest.raises(DecisionError, match="lesson 5 of Bio/Tema 02 is in two subtopics"):
+        store.propose([sub("B", "5,6", on=D2)], D2)
+    with pytest.raises(DecisionError, match="lesson 7"):
+        store.propose([sub("B", "6,7", on=D2), sub("C", "7", on=D2)], D2)
+    assert [r.decision.origin for r in store.records] == ["Bio/Tema 02A"]
+    # A rejected subtopic holds no lesson.
+    store.propose([sub("B", "6", on=D2)], D2)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02B", D2, reject=True)
+    assert len(store.propose([sub("C", "6", on=D3)], D3)[0]) == 1
+
+
+def test_a_confirmed_subtopic_never_changes(store: DecisionStore):
+    store.propose([sub("A", "1,2,3,4,5")], D1)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02A", D1)
+    assert store.propose([sub("A", "1,2,3", on=D2)], D2) == ([], [sub("A", "1,2,3", on=D2).decision])
+    with pytest.raises(DecisionError, match="never changes"):
+        store.change(DecisionType.SUBTOPIC, "Bio/Tema 02A", {"topic": "x"}, D2)
+
+
+def test_a_rejected_split_is_proposed_again_only_with_new_material(store: DecisionStore):
+    store.propose([sub("B", "6")], D1)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02B", D1, reject=True)
+    assert store.propose([sub("B", "6", on=D2)], D2)[0] == []
+    again = Proposal.parse(
+        raw(
+            kind="subtopic",
+            origin="Bio/Tema 02B",
+            target={"title": "x", "lessons": "6"},
+            origin_modified=D3.isoformat(),
+        ),
+        D3,
+    )
+    assert len(store.propose([again], D3)[0]) == 1

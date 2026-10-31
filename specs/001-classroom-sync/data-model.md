@@ -104,7 +104,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 
 | Field | Type | Rule |
 |---|---|---|
-| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
+| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) · `subtopic` (one subtopic of a split textbook topic, spec 002 FR-043; origin `<subject folder>/Tema NNX`, target `title` and `lessons`, the textbook's lesson numbers comma-separated; no lesson in two subtopics of one topic; a confirmed one never changes) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
 | `origin` | Classroom id (class, topic or item); for `detected_exam` and `exam_correction`, `<item>#exam-<k>`, where Claude assigns `k` = 1, 2… when proposing (the classifier gives a single candidate per item) | Unique key per `(type, origin)` among the non-superseded ones; a repeated proposal does not write |
 | `target` | subject, topic folder, exam (`date`, `reason`), correction (`date`, `category`, `discarded`) | |
 | `reason` | text | What led to the proposal or to the correction |
