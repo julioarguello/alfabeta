@@ -287,7 +287,10 @@ the final implementation.
   once each was opened through its link, it was listed. nlm 0.15.8 asks for the notice email
   (`add_collaborator(..., notify=True)`, read in its source); whether it arrived was not checked.
   Google documents this only for NotebookLM Enterprise group shares
-  ([Share notebooks](https://docs.cloud.google.com/agentspace/notebooklm-enterprise/docs/share-notebooks)).
+  ([Share notebooks](https://docs.cloud.google.com/agentspace/notebooklm-enterprise/docs/share-notebooks));
+  for individual shares the same page says the notebook is listed, which these accounts contradict.
+  «Cuaderno» names the notebook here, as the prompts already do to the student; the 2026-10-28
+  rejection of the word was for the folder, where it would read as his own notes.
   The operator decided that the link goes where the student already looks: the topic's
   `notebook/` folder and the printed topic.
 
@@ -411,6 +414,9 @@ list, the page each piece starts on, a formula and the mind map's legibility at 
    quiz's answers come after its questions.
 3. **Given** a mind map, **When** it is printed, **Then** it fits one A4 page and its labels are
    readable.
+4. **Given** a shared notebook, **When** the topic is printed, **Then** the first page carries the
+   notebook's link under the title, and the topic's `notebook/` folder holds «Abrir el cuaderno.pdf»
+   with the same link (FR-047).
 
 ---
 
@@ -632,7 +638,8 @@ and cannot judge what the notebook writes.
 **Printing**
 
 - **FR-017**: alfabeta MUST write one A4 PDF per topic into the topic's `notebook/`, holding an
-  index of every piece in the notebook's order, then the study guide, then every piece except
+  the notebook's link under its title (FR-047), an index of every piece in the notebook's order,
+  then the study guide, then every piece except
   videos, each on a new page: the
   quiz with its answers after its questions, the flashcards as a table, the mind map as a diagram
   that fits one page.
@@ -748,6 +755,20 @@ and cannot judge what the notebook writes.
   once, whether or not the notebook shows the video to a viewer (measured 2026-10-29: the
   student's account saw every Studio piece except the three videos). The copy is made, and its link
   read, before the guide is generated.
+
+- **FR-047**: A shared notebook MUST reach the student through its link, not through the share
+  alone (measured 2026-10-31: not listed for a viewer until opened once by its link). The Science
+  Bits skill's notebook step (spec 001 FR-011b), on every run that finds the notebook shared with
+  an account of `notebook.share_with`, now or before, MUST leave in the topic's `notebook/` folder
+  a one-page PDF, «Abrir el cuaderno.pdf», with the notebook's title and its link, and bring the
+  mirrors up to date; and the printed topic MUST carry the same link under its title, on the first
+  page (FR-017). The link is the one `nlm notebook get` returns; alfabeta never builds it. The
+  file is written only when it is absent or does not carry that link; otherwise the folder and its
+  mirrors receive no write (spec 001 FR-011a). A PDF and not a shortcut file (`.url`, `.webloc`),
+  since the student opens the folder in Drive, which shows a PDF; that Drive's viewer follows the
+  link is not yet measured and the first topic it is written for checks it. A failed write does
+  not undo the share: the summary says the notebook's link was not left in the folder, and the
+  share is not done for the student until a later run leaves it.
 
 - **FR-040**: A piece whose text alfabeta writes (the study guide's plan) MUST be checked line by
   line against that text after it is downloaded, links included, and generated again until it
@@ -890,17 +911,6 @@ and cannot judge what the notebook writes.
   - New pages that reach a topic later are checked the same way, and the report names each
     correction and each question (spec 005 FR-020).
 
-- **FR-047**: A shared notebook MUST reach the student through its link, not through the share
-  alone (measured 2026-10-31: not listed for a viewer until opened once by its link). Once it is
-  shared, the topic's `notebook/` folder MUST hold a one-page PDF, «Abrir el cuaderno.pdf», with
-  the notebook's title and its link, mirrored like the rest of the folder; and the printed topic
-  MUST carry the same link under its title, on the first page. The link is the one `nlm notebook
-  get` returns; alfabeta never builds it. A PDF and not a shortcut file (`.url`, `.webloc`), since
-  the student opens the folder in Drive, which shows a PDF; that Drive's viewer follows the link
-  is not yet measured and the first topic it is written for checks it. Writing it again leaves
-  the same file; a failed write does not undo the share and is reported like a failed share
-  (spec 001 FR-011b).
-
 ### Key Entities
 
 - **Topic**: a school year, subject and topic folder, with its notebook and the subject's language.
@@ -965,8 +975,10 @@ and cannot judge what the notebook writes.
 - While a run lasts, a piece not yet verified, or the parent's material, may be visible to a viewer
   for some minutes: the platform shows a viewer every piece as soon as it exists. FR-009, FR-010
   and FR-013 hold at the end of the run, not during it.
-- What a viewer sees has not been checked from the student's account; the requirements on what
-  the student sees assume a viewer sees the same list as the owner.
+- What a viewer sees was checked from the student's accounts twice: no video of the notebook
+  (FR-039, 2026-10-29) and no shared notebook in the list until it is opened once by its link
+  (FR-047, 2026-10-31). Every other Studio piece showed as it does to the owner; the rest of the
+  requirements on what the student sees assume it stays so.
 - «HOY» needs the daily Classroom sync of spec 001; until it runs unattended, a «HOY» piece exists
   only on the days someone runs the sync.
 - The quota cost of «HOY» pieces and weekly reviews across several subjects has not been measured;
