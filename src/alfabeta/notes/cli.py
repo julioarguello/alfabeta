@@ -14,6 +14,7 @@ import sys
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
+from alfabeta.decisions import DecisionStore, subtopics
 from alfabeta.google import accounts
 from alfabeta.google.drive import DriveError, ScopedDrive, cache_path
 from alfabeta.google.notify import MacNotifier
@@ -86,6 +87,7 @@ def notes_deps(cfg: StudentConfig, store: TokenStore, ran_on: RanOn) -> tuple[No
         warn_pages=cfg.notes_warn_pages,
         ran_on=ran_on,
         answerer=transcriber,
+        subtopics=lambda subject, number: subtopics(DecisionStore.open(cfg.data_dir).decisions(), subject, number),
     )
     return deps, drive
 

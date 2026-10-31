@@ -55,6 +55,9 @@ from alfabeta.notes.report import baseline, write_report
 from alfabeta.placement import NO_TOPIC
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from alfabeta.decisions import Subtopic
     from alfabeta.google.drive import DriveFile
     from alfabeta.notes.changes import ChangeFeed
     from alfabeta.notes.model import Clock
@@ -195,6 +198,8 @@ class NotesDeps:
     warn_pages: int
     ran_on: RanOn
     answerer: Answerer | None = None  # the report's "what it adds" (research R8); None: no key here
+    # The confirmed subtopics of `Tema NN` in a subject (spec 002 FR-043), for the report's lessons.
+    subtopics: Callable[[str, str], list[Subtopic]] = field(default=lambda _subject, _number: [])
 
 
 @dataclass
