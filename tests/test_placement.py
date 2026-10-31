@@ -21,7 +21,7 @@ from alfabeta.model import (
     ReplicaRole,
     Subject,
 )
-from alfabeta.placement import Placer, Target, book_topics, summary
+from alfabeta.placement import Placer, Target, book_topic_number, book_topics, subtopic_letter, summary
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -251,3 +251,44 @@ def test_two_files_of_one_assignment_with_one_name_are_numbered():
     ]
     assert paths(Placer("2026-2027", NO_BOOK).place(one, "T")) == expected
     assert paths(Placer("2026-2027", NO_BOOK).place(one, "T")) == expected  # the same on every run
+
+
+def test_subtopics_are_book_topics(tmp_path: Path):
+    for name in ("20261029 - Tema 02A - Digestión", "20261031 - Tema 02B - Respiración", "20261031 - Tema 02 Repaso"):
+        (tmp_path / name / "sciencebits").mkdir(parents=True)
+    assert book_topics(tmp_path, "sciencebits") == ["Tema 02A - Digestión", "Tema 02B - Respiración"]
+    assert [book_topic_number(n) for n in ("Tema 02B - x", "Tema 02 - x", "Tema 02b - x")] == [
+        "Tema 02",
+        "Tema 02",
+        None,
+    ]
+    assert [subtopic_letter(n) for n in ("Tema 02B - x", "Tema 02 - x", "Repaso")] == ["B", "", ""]
+
+
+def test_a_match_to_a_topic_split_since_goes_to_its_latest_subtopic_never_to_a_new_folder():
+    placer = Placer(
+        "2026-2027",
+        WITH_BOOK,
+        existing_folders=[
+            "20261001 - Tema 02A - Los gases ideales",
+            "20261020 - Tema 02B - Mezclas de gases",
+            "20261020 - Tema 01 - Otra cosa",
+        ],
+        decisions=[match(DecisionType.TOPIC_MATCH, "synth-t1", DecisionState.CONFIRMED)],
+    )
+    assert paths(placer.place(item(attachments=(file("Ficha.pdf"),)), "Gasak")) == [
+        f"{ROOT}/20261020 - Tema 02B - Mezclas de gases/classroom/20261014 - Ficha de gases.pdf"
+    ]
+
+
+def test_an_item_matched_to_a_subtopic_goes_there():
+    placer = Placer(
+        "2026-2027",
+        WITH_BOOK,
+        existing_folders=["20261001 - Tema 02A - Los gases ideales", "20261020 - Tema 02B - Mezclas de gases"],
+        decisions=[
+            match(DecisionType.TOPIC_MATCH, "synth-t1", DecisionState.CONFIRMED),
+            match(DecisionType.ITEM_MATCH, "synth-i1", DecisionState.CONFIRMED, "Tema 02A - Los gases ideales"),
+        ],
+    )
+    assert paths(placer.place(item(), "Gasak"))[0].startswith(f"{ROOT}/20261001 - Tema 02A - Los gases ideales/")

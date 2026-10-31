@@ -464,3 +464,12 @@ def test_any_error_of_the_pdf_parser_is_one_line(monkeypatch: pytest.MonkeyPatch
         deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=ScriptedAnswerer())
     )
     assert result["ok"] and report.NO_PDF in reports(drive)[0]
+
+
+def test_a_subtopic_s_printable_pack_is_found_by_its_name():
+    names = (
+        "Tema 02B para imprimir · Lección inventada.pdf",
+        "Tema 02 para imprimir · x.pdf",
+        "Tema 02b para imprimir · x.pdf",
+    )
+    assert [bool(report._PRINTABLE.match(n)) for n in names] == [True, True, False]  # pyright: ignore[reportPrivateUsage]

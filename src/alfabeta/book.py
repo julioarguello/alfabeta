@@ -3,9 +3,10 @@
 `book place` copies what a provider built for one topic (the Science Bits skill's `TemaNN_<LANG>.pdf`
 and `.md`) into `<school-year>/<subject>/<topic>/<book>/`. `<topic>` is the subject's folder named
 `Tema NN - <title>` after its date, whatever the date and the title, as `placement.book_topics` reads
-it, or a new `<today> - Tema NN - <title>` when there is none. Of two such folders it takes the one
-that already holds `<book>/`, and otherwise never guesses. Each file is a replica keyed
-`<book>|Tema NN|<file>` with its hash and version: an identical file writes nothing, a changed one
+it, or a new `<today> - Tema NN - <title>` when there is none. A topic split into subtopics
+(`Tema NNX - <title>`, spec 002 FR-043) gets the files in every subtopic. Of two whole folders it
+takes the one that already holds `<book>/`, and otherwise never guesses. Each file is a replica keyed
+`<book>|Tema NN[X]|<file>` with its hash and version: an identical file writes nothing, a changed one
 keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)» (FR-015b). The origin is only
 read, and nothing is written outside the base folder. `log notebook` writes the line of the book's
 notebook step, whatever its result (constitution VII).
@@ -21,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 from alfabeta.exam.printing import refresh_mirrors
 from alfabeta.google.keychain import run_command
 from alfabeta.model import ReplicaRole
-from alfabeta.placement import book_topic_number, clean, fit, undated
+from alfabeta.placement import book_topic_number, clean, fit, subtopic_letter, undated
 from alfabeta.replicas import previous_name, sha256
 
 if TYPE_CHECKING:
@@ -71,7 +72,7 @@ def book_subject(subjects: Iterable[Subject], folder: str) -> Subject:
 
 
 def book_topic(text: str) -> tuple[str, str]:
-    """`text` as a folder name and its `Tema NN`, if it has the form `Tema NN - <title>`."""
+    """`text` as a folder name and its `Tema NN`, if it has the form `Tema NN[X] - <title>`."""
     topic = clean(text)
     number = book_topic_number(topic)
     if number is None:
@@ -97,11 +98,15 @@ class BookPlacer:
         """`state.json` «replicas»: `<source>|<item>|<attachment>` → its record."""
         return cast("dict[str, Any]", self.state.setdefault("replicas", {}))
 
-    def topic_folder(self, topic: str, number: str, book: str) -> str:
-        """The topic's folder relative to the base folder: the subject's `Tema NN - …`, or a new one dated today.
+    def topic_folders(self, topic: str, number: str, book: str) -> list[str]:
+        """The topic's folders relative to the base folder: its `Tema NN - …`, its subtopics, or a new one.
 
-        Of two, the one already holding `book/` (a teacher's topic named like the book's, before its
-        match is confirmed, has none); any other tie is the family's to undo, never a guess.
+        Every subtopic `Tema NNX - …` of a split topic gets the book (spec 001 FR-013); a topic with
+        no folder gets one dated today.
+
+        Of a whole folder and another, the one already holding `book/` (a teacher's topic named like
+        the book's, before its match is confirmed, has none); any other tie is the family's to undo,
+        never a guess.
         """
         subject_dir = self.base / self.school_year / self.subject.folder
         found = (
@@ -109,7 +114,15 @@ class BookPlacer:
             if subject_dir.is_dir()
             else []
         )
-        if len(found) > 1:
+        subtopics = [name for name in found if subtopic_letter(undated(name))]
+        if subtopics:
+            if len(subtopics) != len(found):
+                raise BookError(
+                    "ambiguous_topic",
+                    f"{number} of {self.subject.folder} is both whole and split into subtopics: merge them",
+                )
+            found = subtopics
+        elif len(found) > 1:
             own = [name for name in found if (subject_dir / name / book).is_dir()]
             if len(own) != 1:
                 raise BookError(
@@ -117,21 +130,27 @@ class BookPlacer:
                     f"{len(found)} folders of {self.subject.folder} are {number}: merge them into one",
                 )
             found = own
-        name = found[0] if found else fit(f"{self.today.strftime('%Y%m%d')} - {topic}")
-        return f"{self.school_year}/{self.subject.folder}/{name}"
+        names = found or [fit(f"{self.today.strftime('%Y%m%d')} - {topic}")]
+        return [f"{self.school_year}/{self.subject.folder}/{name}" for name in names]
 
-    def place(self, built: BookFiles, topic: str, number: str) -> str:
-        """Every file of `built` in the topic's `<book>/`; that folder, relative to the base folder."""
+    def place(self, built: BookFiles, topic: str, number: str) -> list[str]:
+        """Every file of `built` in the `<book>/` of the topic, or of each of its subtopics; those folders."""
         listed = built.files()
         files = {fit(clean(origin.name)): origin for origin in listed}
         if not files:
             raise BookError("nothing_to_place", "the origin holds no file to place")
         if len(files) < len(listed):
             raise BookError("name_clash", "two files of the origin would get the same name; rename one")
-        folder = f"{self.topic_folder(topic, number, built.name)}/{built.name}"
+        folders = [f"{topic_dir}/{built.name}" for topic_dir in self.topic_folders(topic, number, built.name)]
+        for folder in folders:
+            self._place_in(folder, files, built.name, f"{number}{subtopic_letter(undated(folder.split('/')[-2]))}")
+        return folders
+
+    def _place_in(self, folder: str, files: dict[str, Path], book: str, topic_key: str) -> None:
+        """`files` in one `<book>/` folder; a subtopic's replicas are keyed by its own `Tema NNX`."""
         for name, origin in files.items():
             relative = f"{folder}/{name}"
-            key = f"{built.name}|{number}|{name}"
+            key = f"{book}|{topic_key}|{name}"
             record = cast("dict[str, Any] | None", self.replicas.get(key))
             digest = sha256(origin)
             version = int(record["version"]) if record else 0
@@ -154,7 +173,6 @@ class BookPlacer:
                 "hash": digest,
                 "version": version,
             }
-        return folder
 
 
 def _copy(origin: Path, destination: Path) -> None:

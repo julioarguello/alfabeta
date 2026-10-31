@@ -1,6 +1,6 @@
 """Where each Classroom item goes in the student's folder (spec 001 FR-012…FR-015c).
 
-`<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/classroom/…`
+`<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/classroom/…`
 
 A topic folder is found by the part of its name after the date, whatever that date is, and keeps
 the date it was created with: the posting date of the first item placed in it. Items must therefore
@@ -40,7 +40,8 @@ MAX_NAME_BYTES = 255
 SUMMARY_CHARS = 60
 
 _DATED = re.compile(r"^(\d{8}) - (.+)$")
-_BOOK_TOPIC = re.compile(r"(Tema \d{2}) - .+")
+# `Tema NN - <title>`, or a subtopic `Tema NNX - <title>` of a split textbook topic (spec 002 FR-043).
+_BOOK_TOPIC = re.compile(r"(Tema \d{2})([A-Z]?) - .+")
 # "/" separates paths and ":" is shown as "/" by macOS; control characters are invisible in Drive.
 _FORBIDDEN = re.compile(r"[/:\x00-\x1f\x7f]")
 
@@ -91,9 +92,15 @@ def _day(date: dt.date) -> str:
 
 
 def book_topic_number(name: str) -> str | None:
-    """`Tema NN` of a book topic named `Tema NN - <title>`; None for a name of another form."""
+    """`Tema NN` of a book topic named `Tema NN - <title>` or `Tema NNX - <title>`; None for another form."""
     found = _BOOK_TOPIC.fullmatch(name)
     return found.group(1) if found else None
+
+
+def subtopic_letter(name: str) -> str:
+    """`B` of a subtopic named `Tema 02B - <title>`; "" for a whole book topic or another form."""
+    found = _BOOK_TOPIC.fullmatch(name)
+    return found.group(2) if found else ""
 
 
 def undated(folder: str) -> str:
@@ -103,9 +110,9 @@ def undated(folder: str) -> str:
 
 
 def book_topics(subject_dir: Path, book: str) -> list[str]:
-    """The book topics of a subject: folders named `… Tema NN - <title>` that hold the book's subfolder.
+    """The book topics of a subject: folders named `… Tema NN[X] - <title>` that hold the book's subfolder.
 
-    Returned without their date, as `Tema NN - <title>`.
+    Returned without their date, as `Tema NN[X] - <title>`; a subtopic is a book topic of its own.
     """
     if not book or not subject_dir.is_dir():
         return []
@@ -169,10 +176,27 @@ class Placer:
         return clean(teacher_title or "") or NO_TOPIC
 
     def topic_folder(self, name: str, first_posted: dt.date) -> str:
-        """The dated folder for `name`: the existing one whatever its date, else a new one dated now."""
+        """The dated folder for `name`: the existing one whatever its date, else a new one dated now.
+
+        A whole book topic split into subtopics since its match was confirmed has no folder of its
+        own any more: its items go to the subtopic with the latest date, never to a new folder
+        beside the subtopics (spec 001 FR-013).
+        """
         if name not in self._topic_folders:
-            self._topic_folders[name] = fit(f"{_day(first_posted)} - {name}")
+            self._topic_folders[name] = self._latest_subtopic(name) or fit(f"{_day(first_posted)} - {name}")
         return self._topic_folders[name]
+
+    def _latest_subtopic(self, name: str) -> str | None:
+        """The dated folder of the latest subtopic of `name`, a whole book topic; None if it has none."""
+        number = book_topic_number(name)
+        if number is None or subtopic_letter(name):
+            return None
+        subtopics = [
+            dated
+            for undated_name, dated in self._topic_folders.items()
+            if book_topic_number(undated_name) == number and subtopic_letter(undated_name)
+        ]
+        return max(subtopics) if subtopics else None
 
     def _unique(self, folder: str, name: str, item: str, *, is_folder: bool = False) -> str:
         """`name` in `folder`, numbered « (2)», « (3)»… if another item already took it there."""

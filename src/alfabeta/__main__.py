@@ -185,7 +185,7 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
         "topic": topic,
     }
     try:
-        folder = placer.place(sources.BookSource(subject.book, origin=origin), topic, number)
+        folders = placer.place(sources.BookSource(subject.book, origin=origin), topic, number)
     except book.BookError as err:
         return _fail(err.reason, EXIT_INVALID, str(err))
     except OSError:
@@ -200,7 +200,7 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
     result = "placed" if placer.placed else "unchanged"
     store.log(line | {"result": result, "mirrors": mirrors})
     print(
-        f"alfabeta: libro en {folder}: {len(placer.placed)} colocados, {len(placer.unchanged)} sin cambios",
+        f"alfabeta: libro en {', '.join(folders)}: {len(placer.placed)} colocados, {len(placer.unchanged)} sin cambios",
         file=sys.stderr,
     )
     if placer.previous:
@@ -211,7 +211,8 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
         {
             "ok": True,
             "result": result,
-            "folder": folder,
+            "folder": folders[0],
+            "folders": folders,
             "placed": placer.placed,
             "unchanged": placer.unchanged,
             "previous": placer.previous,
@@ -689,7 +690,7 @@ def build_parser() -> argparse.ArgumentParser:
     stop = log.add_parser("stop", help="write the stopped line of a run halted before apply")
     stop.add_argument("--reason", required=True)
     log_notebook = log.add_parser("notebook", help="write the line of a book topic's notebook step")
-    log_notebook.add_argument("--topic", required=True, help="Tema NN - <title>")
+    log_notebook.add_argument("--topic", required=True, help="Tema NN[X] - <title>")
     log_notebook.add_argument("--result", required=True, help=", ".join(book.NOTEBOOK_RESULTS))
     log_notebook.add_argument("--reason", help="short, without student data; required with failed")
     log_notebook.add_argument("--shares", help="<invited>,<already>,<failed>: counts over [notebook] share_with")
@@ -698,7 +699,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     book_place = book_group.add_parser("place", help="place what a book provider built in its topic's folder")
     book_place.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
-    book_place.add_argument("--topic", required=True, help="Tema NN - <title>")
+    book_place.add_argument("--topic", required=True, help="Tema NN[X] - <title>")
     book_place.add_argument("--origin", required=True, help="the folder where the provider left its files")
 
     cfg_group = groups.add_parser("config", help="the student's configuration").add_subparsers(

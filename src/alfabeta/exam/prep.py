@@ -50,7 +50,7 @@ COMPLETED, FAILED = "completed", "failed"
 
 _DATED = re.compile(r"^(\d{8}) - (.+)$")
 _SLOT = re.compile(r"^(\d{2}):(\d{2})-(\d{2}):(\d{2})$")
-_TOPIC_NUMBER = re.compile(r"\bTema (\d{2})\b")
+_TOPIC_NUMBER = re.compile(r"\bTema (\d{2}[A-Z]?)\b")
 _ANNOUNCEMENT = re.compile(r"^(\d{8}) - aviso - .+\.md$")
 _GUIDE = re.compile(r"gu[ií]a de estudio|study guide", re.IGNORECASE)
 _PLAN = re.compile(r"^0\s*·")  # piece 0, the plan «0 · Guía de estudio» (FR-015): never a theory guide
@@ -185,7 +185,7 @@ def topic_folder(subject_dir: Path, wanted: str | None) -> Path:
 
 
 def topic_number(folder: str) -> str:
-    """`T02` for a `Tema 02 - …` folder; a teacher's topic with no number goes by its name."""
+    """`T02` for a `Tema 02 - …` folder, `T02B` for a subtopic; a teacher's topic with no number goes by its name."""
     found = _TOPIC_NUMBER.search(folder)
     return f"T{found.group(1)}" if found else topic_name(folder)
 
