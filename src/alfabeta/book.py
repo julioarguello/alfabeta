@@ -118,6 +118,8 @@ class BookPlacer:
         )
         subtopics = [name for name in found if subtopic_letter(undated(name))]
         if subtopics:
+            # A teacher's topic named like the book's has no `<book>/`: it is not this topic.
+            found = [name for name in found if name in subtopics or (subject_dir / name / book).is_dir()]
             letters = [subtopic_letter(undated(name)) for name in subtopics]
             if len(subtopics) != len(found) or len(set(letters)) != len(letters):
                 raise BookError(

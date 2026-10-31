@@ -490,3 +490,13 @@ def test_the_book_is_placed_by_its_whole_topic_never_a_subtopic(box: Box, tmp_pa
     done = place(box, built(tmp_path / "out"), "Tema 01B - Lección inventada")
     assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "invalid_topic"
     assert written(box) == before
+
+
+def test_a_teacher_s_folder_named_like_the_split_topic_is_not_the_book_s(box: Box, tmp_path: Path):
+    whole = box.base / TOPIC_FOLDER
+    first = whole.with_name(whole.name.replace("Tema 01 - ", "Tema 01A - "))
+    whole.rename(first)
+    (box.base / FYQ / "20261102 - Tema 01 - Repaso del profesor" / "classroom").mkdir(parents=True)
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout)["folders"] == [f"{FYQ}/{first.name}/sciencebits"]
