@@ -267,7 +267,18 @@ def test_the_three_exam_texts_are_in_prompts_md_and_every_placeholder_is_filled(
     for heading in (prompts.THEORY, prompts.PROBLEMS, prompts.START_NOTE):
         names = set(re.findall(r"\{(\w+)\}", prompts.template(heading)))
         assert names, heading
-        assert names <= {"grade", "language", "subject", "exam_day", "scope", "scope_date", "slot", "pages", "theory"}
+        assert names <= {
+            "grade",
+            "language",
+            "subject",
+            "exam_day",
+            "scope",
+            "scope_date",
+            "slot",
+            "pages",
+            "theory",
+            "part",
+        }
 
 
 def test_a_value_is_never_read_again_for_placeholders_and_a_missing_one_raises():
@@ -1035,4 +1046,54 @@ def test_a_subtopic_with_no_notebook_stops_before_any_is_asked(world: World, cap
 def test_a_slot_shares_into_equal_consecutive_parts():
     assert [s.words for s in Slot.parse("17:00-18:30").share(3)] == ["17:00–17:30", "17:30–18:00", "18:00–18:30"]
     assert [(s.minutes, s.words) for s in Slot.parse(None).share(2)] == [(45, "45 minutos"), (45, "45 minutos")]
-    assert [s.minutes for s in Slot.parse("17:00-18:00").share(7)] == [8, 8, 8, 8, 8, 8, 12]
+    assert [s.minutes for s in Slot.parse("17:00-19:00").share(7)] == [17, 17, 17, 17, 17, 17, 18]
+    # The pages are the whole slot's, shared: splitting adds none.
+    assert [s.pages for s in Slot.parse("17:00-18:30").share(3)] == [2, 1, 1]
+    assert [s.pages for s in Slot.parse("17:00-18:30").share(2)] == [2, 2]
+    with pytest.raises(Refusal, match="less than 15 minutes"):
+        Slot.parse("17:00-17:20").share(2)
+
+
+def test_subtopics_go_in_their_order_and_each_theory_keeps_to_its_points(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    first, second = split(world)
+    assert world.run("--slot", "17:00-18:30", "--topic", second.name, "--topic", first.name) == 0, output(capsys)[1]
+    asked = world.nlm.asked("report", "create")
+    assert [a[3] for a in asked] == ["nb-1", "nb-1", "nb-2", "nb-2"]  # A first, whatever order --topic gave
+    theories = [a[a.index("--prompt") + 1] for a in asked if "Hoja de teoría" in a[a.index("--prompt") + 1]]
+    assert "solo tiene el subtema «Tema 01A - Materia inventada» (parte 1 de 2)" in theories[0]
+    assert "(parte 2 de 2)" in theories[1] and "En otro subtema:" in theories[1]
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    assert {f"2026-2027/FyQ/{first.name}", f"2026-2027/FyQ/{second.name}"} <= set(pack["topics"])
+    # One start note per notebook, each with its part of the slot (the fake shares one Studio, so the
+    # second notebook's note is written over the first's).
+    notes = [n[n.index("--content") + 1] for n in world.nlm.asked("note") if "--content" in n]
+    assert "(17:00–17:45)" in notes[0] and "(17:45–18:30)" in notes[-1]
+
+
+def test_one_topic_has_no_part_sentence(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run() == 0
+    theory = next(a for a in world.nlm.asked("report", "create") if "Hoja de teoría" in a[a.index("--prompt") + 1])
+    assert "subtema" not in theory[theory.index("--prompt") + 1]
+
+
+@pytest.mark.parametrize("names", [("A", "A"), ("A", "whole"), ("A", "other")])
+def test_topics_that_are_not_distinct_subtopics_of_one_topic_are_refused(
+    world: World, capsys: pytest.CaptureFixture[str], names: tuple[str, str]
+):
+    first, _ = split(world)
+    other = world.base / "2026-2027" / "FyQ" / "20261102 - Tema 03A - Otra"
+    other.mkdir()
+    whole = world.base / "2026-2027" / "FyQ" / "20261102 - Tema 04 - Entero"
+    whole.mkdir()
+    pick = {"A": first.name, "whole": whole.name, "other": other.name}
+    assert world.run("--topic", pick[names[0]], "--topic", pick[names[1]]) == 1
+    result, _ = output(capsys)
+    assert result == {"ok": False, "reason": "no_topic"}
+    assert world.nlm.asked("report", "create") == []
+
+
+def test_a_topic_in_another_case_is_not_a_folder_of_the_subject(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run("--topic", f"20260915 - {TOPIC}".upper()) == 1
+    assert output(capsys)[0] == {"ok": False, "reason": "no_topic"}

@@ -74,7 +74,20 @@ def exam_deps(cfg: config.StudentConfig, store: TokenStore) -> ExamDeps:
     )
 
 
-def _sheets(cfg: config.StudentConfig, subject: str, language: str, exam: Exam, slot: Slot) -> tuple[Sheet, Sheet]:
+def _part(topic: str, index: int, count: int) -> str:
+    """`{part}` of the theory prompt: empty for one topic; for a subtopic, keep to its own points (FR-045)."""
+    if count <= 1:
+        return ""
+    return (
+        f"Este examen abarca varios subtemas y este cuaderno solo tiene el subtema «{topic}» (parte {index}"
+        f" de {count}): las secciones son solo los puntos del anuncio que tratan tus fuentes; nombra los demás"
+        " en una línea «En otro subtema:» y no los desarrolles. "
+    )
+
+
+def _sheets(
+    cfg: config.StudentConfig, subject: str, language: str, exam: Exam, slot: Slot, part: str = ""
+) -> tuple[Sheet, Sheet]:
     values = {
         "grade": cfg.grade_level,
         "language": language,
@@ -84,6 +97,7 @@ def _sheets(cfg: config.StudentConfig, subject: str, language: str, exam: Exam, 
         "scope_date": prompts.day_month(exam.announced),
         "slot": slot.words,
         "pages": str(slot.pages),
+        "part": part,
     }
     return (
         Sheet("theory", "Teoría para el examen", prompts.fill(prompts.template(prompts.THEORY), values)),
@@ -167,14 +181,22 @@ def cmd_exam_prep(
     try:
         start = prompts.template(prompts.START_NOTE)
         # The slot is shared in equal parts among the subtopics, in their order (FR-045).
-        parts = [(part, _sheets(cfg, subject.folder, language, exam, part)) for part in slot.share(len(folders))]
+        shared = slot.share(len(folders))
+        parts = [
+            (part, _sheets(cfg, subject.folder, language, exam, part, _part(topic_name(f.name), i, len(folders))))
+            for i, (f, part) in enumerate(zip(folders, shared, strict=True), start=1)
+        ]
     except prompts.PromptError as err:
         return _fail("invalid_prompt", EXIT_INVALID, f"prompts.md: {err}")
+    except Refusal as refusal:
+        return _fail(refusal.reason, EXIT_INVALID, str(refusal))
 
     listed = sorted(p.name for p in folders[0].parent.iterdir() if p.is_dir())
     topics: list[dict[str, Any]] = []
     partial = False
     for folder, notebook, (part, sheets) in zip(folders, notebooks, parts, strict=True):
+        if len(folders) > 1:
+            print(f"alfabeta: {folder.name} ({part.words}):", file=sys.stderr)  # what follows is about it
         prep = ExamPrep(
             deps=deps,
             data_dir=cfg.data_dir,
