@@ -29,6 +29,7 @@ class DecisionType(StrEnum):
     DETECTED_EXAM = "detected_exam"
     DISMISSED_CANDIDATE = "dismissed_candidate"
     EXAM_CORRECTION = "exam_correction"
+    SUBTOPIC = "subtopic"  # one subtopic of a split textbook topic and its lessons (spec 002 FR-043)
 
 
 class Confidence(StrEnum):

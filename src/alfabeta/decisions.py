@@ -1,8 +1,8 @@
 """Claude's proposals and the family's decisions, in `data/decisions.json` (spec 001 T038, research R7).
 
 One decision per `(type, origin)` is in force at a time; the others are `superseded`, never deleted.
-Claude proposes (class links, topic and item matches, detected exams, dismissed candidates) with a
-reason and a confidence; the family confirms, rejects, corrects a detected exam or changes a match.
+Claude proposes (class links, topic and item matches, detected exams, dismissed candidates, the
+subtopics of a split textbook topic) with a reason and a confidence; the family confirms, rejects, corrects a detected exam or changes a match.
 A proposal for a key that already has a decision in force writes nothing, except where the
 contract reopens it: a rejected decision whose origin changed after the rejection, and a detected
 exam or dismissed candidate whose source text changed and the family has not corrected.
@@ -97,6 +97,54 @@ def _check_exam_target(target: dict[str, Any]) -> None:
         raise DecisionError("a detected exam's category is one of: " + ", ".join(str(c) for c in AgendaCategory))
 
 
+# A subtopic's origin, `<subject folder>/Tema NNX`, and its lessons, `1,2,3` (spec 002 FR-043).
+_SUBTOPIC = re.compile(r"(?P<subject>[^/]+)/(?P<number>Tema \d{2})(?P<letter>[A-Z])")
+_LESSONS = re.compile(r"[1-9]\d*(?:,[1-9]\d*)*")
+
+
+def _check_subtopic(origin: str, target: dict[str, Any]) -> None:
+    """A subtopic names its subject, topic and letter, a title, and the textbook lessons it holds, ascending."""
+    if _SUBTOPIC.fullmatch(origin) is None:
+        raise DecisionError("a subtopic's origin is <subject folder>/Tema NNX, X its letter")
+    if not str(target.get("title") or "").strip():
+        raise DecisionError("a subtopic needs its title")
+    lessons = str(target.get("lessons") or "")
+    if _LESSONS.fullmatch(lessons) is None:
+        raise DecisionError("a subtopic's lessons are the textbook's lesson numbers, comma-separated: 1,2,3")
+    numbers = lessons_of(lessons)
+    if numbers != tuple(sorted(set(numbers))):
+        raise DecisionError("a subtopic's lessons go in ascending order, each once")
+
+
+def lessons_of(lessons: str) -> tuple[int, ...]:
+    """`(1, 2, 3)` for a subtopic's `1,2,3`."""
+    return tuple(int(n) for n in lessons.split(","))
+
+
+@dataclass(frozen=True)
+class Subtopic:
+    """A confirmed subtopic of a split textbook topic."""
+
+    letter: str
+    title: str
+    lessons: tuple[int, ...]
+
+
+def subtopics(decisions: Iterable[Decision], subject: str, number: str) -> list[Subtopic]:
+    """The confirmed subtopics of `number` (`Tema NN`) in `subject`, by letter; none for a topic never split."""
+    found: list[Subtopic] = []
+    for decision in decisions:
+        key = _SUBTOPIC.fullmatch(decision.origin)
+        if (
+            decision.type == DecisionType.SUBTOPIC
+            and decision.state == DecisionState.CONFIRMED
+            and key is not None
+            and (key["subject"], key["number"]) == (subject, number)
+        ):
+            found.append(Subtopic(key["letter"], decision.target["title"], lessons_of(decision.target["lessons"])))
+    return sorted(found, key=lambda s: s.letter)
+
+
 @dataclass(frozen=True)
 class Proposal:
     """One proposal from Claude, with the state of its origin now."""
@@ -131,6 +179,8 @@ class Proposal:
             raise DecisionError("a proposal needs its target")
         if kind == DecisionType.DETECTED_EXAM:
             _check_exam_target(cast("dict[str, Any]", target))
+        if kind == DecisionType.SUBTOPIC:
+            _check_subtopic(p["origin"], cast("dict[str, Any]", target))
         origin_hash = p.get("origin_hash")
         if kind in _HASHED and not origin_hash:
             raise DecisionError("a detected exam or dismissed candidate needs the hash of its text")
@@ -205,10 +255,39 @@ class DecisionStore:
             return title_changed or new_book_topic
         return False
 
+    def _check_lessons(self, proposals: list[Proposal]) -> None:
+        """No textbook lesson in two subtopics of one topic, counting those proposed or confirmed (FR-043)."""
+        held: dict[tuple[str, str], dict[int, str]] = {}
+        # Only a proposal that will be recorded replaces what stands for its key; one `propose` will
+        # ignore leaves the decision in force counting (a confirmed subtopic keeps its lessons).
+        taking = [p for p in proposals if self._recorded(p)]
+        incoming = {(p.decision.type, p.decision.origin) for p in taking}
+        standing = [
+            d for d in self.decisions() if d.state != DecisionState.REJECTED and (d.type, d.origin) not in incoming
+        ]
+        for decision in [*standing, *(p.decision for p in taking)]:
+            key = _SUBTOPIC.fullmatch(decision.origin)
+            if decision.type != DecisionType.SUBTOPIC or key is None:
+                continue
+            seen = held.setdefault((key["subject"], key["number"]), {})
+            for lesson in lessons_of(decision.target["lessons"]):
+                if seen.setdefault(lesson, key["letter"]) != key["letter"]:
+                    raise DecisionError(
+                        f"lesson {lesson} of {key['subject']}/{key['number']} is in two subtopics: "
+                        f"{seen[lesson]} and {key['letter']}"
+                    )
+
+    def _recorded(self, proposal: Proposal) -> bool:
+        """Whether `propose` will record this proposal rather than ignore it."""
+        current = self.in_force(proposal.decision.type, proposal.decision.origin)
+        return current is None or self._reopens(current, proposal)
+
     def propose(self, proposals: Iterable[Proposal], on: dt.date) -> tuple[list[Decision], list[Decision]]:
-        """Record what is new; returns (recorded, ignored)."""
+        """Record what is new; returns (recorded, ignored). Writes nothing if a lesson would be in two subtopics."""
         recorded: list[Decision] = []
         ignored: list[Decision] = []
+        proposals = list(proposals)
+        self._check_lessons(proposals)
         for proposal in proposals:
             current = self.in_force(proposal.decision.type, proposal.decision.origin)
             if current is not None and not self._reopens(current, proposal):
@@ -254,6 +333,8 @@ class DecisionStore:
 
     def change(self, kind: DecisionType, origin: str, target: dict[str, str], on: dt.date) -> Decision:
         """Replace a confirmed or rejected decision with the family's new one."""
+        if kind == DecisionType.SUBTOPIC:
+            raise DecisionError("a subtopic never changes (spec 002 FR-043): a new lesson gets a subtopic of its own")
         current = self.in_force(kind, origin)
         if current is None or current.decision.state not in (DecisionState.CONFIRMED, DecisionState.REJECTED):
             raise DecisionError("there is no confirmed or rejected decision of that type for that origin")
