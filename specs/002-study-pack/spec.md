@@ -857,8 +857,8 @@ and cannot judge what the notebook writes.
   «Correcciones a los apuntes» (the notes page and line, quoted; the source, its lesson or article,
   quoted; what the material says); each one the notes insist on, each disagreement between sources
   and each doubt no source settles goes under «Preguntas sobre los apuntes», with the same quotes;
-  a doubted fact an external reference confirms is noted there as left as it is. Only the first
-  section changes any piece.
+  a doubted fact an external reference confirms is noted after both, as checked and left as it
+  is, and asks the family nothing. Only the first section changes any piece.
   - **Which source**: the textbook (in either language) and the teacher's material; if those two
     disagree with each other on the point, it is a question for the family, not a correction.
     Where both are silent, the fact stays as the notes have it, unless the run doubts it: then it

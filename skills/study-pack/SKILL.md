@@ -103,7 +103,7 @@ email or an id into the repository.
    - **Check the notes' facts, not only their shape** (spec 002 FR-046). For every block, read
      what its notes state against the textbook (both languages) and the teacher's material. Where
      both are silent on a fact you doubt, check it against a named external reference and record
-     the check either way. Each fact a source contradicts goes to «Correcciones a los apuntes» in
+     the check either way. Each fact a source contradicts and the notes do not insist on goes to «Correcciones a los apuntes» in
      `bloques.md` with both quotes (notes page and line, source and lesson), and becomes that
      block's `{notes_corrections}`; what goes to «Preguntas sobre los apuntes» never does. If the notes insist — the claim repeated on another page, boxed or underlined, marked as important («ojo», «importante»), or written as the teacher's own words — or the textbook and the
      teacher's material disagree, keep the notes' version and list it under «Preguntas sobre los
