@@ -194,9 +194,19 @@ NB = {"title": "3º ESO. Inventada. Tema 01 - Prueba", "url": "https://notebook.
 
 
 def capture(script: ModuleType, monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Each rendered page's markdown; its path goes to `rendered_to`."""
     rendered: list[str] = []
-    monkeypatch.setattr(script, "render", lambda md, out, work: rendered.append(md))  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    rendered_to.clear()
+
+    def render(md: str, out: Path, work: Path) -> None:
+        rendered.append(md)
+        rendered_to.append(out)
+
+    monkeypatch.setattr(script, "render", render)
     return rendered
+
+
+rendered_to: list[Path] = []
 
 
 def test_the_link_page_carries_the_notebooks_title_and_the_link_nlm_returns(
@@ -205,7 +215,9 @@ def test_the_link_page_carries_the_notebooks_title_and_the_link_nlm_returns(
     script = load_script()
     monkeypatch.setattr(script.subprocess, "run", Notebook("familia", NB))
     rendered = capture(script, monkeypatch)
-    script.link(script.parse(["link", "nb-1", "out.pdf", "--profile", "familia"]), tmp_path)
+    out = tmp_path / "notebook" / "Abrir el cuaderno.pdf"
+    script.link(script.parse(["link", "nb-1", str(out), "--profile", "familia"]), tmp_path)
+    assert rendered_to == [out]
     assert rendered[0].startswith(f"# {NB['title']}\n")
     assert f"]({NB['url']})" in rendered[0] and f"\n{NB['url']}\n" in rendered[0]
 
@@ -228,7 +240,7 @@ def test_a_notebook_without_a_link_stops_and_nothing_is_printed(tmp_path: Path, 
     monkeypatch.setattr(script.subprocess, "run", Notebook("familia", {"title": NB["title"]}))
     rendered = capture(script, monkeypatch)
     with pytest.raises(SystemExit, match="no url"):
-        script.link(script.parse(["link", "nb-1", "out.pdf", "--profile", "familia"]), tmp_path)
+        script.link(script.parse(["link", "nb-1", str(tmp_path / "out.pdf"), "--profile", "familia"]), tmp_path)
     assert rendered == []
 
 
@@ -253,3 +265,13 @@ def test_the_link_page_is_written_only_when_absent_or_carrying_another_link(
         out.write_bytes(f"%PDF-1.4 << /URI ({held}) >>".encode())
     script.link(script.parse(["link", "nb-1", str(out), "--profile", "familia"]), tmp_path)
     assert bool(rendered) is written
+
+
+def test_a_relative_link_path_stops_before_asking_nlm(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    script = load_script()
+    fake = Notebook("familia", NB)
+    monkeypatch.setattr(script.subprocess, "run", fake)
+    rendered = capture(script, monkeypatch)
+    with pytest.raises(SystemExit, match="absolute path"):
+        script.link(script.parse(["link", "nb-1", "2026-2027/Bio/notebook/x.pdf", "--profile", "familia"]), tmp_path)
+    assert rendered == [] and fake.calls == []

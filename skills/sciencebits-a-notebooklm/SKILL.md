@@ -26,7 +26,8 @@ Result per topic:
   and the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
 - The same files in every folder of `drive.mirrors`, one-way copies of `storage.base`.
 - If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, each once, shared as viewer with
-  every account in `notebook.share_with`.
+  every account in `notebook.share_with`, and its link in the topic folder's `notebook/«Abrir el cuaderno.pdf»`
+  (spec 002 FR-047).
 - A line in the student's run log for the placement and another for the notebook step, whatever its result.
 
 Work from start to finish without asking for confirmation at each step. Only ask if the topic is ambiguous or
@@ -152,8 +153,9 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
      changes that, the invite fails and the summary says so.
    - **Link.** A shared notebook is not listed for the student until opened once by its link (measured
      2026-10-31; spec 002 FR-047), so leave the link where the student looks: `uv run --project
-     <tools.repository> python <tools.repository>/skills/study-pack/scripts/print_pack.py link <id> "<topic
-     folder>/notebook/Abrir el cuaderno.pdf" --student <student>` (it reads the link from `nlm notebook get` and
+     <tools.repository> python <tools.repository>/skills/study-pack/scripts/print_pack.py link <id>
+     "<storage.base>/<folder>/notebook/Abrir el cuaderno.pdf" --student <student>`, with step 8's `folder`; the path
+     must be absolute (it reads the link from `nlm notebook get` and
      needs no default profile). Run it on every run that finds the notebook shared with an account of
      `notebook.share_with`, now or before: it writes the page only when absent or carrying another link. If it
      fails, the notebook stays; the summary says the notebook's link was not left in the folder, and the next run
@@ -171,7 +173,7 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
      What step 8 placed stays as it is.
 10. **Close.** Stop the collector, `resize_window preset desktop`, `alfabeta lock release`, and summarise: folder,
     mirrors up to date and failed (by count), notebook link, accounts it is shared with (by count) and any failed
-    invite, screens per language and what was left out.
+    invite, whether the link page was left in `notebook/`, screens per language and what was left out.
 
 ## Limits
 - Do not decrypt the `/seculogged/` XML files or force the disabled "Versión PDF" (PDF version): capture what the student sees.

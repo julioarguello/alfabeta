@@ -228,8 +228,10 @@ def notebook_of(profile: str, nb: str) -> tuple[str, str]:
 
 def link(args: argparse.Namespace, work: Path) -> None:
     """Written only when absent or carrying another link, so an up-to-date mirror gets no write."""
-    title, url = notebook_of(args.profile, args.notebook)
     out = Path(args.out).expanduser()
+    if not out.is_absolute():  # a path relative to storage.base would land beside the clone, outside Drive
+        sys.exit("print_pack: link needs an absolute path to the topic's notebook/ folder")
+    title, url = notebook_of(args.profile, args.notebook)
     # Chrome writes each link as a `/URI (<url>)` annotation (measured 2026-10-31).
     if out.is_file() and f"/URI ({url})".encode() in out.read_bytes():
         print(f"print_pack: {out.name} already carries the notebook's link; not written", file=sys.stderr)
