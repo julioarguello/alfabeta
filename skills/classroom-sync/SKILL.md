@@ -98,6 +98,15 @@ Below, `alfabeta <command>` stands for that line.
    Ask the family, then `decisions confirm --type topic_match --origin <topic id>` or, for a topic
    that belongs to no book topic, the same with `--reject`: it keeps its own
    `<YYYYMMDD> - <teacher's title>` folder. Then `alfabeta plan` again.
+   For each `item_match` pending — an item of a book topic split into subtopics, posted since the
+   split (spec 001 FR-013) — read the item and propose the subtopic, among the entry's
+   `subtopics`, whose textbook lessons its content covers:
+   ```json
+   [{"type": "item_match", "origin": "<item id>", "target": {"topic": "Tema NNX - <title>"},
+     "reason": "<which lesson it covers>", "confidence": "medium"}]
+   ```
+   Ask the family and confirm it. Until it is confirmed the item stays in subtopic A, the whole
+   topic's folder renamed in place; say so in the summary.
 8. **Judge the exam candidates.** Each `exam_candidate` in `pending_decisions` is an announcement whose
    `text`, or a material whose `title` or `text`, names a test. Read it in its class's `language` and decide how many exams
    it announces. For each one propose a `detected_exam` whose origin is `<item>#exam-<k>`, with `k` =

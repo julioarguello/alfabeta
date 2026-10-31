@@ -22,7 +22,7 @@ from alfabeta import capture
 from alfabeta.dates import MADRID
 from alfabeta.downloads import inbox_path
 from alfabeta.model import AttachmentKind, DecisionState, DecisionType, Item, ReplicaRole, Subject
-from alfabeta.placement import Placer, book_topics, downloaded_name
+from alfabeta.placement import Placer, book_topic_number, book_topics, downloaded_name, subtopic_letter, undated
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -196,6 +196,45 @@ class Planner:
             )
         return pending
 
+    def _pending_items(self, normalized: ClassCapture, subject: Subject, subject_dir: Path) -> list[dict[str, Any]]:
+        """Items matched to a whole book topic split since, to be proposed one by one (spec 001 FR-013).
+
+        Placement keeps them in subtopic A, the whole folder renamed in place, until an `item_match`
+        says otherwise. Only items posted from the split on are asked about: what was placed while the
+        topic was whole stays in A unasked. The split's day is the earliest date of a subtopic after A.
+        """
+        if not subject.book or not subject_dir.is_dir():
+            return []
+        folders = [p.name for p in subject_dir.iterdir() if p.is_dir()]
+        pending: list[dict[str, Any]] = []
+        for item in normalized.items:
+            if item.topic_id is None or self.decisions.in_force(DecisionType.ITEM_MATCH, item.id) is not None:
+                continue
+            match = self.decisions.in_force(DecisionType.TOPIC_MATCH, item.topic_id)
+            if match is None or match.decision.state != DecisionState.CONFIRMED:
+                continue
+            whole = match.decision.target.get("topic", "")
+            number = book_topic_number(whole)
+            if number is None or subtopic_letter(whole) or any(undated(f) == whole for f in folders):
+                continue
+            subtopics = sorted(
+                (f for f in folders if book_topic_number(undated(f)) == number and subtopic_letter(undated(f))),
+                key=lambda f: subtopic_letter(undated(f)),
+            )
+            later = [f[:8] for f in subtopics[1:] if f[:8].isdigit()]
+            if not later or item.posted_at.strftime("%Y%m%d") < min(later):
+                continue
+            pending.append(
+                {
+                    "type": str(DecisionType.ITEM_MATCH),
+                    "origin": item.id,
+                    "title": item.title,
+                    "book_topic": whole,
+                    "subtopics": [undated(f) for f in subtopics],
+                }
+            )
+        return pending
+
     def plan(self, captures: dict[str, dict[str, Any]], scope: Iterable[str], run: str) -> dict[str, Any]:
         """The plan for the classes in `scope`."""
         links = self.linked_classes()
@@ -217,6 +256,7 @@ class Planner:
             subject_dir = self.base / self.school_year / subject.folder
             book = book_topics(subject_dir, subject.book)
             pending += self._pending_topics(normalized, subject, book)
+            pending += self._pending_items(normalized, subject, subject_dir)
             pending += [
                 c | {"language": subject.language}
                 for c in self.classifier.candidates(normalized.items, self.decisions.decisions())
