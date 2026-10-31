@@ -266,13 +266,13 @@ the final implementation.
   source's fact and tells the student his page says otherwise, unless the notes insist (FR-046).
   The notes lead the structure and the wording (constitution X), not the facts: a fact written
   wrong in class is most likely a misreading, and the operator decided that the material corrects
-  it, «salvo que los apuntes insistan». Measured on the biology topic of 2026-10-30: page 12 of the
+  it, «salvo que los apuntes insistan». Measured 2026-10-31 on the biology topic: page 12 of the
   notes calls hemoglobin «una proteína de la superficie del glóbulo rojo»; the summary and one
-  flashcard of that day repeated it, while the practice sheet, made from the same notebook, put it
+  flashcard made that day repeated it, while the practice sheet, made from the same notebook, put it
   inside the cell — one notebook teaching both. The Spanish textbook (lesson 7) says what
   hemoglobin does, not where it is; the Basque Wikipedia article «Hemoglobina» says «barruko
-  hemoglobina» (inside). So that correction came from the external reference, as FR-041 allows
-  for terms when the textbook lacks a point.
+  hemoglobina» (inside). So that correction came from an external reference, the fallback FR-046
+  allows where the textbook and the teacher's material are silent on the point.
 - Q: How often does it happen? → A: The same day, all thirteen pages of that topic's notes were
   read against the textbook in both languages: three facts the textbook contradicts (vitamins
   under the «inorganic» branch, carbon dioxide «expelled through the blood», arteries and veins
@@ -616,8 +616,8 @@ and cannot judge what the notebook writes.
   «0 · …» as it is (#141). No title and no note may
   present a piece as optional.
 - **FR-016**: The notebook's chat MUST be set to answer as a tutor: a hint before the answer,
-  Spanish explanations with the exam's terms, the source order of FR-002, and no attribution of a
-  source to a person.
+  Spanish explanations with the exam's terms, the source order of FR-002, the corrections to the
+  notes of FR-046, and no attribution of a source to a person.
 
 **Printing**
 
@@ -855,16 +855,21 @@ and cannot judge what the notebook writes.
   made, every fact a block's notes state MUST be checked against the topic's sources, and each one
   a source contradicts MUST be listed in `bloques.md` under «Correcciones a los apuntes»: the notes
   page and line, quoted; the source, its lesson or article, quoted; and what the material says.
-  - **Which source**: the textbook (in either language) and the teacher's material. Only where they
-    say nothing on that point, an external reference, named as FR-041 names one for terms. A
-    source that is silent does not contradict: a fact no source addresses stays as the notes have
-    it, and a doubt about it is a question for the family, not a correction.
+  - **Which source**: the textbook (in either language) and the teacher's material; if those two
+    disagree with each other on the point, it is a question for the family, not a correction.
+    Where both are silent, the fact stays as the notes have it, unless the run doubts it: then it
+    consults an external reference, named in `bloques.md` with the quote, and lists the fact either
+    as a correction (the reference contradicts it) or as left as it is. A doubt no source settles is
+    a question for the family. Silence alone never makes a correction.
   - **The correction**: every piece teaches the source's fact, on the notes' branch and with the
-    rest of their wording, and the summary's part for that branch says it in one line —
-    «En tus apuntes pone …; según <source>, …» — so the student corrects his page. No piece
-    repeats the notes' version, the summary included.
-  - **Unless the notes insist**: the claim repeated on another page, boxed or underlined, marked as
-    important («ojo», «importante»), or written as the teacher's own words. Then it may be what the
+    rest of their wording; no piece teaches the notes' version as true. The summary's part for that
+    branch adds one line, «Corrige en tus apuntes: <the source's fact>.», so the student corrects
+    his page. Every prompt of that block receives the source's fact and «No digas que <the notes'
+    version>.» (`{notes_corrections}`, study-pack prompts), and the notebook's chat instructions
+    (FR-016) list the corrections, so the chat does not give back what the pieces corrected. After
+    download, each piece is searched for the notes' version stated as true; the «Corrige en tus
+    apuntes» line is not a hit.
+  - **Unless the notes insist**: the claim repeated on another page, boxed or underlined, marked as important («ojo», «importante»), or written as the teacher's own words. Then it may be what the
     teacher asks for in the exam: the pieces keep the notes' version and say nothing against it,
     `bloques.md` lists it as a question, and the family is asked; their answer, recorded there,
     decides, and the pieces it touches are made again.

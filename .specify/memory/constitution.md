@@ -204,8 +204,8 @@ Rationale: an unofficial tool must not leave the student without their notes.
 - The scheme leads the structure and the wording, not the facts. A fact in the notes that the
   textbook or the teacher's material contradicts — or, where they say nothing on it, a named
   external reference — MUST be corrected in the material and the student told that his page says
-  otherwise; a fact the notes insist on (repeated, boxed, underlined, marked as important) is kept
-  and becomes a question for the family. A source's silence is not a contradiction.
+  otherwise; a fact the notes insist on (repeated, boxed, underlined, marked as important, or in the
+  teacher's own words) is kept and becomes a question for the family. A source's silence is not a contradiction.
 
 Rationale: the operator observed with the first physics-and-chemistry topic that material laid out
 in the textbook's order left the student lost, while his notes carried schemes the material did not
