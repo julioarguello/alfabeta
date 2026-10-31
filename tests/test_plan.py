@@ -224,30 +224,35 @@ def split_topic(tmp_path: Path, p: plan.Planner, *, whole_too: bool = False) -> 
     return subject_dir
 
 
-def test_an_item_posted_after_a_split_is_proposed_its_subtopic(tmp_path: Path):
-    p = planner(tmp_path)
+def test_an_item_since_the_split_is_proposed_its_subtopic(tmp_path: Path):
+    # synth-old was placed and posted before the split: it stays in A unasked.
+    replicas = {f"classroom|{i}|synth-a": {"path": "x"} for i in ("synth-old", "synth-placed-new")}
+    p = planner(tmp_path, {"replicas": replicas})
     subject_dir = split_topic(tmp_path, p)
 
     class Captured:
-        items = (item_on("synth-old", dt.date(2026, 10, 1)), item_on("synth-new", dt.date(2026, 10, 21)))
+        items = (
+            item_on("synth-old", dt.date(2026, 10, 1)),
+            item_on("synth-late", dt.date(2026, 10, 1)),  # posted before the split, captured after it
+            item_on("synth-placed-new", dt.date(2026, 10, 21)),  # placed in A by an unattended run
+        )
 
     pending = p._pending_items(Captured(), SUBJECT, subject_dir)  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
-    assert pending == [
-        {
-            "type": "item_match",
-            "origin": "synth-new",
-            "title": "Ficha synth-new",
-            "book_topic": "Tema 01 - Materia inventada",
-            "subtopics": ["Tema 01A - Materia inventada", "Tema 01B - Más materia"],
-        }
-    ]
+    assert [e["origin"] for e in pending] == ["synth-late", "synth-placed-new"]
+    assert pending[0] == {
+        "type": "item_match",
+        "origin": "synth-late",
+        "title": "Ficha synth-late",
+        "book_topic": "Tema 01 - Materia inventada",
+        "subtopics": ["Tema 01A - Materia inventada", "Tema 01B - Más materia"],
+    }
     # Once proposed, it is not asked again.
     p.decisions.propose(
         [
             Proposal.parse(
                 {
                     "type": "item_match",
-                    "origin": "synth-new",
+                    "origin": "synth-late",
                     "target": {"topic": "Tema 01B - Más materia"},
                     "reason": "r",
                     "confidence": "high",
@@ -257,7 +262,8 @@ def test_an_item_posted_after_a_split_is_proposed_its_subtopic(tmp_path: Path):
         ],
         TODAY,
     )
-    assert p._pending_items(Captured(), SUBJECT, subject_dir) == []  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
+    again = p._pending_items(Captured(), SUBJECT, subject_dir)  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
+    assert [e["origin"] for e in again] == ["synth-placed-new"]
 
 
 def test_a_topic_still_whole_asks_nothing_per_item(tmp_path: Path):

@@ -200,12 +200,16 @@ class Planner:
         """Items matched to a whole book topic split since, to be proposed one by one (spec 001 FR-013).
 
         Placement keeps them in subtopic A, the whole folder renamed in place, until an `item_match`
-        says otherwise. Only items posted from the split on are asked about: what was placed while the
-        topic was whole stays in A unasked. The split's day is the earliest date of a subtopic after A.
+        says otherwise. An item is asked about when it has no replica yet (a late capture, or a topic
+        matched after the split) or was posted from the split on, the earliest date of a subtopic after
+        A: so one an unattended run placed in A meanwhile is still asked. What was placed while the
+        topic was whole and posted before the split stays in A unasked.
         """
         if not subject.book or not subject_dir.is_dir():
             return []
-        folders = [p.name for p in subject_dir.iterdir() if p.is_dir()]
+        folders = [p.name for p in subject_dir.iterdir() if p.is_dir() and p.name[:8].isdigit()]
+        replicas = cast("dict[str, Any]", self.state.get("replicas", {}))
+        placed = {key.split("|")[1] for key in replicas if key.startswith(f"{CLASSROOM}|")}
         pending: list[dict[str, Any]] = []
         for item in normalized.items:
             if item.topic_id is None or self.decisions.in_force(DecisionType.ITEM_MATCH, item.id) is not None:
@@ -221,8 +225,10 @@ class Planner:
                 (f for f in folders if book_topic_number(undated(f)) == number and subtopic_letter(undated(f))),
                 key=lambda f: subtopic_letter(undated(f)),
             )
-            later = [f[:8] for f in subtopics[1:] if f[:8].isdigit()]
-            if not later or item.posted_at.strftime("%Y%m%d") < min(later):
+            if len(subtopics) < 2:
+                continue  # a topic split into A alone has nowhere else to go
+            split_day = min(f[:8] for f in subtopics[1:])
+            if item.id in placed and item.posted_at.strftime("%Y%m%d") < split_day:
                 continue
             pending.append(
                 {
