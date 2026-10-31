@@ -105,8 +105,9 @@ email or an id into the repository.
      both are silent on a fact you doubt, check it against a named external reference and record
      the check either way. Each fact a source contradicts goes to «Correcciones a los apuntes» in
      `bloques.md` with both quotes (notes page and line, source and lesson), and becomes that
-     block's `{notes_corrections}`. If the notes insist — the claim repeated on another page, boxed or underlined, marked as important («ojo», «importante»), or written as the teacher's own words — or the textbook and the
-     teacher's material disagree, keep the notes' version and ask the family instead. Silence is
+     block's `{notes_corrections}`; what goes to «Preguntas sobre los apuntes» never does. If the notes insist — the claim repeated on another page, boxed or underlined, marked as important («ojo», «importante»), or written as the teacher's own words — or the textbook and the
+     teacher's material disagree, keep the notes' version and list it under «Preguntas sobre los
+     apuntes» for the family. Silence is
      not a contradiction. After download, search every piece for the notes' version stated as
      true; the «Corrige en tus apuntes» line is not a hit.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a

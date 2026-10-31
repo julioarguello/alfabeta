@@ -852,9 +852,13 @@ and cannot judge what the notebook writes.
   index MUST name the branch each piece covers. Notes without a scheme leave FR-001 as it is
   (constitution X).
 - **FR-046**: The notes lead the structure and the wording, not the facts. Before any piece is
-  made, every fact a block's notes state MUST be checked against the topic's sources, and each one
-  a source contradicts MUST be listed in `bloques.md` under «Correcciones a los apuntes»: the notes
-  page and line, quoted; the source, its lesson or article, quoted; and what the material says.
+  made, every fact a block's notes state MUST be checked against the topic's sources. In
+  `bloques.md`, each one a source contradicts and the notes do not insist on goes under
+  «Correcciones a los apuntes» (the notes page and line, quoted; the source, its lesson or article,
+  quoted; what the material says); each one the notes insist on, each disagreement between sources
+  and each doubt no source settles goes under «Preguntas sobre los apuntes», with the same quotes;
+  a doubted fact an external reference confirms is noted there as left as it is. Only the first
+  section changes any piece.
   - **Which source**: the textbook (in either language) and the teacher's material; if those two
     disagree with each other on the point, it is a question for the family, not a correction.
     Where both are silent, the fact stays as the notes have it, unless the run doubts it: then it

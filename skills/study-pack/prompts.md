@@ -29,7 +29,7 @@ sending; a prompt that still holds a `{` is a bug.
 | `{slot}` | the study slot, `17:00–18:30`, or `90 minutos` when none is given |
 | `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
 | `{topic}` | the topic folder's name after its date, `Tema 02 - La nutrición humana` |
-| `{notes_corrections}` | empty, or one sentence per line of «Correcciones a los apuntes» in `bloques.md` for this prompt's blocks (spec 002 FR-046), each ending in a space: the source's fact, «No digas que <the notes' version>.», and in the summary also «Añade en esa parte una línea "Corrige en tus apuntes: <the source's fact>."». Appended at the end of every other prompt of that block; the tutor chat gets every block's, without the summary's sentence |
+| `{notes_corrections}` | empty, or one sentence per line of «Correcciones a los apuntes» in `bloques.md` for this prompt's blocks (spec 002 FR-046) — never a line of «Preguntas sobre los apuntes» — each ending in a space: the source's fact and «No digas que <the notes' version>.»; in the summary also «En la parte N, añade una línea "Corrige en tus apuntes: <the source's fact>."». Appended at the end of every other prompt of that block; the tutor chat gets every block's, without the summary's sentence |
 | `{plan}` | the study plan the agent writes for guide 0 (its section below) |
 | `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
 
@@ -148,10 +148,10 @@ own schemes (constitution X), one part per content block (`{blocks}`), each stud
 Resumen para estudiar, corto y fácil de leer, para un alumno de {grade} que da la asignatura en {language}. Título: «Resumen de tus apuntes · {topic}». Condensa SOLO lo que dicen los apuntes del alumno, siguiendo sus esquemas y con sus mismas palabras; usa el libro solo para aclarar o corregir una rama, nunca para añadir temas nuevos. Una parte por bloque, cada una de media página como máximo, en este orden: {blocks}. Formato de cada parte: el esquema como lista con sangría, en el orden de sus apuntes; cada rama con UNA sola línea corta de explicación y el término en {language} entre paréntesis. Al final de cada parte, una línea «Lo que más se confunde:» con la confusión típica de esa parte. {notes_corrections}Sin introducción, sin conclusiones, sin preguntas, sin tablas largas.
 ```
 
-`{notes_corrections}`: see the placeholder table. Example, 2026-10-31: «En la parte 5: la hemoglobina
-está dentro del glóbulo rojo (Wikipedia en euskera, «Hemoglobina»). No digas que está en la
-superficie. Añade en esa parte una línea "Corrige en tus apuntes: la hemoglobina está dentro del
-glóbulo rojo." ».
+`{notes_corrections}`: see the placeholder table. Example for this summary, 2026-10-31: «La
+hemoglobina está dentro del glóbulo rojo (Wikipedia en euskera, «Hemoglobina»). No digas que está en
+la superficie. En la parte 5, añade una línea "Corrige en tus apuntes: la hemoglobina está dentro
+del glóbulo rojo." »; the other prompts and the chat get the first two sentences only.
 
 First used 2026-10-29 for one biology topic; whether these times and this length suit the student
 is a hypothesis.
@@ -181,5 +181,5 @@ Hoy, para el examen del {exam_day}: «{theory}» ({slot}). Sigue el plan con el 
 `nlm chat configure <nb> --goal custom --prompt "<prompt>" --profile <profile>`
 
 ```text
-Eres un tutor para un alumno de {grade}. Explica en castellano y da cada término clave también en {language}. Antes de dar una solución, da una pista y espera a que el alumno lo intente. Cuando las fuentes no coinciden, prima los apuntes del alumno sobre el material del profesor, y el material del profesor sobre el libro. {notes_corrections}No atribuyas a nadie la autoría de una fuente ni de una nota.
+Eres un tutor para un alumno de {grade}. Explica en castellano y da cada término clave también en {language}. Antes de dar una solución, da una pista y espera a que el alumno lo intente. {notes_corrections}En lo demás, cuando las fuentes no coinciden, prima los apuntes del alumno sobre el material del profesor, y el material del profesor sobre el libro. No atribuyas a nadie la autoría de una fuente ni de una nota.
 ```
