@@ -134,9 +134,11 @@ class FakeLiving:
     fails: bool = False
     folder: str = f"20260915 - {TOPIC}"
     reason: str = "drive_failed"
+    asked: list[str] = field(default_factory=lambda: [])
 
     def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
-        assert (subject, folder) == ("FyQ", self.folder)
+        self.asked.append(folder)
+        assert subject == "FyQ" and folder in (self.folder, *SUBTOPICS)
         if self.fails:
             raise LivingNotesError(self.reason)
         return self.found
@@ -202,7 +204,7 @@ class World:
         parser.add_argument("--subject")
         parser.add_argument("--exam", type=dt.date.fromisoformat)
         parser.add_argument("--slot")
-        parser.add_argument("--topic")
+        parser.add_argument("--topic", action="append")
         args = parser.parse_args(["--student", STUDENT, "--subject", "FyQ", *extra])
         return cmd_exam_prep(self.home, args, MemoryStore(), self.deps, lambda: TODAY)
 
@@ -265,7 +267,18 @@ def test_the_three_exam_texts_are_in_prompts_md_and_every_placeholder_is_filled(
     for heading in (prompts.THEORY, prompts.PROBLEMS, prompts.START_NOTE):
         names = set(re.findall(r"\{(\w+)\}", prompts.template(heading)))
         assert names, heading
-        assert names <= {"grade", "language", "subject", "exam_day", "scope", "scope_date", "slot", "pages", "theory"}
+        assert names <= {
+            "grade",
+            "language",
+            "subject",
+            "exam_day",
+            "scope",
+            "scope_date",
+            "slot",
+            "pages",
+            "theory",
+            "part",
+        }
 
 
 def test_a_value_is_never_read_again_for_placeholders_and_a_missing_one_raises():
@@ -327,11 +340,18 @@ def test_both_sheets_are_asked_titled_and_printed_into_exam(world: World, capsys
     assert result == {
         "ok": True,
         "exam_date": EXAM_DAY,
-        "guide_regenerated": False,
-        "slot_minutes": 90,
-        "pages_allowed": 4,
-        "sheets": [{"kind": "theory", "printed": True, "pages": 3}, {"kind": "problems", "printed": True, "pages": 3}],
-        "topic": 0,
+        "topics": [
+            {
+                "topic": 0,
+                "guide_regenerated": False,
+                "slot_minutes": 90,
+                "pages_allowed": 4,
+                "sheets": [
+                    {"kind": "theory", "printed": True, "pages": 3},
+                    {"kind": "problems", "printed": True, "pages": 3},
+                ],
+            }
+        ],
     }
     printed = sorted(p.name for p in (world.topic / "exam").iterdir())
     assert printed == ["Problemas tipo · T01 (5 nov).pdf", "Teoría para el examen · T01 (5 nov).pdf"]
@@ -408,7 +428,7 @@ def test_a_theory_sheet_longer_than_the_slot_is_printed_and_reported(world: Worl
     world.printer.pages_of["Teoría para el examen"] = 6
     assert world.run() == 0
     result, err = output(capsys)
-    assert result["sheets"][0] == {"kind": "theory", "printed": True, "pages": 6}
+    assert result["topics"][0]["sheets"][0] == {"kind": "theory", "printed": True, "pages": 6}
     assert "6 pages; the slot allows 4" in err
 
 
@@ -440,7 +460,7 @@ def test_a_guide_made_before_the_notes_is_regenerated_before_anything_prints(
     world.living.found = LivingNotes("src-notes", "md5-new", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
     assert world.run() == 0
     result, _ = output(capsys)
-    assert result["guide_regenerated"] is True
+    assert result["topics"][0]["guide_regenerated"] is True
     [guide] = [c for c in world.nlm.asked("report", "create") if "Study Guide" in c]
     assert guide[guide.index("--language") + 1] == "es"
     assert ["art-1", "6 · Guía de estudio · Materia"] in [c[3:5] for c in world.nlm.asked("studio", "rename")]
@@ -467,7 +487,7 @@ def test_regenerating_a_stale_guide_leaves_the_plan_untouched(world: World, caps
     world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
     assert world.run() == 0
     result, _ = output(capsys)
-    assert result["guide_regenerated"] is True
+    assert result["topics"][0]["guide_regenerated"] is True
     renames = [c[3:5] for c in world.nlm.asked("studio", "rename")]
     assert ["art-1", "6 · Guía de estudio · Materia"] in renames
     assert not [r for r in renames if r[0] == "plan-0" or r[1] == PLAN]
@@ -484,7 +504,7 @@ def test_a_plan_made_after_the_notes_does_not_pass_for_a_fresh_guide(world: Worl
     world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
     assert world.run() == 0
     result, _ = output(capsys)
-    assert result["guide_regenerated"] is True
+    assert result["topics"][0]["guide_regenerated"] is True
     assert [c[4] for c in world.nlm.asked("studio", "delete")] == ["guide-0"]
     assert [a.title for a in world.nlm.studio if a.id == "plan-0"] == [PLAN]
 
@@ -499,7 +519,7 @@ def test_a_guide_made_after_the_notes_stays_and_a_source_already_read_is_not_rea
     )
     assert world.run() == 0
     result, _ = output(capsys)
-    assert result["guide_regenerated"] is False
+    assert result["topics"][0]["guide_regenerated"] is False
     assert not [c for c in world.nlm.asked("report", "create") if "Study Guide" in c]
     assert not world.nlm.asked("source", "content") and not world.nlm.asked("studio", "delete")
 
@@ -508,7 +528,7 @@ def test_a_topic_with_no_guide_gets_one(world: World, capsys: pytest.CaptureFixt
     world.living.found = LivingNotes("src-notes", "md5", dt.datetime(2026, 10, 27, 10, 0, tzinfo=dt.UTC))
     assert world.run() == 0
     result, _ = output(capsys)
-    assert result["guide_regenerated"] is True and not world.nlm.asked("studio", "delete")
+    assert result["topics"][0]["guide_regenerated"] is True and not world.nlm.asked("studio", "delete")
 
 
 def test_drive_failing_leaves_the_guide_unchecked_and_still_prints_both(
@@ -517,8 +537,8 @@ def test_drive_failing_leaves_the_guide_unchecked_and_still_prints_both(
     world.living.fails = True
     assert world.run() == 3
     result, err = output(capsys)
-    assert result["ok"] is False and result["guide_regenerated"] is False
-    assert [s["printed"] for s in result["sheets"]] == [True, True]
+    assert result["ok"] is False and result["topics"][0]["guide_regenerated"] is False
+    assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, True]
     assert "may be stale" in err
 
 
@@ -529,7 +549,9 @@ def test_a_guide_that_never_completes_is_reported_and_the_sheets_still_print(
     world.nlm.never = {"guide"}
     assert world.run() == 3
     result, err = output(capsys)
-    assert result["guide_regenerated"] is False and [s["printed"] for s in result["sheets"]] == [True, True]
+    assert result["topics"][0]["guide_regenerated"] is False and [
+        s["printed"] for s in result["topics"][0]["sheets"]
+    ] == [True, True]
     assert "may be stale" in err and POLL_SECONDS in world.slept
 
 
@@ -540,7 +562,7 @@ def test_a_report_that_never_completes_leaves_the_other_printed(world: World, ca
     world.nlm.never = {"theory"}
     assert world.run() == 3
     result, err = output(capsys)
-    assert result["sheets"] == [
+    assert result["topics"][0]["sheets"] == [
         {"kind": "theory", "printed": False, "pages": None},
         {"kind": "problems", "printed": True, "pages": 3},
     ]
@@ -553,14 +575,14 @@ def test_a_sheet_that_does_not_print_is_code_3(world: World, capsys: pytest.Capt
     world.printer.fails = {"Problemas tipo"}
     assert world.run() == 3
     result, err = output(capsys)
-    assert [s["printed"] for s in result["sheets"]] == [True, False] and "did not print" in err
+    assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, False] and "did not print" in err
 
 
 def test_a_mirror_that_fails_is_counted_and_stops_nothing(world: World, capsys: pytest.CaptureFixture[str]):
     world.mirror_failures = 1
     assert world.run() == 3
     result, err = output(capsys)
-    assert [s["printed"] for s in result["sheets"]] == [True, True] and "1 mirror(s)" in err
+    assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, True] and "1 mirror(s)" in err
 
 
 # --- refusals: nothing asked, nothing printed --------------------------------------------------------
@@ -788,7 +810,7 @@ def test_a_new_guide_whose_old_one_cannot_be_removed_is_still_the_recorded_guide
     world.deps = with_refusal  # type: ignore[method-assign]
     assert world.run() == 3
     result, err = output(capsys)
-    assert result["guide_regenerated"] is True and "was not retitled or removed" in err
+    assert result["topics"][0]["guide_regenerated"] is True and "was not retitled or removed" in err
     pack = json.loads((world.data / "study-pack.json").read_text())
     assert pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["guide"]["id"] == "art-1"
 
@@ -911,14 +933,14 @@ def test_a_missing_living_notes_file_is_code_3_and_says_so(world: World, capsys:
     assert world.run() == 3
     result, err = output(capsys)
     assert "not where `notebook setup` put it" in err and "may be stale" in err
-    assert [s["printed"] for s in result["sheets"]] == [True, True]
+    assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, True]
 
 
 def test_a_printed_sheet_whose_pages_cannot_be_counted_is_code_3(world: World, capsys: pytest.CaptureFixture[str]):
     world.printer.uncounted = {"Teoría para el examen"}
     assert world.run() == 3
     result, err = output(capsys)
-    assert result["sheets"][0] == {"kind": "theory", "printed": True, "pages": None}
+    assert result["topics"][0]["sheets"][0] == {"kind": "theory", "printed": True, "pages": None}
     assert "pages could not be counted" in err
 
 
@@ -956,3 +978,126 @@ def test_the_records_are_readable_by_their_user_alone(world: World, capsys: pyte
     assert world.run() == 0
     for name in ("study-pack.json", "notebook-refresh.json"):
         assert (world.data / name).stat().st_mode & 0o777 == 0o600
+
+
+# --- an exam over several subtopics (FR-045) ----------------------------------------------------------
+
+
+SUBTOPICS = ("20260915 - Tema 01A - Materia inventada", "20261101 - Tema 01B - Más materia")
+
+
+def split(world: World) -> tuple[Path, Path]:
+    """The topic split into subtopics A (renamed in place) and B, each with its own notebook."""
+    first = world.topic.with_name("20260915 - Tema 01A - Materia inventada")
+    world.topic.rename(first)
+    second = world.base / "2026-2027" / "FyQ" / "20261101 - Tema 01B - Más materia"
+    second.mkdir()
+    world.nlm.notebooks = [
+        {"id": "nb-1", "title": "3º ESO. FyQ. Tema 01A - Materia inventada"},
+        {"id": "nb-2", "title": "3º ESO. FyQ. Tema 01B - Más materia"},
+    ]
+    return first, second
+
+
+def test_each_subtopic_gets_its_own_sheets_and_an_equal_part_of_the_slot(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    first, second = split(world)
+    code = world.run("--slot", "17:00-18:30", "--topic", first.name, "--topic", second.name)
+    result, err = output(capsys)
+    assert code == 0, err
+    assert [(t["slot_minutes"], t["pages_allowed"]) for t in result["topics"]] == [(45, 2), (45, 2)]
+    listed = sorted(p.name for p in first.parent.iterdir())
+    assert [t["topic"] for t in result["topics"]] == [listed.index(first.name), listed.index(second.name)]
+    for folder, number in ((first, "T01A"), (second, "T01B")):
+        assert sorted(p.name for p in (folder / "exam").iterdir()) == [
+            f"Problemas tipo · {number} (5 nov).pdf",
+            f"Teoría para el examen · {number} (5 nov).pdf",
+        ]
+    # Each notebook is asked for its own two sheets, with its own part of the slot.
+    asked = world.nlm.asked("report", "create")
+    assert [a[3] for a in asked] == ["nb-1", "nb-1", "nb-2", "nb-2"]
+    theories = [a[a.index("--prompt") + 1] for a in asked if "Hoja de teoría" in a[a.index("--prompt") + 1]]
+    assert "17:00–17:45" in theories[0] and "17:45–18:30" in theories[1]
+    assert "most recent" not in err
+    assert world.living.asked == list(SUBTOPICS)  # each subtopic's own notes, in order
+
+
+def test_the_most_recent_topic_being_a_subtopic_asks_for_every_subtopic(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    split(world)
+    assert world.run() == 1
+    result, err = output(capsys)
+    assert result == {"ok": False, "reason": "subtopics_unnamed"}
+    assert "one --topic per subtopic" in err
+    assert world.nlm.asked("report", "create") == []
+
+
+def test_a_subtopic_with_no_notebook_stops_before_any_is_asked(world: World, capsys: pytest.CaptureFixture[str]):
+    first, second = split(world)
+    world.nlm.notebooks.pop()
+    assert world.run("--topic", first.name, "--topic", second.name) == 1
+    result, _ = output(capsys)
+    assert result == {"ok": False, "reason": "no_notebook"}
+    assert world.nlm.asked("report", "create") == []
+
+
+def test_a_slot_shares_into_equal_consecutive_parts():
+    assert [s.words for s in Slot.parse("17:00-18:30").share(3)] == ["17:00–17:30", "17:30–18:00", "18:00–18:30"]
+    assert [(s.minutes, s.words) for s in Slot.parse(None).share(2)] == [(45, "45 minutos"), (45, "45 minutos")]
+    assert [s.minutes for s in Slot.parse("17:00-19:00").share(7)] == [17, 17, 17, 17, 17, 17, 18]
+    # The pages are the whole slot's, shared: splitting adds none.
+    assert [s.pages for s in Slot.parse("17:00-18:30").share(3)] == [1, 1, 2]
+    assert [s.pages for s in Slot.parse("17:00-18:30").share(2)] == [2, 2]
+    with pytest.raises(Refusal, match="less than 15 minutes"):
+        Slot.parse("17:00-17:20").share(2)
+
+
+def test_subtopics_go_in_their_order_and_each_theory_keeps_to_its_points(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    first, second = split(world)
+    assert world.run("--slot", "17:00-18:30", "--topic", second.name, "--topic", first.name) == 0, output(capsys)[1]
+    asked = world.nlm.asked("report", "create")
+    assert [a[3] for a in asked] == ["nb-1", "nb-1", "nb-2", "nb-2"]  # A first, whatever order --topic gave
+    theories = [a[a.index("--prompt") + 1] for a in asked if "Hoja de teoría" in a[a.index("--prompt") + 1]]
+    assert "solo tiene el subtema «Tema 01A - Materia inventada» (parte 1 de 2)" in theories[0]
+    assert "(parte 2 de 2)" in theories[1] and "«En otro subtema o sin material:»" in theories[1]
+    assert (
+        "en el mismo orden, pero este examen abarca" in theories[0]
+        and "sin desarrollarlos; di qué partes" in theories[0]
+    )
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    assert {f"2026-2027/FyQ/{first.name}", f"2026-2027/FyQ/{second.name}"} <= set(pack["topics"])
+    # One start note per notebook, each with its part of the slot (the fake shares one Studio, so the
+    # second notebook's note is written over the first's).
+    notes = [n[n.index("--content") + 1] for n in world.nlm.asked("note") if "--content" in n]
+    assert "(17:00–17:45)" in notes[0] and "(17:45–18:30)" in notes[-1]
+
+
+def test_one_topic_has_no_part_sentence(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run() == 0
+    theory = next(a for a in world.nlm.asked("report", "create") if "Hoja de teoría" in a[a.index("--prompt") + 1])
+    assert "subtema" not in theory[theory.index("--prompt") + 1]
+
+
+@pytest.mark.parametrize("names", [("A", "A"), ("A", "whole"), ("A", "other")])
+def test_topics_that_are_not_distinct_subtopics_of_one_topic_are_refused(
+    world: World, capsys: pytest.CaptureFixture[str], names: tuple[str, str]
+):
+    first, _ = split(world)
+    other = world.base / "2026-2027" / "FyQ" / "20261102 - Tema 03A - Otra"
+    other.mkdir()
+    whole = world.base / "2026-2027" / "FyQ" / "20261102 - Tema 04 - Entero"
+    whole.mkdir()
+    pick = {"A": first.name, "whole": whole.name, "other": other.name}
+    assert world.run("--topic", pick[names[0]], "--topic", pick[names[1]]) == 1
+    result, _ = output(capsys)
+    assert result == {"ok": False, "reason": "no_topic"}
+    assert world.nlm.asked("report", "create") == []
+
+
+def test_a_topic_in_another_case_is_not_a_folder_of_the_subject(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run("--topic", f"20260915 - {TOPIC}".upper()) == 1
+    assert output(capsys)[0] == {"ok": False, "reason": "no_topic"}

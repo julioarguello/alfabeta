@@ -734,7 +734,11 @@ def build_parser() -> argparse.ArgumentParser:
     exam_prep.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
     exam_prep.add_argument("--exam", type=dt.date.fromisoformat, help="the exam's date (default: the next one)")
     exam_prep.add_argument("--slot", help="the study slot, HH:MM-HH:MM (default: 90 minutes)")
-    exam_prep.add_argument("--topic", help="the exam's topic folder (default: the subject's most recent)")
+    exam_prep.add_argument(
+        "--topic",
+        action="append",
+        help="the exam's topic folder, once per subtopic it covers (default: the subject's most recent)",
+    )
     claude = groups.add_parser("claude", help="this place's Claude API key").add_subparsers(dest="verb", required=True)
     claude_key = claude.add_parser("key", help="the key of the workspace alfabeta").add_subparsers(
         dest="action", required=True

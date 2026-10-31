@@ -1,8 +1,8 @@
-"""`exam prep --student <id> --subject <folder> [--exam] [--slot] [--topic]` (spec 002 contracts/cli.md).
+"""`exam prep --student <id> --subject <folder> [--exam] [--slot] [--topic]...` (spec 002 contracts/cli.md).
 
 JSON on stdout, messages for people on stderr; no message names an address, a Drive id, a notebook
 id or an absolute path. Exit codes: 0 ok · 1 usage or validation, and the refusals `notebook_disabled`,
-`no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed · 5 `nlm` is not usable.
+`no_exam`, `no_announcement`, `no_notebook`, `subtopics_unnamed` · 3 a step from 5 on failed · 5 `nlm` is not usable.
 Steps 1 to 4 refuse before the notebook is asked for anything, and then nothing is printed.
 """
 
@@ -32,7 +32,7 @@ from alfabeta.exam.prep import (
     Sheet,
     Slot,
     find_exam,
-    topic_folder,
+    topic_folders,
 )
 from alfabeta.exam.printing import PrintPack, refresh_mirrors
 from alfabeta.notes.run import topic_name
@@ -74,7 +74,20 @@ def exam_deps(cfg: config.StudentConfig, store: TokenStore) -> ExamDeps:
     )
 
 
-def _sheets(cfg: config.StudentConfig, subject: str, language: str, exam: Exam, slot: Slot) -> tuple[Sheet, Sheet]:
+def _part(topic: str, index: int, count: int) -> str:
+    """`{part}` of the theory prompt: empty for one topic; for a subtopic, keep to its own points (FR-045)."""
+    if count <= 1:
+        return ""
+    return (
+        f", pero este examen abarca varios subtemas y este cuaderno solo tiene el subtema «{topic}» (parte {index}"
+        f" de {count}): haz sección solo de los puntos que tratan tus fuentes y nombra los demás en una línea"
+        " «En otro subtema o sin material:», sin desarrollarlos"
+    )
+
+
+def _sheets(
+    cfg: config.StudentConfig, subject: str, language: str, exam: Exam, slot: Slot, part: str = ""
+) -> tuple[Sheet, Sheet]:
     values = {
         "grade": cfg.grade_level,
         "language": language,
@@ -84,6 +97,7 @@ def _sheets(cfg: config.StudentConfig, subject: str, language: str, exam: Exam, 
         "scope_date": prompts.day_month(exam.announced),
         "slot": slot.words,
         "pages": str(slot.pages),
+        "part": part,
     }
     return (
         Sheet("theory", "Teoría para el examen", prompts.fill(prompts.template(prompts.THEORY), values)),
@@ -139,47 +153,67 @@ def cmd_exam_prep(
     except NlmError as err:
         return _fail(err.reason, EXIT_NLM, NLM_MESSAGES.get(err.reason, NLM_MESSAGES["nlm_failed"]))
 
-    # 3 and 4. The exam and its announcement; the topic and its notebook.
+    # 3 and 4. The exam and its announcement; each topic and its notebook, before any is asked.
     year = cfg.base / cfg.school_year
     try:
         exam = find_exam(
             year / "agenda.json", cfg.data_dir / "state.json", cfg.base, subject.folder, args.exam, today()
         )
-        folder = topic_folder(year / subject.folder, args.topic)
+        folders = topic_folders(year / subject.folder, args.topic)
     except Refusal as refusal:
         return _fail(refusal.reason, EXIT_INVALID, str(refusal))
-    if args.topic is None:
-        print(f"alfabeta: the exam's topic is the subject's most recent one: {folder.name}", file=sys.stderr)
-    title = cfg.notebook_title_pattern.format(
-        grade=cfg.grade_level, subject=subject.folder, topic=topic_name(folder.name)
-    )
+    if not args.topic:
+        print(f"alfabeta: the exam's topic is the subject's most recent one: {folders[0].name}", file=sys.stderr)
+    notebooks: list[str] = []
+    for folder in folders:
+        title = cfg.notebook_title_pattern.format(
+            grade=cfg.grade_level, subject=subject.folder, topic=topic_name(folder.name)
+        )
+        try:
+            notebook = deps.notebook.find_notebook(title)
+        except NlmError as err:
+            return _fail(err.reason, EXIT_NLM, NLM_MESSAGES.get(err.reason, NLM_MESSAGES["nlm_failed"]))
+        if notebook is None:
+            return _fail(
+                "no_notebook", EXIT_INVALID, f"{folder.name} has no notebook titled as notebook.title_pattern names it"
+            )
+        notebooks.append(notebook)
     try:
-        notebook = deps.notebook.find_notebook(title)
-    except NlmError as err:
-        return _fail(err.reason, EXIT_NLM, NLM_MESSAGES.get(err.reason, NLM_MESSAGES["nlm_failed"]))
-    if notebook is None:
-        return _fail("no_notebook", EXIT_INVALID, "the topic has no notebook titled as notebook.title_pattern names it")
-    try:
-        sheets = _sheets(cfg, subject.folder, language, exam, slot)
         start = prompts.template(prompts.START_NOTE)
+        # The slot is shared in equal parts among the subtopics, in their order (FR-045).
+        shared = slot.share(len(folders))
+        parts = [
+            (part, _sheets(cfg, subject.folder, language, exam, part, _part(topic_name(f.name), i, len(folders))))
+            for i, (f, part) in enumerate(zip(folders, shared, strict=True), start=1)
+        ]
     except prompts.PromptError as err:
         return _fail("invalid_prompt", EXIT_INVALID, f"prompts.md: {err}")
+    except Refusal as refusal:
+        return _fail(refusal.reason, EXIT_INVALID, str(refusal))
 
-    prep = ExamPrep(
-        deps=deps,
-        data_dir=cfg.data_dir,
-        base=cfg.base,
-        subject=subject.folder,
-        folder=folder,
-        notebook=notebook,
-        exam=exam,
-        slot=slot,
-        sheets=sheets,
-        start_note=lambda theory: prompts.fill(
-            start, {"exam_day": prompts.exam_day(exam.day), "theory": theory, "slot": slot.words}
-        ),
-    )
-    outcome = prep.run()
-    topics = sorted(p.name for p in folder.parent.iterdir() if p.is_dir())
-    _emit({"ok": not prep.partial, **outcome, "topic": topics.index(folder.name)})
-    return EXIT_PARTIAL if prep.partial else EXIT_OK
+    listed = sorted(p.name for p in folders[0].parent.iterdir() if p.is_dir())
+    topics: list[dict[str, Any]] = []
+    partial = False
+    for folder, notebook, (part, sheets) in zip(folders, notebooks, parts, strict=True):
+        if len(folders) > 1:
+            print(f"alfabeta: {folder.name} ({part.words}):", file=sys.stderr)  # what follows is about it
+        prep = ExamPrep(
+            deps=deps,
+            data_dir=cfg.data_dir,
+            base=cfg.base,
+            subject=subject.folder,
+            folder=folder,
+            notebook=notebook,
+            exam=exam,
+            slot=part,
+            sheets=sheets,
+            start_note=lambda theory, part=part: prompts.fill(
+                start, {"exam_day": prompts.exam_day(exam.day), "theory": theory, "slot": part.words}
+            ),
+        )
+        outcome = prep.run()
+        outcome.pop("exam_date")
+        topics.append({"topic": listed.index(folder.name), **outcome})
+        partial = partial or prep.partial
+    _emit({"ok": not partial, "exam_date": exam.day.isoformat(), "topics": topics})
+    return EXIT_PARTIAL if partial else EXIT_OK

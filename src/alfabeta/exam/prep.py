@@ -26,7 +26,7 @@ from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import short_day, weekday
 from alfabeta.notes.refresh import LocalRefreshStore
 from alfabeta.notes.run import topic_name
-from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC
+from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC, book_topic_number, subtopic_letter
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -42,6 +42,7 @@ START_TITLE = "Empieza aquí"  # after the moment: piece 0 is the pack's plan (F
 SOLUTIONS = "Soluciones"
 PACK_RECORD = "study-pack.json"
 DEFAULT_MINUTES = 90
+MIN_PART_MINUTES = 15  # a subtopic's part of a shared slot: one section and its check, at least
 PAGES_PER_90_MINUTES = 4  # measured once, 2026-10-28
 SOURCE_SETTLE_SECONDS = 120  # a Drive source took one to two minutes to catch up (spec 005, 2026-10-27)
 POLL_SECONDS = 30
@@ -75,6 +76,8 @@ class Slot:
 
     minutes: int
     words: str  # `{slot}` of the prompts
+    start: int | None = None  # minutes after midnight, when the slot has clock times
+    page_share: int | None = None  # this part's share of a shared slot's pages (FR-045)
 
     @classmethod
     def parse(cls, value: str | None) -> Slot:
@@ -87,11 +90,41 @@ class Slot:
         h1, m1, h2, m2 = (int(g) for g in found.groups())
         if max(h1, h2) > 23 or max(m1, m2) > 59 or (h2 * 60 + m2) <= (h1 * 60 + m1):
             raise Refusal("invalid_slot", "--slot ends after it starts, within one day")
-        return cls((h2 * 60 + m2) - (h1 * 60 + m1), f"{value[:5]}{EN_DASH}{value[6:]}")
+        return cls((h2 * 60 + m2) - (h1 * 60 + m1), f"{value[:5]}{EN_DASH}{value[6:]}", h1 * 60 + m1)
+
+    def share(self, parts: int) -> list[Slot]:
+        """The slot cut into `parts` equal consecutive parts, the last taking what does not divide (FR-045).
+
+        The whole slot's pages are shared too, one page at least each, so splitting never adds pages
+        that rounding each part up would.
+        """
+        if parts <= 1:
+            return [self]
+        if self.minutes < MIN_PART_MINUTES * parts:
+            raise Refusal(
+                "invalid_slot", f"the slot gives each subtopic less than {MIN_PART_MINUTES} minutes; give a longer one"
+            )
+        size = self.minutes // parts
+        lengths = [size] * (parts - 1) + [self.minutes - size * (parts - 1)]
+        each, extra = divmod(self.pages, parts)
+        # What does not divide goes to the last parts, as the minutes do; one page at least each.
+        pages = [max(1, each + (1 if i >= parts - extra else 0)) for i in range(parts)]
+        if self.start is None:
+            return [Slot(length, f"{length} minutos", None, n) for length, n in zip(lengths, pages, strict=True)]
+        shared: list[Slot] = []
+        begin = self.start
+        for length, n in zip(lengths, pages, strict=True):
+            end = begin + length
+            words = f"{begin // 60:02d}:{begin % 60:02d}{EN_DASH}{end // 60:02d}:{end % 60:02d}"
+            shared.append(Slot(length, words, begin, n))
+            begin = end
+        return shared
 
     @property
     def pages(self) -> int:
-        """Four A4 pages per 90 minutes, rounded up."""
+        """Four A4 pages per 90 minutes, rounded up; a shared slot's part, its share of the whole's."""
+        if self.page_share is not None:
+            return self.page_share
         return math.ceil(PAGES_PER_90_MINUTES * self.minutes / 90)
 
 
@@ -167,13 +200,41 @@ def find_exam(agenda: Path, state: Path, base: Path, subject: str, wanted: dt.da
     )
 
 
+def topic_folders(subject_dir: Path, wanted: list[str] | None) -> list[Path]:
+    """Every `--topic` in its order, or the subject's most recent topic when that is not a subtopic (step 4).
+
+    An exam over several subtopics names each with its own `--topic` (FR-045): the announcement does
+    not say which subtopics it covers, so the most recent one alone is never assumed to be all of it.
+    """
+    if not wanted:
+        folder = topic_folder(subject_dir, None)
+        if subtopic_letter(topic_name(folder.name)):
+            raise Refusal(
+                "subtopics_unnamed",
+                f"the most recent topic, {folder.name}, is a subtopic: give one --topic per subtopic the exam covers",
+            )
+        return [folder]
+    folders = [topic_folder(subject_dir, name) for name in wanted]
+    if len({f.name for f in folders}) != len(folders):
+        raise Refusal("no_topic", "--topic names the same folder twice")
+    if len(folders) > 1:
+        names = [topic_name(f.name) for f in folders]
+        numbers = {book_topic_number(n) for n in names}
+        if not all(subtopic_letter(n) for n in names) or len(numbers) != 1:
+            raise Refusal("no_topic", "several --topic must be subtopics of one textbook topic (Tema NNA, Tema NNB…)")
+        # In the subtopics' order, whatever order --topic gave them in (FR-045).
+        folders.sort(key=lambda f: subtopic_letter(topic_name(f.name)))
+    return folders
+
+
 def topic_folder(subject_dir: Path, wanted: str | None) -> Path:
     """The named topic folder, or the subject's most recent one, by the date its name starts with (step 4)."""
     if wanted is not None:
-        folder = subject_dir / wanted
-        if "/" in wanted or wanted in (".", "..") or not folder.is_dir():
+        # Matched against the listing, not `is_dir`: a case-insensitive disk would accept another case.
+        listed = {p.name for p in subject_dir.iterdir() if p.is_dir()} if subject_dir.is_dir() else set[str]()
+        if wanted not in listed:
             raise Refusal("no_topic", "--topic is not a folder of the subject")
-        return folder
+        return subject_dir / wanted
     dated = [
         (found.group(1), p.name, p)
         for p in (subject_dir.iterdir() if subject_dir.is_dir() else ())
