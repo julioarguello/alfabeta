@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     import datetime as dt
     from collections.abc import Iterable
 
+    from alfabeta.decisions import Subtopic
     from alfabeta.google.drive import DriveFile
     from alfabeta.notes.run import NotesDeps, Pass
     from alfabeta.notes.transcribe import Transcription
@@ -90,7 +91,10 @@ _BOOK_TOPIC = re.compile(r"^Tema (\d{2})([A-Z]?) - ")
 MAX_BOOK_CHARS = 40_000
 LESSONS_HEADING = "### Lección de cada página"
 FACTS_HEADING = "### Lo que el libro dice de otra forma"
-NO_LESSONS = "No se ha podido ver la lección de cada página: Claude no respondió o no se le pudo preguntar."
+NO_LESSONS = "Claude no devolvió la lección de cada página en una forma que se pueda leer."
+LESSONS_WAIT = "La lección de cada página se dirá en el próximo informe: hoy no se pudo preguntar a Claude."
+SUBTOPICS_UNREAD = "No se han podido leer los subtemas confirmados: no se dice a qué subtema va cada lección."
+LESSONS = "lessons"  # the snapshot's key: pages whose lessons wait for a later report
 LESSONS_INSTRUCTIONS = """\
 You read a student's new handwritten class notes, page by page, against the textbook of the same topic.
 Answer with one JSON object and nothing else:
@@ -101,8 +105,9 @@ the page, or null when none does>}}],
 "book": "<what the textbook states instead, quoted>", "insists": <true when the notes repeat the claim, box \
 or underline it, or mark it as important; else false>}}]}}
 
-One entry in "pages" per page. In "facts", only a fact the textbook states explicitly otherwise; a point the \
-textbook does not treat is never a fact here. Quote, never paraphrase. Name no person.
+One entry in "pages" per page. In "facts", only a fact the textbook states explicitly otherwise, five at most, \
+each quote twenty words at most; a point the textbook does not treat is never a fact here. Quote, never \
+paraphrase. Name no person.
 
 <lessons>
 {lessons}
@@ -478,7 +483,8 @@ def textbook(drive: ReportDrive, topic: str) -> str | None:
             if not folder.is_folder:
                 continue
             for item in drive.children(folder.id):
-                if not item.is_folder and item.name.endswith(".md") and not item.name.startswith("."):
+                previous = "(anterior " in item.name  # a copy `book place` kept: never the textbook
+                if not item.is_folder and item.name.endswith(".md") and not item.name.startswith(".") and not previous:
                     found.append((item.name, item.id))
     except (DriveError, OutsideFolderError):
         return None
@@ -513,19 +519,21 @@ def _subject_of(drive: ReportDrive, topic: str) -> str | None:
         return None
 
 
-def _lessons(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges, *, spent: bool) -> list[str]:
-    """Each new page's textbook lesson, and the facts the textbook states otherwise (spec 005 FR-020).
+def _lessons(deps: NotesDeps, work: Pass, topic: str, wanted: list[str], *, spent: bool) -> tuple[list[str], bool]:
+    """Each page's textbook lesson, and the facts the textbook states otherwise (spec 005 FR-020).
 
-    Nothing for a topic whose folder holds no textbook with lesson headings. It never moves a page.
+    Returns the report's lines and whether the call waits for a later report: refused for the budget,
+    no key here, or no answer. Nothing for a topic whose folder holds no textbook with lesson headings,
+    and nothing waits for it. It never moves a page.
     """
     book = textbook(deps.drive, topic)
-    if book is None:
-        return []
+    if book is None or not wanted:
+        return [], False
     headings = {int(n): title for n, title in _LESSON.findall(book)}
     if deps.answerer is None or spent or work.budget_refused:
-        return [LESSONS_HEADING, "", NO_LESSONS]
+        return [LESSONS_HEADING, "", LESSONS_WAIT], True
     pages = cast("dict[str, dict[str, Any]]", work.state.get("pages", {}))
-    named = {p: str(work.files.get(p, {}).get("name") or p) for p in section.new_pages if p in pages}
+    named = {p: str(work.files.get(p, {}).get("name") or "página sin nombre") for p in wanted if p in pages}
     notes = "\n\n".join(f'<page name="{named[p]}">\n{pages[p]["markdown"]}\n</page>' for p in named)
     prompt = LESSONS_INSTRUCTIONS.format(
         lessons="\n".join(f"{n}: {t}" for n, t in sorted(headings.items())),
@@ -535,57 +543,90 @@ def _lessons(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges, *, 
     try:
         done: Transcription = deps.answerer.answer(prompt)
     except ValueError:
-        return [LESSONS_HEADING, "", NO_LESSONS]
+        return [LESSONS_HEADING, "", LESSONS_WAIT], True
     if done.usage is not None:
         _spend(work, done.usage)
     if done.state == PhotoState.BUDGET_WAIT:
         work.budget_refused = True
-    answer = _answer_json(done.markdown) if done.state == PhotoState.TRANSCRIBED else None
+        return [LESSONS_HEADING, "", LESSONS_WAIT], True
+    if done.state != PhotoState.TRANSCRIBED:
+        return [LESSONS_HEADING, "", LESSONS_WAIT], True
+    answer = _answer_json(done.markdown)
     if answer is None:
-        return [LESSONS_HEADING, "", NO_LESSONS]
-    work.claude_answered = work.claude_answered or done.usage is not None
-    return _lesson_lines(deps, topic, answer, headings, set(named.values()))
+        return [LESSONS_HEADING, "", NO_LESSONS], False  # asking again would pay for the same answer
+    return _lesson_lines(deps, topic, answer, headings, list(named.values())), False
 
 
-def _lesson_lines(
-    deps: NotesDeps, topic: str, answer: dict[str, Any], headings: dict[int, str], names: set[str]
-) -> list[str]:
-    """The report's lines for one topic's lessons and facts, in Spanish."""
+def _held(deps: NotesDeps, topic: str) -> tuple[str, str, list[Subtopic], str | None]:
+    """The topic's number and letter, its subject's confirmed subtopics, and why they could not be read."""
     try:
         own = _BOOK_TOPIC.match(undated(deps.drive.listed(topic).name))
     except (DriveError, OutsideFolderError):
         own = None
     subject = _subject_of(deps.drive, topic)
-    number = f"Tema {own.group(1)}" if own else ""
-    split = deps.subtopics(subject, number) if own and subject else []
-    letter = own.group(2) if own else ""
-    lines = [LESSONS_HEADING, ""]
+    if own is None or subject is None:
+        return "", "", [], None
+    number = f"Tema {own.group(1)}"
+    try:
+        return number, own.group(2), deps.subtopics(subject, number), None
+    except Exception:  # the decisions file, read on the way: a report never stops the run (FR-013)
+        return number, own.group(2), [], SUBTOPICS_UNREAD
+
+
+def _lesson_number(value: object) -> int | None:
+    """A lesson number as Claude may write it: 6 or "6"."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
+
+
+def _lesson_lines(
+    deps: NotesDeps, topic: str, answer: dict[str, Any], headings: dict[int, str], names: list[str]
+) -> list[str]:
+    """The report's lines for one topic's lessons and facts, in Spanish."""
+    number, letter, split, unread = _held(deps, topic)
+    said: dict[str, object] = {}
     for entry in cast("list[Any]", answer.get("pages") or []):
-        if not isinstance(entry, dict) or str(cast("dict[str, Any]", entry).get("page")) not in names:
+        if isinstance(entry, dict):
+            page = cast("dict[str, Any]", entry)
+            said.setdefault(str(page.get("page")), page.get("lesson"))
+    lines = [LESSONS_HEADING, ""]
+    if unread:
+        lines.append(unread)
+    for name in names:
+        if name not in said:
+            lines.append(f"- «{name}»: Claude no dijo su lección.")
             continue
-        page = cast("dict[str, Any]", entry)
-        lesson = page.get("lesson")
-        if not isinstance(lesson, int) or lesson not in headings:
-            lines.append(f"- «{page['page']}»: ninguna lección del libro la trata.")
+        lesson = _lesson_number(said[name])
+        if lesson is None or lesson not in headings:
+            lines.append(f"- «{name}»: ninguna lección del libro la trata.")
             continue
-        line = f"- «{page['page']}»: lección {lesson}, «{headings[lesson]}»"
+        line = f"- «{name}»: lección {lesson}, «{headings[lesson]}»"
         holder = next((s for s in split if lesson in s.lessons), None)
         if split and holder is None:
             line += "; ningún subtema la tiene: se propone uno (spec 002 FR-044)"
         elif holder is not None and holder.letter != letter:
             line += f"; es del subtema {number}{holder.letter}, no de esta carpeta: moverla es decisión de la familia"
         lines.append(f"{line}.")
-    facts: list[dict[str, Any]] = [
-        cast("dict[str, Any]", f) for f in cast("list[Any]", answer.get("facts") or []) if isinstance(f, dict)
-    ]
+    facts: list[dict[str, Any]] = []
+    for entry in cast("list[Any]", answer.get("facts") or []):
+        if not isinstance(entry, dict):
+            continue
+        fact = cast("dict[str, Any]", entry)
+        if str(fact.get("page")) in names and all(isinstance(fact.get(k), str) for k in ("notes", "book")):
+            facts.append(fact)
     if facts:
         lines += ["", FACTS_HEADING, ""]
         for fact in facts:
-            said = f"«{fact.get('page')}»: los apuntes dicen «{fact.get('notes')}»; el libro, «{fact.get('book')}»"
+            told = f"«{fact['page']}»: los apuntes dicen «{fact['notes']}»; el libro, «{fact['book']}»"
             if fact.get("insists") is True:
-                lines.append(f"- Pregunta: {said}. Los apuntes insisten: ¿se corrige? (spec 002 FR-046).")
+                lines.append(f"- Pregunta: {told}. Los apuntes insisten: ¿se corrige? (spec 002 FR-046).")
             else:
-                lines.append(f"- {said}. El material enseñará lo del libro y avisará en el resumen.")
+                lines.append(f"- {told}. El material enseñará lo del libro y avisará en el resumen.")
     return lines
 
 
@@ -677,6 +718,13 @@ def write_report(deps: NotesDeps, work: Pass, started: dt.datetime) -> str | Non
     if changes.empty:
         return None  # a comparison waiting from an earlier report waits for one with something new
     topics = cast("dict[str, dict[str, Any]]", work.state.get("topics", {}))
+    # The lessons are asked of the pages new in this report and those whose lessons waited (FR-020),
+    # apart from the comparison's own waiting pages, so neither call is paid twice for the other.
+    fresh = {topic: list(section.new_pages) for topic, section in changes.topics.items()}
+    for topic, waiting in sorted(cast("dict[str, list[str]]", before.get(LESSONS, {})).items()):
+        if deps.drive.contains(topic) and topic in topics:
+            fresh[topic] = [*waiting, *(p for p in fresh.get(topic, []) if p not in waiting)]
+            changes.topics.setdefault(topic, TopicChanges(str(topics.get(topic, {}).get("name", "tema"))))
     for topic, waiting in sorted(cast("dict[str, list[str]]", before.get("compare", {})).items()):
         if not deps.drive.contains(topic) or topic not in topics:
             continue  # the topic left the alfabeta folder: its waiting comparison goes with it
@@ -695,11 +743,14 @@ def write_report(deps: NotesDeps, work: Pass, started: dt.datetime) -> str | Non
         if section.new_pages
     }
     now["compare"] = {t: changes.topics[t].new_pages for t, said in adds.items() if said[0] in _DEFERRED}
-    lessons = {
-        topic: found
-        for topic, section in sorted(changes.topics.items())
-        if section.new_pages and (found := _lessons(deps, work, topic, section, spent=spent or work.budget_refused))
-    }
+    lessons: dict[str, list[str]] = {}
+    now[LESSONS] = {}
+    for topic, wanted in sorted(fresh.items()):
+        found, waits = _lessons(deps, work, topic, wanted, spent=spent or work.budget_refused)
+        if found:
+            lessons[topic] = found
+        if waits:
+            now[LESSONS][topic] = wanted
     if work.budget_refused:
         now["conditions"]["budget"] = True  # the comparison itself met the spent budget
     if now["conditions"]["budget"]:

@@ -567,3 +567,88 @@ def test_a_topic_without_a_textbook_has_no_lessons_section():
     run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=answerer))
     [text] = reports(drive)
     assert "Lección de cada página" not in text and answerer.prompts == []
+
+
+def test_lessons_that_could_not_be_asked_wait_for_the_next_report():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    with_book(drive)
+    clock = FixedClock()
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), clock))  # no key here
+    assert report.LESSONS_WAIT in reports(drive)[0]
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b")
+    answer = lessons_answer([{"page": "a.jpg", "lesson": 1}, {"page": "b.jpg", "lesson": 2}])
+    answerer = ScriptedAnswerer([answer])
+    clock.when += dt.timedelta(hours=1)
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), ScriptedTranscriber(), clock, answerer=answerer))
+    [prompt] = answerer.prompts
+    assert '<page name="a.jpg">' in prompt and '<page name="b.jpg">' in prompt
+    text = reports(drive)[1]
+    assert "- «a.jpg»: lección 1, «Materia»." in text and "- «b.jpg»: lección 2, «Mezclas»." in text
+    assert state_of(drive)[report.REPORTED][report.LESSONS] == {}
+
+
+def test_a_pack_and_a_textbook_make_two_calls_and_neither_waits():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    with_book(drive)
+    drive.folder("nb1", "notebook", TOPIC)
+    drive.put("pack-1", PACK, "application/pdf", pack(), parent="nb1")
+    answerer = ScriptedAnswerer(
+        [
+            Transcription(PhotoState.TRANSCRIBED, "- Nada que añadir.\n", Usage(100, 10)),
+            lessons_answer([{"page": "a.jpg", "lesson": 2}]),
+        ]
+    )
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=answerer))
+    assert len(answerer.prompts) == 2
+    text = reports(drive)[0]
+    assert "### Qué aportan los apuntes nuevos" in text and "- «a.jpg»: lección 2, «Mezclas»." in text
+    reported = state_of(drive)[report.REPORTED]
+    assert reported["compare"] == {} and reported[report.LESSONS] == {}
+    assert state_of(drive)["spend"] == {"2026-10": {"in": 4100, "out": 910}}  # transcription + both calls
+
+
+def test_unreadable_decisions_never_stop_the_run():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "a.jpg", "image/jpeg", b"a")
+    set_up(drive)
+    with_book(drive)
+
+    def broken(subject: str, number: str) -> list[Subtopic]:
+        raise ValueError("decisions.json is not JSON")
+
+    answerer = ScriptedAnswerer([lessons_answer([{"page": "a.jpg", "lesson": 2}])])
+    made = replace(
+        deps(drive, ScriptedFeed(drive, [["foto-1"]]), ScriptedTranscriber(), answerer=answerer), subtopics=broken
+    )
+    run_notes(made)
+    text = reports(drive)[0]
+    assert report.SUBTOPICS_UNREAD in text and "- «a.jpg»: lección 2, «Mezclas»." in text
+    assert state_of(drive)["spend"]  # the state was saved
+
+
+def test_a_loose_answer_is_read_carefully():
+    facts = [
+        {"page": "zz.jpg", "notes": "x", "book": "y", "insists": False},
+        {"page": "a.jpg", "notes": None, "book": "y"},
+        {"page": "a.jpg", "notes": "las mezclas no se separan", "book": "Se separan.", "insists": "yes"},
+    ]
+    text, _ = lessons_run(MemoryDrive.topic(), lessons_answer([{"page": "a.jpg", "lesson": "2"}], facts))
+    assert "- «a.jpg»: lección 2, «Mezclas»." in text
+    assert "zz" not in text and "None" not in text and "Pregunta" not in text
+    assert "- «a.jpg»: los apuntes dicen «las mezclas no se separan»" in text
+    text, _ = lessons_run(MemoryDrive.topic(), lessons_answer([{"page": "otra.jpg", "lesson": 1}]))
+    assert "- «a.jpg»: Claude no dijo su lección." in text
+
+
+def test_a_kept_previous_copy_is_never_the_textbook():
+    drive = MemoryDrive.topic()
+    drive.folder("sb", "sciencebits", TOPIC)
+    drive.put(
+        "old", "Tema01_ES (anterior 2026-10-01).md", "text/markdown", b"## Lecci\xc3\xb3n 1: Vieja\n", parent="sb"
+    )
+    drive.put("eu", "Tema01_EU.md", "text/markdown", b"## Ikasgaia 1: Berria\n", parent="sb")
+    assert report.textbook(drive, TOPIC) == "## Ikasgaia 1: Berria\n"
