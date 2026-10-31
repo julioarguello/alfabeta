@@ -332,3 +332,41 @@ def test_a_video_studio_holds_is_listed_once_though_its_file_name_differs(
     rendered = capture(script, monkeypatch)
     script.topic(script.parse(["topic", "nb-1", str(folder / "T.pdf"), "--profile", "familia"]), tmp_path)
     assert index_of(rendered[0]) == ["| ▶ | 2 · Vídeo · Concentración: g/L | en la carpeta del tema (Drive) |"]
+
+
+def test_the_guide_opens_and_a_folder_video_takes_its_place_between_studio_pieces(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    script = load_script()
+    folder = tmp_path / "notebook"
+    folder.mkdir()
+    (folder / "1 · Vídeo · Inventado.mp4").write_bytes(b"")
+    (folder / "2 · Vídeo · Numeración anterior.mp4").write_bytes(b"")
+    arts = [
+        {"id": "r2", "type": "report", "title": "2 · Resumen", "status": "completed"},
+        {"id": "r0", "type": "report", "title": "0 · Guía de estudio · Empieza aquí", "status": "completed"},
+    ]
+    monkeypatch.setattr(script.subprocess, "run", Studio(arts))
+    (tmp_path / "x").write_text("texto\n")
+
+    def download(*_: object) -> Path:
+        return tmp_path / "x"
+
+    monkeypatch.setattr(script, "download", download)
+    rendered = capture(script, monkeypatch)
+    script.topic(script.parse(["topic", "nb-1", str(folder / "T.pdf"), "--profile", "familia"]), tmp_path)
+    assert index_of(rendered[0]) == [
+        "| ✎ | 0 · Guía de estudio · Empieza aquí | en este documento |",
+        "| ▶ | 1 · Vídeo · Inventado | en la carpeta del tema (Drive) |",
+        "| ✎ | 2 · Resumen | en este documento |",
+    ]
+    assert rendered[0].index("## 0 · Guía") < rendered[0].index("## 2 · Resumen")
+
+
+def test_a_pdf_for_a_folder_not_yet_made_lists_studio_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    arts = [{"id": "v", "type": "video", "title": "1 · Vídeo", "status": "completed"}]
+    monkeypatch.setattr(script.subprocess, "run", Studio(arts))
+    rendered = capture(script, monkeypatch)
+    script.topic(script.parse(["topic", "nb-1", str(tmp_path / "nuevo" / "T.pdf"), "--profile", "familia"]), tmp_path)
+    assert index_of(rendered[0]) == ["| ▶ | 1 · Vídeo | en la carpeta del tema (Drive) |"]

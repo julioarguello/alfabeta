@@ -260,12 +260,13 @@ def number(title: str) -> int | None:
 
 
 def folder_videos(folder: Path, arts: list[dict]) -> list[dict]:
-    """Numbered videos in the PDF's folder that Studio lacks (spec 002 FR-017, FR-039).
+    """Numbered videos in the PDF's folder whose number no Studio piece has (spec 002 FR-017, FR-039).
 
     A subtopic's video can be made in its parent topic's notebook and live only in the folder.
-    Matched by number: a file name cannot hold the `:` or `/` a Studio title may.
+    Matched by number, since a file name cannot hold the `:` or `/` a Studio title may; a number a
+    Studio piece of any kind already has makes the file a leftover of an earlier numbering.
     """
-    held = {number(a.get("title") or "") for a in arts if a.get("type") == "video"}
+    held = {number(a.get("title") or "") for a in arts}
     found = sorted(folder.glob("*.mp4")) if folder.is_dir() else []
     return [{"title": f.stem, "type": "video"} for f in found if (n := number(f.stem)) is not None and n not in held]
 
@@ -277,7 +278,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
     ]
     arts += folder_videos(Path(args.out).expanduser().parent, arts)
     # Studio order is last-modified; a leading "N ·" in the title is the intended order.
-    arts.sort(key=lambda a: number(a.get("title") or "") or 99)
+    arts.sort(key=lambda a: 99 if (n := number(a.get("title") or "")) is None else n)
     title, url = notebook_of(args.profile, args.notebook)
     index = ["| | Pieza | Dónde |", "|---|---|---|"]
     # The start note ("0 · …") opens the index and is printed right after it.
