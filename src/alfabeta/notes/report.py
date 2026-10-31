@@ -534,6 +534,8 @@ def _lessons(deps: NotesDeps, work: Pass, topic: str, wanted: list[str], *, spen
         return [LESSONS_HEADING, "", LESSONS_WAIT], True
     pages = cast("dict[str, dict[str, Any]]", work.state.get("pages", {}))
     named = {p: str(work.files.get(p, {}).get("name") or "página sin nombre") for p in wanted if p in pages}
+    if not named:
+        return [], False  # the pages waiting are gone
     notes = "\n\n".join(f'<page name="{named[p]}">\n{pages[p]["markdown"]}\n</page>' for p in named)
     prompt = LESSONS_INSTRUCTIONS.format(
         lessons="\n".join(f"{n}: {t}" for n, t in sorted(headings.items())),
@@ -550,7 +552,8 @@ def _lessons(deps: NotesDeps, work: Pass, topic: str, wanted: list[str], *, spen
         work.budget_refused = True
         return [LESSONS_HEADING, "", LESSONS_WAIT], True
     if done.state != PhotoState.TRANSCRIBED:
-        return [LESSONS_HEADING, "", LESSONS_WAIT], True
+        # An answer Claude gave but cut short (it was paid for) would be cut again, and dearer: say so once.
+        return ([LESSONS_HEADING, "", NO_LESSONS], False) if done.usage else ([LESSONS_HEADING, "", LESSONS_WAIT], True)
     answer = _answer_json(done.markdown)
     if answer is None:
         return [LESSONS_HEADING, "", NO_LESSONS], False  # asking again would pay for the same answer

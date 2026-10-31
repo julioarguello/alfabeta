@@ -652,3 +652,9 @@ def test_a_kept_previous_copy_is_never_the_textbook():
     )
     drive.put("eu", "Tema01_EU.md", "text/markdown", b"## Ikasgaia 1: Berria\n", parent="sb")
     assert report.textbook(drive, TOPIC) == "## Ikasgaia 1: Berria\n"
+
+
+def test_an_answer_cut_short_is_said_once_and_never_asked_again():
+    cut = Transcription(PhotoState.FAILED, "", Usage(9000, 1500))
+    text, _ = lessons_run(MemoryDrive.topic(), cut)
+    assert report.NO_LESSONS in text and report.LESSONS_WAIT not in text
