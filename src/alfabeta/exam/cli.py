@@ -79,9 +79,9 @@ def _part(topic: str, index: int, count: int) -> str:
     if count <= 1:
         return ""
     return (
-        f"Este examen abarca varios subtemas y este cuaderno solo tiene el subtema «{topic}» (parte {index}"
-        f" de {count}): las secciones son solo los puntos del anuncio que tratan tus fuentes; nombra los demás"
-        " en una línea «En otro subtema:» y no los desarrolles. "
+        f", pero este examen abarca varios subtemas y este cuaderno solo tiene el subtema «{topic}» (parte {index}"
+        f" de {count}): haz sección solo de los puntos que tratan tus fuentes y nombra los demás en una línea"
+        " «En otro subtema o sin material:», sin desarrollarlos"
     )
 
 

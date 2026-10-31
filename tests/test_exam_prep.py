@@ -1048,7 +1048,7 @@ def test_a_slot_shares_into_equal_consecutive_parts():
     assert [(s.minutes, s.words) for s in Slot.parse(None).share(2)] == [(45, "45 minutos"), (45, "45 minutos")]
     assert [s.minutes for s in Slot.parse("17:00-19:00").share(7)] == [17, 17, 17, 17, 17, 17, 18]
     # The pages are the whole slot's, shared: splitting adds none.
-    assert [s.pages for s in Slot.parse("17:00-18:30").share(3)] == [2, 1, 1]
+    assert [s.pages for s in Slot.parse("17:00-18:30").share(3)] == [1, 1, 2]
     assert [s.pages for s in Slot.parse("17:00-18:30").share(2)] == [2, 2]
     with pytest.raises(Refusal, match="less than 15 minutes"):
         Slot.parse("17:00-17:20").share(2)
@@ -1063,7 +1063,11 @@ def test_subtopics_go_in_their_order_and_each_theory_keeps_to_its_points(
     assert [a[3] for a in asked] == ["nb-1", "nb-1", "nb-2", "nb-2"]  # A first, whatever order --topic gave
     theories = [a[a.index("--prompt") + 1] for a in asked if "Hoja de teoría" in a[a.index("--prompt") + 1]]
     assert "solo tiene el subtema «Tema 01A - Materia inventada» (parte 1 de 2)" in theories[0]
-    assert "(parte 2 de 2)" in theories[1] and "En otro subtema:" in theories[1]
+    assert "(parte 2 de 2)" in theories[1] and "«En otro subtema o sin material:»" in theories[1]
+    assert (
+        "en el mismo orden, pero este examen abarca" in theories[0]
+        and "sin desarrollarlos; di qué partes" in theories[0]
+    )
     pack = json.loads((world.data / "study-pack.json").read_text())
     assert {f"2026-2027/FyQ/{first.name}", f"2026-2027/FyQ/{second.name}"} <= set(pack["topics"])
     # One start note per notebook, each with its part of the slot (the fake shares one Studio, so the

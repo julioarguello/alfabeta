@@ -107,7 +107,8 @@ class Slot:
         size = self.minutes // parts
         lengths = [size] * (parts - 1) + [self.minutes - size * (parts - 1)]
         each, extra = divmod(self.pages, parts)
-        pages = [max(1, each + (1 if i < extra else 0)) for i in range(parts)]
+        # What does not divide goes to the last parts, as the minutes do; one page at least each.
+        pages = [max(1, each + (1 if i >= parts - extra else 0)) for i in range(parts)]
         if self.start is None:
             return [Slot(length, f"{length} minutos", None, n) for length, n in zip(lengths, pages, strict=True)]
         shared: list[Slot] = []
