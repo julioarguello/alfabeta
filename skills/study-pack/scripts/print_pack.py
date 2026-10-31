@@ -254,13 +254,30 @@ def report(args: argparse.Namespace, work: Path) -> None:
     render(md, Path(args.out).expanduser(), work)
 
 
+def number(title: str) -> int | None:
+    """A piece's place, from the leading "N ·" of its title."""
+    return int(m.group(1)) if (m := re.match(r"(\d+)\s*·", title)) else None
+
+
+def folder_videos(folder: Path, arts: list[dict]) -> list[dict]:
+    """Numbered videos in the PDF's folder that Studio lacks (spec 002 FR-017, FR-039).
+
+    A subtopic's video can be made in its parent topic's notebook and live only in the folder.
+    Matched by number: a file name cannot hold the `:` or `/` a Studio title may.
+    """
+    held = {number(a.get("title") or "") for a in arts if a.get("type") == "video"}
+    found = sorted(folder.glob("*.mp4")) if folder.is_dir() else []
+    return [{"title": f.stem, "type": "video"} for f in found if (n := number(f.stem)) is not None and n not in held]
+
+
 def topic(args: argparse.Namespace, work: Path) -> None:
     arts = json.loads(nlm(args.profile, "studio", "status", args.notebook, "--full", "--json"))
     arts = [
         a for a in (arts.get("artifacts", arts) if isinstance(arts, dict) else arts) if a.get("status") == "completed"
     ]
+    arts += folder_videos(Path(args.out).expanduser().parent, arts)
     # Studio order is last-modified; a leading "N ·" in the title is the intended order.
-    arts.sort(key=lambda a: int(m.group(1)) if (m := re.match(r"(\d+)\s*·", a.get("title") or "")) else 99)
+    arts.sort(key=lambda a: number(a.get("title") or "") or 99)
     title, url = notebook_of(args.profile, args.notebook)
     index = ["| | Pieza | Dónde |", "|---|---|---|"]
     # The start note ("0 · …") opens the index and is printed right after it.
