@@ -239,3 +239,17 @@ def test_the_printed_topic_carries_the_link_under_its_title(tmp_path: Path, monk
     script.topic(script.parse(["topic", "nb-1", "out.pdf", "--profile", "familia"]), tmp_path)
     head = rendered[0].split("| | Pieza |")[0]
     assert head == f"# {NB['title']}\n\nTu cuaderno: [{NB['url']}]({NB['url']})\n\n"
+
+
+@pytest.mark.parametrize(("held", "written"), [(None, True), (NB["url"], False), (NB["url"] + "-otro", True)])
+def test_the_link_page_is_written_only_when_absent_or_carrying_another_link(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, held: str | None, written: bool
+):
+    script = load_script()
+    monkeypatch.setattr(script.subprocess, "run", Notebook("familia", NB))
+    rendered = capture(script, monkeypatch)
+    out = tmp_path / "Abrir el cuaderno.pdf"
+    if held is not None:
+        out.write_bytes(f"%PDF-1.4 << /URI ({held}) >>".encode())
+    script.link(script.parse(["link", "nb-1", str(out), "--profile", "familia"]), tmp_path)
+    assert bool(rendered) is written
