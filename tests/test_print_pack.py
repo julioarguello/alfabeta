@@ -275,3 +275,98 @@ def test_a_relative_link_path_stops_before_asking_nlm(monkeypatch: pytest.Monkey
     with pytest.raises(SystemExit, match="absolute path"):
         script.link(script.parse(["link", "nb-1", "2026-2027/Bio/notebook/x.pdf", "--profile", "familia"]), tmp_path)
     assert rendered == [] and fake.calls == []
+
+
+class Studio(Notebook):
+    """A notebook whose Studio holds the given artifacts."""
+
+    def __init__(self, arts: list[dict[str, str]]) -> None:
+        super().__init__("familia", NB)
+        self.arts = arts
+
+    def __call__(self, cmd: list[str], **kw: object) -> subprocess.CompletedProcess[str]:
+        if cmd[1:3] == ["studio", "status"]:
+            return subprocess.CompletedProcess(cmd, 0, json.dumps(self.arts), "")
+        return super().__call__(cmd, **kw)
+
+
+def index_of(md: str) -> list[str]:
+    return [line for line in md.splitlines() if line.startswith("| ▶") or line.startswith("| ✎")]
+
+
+def test_the_index_lists_a_numbered_video_only_the_folder_holds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    folder = tmp_path / "notebook"
+    folder.mkdir()
+    (folder / "1 · Vídeo 4 min · Inventado.mp4").write_bytes(b"")
+    (folder / "sin número.mp4").write_bytes(b"")
+    arts = [{"id": "m", "type": "mind_map", "title": "2 · Mapa mental", "status": "completed"}]
+    monkeypatch.setattr(script.subprocess, "run", Studio(arts))
+    (tmp_path / "x").write_text("{}")
+
+    def download(*_: object) -> Path:
+        return tmp_path / "x"
+
+    def mindmap_html(*_: object) -> str:
+        return ""
+
+    monkeypatch.setattr(script, "download", download)
+    monkeypatch.setattr(script, "mindmap_html", mindmap_html)
+    rendered = capture(script, monkeypatch)
+    script.topic(script.parse(["topic", "nb-1", str(folder / "T.pdf"), "--profile", "familia"]), tmp_path)
+    assert index_of(rendered[0]) == [
+        "| ▶ | 1 · Vídeo 4 min · Inventado | en la carpeta del tema (Drive) |",
+        "| ✎ | 2 · Mapa mental | en este documento |",
+    ]
+
+
+def test_a_video_studio_holds_is_listed_once_though_its_file_name_differs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    script = load_script()
+    folder = tmp_path / "notebook"
+    folder.mkdir()
+    (folder / "2 · Vídeo · Concentración - g-L.mp4").write_bytes(b"")
+    arts = [{"id": "v", "type": "video", "title": "2 · Vídeo · Concentración: g/L", "status": "completed"}]
+    monkeypatch.setattr(script.subprocess, "run", Studio(arts))
+    rendered = capture(script, monkeypatch)
+    script.topic(script.parse(["topic", "nb-1", str(folder / "T.pdf"), "--profile", "familia"]), tmp_path)
+    assert index_of(rendered[0]) == ["| ▶ | 2 · Vídeo · Concentración: g/L | en la carpeta del tema (Drive) |"]
+
+
+def test_the_guide_opens_and_a_folder_video_takes_its_place_between_studio_pieces(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    script = load_script()
+    folder = tmp_path / "notebook"
+    folder.mkdir()
+    (folder / "1 · Vídeo · Inventado.mp4").write_bytes(b"")
+    (folder / "2 · Vídeo · Numeración anterior.mp4").write_bytes(b"")
+    arts = [
+        {"id": "r2", "type": "report", "title": "2 · Resumen", "status": "completed"},
+        {"id": "r0", "type": "report", "title": "0 · Guía de estudio · Empieza aquí", "status": "completed"},
+    ]
+    monkeypatch.setattr(script.subprocess, "run", Studio(arts))
+    (tmp_path / "x").write_text("texto\n")
+
+    def download(*_: object) -> Path:
+        return tmp_path / "x"
+
+    monkeypatch.setattr(script, "download", download)
+    rendered = capture(script, monkeypatch)
+    script.topic(script.parse(["topic", "nb-1", str(folder / "T.pdf"), "--profile", "familia"]), tmp_path)
+    assert index_of(rendered[0]) == [
+        "| ✎ | 0 · Guía de estudio · Empieza aquí | en este documento |",
+        "| ▶ | 1 · Vídeo · Inventado | en la carpeta del tema (Drive) |",
+        "| ✎ | 2 · Resumen | en este documento |",
+    ]
+    assert rendered[0].index("## 0 · Guía") < rendered[0].index("## 2 · Resumen")
+
+
+def test_a_pdf_for_a_folder_not_yet_made_lists_studio_alone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    script = load_script()
+    arts = [{"id": "v", "type": "video", "title": "1 · Vídeo", "status": "completed"}]
+    monkeypatch.setattr(script.subprocess, "run", Studio(arts))
+    rendered = capture(script, monkeypatch)
+    script.topic(script.parse(["topic", "nb-1", str(tmp_path / "nuevo" / "T.pdf"), "--profile", "familia"]), tmp_path)
+    assert index_of(rendered[0]) == ["| ▶ | 1 · Vídeo | en la carpeta del tema (Drive) |"]
