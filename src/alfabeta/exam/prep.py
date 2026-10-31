@@ -26,7 +26,7 @@ from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import short_day, weekday
 from alfabeta.notes.refresh import LocalRefreshStore
 from alfabeta.notes.run import topic_name
-from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC
+from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC, subtopic_letter
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -75,6 +75,7 @@ class Slot:
 
     minutes: int
     words: str  # `{slot}` of the prompts
+    start: int | None = None  # minutes after midnight, when the slot has clock times
 
     @classmethod
     def parse(cls, value: str | None) -> Slot:
@@ -87,7 +88,25 @@ class Slot:
         h1, m1, h2, m2 = (int(g) for g in found.groups())
         if max(h1, h2) > 23 or max(m1, m2) > 59 or (h2 * 60 + m2) <= (h1 * 60 + m1):
             raise Refusal("invalid_slot", "--slot ends after it starts, within one day")
-        return cls((h2 * 60 + m2) - (h1 * 60 + m1), f"{value[:5]}{EN_DASH}{value[6:]}")
+        return cls((h2 * 60 + m2) - (h1 * 60 + m1), f"{value[:5]}{EN_DASH}{value[6:]}", h1 * 60 + m1)
+
+    def share(self, parts: int) -> list[Slot]:
+        """The slot cut into `parts` equal consecutive parts, the last taking what does not divide (FR-045)."""
+        if parts <= 1:
+            return [self]
+        size = self.minutes // parts
+        lengths = [size] * (parts - 1) + [self.minutes - size * (parts - 1)]
+        if self.start is None:
+            return [Slot(length, f"{length} minutos") for length in lengths]
+        shared: list[Slot] = []
+        begin = self.start
+        for length in lengths:
+            end = begin + length
+            shared.append(
+                Slot(length, f"{begin // 60:02d}:{begin % 60:02d}{EN_DASH}{end // 60:02d}:{end % 60:02d}", begin)
+            )
+            begin = end
+        return shared
 
     @property
     def pages(self) -> int:
@@ -165,6 +184,25 @@ def find_exam(agenda: Path, state: Path, base: Path, subject: str, wanted: dt.da
         "the exam has no captured announcement (one announced in class, or detected in a material or an"
         " assignment, has none); nothing was asked",
     )
+
+
+def topic_folders(subject_dir: Path, wanted: list[str] | None) -> list[Path]:
+    """Every `--topic` in its order, or the subject's most recent topic when that is not a subtopic (step 4).
+
+    An exam over several subtopics names each with its own `--topic` (FR-045): the announcement does
+    not say which subtopics it covers, so the most recent one alone is never assumed to be all of it.
+    """
+    if not wanted:
+        folder = topic_folder(subject_dir, None)
+        if subtopic_letter(topic_name(folder.name)):
+            raise Refusal(
+                "subtopics_unnamed",
+                f"the most recent topic, {folder.name}, is a subtopic: give one --topic per subtopic the exam covers",
+            )
+        return [folder]
+    if len(set(wanted)) != len(wanted):
+        raise Refusal("no_topic", "--topic names the same folder twice")
+    return [topic_folder(subject_dir, name) for name in wanted]
 
 
 def topic_folder(subject_dir: Path, wanted: str | None) -> Path:

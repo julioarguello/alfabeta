@@ -200,8 +200,14 @@ Spec 002, User Story 7 (FR-029 to FR-037), and its [command contract](../../spec
 From julioarguello/alfabeta#106 on, alfabeta makes both sheets by itself, with no Claude:
 
 ```bash
-uv run --project <tools.repository> python -m alfabeta exam prep --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]
+uv run --project <tools.repository> python -m alfabeta exam prep --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...
 ```
+
+An exam over several subtopics of a textbook topic (`Tema NNA`, `Tema NNB`…) takes one `--topic`
+per subtopic it covers, in their order: each subtopic's own notebook gets its two sheets, printed
+as `TNNA`, `TNNB`…, and an equal part of the slot (spec 002 FR-045). Ask the family which
+subtopics the exam covers; the announcement does not say. Without `--topic`, when the subject's
+most recent topic is a subtopic, the command refuses with `subtopics_unnamed` and asks nothing.
 
 It takes the scope from the teacher's announcement that `classroom-sync` captured, regenerates the
 topic's study guide when it was made before the class notes, asks the notebook for the two reports
@@ -209,8 +215,8 @@ with the prompts «Theory sheet — for an exam» and «Problems sheet — for a
 [`prompts.md`](prompts.md), titles them `EXAMEN <weekday> <n> · Teoría para el examen · <topic>`
 and `… <n+1> · Problemas tipo · …`, numbered after the pieces the moment already holds, rewrites
 its start note `EXAMEN <weekday> · Empieza aquí` last, and prints them into the topic's `exam/` folder (no date in its name) as
-`exam/Teoría para el examen · TNN (<D> <mmm>).pdf` and
-`exam/Problemas tipo · TNN (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
+`exam/Teoría para el examen · TNN[X] (<D> <mmm>).pdf` and
+`exam/Problemas tipo · TNN[X] (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
 (`notebook.enabled = false`), `nlm` is signed out or failing, or the exam, its announcement or the
 notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036).
