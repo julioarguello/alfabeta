@@ -168,35 +168,35 @@ class Placer:
             return NO_TOPIC
         by_item = self._matches.get((DecisionType.ITEM_MATCH, item.id))
         if by_item:
-            return by_item
+            return self._split_since(by_item)
         if self.subject.book:
             by_topic = self._matches.get((DecisionType.TOPIC_MATCH, item.topic_id))
             if by_topic:
-                return by_topic
+                return self._split_since(by_topic)
         return clean(teacher_title or "") or NO_TOPIC
 
-    def topic_folder(self, name: str, first_posted: dt.date) -> str:
-        """The dated folder for `name`: the existing one whatever its date, else a new one dated now.
+    def _split_since(self, matched: str) -> str:
+        """`matched`, or its subtopic A if that whole book topic was split after the match was confirmed.
 
-        A whole book topic split into subtopics since its match was confirmed has no folder of its
-        own any more: its items go to the subtopic with the latest date, never to a new folder
-        beside the subtopics (spec 001 FR-013).
+        The first split renames the whole topic's folder to subtopic A in place (spec 002 FR-043), so
+        A holds everything placed before it: its items stay there, never move to another subtopic,
+        and no second `Tema NN - …` folder appears beside the subtopics (spec 001 FR-013).
         """
-        if name not in self._topic_folders:
-            self._topic_folders[name] = self._latest_subtopic(name) or fit(f"{_day(first_posted)} - {name}")
-        return self._topic_folders[name]
+        number = book_topic_number(matched)
+        if not self.subject.book or number is None or subtopic_letter(matched) or matched in self._topic_folders:
+            return matched
+        subtopics = sorted(
+            (subtopic_letter(name), name)
+            for name in self._topic_folders
+            if book_topic_number(name) == number and subtopic_letter(name)
+        )
+        return subtopics[0][1] if subtopics else matched
 
-    def _latest_subtopic(self, name: str) -> str | None:
-        """The dated folder of the latest subtopic of `name`, a whole book topic; None if it has none."""
-        number = book_topic_number(name)
-        if number is None or subtopic_letter(name):
-            return None
-        subtopics = [
-            dated
-            for undated_name, dated in self._topic_folders.items()
-            if book_topic_number(undated_name) == number and subtopic_letter(undated_name)
-        ]
-        return max(subtopics) if subtopics else None
+    def topic_folder(self, name: str, first_posted: dt.date) -> str:
+        """The dated folder for `name`: the existing one whatever its date, else a new one dated now."""
+        if name not in self._topic_folders:
+            self._topic_folders[name] = fit(f"{_day(first_posted)} - {name}")
+        return self._topic_folders[name]
 
     def _unique(self, folder: str, name: str, item: str, *, is_folder: bool = False) -> str:
         """`name` in `folder`, numbered « (2)», « (3)»… if another item already took it there."""

@@ -76,7 +76,7 @@ def book_topic(text: str) -> tuple[str, str]:
     topic = clean(text)
     number = book_topic_number(topic)
     if number is None:
-        raise BookError("invalid_topic", "--topic must have the form «Tema NN - <title>», NN with two digits")
+        raise BookError("invalid_topic", "--topic must have the form «Tema NN[X] - <title>», NN with two digits")
     return topic, number
 
 
@@ -108,6 +108,8 @@ class BookPlacer:
         the book's, before its match is confirmed, has none); any other tie is the family's to undo,
         never a guess.
         """
+        if subtopic_letter(topic):
+            raise BookError("invalid_topic", "--topic is the textbook's whole topic, «Tema NN - <title>»")
         subject_dir = self.base / self.school_year / self.subject.folder
         found = (
             sorted(p.name for p in subject_dir.iterdir() if p.is_dir() and book_topic_number(undated(p.name)) == number)
@@ -116,10 +118,11 @@ class BookPlacer:
         )
         subtopics = [name for name in found if subtopic_letter(undated(name))]
         if subtopics:
-            if len(subtopics) != len(found):
+            letters = [subtopic_letter(undated(name)) for name in subtopics]
+            if len(subtopics) != len(found) or len(set(letters)) != len(letters):
                 raise BookError(
                     "ambiguous_topic",
-                    f"{number} of {self.subject.folder} is both whole and split into subtopics: merge them",
+                    f"{number} of {self.subject.folder} is whole and split, or two subtopics share a letter: merge them",
                 )
             found = subtopics
         elif len(found) > 1:
@@ -144,6 +147,9 @@ class BookPlacer:
         folders = [f"{topic_dir}/{built.name}" for topic_dir in self.topic_folders(topic, number, built.name)]
         for folder in folders:
             self._place_in(folder, files, built.name, f"{number}{subtopic_letter(undated(folder.split('/')[-2]))}")
+        # One entry per file, however many subtopics received it.
+        self.placed[:] = list(dict.fromkeys(self.placed))
+        self.unchanged[:] = [name for name in dict.fromkeys(self.unchanged) if name not in self.placed]
         return folders
 
     def _place_in(self, folder: str, files: dict[str, Path], book: str, topic_key: str) -> None:

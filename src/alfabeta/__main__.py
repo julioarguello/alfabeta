@@ -699,7 +699,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     book_place = book_group.add_parser("place", help="place what a book provider built in its topic's folder")
     book_place.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
-    book_place.add_argument("--topic", required=True, help="Tema NN[X] - <title>")
+    book_place.add_argument("--topic", required=True, help="Tema NN - <title>, the whole textbook topic")
     book_place.add_argument("--origin", required=True, help="the folder where the provider left its files")
 
     cfg_group = groups.add_parser("config", help="the student's configuration").add_subparsers(

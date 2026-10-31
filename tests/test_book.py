@@ -448,6 +448,7 @@ def test_a_topic_split_into_subtopics_gets_the_book_in_every_subtopic(box: Box, 
     out = json.loads(done.stdout)
     assert out["folders"] == [f"{FYQ}/{first.name}/sciencebits", f"{FYQ}/{second.name}/sciencebits"]
     assert out["folder"] == out["folders"][0]
+    assert sorted(out["placed"]) == sorted(BUILT)  # one entry per file, not per subtopic
     for topic in (first, second):
         assert sorted(p.name for p in (topic / "sciencebits").iterdir()) == sorted(BUILT)
     assert not any(" - Tema 01 - " in p.name for p in (box.base / FYQ).iterdir())  # never a duplicate whole folder
@@ -471,3 +472,21 @@ def test_a_subtopic_is_a_valid_topic():
     for wrong in ("Tema 02b - x", "Tema 02BC - x", "Tema 2B - x"):
         with pytest.raises(BookError):
             book.book_topic(wrong)
+
+
+def test_two_subtopics_with_one_letter_are_refused(box: Box, tmp_path: Path):
+    whole = box.base / TOPIC_FOLDER
+    whole.rename(whole.with_name(whole.name.replace("Tema 01 - ", "Tema 01A - ")))
+    for title in ("Una", "Otra"):
+        (box.base / FYQ / f"20261102 - Tema 01B - {title} lección inventada").mkdir()
+    before = written(box)
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "ambiguous_topic"
+    assert written(box) == before
+
+
+def test_the_book_is_placed_by_its_whole_topic_never_a_subtopic(box: Box, tmp_path: Path):
+    before = written(box)
+    done = place(box, built(tmp_path / "out"), "Tema 01B - Lección inventada")
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "invalid_topic"
+    assert written(box) == before

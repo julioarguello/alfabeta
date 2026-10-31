@@ -668,7 +668,9 @@ test.
     `<YYYYMMDD> - Tema NNX - <title>`, each a book topic for this requirement, with its book's
     subfolder holding the whole topic's book files. An item matched to that book topic goes to the
     subtopic whose lessons its content covers, proposed per item and confirmed like the case above;
-    while unconfirmed it goes to the subtopic with the latest date, and the summary asks.
+    while unconfirmed it goes to subtopic A — the whole topic's folder renamed in place, which holds
+    everything placed before the split — and the summary asks. (Corrected 2026-10-31: «the subtopic
+    with the latest date» would have moved every item already placed out of A.)
     `book place` writes a topic's files into every one of its subtopics' book subfolders.
 - **FR-014**: An item without a topic and an announcement MUST go to the subject's
   `<YYYYMMDD> - No topic` folder, dated by the first item placed there. There are no month folders.

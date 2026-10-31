@@ -265,20 +265,41 @@ def test_subtopics_are_book_topics(tmp_path: Path):
     assert [subtopic_letter(n) for n in ("Tema 02B - x", "Tema 02 - x", "Repaso")] == ["B", "", ""]
 
 
-def test_a_match_to_a_topic_split_since_goes_to_its_latest_subtopic_never_to_a_new_folder():
+SPLIT = [
+    "20261020 - Tema 02B - Mezclas de gases",
+    "20261001 - Tema 02A - Los gases ideales",
+    "20261020 - Tema 01 - Otra",
+]
+
+
+def test_a_match_to_a_topic_split_since_goes_to_its_subtopic_a_never_to_a_new_folder():
     placer = Placer(
         "2026-2027",
         WITH_BOOK,
-        existing_folders=[
-            "20261001 - Tema 02A - Los gases ideales",
-            "20261020 - Tema 02B - Mezclas de gases",
-            "20261020 - Tema 01 - Otra cosa",
-        ],
+        existing_folders=SPLIT,
         decisions=[match(DecisionType.TOPIC_MATCH, "synth-t1", DecisionState.CONFIRMED)],
     )
+    # A is the whole topic's folder renamed in place: what was placed before the split stays there.
     assert paths(placer.place(item(attachments=(file("Ficha.pdf"),)), "Gasak")) == [
-        f"{ROOT}/20261020 - Tema 02B - Mezclas de gases/classroom/20261014 - Ficha de gases.pdf"
+        f"{ROOT}/20261001 - Tema 02A - Los gases ideales/classroom/20261014 - Ficha de gases.pdf"
     ]
+
+
+def test_an_unconfirmed_teacher_title_like_a_book_topic_keeps_its_own_folder_after_a_split():
+    placer = Placer("2026-2027", WITH_BOOK, existing_folders=SPLIT)
+    assert paths(placer.place(item(), "Tema 02 - Repaso de gases"))[0].startswith(
+        f"{ROOT}/20261014 - Tema 02 - Repaso de gases/"
+    )
+
+
+def test_a_subject_without_a_book_never_falls_into_a_subtopic():
+    placer = Placer(
+        "2026-2027",
+        NO_BOOK,
+        existing_folders=SPLIT,
+        decisions=[match(DecisionType.ITEM_MATCH, "synth-i1", DecisionState.CONFIRMED)],
+    )
+    assert paths(placer.place(item(), "Gasak"))[0].startswith(f"2026-2027/Lengua/20261014 - {BOOK}/")
 
 
 def test_an_item_matched_to_a_subtopic_goes_there():
