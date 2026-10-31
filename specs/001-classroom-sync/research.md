@@ -435,7 +435,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 - **Decision**: a vault, and constitution III amended (MAJOR, 2.0.0) to allow it. Two routes,
   because the session the operator pictured is too short to reuse (R16) and the thing he pictured —
   scripted web sign-in from a password — is what Google refuses:
-  - **Primary, the token route.** The family signs in by hand once to mint a long-lived sign-in
+  - **Primary, the token route** (S4 measured 2026-10-31: not built — research R15). The family signs in by hand once to mint a long-lived sign-in
     token for the school account; the vault holds the token, and the runner exchanges it for
     short-lived access tokens and reads Classroom read-only, as a Google first-party client. It is
     not tied to the web session, so it escapes R16.
@@ -475,6 +475,26 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
     administrador de tu institución debe revisar»), which a first-party token would hit too; mobile
     management may reject an unmanaged sign-in; the Classroom Android app may call a private
     endpoint, not `classroom.googleapis.com`. Spike S4 settles it with one read-only call.
+  - **Spike S4, measured 2026-10-31 from the family Mac (home address)**, gpsoauth 2.0.0, a fresh
+    Chrome profile with no automation attached, the family signing in by hand:
+    - the school account signs in at `accounts.google.com/EmbeddedSetup`, and its one-time
+      `oauth_token` cookie exchanges for a master token (`aas_et/…`): the account allows minting one;
+    - drawing a read-only access token from it failed for every client tried. The Classroom app
+      (`com.google.android.apps.classroom`) with gpsoauth's default Google certificate:
+      `UNREGISTERED_ON_API_CONSOLE` (package and certificate do not match). With the certificate
+      SHA-1 a third-party APK listing gives for that app (Softpedia, version 8.0.141; none found
+      from Google, searched 2026-10-31), the error changed, which shows that certificate matched: `RESTRICTED_CLIENT`, «Unregistered scope(s)», naming all seven public
+      read-only Classroom scopes asked for at once (`courses`, `coursework.me`,
+      `courseworkmaterials`, `announcements`, `topics`, `rosters`, `student-submissions.me`, each
+      `.readonly`). Play services (`com.google.android.gms`, default certificate):
+      `RESTRICTED_CLIENT` for `classroom.courses.readonly`;
+    - so the Classroom app is not registered for the public read-only scopes: it reads through
+      other scopes or a private endpoint, as feared above. Asking for those is outside FR-032a
+      (read-only by scope), and trying other Google apps one by one would be fishing for a client,
+      not a read. **The token route, as specified, is not built.** The home-versus-cloud question
+      was not reached, nor was the school's account-policy block (no client cleared registration),
+      and whether the device showed as new was not recorded. The master token was deleted from the
+      keychain the same day; revoking the device on the account's security page is left to the family.
   - Accepted risks (the family decides in the review): it poses as a Google first-party app, which
     is against Google's terms; the sign-in shows as a new Android device on the account; and the
     stored master token is **account-wide and bypasses the second factor** — read-only is only the
@@ -588,7 +608,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   used, and a later run that stops the same way with the same version logs `stopped` without a new
   notice.
 - **Gate**: SC-012 asks that the family refresh the vault by hand at most once every 7 days. The
-  token route meets it trivially if S4 proves it. For the web route, if S5 shows the session expires
+  token route would have met it trivially had S4 proved it; it did not (R15, 2026-10-31). For the web route, if S5 shows the session expires
   so often that a human sign-in is needed more than weekly, or the scripted sign-in cannot clear
   without evasion, the web route is not built. If both routes fail, User Story 7 is not built and
   the family keeps the scheduled task on the Mac (R1) and the guardian email summaries

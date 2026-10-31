@@ -909,7 +909,7 @@ Example of the resulting structure (invented names):
   enabled per student by configuration; while it is off, FR-006 and FR-021a apply unchanged. It is
   built only once its spikes pass; if both routes fail, it is not built and the family keeps the Mac
   route (FR-021a) and the guardian email summaries.
-- **FR-032a**: The **token route** (primary) MUST read Classroom as a Google first-party client:
+- **FR-032a** (S4 measured 2026-10-31: not built — research R15): The **token route** (primary) MUST read Classroom as a Google first-party client:
   the family signs in by hand once to seed a long-lived sign-in token for the school account into
   the vault (FR-033), and the runner exchanges it for short-lived access tokens and makes read-only
   calls. Read-only MUST be enforced by requesting read-only scope only (constitution IV). Spike S4
