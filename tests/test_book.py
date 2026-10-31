@@ -354,7 +354,7 @@ def test_an_invented_third_provider_plugs_in_as_another_source(tmp_path: Path):
     provider: BookFiles = InventedBook(tmp_path / "out")
     subject = Subject("Bio", "Biología inventada", book="librosinventados", book_class="Biología inventada")
     placer = BookPlacer(tmp_path / "base", "2026-2027", subject, {}, dt.date(2026, 11, 2))
-    folder = placer.place(provider, "Tema 04 - Células inventadas", "Tema 04")
+    [folder] = placer.place(provider, "Tema 04 - Células inventadas", "Tema 04")
     assert folder == "2026-2027/Bio/20261102 - Tema 04 - Células inventadas/librosinventados"
     assert (tmp_path / "base" / folder / "unidad.pdf").is_file()
     assert set(placer.replicas) == {"librosinventados|Tema 04|unidad.pdf"}
@@ -435,3 +435,68 @@ def test_log_notebook_needs_a_book_topic_and_the_lock(box: Box):
     assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "lock_not_held"
     assert not [line for line in lines(box) if line.get("type") == "notebook"]
     box.take()
+
+
+def test_a_topic_split_into_subtopics_gets_the_book_in_every_subtopic(box: Box, tmp_path: Path):
+    whole = box.base / TOPIC_FOLDER
+    first = whole.with_name(whole.name.replace("Tema 01 - ", "Tema 01A - "))
+    whole.rename(first)  # the first split renames the topic in place (spec 002 FR-043)
+    second = box.base / FYQ / "20261102 - Tema 01B - Segunda lección inventada"
+    second.mkdir()
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 0, done.stderr
+    out = json.loads(done.stdout)
+    assert out["folders"] == [f"{FYQ}/{first.name}/sciencebits", f"{FYQ}/{second.name}/sciencebits"]
+    assert out["folder"] == out["folders"][0]
+    assert sorted(out["placed"]) == sorted(BUILT)  # one entry per file, not per subtopic
+    for topic in (first, second):
+        assert sorted(p.name for p in (topic / "sciencebits").iterdir()) == sorted(BUILT)
+    assert not any(" - Tema 01 - " in p.name for p in (box.base / FYQ).iterdir())  # never a duplicate whole folder
+    assert {k for k in replicas(box) if k.startswith("sciencebits|Tema 01B|")} == {
+        f"sciencebits|Tema 01B|{f}" for f in BUILT
+    }
+    again = place(box, built(tmp_path / "again"))
+    assert again.returncode == 0 and json.loads(again.stdout)["result"] == "unchanged"
+
+
+def test_a_topic_both_whole_and_split_is_refused(box: Box, tmp_path: Path):
+    (box.base / FYQ / "20261102 - Tema 01B - Segunda lección inventada").mkdir()
+    before = written(box)
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "ambiguous_topic"
+    assert written(box) == before
+
+
+def test_a_subtopic_is_a_valid_topic():
+    assert book.book_topic("Tema 02B - Arnas aparatua") == ("Tema 02B - Arnas aparatua", "Tema 02")
+    for wrong in ("Tema 02b - x", "Tema 02BC - x", "Tema 2B - x"):
+        with pytest.raises(BookError):
+            book.book_topic(wrong)
+
+
+def test_two_subtopics_with_one_letter_are_refused(box: Box, tmp_path: Path):
+    whole = box.base / TOPIC_FOLDER
+    whole.rename(whole.with_name(whole.name.replace("Tema 01 - ", "Tema 01A - ")))
+    for title in ("Una", "Otra"):
+        (box.base / FYQ / f"20261102 - Tema 01B - {title} lección inventada").mkdir()
+    before = written(box)
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "ambiguous_topic"
+    assert written(box) == before
+
+
+def test_the_book_is_placed_by_its_whole_topic_never_a_subtopic(box: Box, tmp_path: Path):
+    before = written(box)
+    done = place(box, built(tmp_path / "out"), "Tema 01B - Lección inventada")
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "invalid_topic"
+    assert written(box) == before
+
+
+def test_a_teacher_s_folder_named_like_the_split_topic_is_not_the_book_s(box: Box, tmp_path: Path):
+    whole = box.base / TOPIC_FOLDER
+    first = whole.with_name(whole.name.replace("Tema 01 - ", "Tema 01A - "))
+    whole.rename(first)
+    (box.base / FYQ / "20261102 - Tema 01 - Repaso del profesor" / "classroom").mkdir(parents=True)
+    done = place(box, built(tmp_path / "out"))
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout)["folders"] == [f"{FYQ}/{first.name}/sciencebits"]

@@ -39,7 +39,7 @@ NOTEBOOK_FOLDER = "notebook"
 MARKDOWN = "text/markdown"
 REPORTED = "reported"  # the snapshot's key in state.json
 # The study-pack skill's printable pack (its step 10): `Tema NN para imprimir · <title>.pdf`.
-_PRINTABLE = re.compile(r"^Tema \d+ para imprimir · .+\.pdf$")
+_PRINTABLE = re.compile(r"^Tema \d+[A-Z]? para imprimir · .+\.pdf$")
 # A piece's heading in that PDF, as `print_pack.py` numbers them: `3 · Guía de estudio · …`.
 _PIECE = re.compile(r"^\s*(\d+)\s*·\s*(.+)$")
 _PLAN = 0  # piece 0, the plan «0 · Guía de estudio» (spec 002 FR-015): it holds no theory

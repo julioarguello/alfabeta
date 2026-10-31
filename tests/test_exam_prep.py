@@ -313,6 +313,7 @@ def test_a_slot_that_is_not_one_interval_of_a_day_is_refused(given: str):
 
 def test_the_sheets_name_the_topic_by_its_number_or_else_by_its_name():
     assert topic_number("20260915 - Tema 01 - Materia inventada") == "T01"
+    assert topic_number("20261031 - Tema 02B - Lección inventada") == "T02B"
     assert topic_number("20261001 - Proyecto de laboratorio") == "Proyecto de laboratorio"
 
 
