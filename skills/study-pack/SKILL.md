@@ -51,7 +51,8 @@ email or an id into the repository.
   a confirmed subtopic holds: the "what it adds" report, nothing more. A lesson no subtopic holds:
   propose a subtopic, as one `subtopic` decision per subtopic (`alfabeta decisions propose`, origin
   `<subject folder>/Tema NNX`, target `{"title": "<lesson title>", "lessons": "6"}`; on a first split, A too,
-  with the lessons its blocks cover), confirmed by the family with `decisions confirm --type subtopic` (`Tema NNX - <lesson title>`; a lesson with no content of its own joins the
+  with the lessons its blocks cover; re-proposing a rejected one at the next moment takes `origin_modified`,
+  the date the new material arrived, or it is ignored), confirmed by the family with `decisions confirm --type subtopic` (`Tema NNX - <lesson title>`; a lesson with no content of its own joins the
   next; lessons one scheme spans stay together). On a first split the existing `Tema NN` folder and
   its notebook are renamed `Tema NNA - …` and keep their pack, holding the lessons its blocks cover;
   later pieces for A are asked with their block as focus. Once the family confirms, make the

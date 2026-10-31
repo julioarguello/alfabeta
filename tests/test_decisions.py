@@ -312,3 +312,17 @@ def test_a_rejected_split_is_proposed_again_only_with_new_material(store: Decisi
         D3,
     )
     assert len(store.propose([again], D3)[0]) == 1
+
+
+def test_re_proposing_a_confirmed_subtopic_keeps_its_lessons_counting(store: DecisionStore):
+    store.propose([sub("A", "1,2,3")], D1)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02A", D1)
+    with pytest.raises(DecisionError, match="lesson 3"):
+        store.propose([sub("A", "1,2", on=D2), sub("B", "3,4", on=D2)], D2)
+
+
+def test_an_ignored_rejected_subtopic_does_not_refuse_a_valid_batch(store: DecisionStore):
+    store.propose([sub("A", "1,2")], D1)
+    store.confirm(DecisionType.SUBTOPIC, "Bio/Tema 02A", D1, reject=True)
+    recorded, ignored = store.propose([sub("A", "1,2", on=D2), sub("B", "1,2", on=D2)], D2)
+    assert [d.origin for d in recorded] == ["Bio/Tema 02B"] and [d.origin for d in ignored] == ["Bio/Tema 02A"]

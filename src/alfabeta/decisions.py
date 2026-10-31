@@ -258,11 +258,14 @@ class DecisionStore:
     def _check_lessons(self, proposals: list[Proposal]) -> None:
         """No textbook lesson in two subtopics of one topic, counting those proposed or confirmed (FR-043)."""
         held: dict[tuple[str, str], dict[int, str]] = {}
-        incoming = {(p.decision.type, p.decision.origin) for p in proposals}
+        # Only a proposal that will be recorded replaces what stands for its key; one `propose` will
+        # ignore leaves the decision in force counting (a confirmed subtopic keeps its lessons).
+        taking = [p for p in proposals if self._recorded(p)]
+        incoming = {(p.decision.type, p.decision.origin) for p in taking}
         standing = [
             d for d in self.decisions() if d.state != DecisionState.REJECTED and (d.type, d.origin) not in incoming
         ]
-        for decision in [*standing, *(p.decision for p in proposals)]:
+        for decision in [*standing, *(p.decision for p in taking)]:
             key = _SUBTOPIC.fullmatch(decision.origin)
             if decision.type != DecisionType.SUBTOPIC or key is None:
                 continue
@@ -273,6 +276,11 @@ class DecisionStore:
                         f"lesson {lesson} of {key['subject']}/{key['number']} is in two subtopics: "
                         f"{seen[lesson]} and {key['letter']}"
                     )
+
+    def _recorded(self, proposal: Proposal) -> bool:
+        """Whether `propose` will record this proposal rather than ignore it."""
+        current = self.in_force(proposal.decision.type, proposal.decision.origin)
+        return current is None or self._reopens(current, proposal)
 
     def propose(self, proposals: Iterable[Proposal], on: dt.date) -> tuple[list[Decision], list[Decision]]:
         """Record what is new; returns (recorded, ignored). Writes nothing if a lesson would be in two subtopics."""
@@ -326,7 +334,7 @@ class DecisionStore:
     def change(self, kind: DecisionType, origin: str, target: dict[str, str], on: dt.date) -> Decision:
         """Replace a confirmed or rejected decision with the family's new one."""
         if kind == DecisionType.SUBTOPIC:
-            raise DecisionError("a confirmed subtopic never changes (spec 002 FR-043); propose a new one instead")
+            raise DecisionError("a subtopic never changes (spec 002 FR-043): a new lesson gets a subtopic of its own")
         current = self.in_force(kind, origin)
         if current is None or current.decision.state not in (DecisionState.CONFIRMED, DecisionState.REJECTED):
             raise DecisionError("there is no confirmed or rejected decision of that type for that origin")
