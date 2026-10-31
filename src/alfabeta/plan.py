@@ -22,7 +22,7 @@ from alfabeta import capture
 from alfabeta.dates import MADRID
 from alfabeta.downloads import inbox_path
 from alfabeta.model import AttachmentKind, DecisionState, DecisionType, Item, ReplicaRole, Subject
-from alfabeta.placement import Placer, book_topics, downloaded_name
+from alfabeta.placement import Placer, book_topic_number, book_topics, downloaded_name, subtopic_letter, undated
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -196,6 +196,57 @@ class Planner:
             )
         return pending
 
+    def _pending_items(self, normalized: ClassCapture, subject: Subject, subject_dir: Path) -> list[dict[str, Any]]:
+        """Items matched to a whole book topic split since, to be proposed one by one (spec 001 FR-013).
+
+        Placement keeps them in subtopic A, the whole folder renamed in place, until an `item_match`
+        says otherwise. An item is asked about when it has no replica yet (a late capture, or a topic
+        matched after the split) or was posted from the split on, the earliest date of a subtopic after
+        A: so one an unattended run placed in A meanwhile is still asked. What was placed while the
+        topic was whole and posted before the split stays in A unasked.
+        """
+        if not subject.book or not subject_dir.is_dir():
+            return []
+        folders = [p.name for p in subject_dir.iterdir() if p.is_dir() and p.name[:8].isdigit()]
+        replicas = cast("dict[str, Any]", self.state.get("replicas", {}))
+        # The topic folder each item's replicas sit in: `<school year>/<subject>/<topic folder>/…`.
+        where: dict[str, set[str]] = {}
+        for key, record in replicas.items():
+            parts = str(cast("dict[str, Any]", record).get("path", "")).split("/")
+            if key.startswith(f"{CLASSROOM}|") and len(parts) > 2:
+                where.setdefault(key.split("|")[1], set()).add(parts[2])
+        pending: list[dict[str, Any]] = []
+        for item in normalized.items:
+            if item.topic_id is None or self.decisions.in_force(DecisionType.ITEM_MATCH, item.id) is not None:
+                continue
+            match = self.decisions.in_force(DecisionType.TOPIC_MATCH, item.topic_id)
+            if match is None or match.decision.state != DecisionState.CONFIRMED:
+                continue
+            whole = match.decision.target.get("topic", "")
+            number = book_topic_number(whole)
+            if number is None or subtopic_letter(whole) or any(undated(f) == whole for f in folders):
+                continue
+            subtopics = sorted(
+                (f for f in folders if book_topic_number(undated(f)) == number and subtopic_letter(undated(f))),
+                key=lambda f: subtopic_letter(undated(f)),
+            )
+            if len(subtopics) < 2:
+                continue  # a topic split into A alone has nowhere else to go
+            split_day = min(f[:8] for f in subtopics[1:])
+            in_a = subtopics[0] in where.get(item.id, set())  # placed while the topic was whole
+            if in_a and item.posted_at.strftime("%Y%m%d") < split_day:
+                continue
+            pending.append(
+                {
+                    "type": str(DecisionType.ITEM_MATCH),
+                    "origin": item.id,
+                    "title": item.title,
+                    "book_topic": whole,
+                    "subtopics": [undated(f) for f in subtopics],
+                }
+            )
+        return pending
+
     def plan(self, captures: dict[str, dict[str, Any]], scope: Iterable[str], run: str) -> dict[str, Any]:
         """The plan for the classes in `scope`."""
         links = self.linked_classes()
@@ -217,6 +268,7 @@ class Planner:
             subject_dir = self.base / self.school_year / subject.folder
             book = book_topics(subject_dir, subject.book)
             pending += self._pending_topics(normalized, subject, book)
+            pending += self._pending_items(normalized, subject, subject_dir)
             pending += [
                 c | {"language": subject.language}
                 for c in self.classifier.candidates(normalized.items, self.decisions.decisions())

@@ -195,3 +195,86 @@ def test_expected_names_and_urls():
     sheet = plan.download_url({"id": "x", "kind": "google_doc", "google_type": "spreadsheet", "name": "s"}, 5)
     assert sheet == "https://docs.google.com/spreadsheets/d/x/export?format=pdf&authuser=5"
     assert Attachment("a", AttachmentKind.FILE, "n", AttachmentRole.MATERIAL).downloaded
+
+
+def item_on(ident: str, day: dt.date) -> Item:
+    return Item(ident, "synth-c", "synth-10", ItemType.MATERIAL, f"Ficha {ident}", day)
+
+
+def split_topic(tmp_path: Path, p: plan.Planner, *, whole_too: bool = False) -> Path:
+    """`Tema 01` matched as a whole, then split into A (renamed in place) and B, with the book in both."""
+    proposal = Proposal.parse(
+        {
+            "type": "topic_match",
+            "origin": "synth-10",
+            "target": {"topic": "Tema 01 - Materia inventada"},
+            "reason": "r",
+            "confidence": "high",
+        },
+        TODAY,
+    )
+    p.decisions.propose([proposal], TODAY)
+    p.decisions.confirm(DecisionType.TOPIC_MATCH, "synth-10", TODAY)
+    subject_dir = tmp_path / "2026-2027" / SUBJECT.folder
+    names = ["20260915 - Tema 01A - Materia inventada", "20261020 - Tema 01B - Más materia"]
+    if whole_too:
+        names.append("20260915 - Tema 01 - Materia inventada")
+    for name in names:
+        (subject_dir / name / SUBJECT.book).mkdir(parents=True)
+    return subject_dir
+
+
+def test_an_item_since_the_split_is_proposed_its_subtopic(tmp_path: Path):
+    # synth-old was placed and posted before the split: it stays in A unasked.
+    in_a = "2026-2027/FyQ/20260915 - Tema 01A - Materia inventada/classroom/f.pdf"
+    replicas = {f"classroom|{i}|synth-a": {"path": in_a} for i in ("synth-old", "synth-placed-new")}
+    # synth-teacher sat in the teacher's own folder while its topic match waited: it is asked.
+    replicas["classroom|synth-teacher|synth-a"] = {"path": "2026-2027/FyQ/20261001 - Gasak/classroom/f.pdf"}
+    p = planner(tmp_path, {"replicas": replicas})
+    subject_dir = split_topic(tmp_path, p)
+
+    class Captured:
+        items = (
+            item_on("synth-old", dt.date(2026, 10, 1)),
+            item_on("synth-late", dt.date(2026, 10, 1)),  # posted before the split, captured after it
+            item_on("synth-placed-new", dt.date(2026, 10, 21)),  # placed in A by an unattended run
+            item_on("synth-teacher", dt.date(2026, 10, 1)),
+        )
+
+    pending = p._pending_items(Captured(), SUBJECT, subject_dir)  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
+    assert [e["origin"] for e in pending] == ["synth-late", "synth-placed-new", "synth-teacher"]
+    assert pending[0] == {
+        "type": "item_match",
+        "origin": "synth-late",
+        "title": "Ficha synth-late",
+        "book_topic": "Tema 01 - Materia inventada",
+        "subtopics": ["Tema 01A - Materia inventada", "Tema 01B - Más materia"],
+    }
+    # Once proposed, it is not asked again.
+    p.decisions.propose(
+        [
+            Proposal.parse(
+                {
+                    "type": "item_match",
+                    "origin": "synth-late",
+                    "target": {"topic": "Tema 01B - Más materia"},
+                    "reason": "r",
+                    "confidence": "high",
+                },
+                TODAY,
+            )
+        ],
+        TODAY,
+    )
+    again = p._pending_items(Captured(), SUBJECT, subject_dir)  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
+    assert [e["origin"] for e in again] == ["synth-placed-new", "synth-teacher"]
+
+
+def test_a_topic_still_whole_asks_nothing_per_item(tmp_path: Path):
+    p = planner(tmp_path)
+    subject_dir = split_topic(tmp_path, p, whole_too=True)
+
+    class Captured:
+        items = (item_on("synth-new", dt.date(2026, 10, 21)),)
+
+    assert p._pending_items(Captured(), SUBJECT, subject_dir) == []  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
