@@ -201,10 +201,16 @@ Rationale: an unofficial tool must not leave the student without their notes.
   the textbook's structure fills.
 - Where the notes hold no scheme, the order of the sources (notes, then Classroom, then textbook)
   sets the structure as before.
+- The scheme leads the structure and the wording, not the facts. A fact in the notes that the
+  textbook or the teacher's material contradicts — or, where they say nothing on it, a named
+  external reference — MUST be corrected in the material and the student told that his page says
+  otherwise; a fact the notes insist on (repeated, boxed, underlined, marked as important) is kept
+  and becomes a question for the family. A source's silence is not a contradiction.
 
 Rationale: the operator observed with the first physics-and-chemistry topic that material laid out
 in the textbook's order left the student lost, while his notes carried schemes the material did not
-follow (2026-10-29).
+follow (2026-10-29). The last bullet came after a summary and a flashcard repeated a fact the notes
+had wrong while the practice sheet of the same notebook corrected it (2026-10-31).
 
 ## Technical constraints
 
@@ -305,4 +311,4 @@ follow (2026-10-29).
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.4.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-30
+**Version**: 2.5.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-31

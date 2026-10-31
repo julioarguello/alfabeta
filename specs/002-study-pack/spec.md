@@ -260,6 +260,20 @@ the final implementation.
   profile only, so the run sets `auth.default_profile` to the notebook owner's profile and restores
   it afterwards (measured 2026-10-28 and again 2026-10-30, `nlm` 0.15.8).
 
+### Session 2026-10-31
+
+- Q: What does a piece do when the notes state a fact a source contradicts? → A: It teaches the
+  source's fact and tells the student his page says otherwise, unless the notes insist (FR-046).
+  The notes lead the structure and the wording (constitution X), not the facts: a fact written
+  wrong in class is most likely a misreading, and the operator decided that the material corrects
+  it, «salvo que los apuntes insistan». Measured on the biology topic of 2026-10-30: page 12 of the
+  notes calls hemoglobin «una proteína de la superficie del glóbulo rojo»; the summary and one
+  flashcard of that day repeated it, while the practice sheet, made from the same notebook, put it
+  inside the cell — one notebook teaching both. The Spanish textbook (lesson 7) says what
+  hemoglobin does, not where it is; the Basque Wikipedia article «Hemoglobina» says «barruko
+  hemoglobina» (inside). So that correction came from the external reference, as FR-041 allows
+  for terms when the textbook lacks a point.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who launches alfabeta and helps at home, reading Spanish
@@ -830,6 +844,25 @@ and cannot judge what the notebook writes.
   a question for the family. Every piece's title or opening line, the study guide (and the exam's start note) and the printed
   index MUST name the branch each piece covers. Notes without a scheme leave FR-001 as it is
   (constitution X).
+- **FR-046**: The notes lead the structure and the wording, not the facts. Before any piece is
+  made, every fact a block's notes state MUST be checked against the topic's sources, and each one
+  a source contradicts MUST be listed in `bloques.md` under «Correcciones a los apuntes»: the notes
+  page and line, quoted; the source, its lesson or article, quoted; and what the material says.
+  - **Which source**: the textbook (in either language) and the teacher's material. Only where they
+    say nothing on that point, an external reference, named as FR-041 names one for terms. A
+    source that is silent does not contradict: a fact no source addresses stays as the notes have
+    it, and a doubt about it is a question for the family, not a correction.
+  - **The correction**: every piece teaches the source's fact, on the notes' branch and with the
+    rest of their wording, and the summary's part for that branch says it in one line —
+    «En tus apuntes pone …; según <source>, …» — so the student corrects his page. No piece
+    repeats the notes' version, the summary included.
+  - **Unless the notes insist**: the claim repeated on another page, boxed or underlined, marked as
+    important («ojo», «importante»), or written as the teacher's own words. Then it may be what the
+    teacher asks for in the exam: the pieces keep the notes' version and say nothing against it,
+    `bloques.md` lists it as a question, and the family is asked; their answer, recorded there,
+    decides, and the pieces it touches are made again.
+  - New pages that reach a topic later are checked the same way, and the report names each
+    correction and each question (spec 005 FR-020).
 
 ### Key Entities
 

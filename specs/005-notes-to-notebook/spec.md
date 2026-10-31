@@ -492,7 +492,9 @@ source and one living Classroom source, and that a second run adds nothing.
   subtopic than the folder the page sits in (spec 002 FR-043), when it belongs to no subtopic yet
   (which proposes one, spec 002 FR-044), or when no lesson covers it. It never moves the page: placing
   it elsewhere is the family's decision (measured 2026-10-30: eight pages the family took for up
-  to three topics were lessons 3–7 of the topic in progress).
+  to three topics were lessons 3–7 of the topic in progress). It MUST also name each fact on the
+  new pages that a source contradicts, with the correction the material will make, and each one the
+  notes insist on, as a question for the family (spec 002 FR-046).
 - **FR-017**: The cloud run MUST hold its own Google link, made with an OAuth client of its own, and
   its own Claude key in that project's secret store, readable only by the run's service account,
   never in the repository, the configuration, a log or an error message. The Mac keeps its own

@@ -144,8 +144,13 @@ own schemes (constitution X), one part per content block (`{blocks}`), each stud
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`
 
 ```text
-Resumen para estudiar, corto y fácil de leer, para un alumno de {grade} que da la asignatura en {language}. Título: «Resumen de tus apuntes · {topic}». Condensa SOLO lo que dicen los apuntes del alumno, siguiendo sus esquemas y con sus mismas palabras; usa el libro solo para aclarar o corregir una rama, nunca para añadir temas nuevos. Una parte por bloque, cada una de media página como máximo, en este orden: {blocks}. Formato de cada parte: el esquema como lista con sangría, en el orden de sus apuntes; cada rama con UNA sola línea corta de explicación y el término en {language} entre paréntesis. Al final de cada parte, una línea «Lo que más se confunde:» con la confusión típica de esa parte. Sin introducción, sin conclusiones, sin preguntas, sin tablas largas.
+Resumen para estudiar, corto y fácil de leer, para un alumno de {grade} que da la asignatura en {language}. Título: «Resumen de tus apuntes · {topic}». Condensa SOLO lo que dicen los apuntes del alumno, siguiendo sus esquemas y con sus mismas palabras; usa el libro solo para aclarar o corregir una rama, nunca para añadir temas nuevos. Una parte por bloque, cada una de media página como máximo, en este orden: {blocks}. Formato de cada parte: el esquema como lista con sangría, en el orden de sus apuntes; cada rama con UNA sola línea corta de explicación y el término en {language} entre paréntesis. Al final de cada parte, una línea «Lo que más se confunde:» con la confusión típica de esa parte. {notes_corrections}Sin introducción, sin conclusiones, sin preguntas, sin tablas largas.
 ```
+
+`{notes_corrections}` is empty, or, for each line of «Correcciones a los apuntes» in `bloques.md`
+(spec 002 FR-046), a sentence like: «En la parte N, tus apuntes dicen que <wrong>; eso no es
+correcto: <right> (<source>). Escríbelo así y añade una línea "Corrige en tus apuntes: …".». Every
+other prompt of that block gets the right fact and «No digas que <wrong>.».
 
 First used 2026-10-29 for one biology topic; whether these times and this length suit the student
 is a hypothesis.

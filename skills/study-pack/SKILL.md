@@ -56,7 +56,8 @@ email or an id into the repository.
   new folder and notebook (its textbook source: only its own lessons, each language's file cut at its own lesson heading, `## Lección N:` / `## Ikasgaia N:`), move the
   pages there on the family's word, and run every step below for that subtopic alone. Never make
   again a piece of another subtopic, and never make a piece that spans subtopics, an exam's
-  included (FR-045: `exam prep` once per subtopic). If the textbook in the subject's language lacks
+  included (FR-045: `exam prep` once per subtopic). Check the new pages' facts as in step 1
+  (FR-046) and name each correction in the report. If the textbook in the subject's language lacks
   the new lessons, capture them before the summary, the quiz, the flashcards, the glossary or the
   parent guide (FR-041).
 - **The day before an exam**, or when the family asks for the exam's sheets: alfabeta's own
@@ -99,6 +100,14 @@ email or an id into the repository.
      the mind map goes to a block or to an «out» line of `bloques.md` with its source. What maps to
      nothing is a question for the family, never an exclusion (measured 2026-10-28; see
      [the design page](../../docs/explanation/study-material.md)).
+   - **Check the notes' facts, not only their shape** (spec 002 FR-046). For every block, read
+     what its notes state against the textbook (both languages) and the teacher's material; where
+     they say nothing on a point that looks wrong, against a named external reference. Each fact
+     a source contradicts goes to «Correcciones a los apuntes» in `bloques.md` with both quotes
+     (notes page and line, source and lesson), and every prompt of that block tells the generator
+     the correct fact and forbids the notes' one. If the notes insist (repeated, boxed,
+     underlined, «ojo»), keep their version and ask the family instead. Silence is not a
+     contradiction. After download, grep every piece for the notes' wrong wording.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
    anything the student sees, except the exam's problems sheet (see
