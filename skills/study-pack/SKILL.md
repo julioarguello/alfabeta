@@ -179,8 +179,8 @@ email or an id into the repository.
    plan: a report whose title starts with `0 ·` is never taken for a guide (spec 002 FR-033).
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
     <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN
-    para imprimir · <title>.pdf" --student <student>`. One PDF: an index of every piece (videos marked as "in the
-    notebook"), the study guide, then each report, the quiz with its answer key at the end, the flashcards as a
+    para imprimir · <title>.pdf" --student <student>`. One PDF: the notebook's link under the title (spec 002
+    FR-047), an index of every piece (videos marked as "in the notebook"), the study guide, then each report, the quiz with its answer key at the end, the flashcards as a
     table and the mind map drawn with Graphviz, each on a new page, in the numbered order. Run it
     after step 7, or the parent's material would print with it.
 11. **Report** to the family: what is in Studio and in what order, where the printable PDF is,
@@ -252,6 +252,7 @@ plan (`nlm` reports the tier as `PRO_CONSUMER`).
 | Studio is ordered by last modification; a rename keeps the title verbatim and moves the item to the top | rename in reverse order |
 | Viewers are read-only and see every Studio artifact except videos: of five video overviews in one notebook, both viewer accounts saw only the oldest, in the list and by direct link; regenerating the hidden ones did not help | material for the parent leaves Studio; every video is also downloaded to the topic folder, and the start note links that folder |
 | Measured 2026-10-29 on a second notebook: the student's account saw every Studio piece and none of the three videos, not even the oldest | the guide links each video to its Drive copy (spec 002 FR-039) |
+| Measured 2026-10-31: three notebooks shared as viewer, listed by `nlm share status` as active, appeared in neither of the student's accounts until each was opened once by its link | the topic's `notebook/` holds «Abrir el cuaderno.pdf» from the share step, and the printed topic carries the link (spec 002 FR-047) |
 | Measured 2026-10-29: a «copy this verbatim» report came back verbatim two times out of five; the others were rewritten, links lost | check the guide line by line and regenerate, at most three times (FR-040) |
 | 3 videos and 3 reports took about 79 % of a 5-hour usage window and about 4 % of the weekly one (`nlm usage`) | one topic per window; videos last |
 | The tutor prompt worked as hints-before-answers, and in one sample attributed a note to the teacher | the prompt forbids attributing authorship |

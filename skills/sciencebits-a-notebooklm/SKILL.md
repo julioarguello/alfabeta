@@ -150,6 +150,14 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
      notebook: note it and report it. Measured 2026-10-26: the school domain allows a notebook owned by a personal
      Gmail account to be shared with the school account as viewer, and it opens there; if the school's admin
      changes that, the invite fails and the summary says so.
+   - **Link.** A shared notebook is not listed for the student until opened once by its link (measured
+     2026-10-31; spec 002 FR-047), so leave the link where the student looks: `uv run --project
+     <tools.repository> python <tools.repository>/skills/study-pack/scripts/print_pack.py link <id> "<topic
+     folder>/notebook/Abrir el cuaderno.pdf" --student <student>` (it reads the link from `nlm notebook get` and
+     needs no default profile). Every run writes it again, so a renamed notebook gets its new title. If it fails,
+     note it and report it like a failed share; it does not undo the notebook. Step 8 already refreshed the
+     mirrors, so refresh each mounted one again as the study pack's step 9 does (`rsync -rlt --exclude .DS_Store
+     "<storage.base>/" "<mirror>/"`, never `--delete`; one not mounted is skipped and reported by count).
    - Test: `nlm notebook query <id> "<short question>"`.
    - `alfabeta log notebook --student <student> --topic "Tema NN - <title>" --result created|unchanged --shares
      <invited>,<already>,<failed>`: `unchanged` when the notebook already existed and no source was added or

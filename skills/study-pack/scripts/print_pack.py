@@ -6,13 +6,18 @@
       before its first heading titled H (an exam's problems sheet before «Soluciones»)
   print_pack.py topic <notebook-id> <out.pdf> (--student S | --profile P)
       the whole Studio in one document: an index first, then every report, quiz (answer key at the
-      end), flashcards and mind map, in Studio order; videos appear in the index only
+      end), flashcards and mind map, in Studio order; videos appear in the index only; the
+      notebook's link under the title (spec 002 FR-047)
+  print_pack.py link <notebook-id> <out.pdf> (--student S | --profile P)
+      one page with the notebook's title and its link, for the topic's notebook/ folder: a shared
+      notebook is not listed for the student until opened once by its link (FR-047)
 
 Needs `nlm`, `pandoc`, Graphviz `dot` (mind maps) and Google Chrome (headless, prints the PDF).
 With `--student`, the `nlm` profile is `notebook.nlm_profile` of `<home>/<student>/config.toml`
 (`--home`, default ~/.alfabeta), read through alfabeta's configuration loader, so run it from the
 clone: `uv run --project <tools.repository> python <this file> …`. `--profile` names one instead.
-`nlm download` takes no profile and reads nlm's default one, so the run stops unless that is it.
+`nlm download` takes no profile and reads nlm's default one, so the run stops unless that is it;
+`link` downloads nothing and does not ask.
 """
 
 from __future__ import annotations
@@ -213,6 +218,27 @@ def render(md: str, out: Path, work: Path) -> None:
     )
 
 
+def notebook_of(profile: str, nb: str) -> tuple[str, str]:
+    """The notebook's title and its link, as nlm returns them; alfabeta never builds the link."""
+    got = json.loads(nlm(profile, "notebook", "get", nb, "--json"))
+    if not got.get("url"):
+        sys.exit("print_pack: nlm notebook get returned no url for the notebook")
+    return got.get("title", ""), got["url"]
+
+
+def link(args: argparse.Namespace, work: Path) -> None:
+    title, url = notebook_of(args.profile, args.notebook)
+    md = f"""# {title}
+
+La primera vez, abre tu cuaderno con este enlace. Después aparecerá en tu lista de cuadernos.
+
+**[Abrir el cuaderno]({url})**
+
+{url}
+"""
+    render(md, Path(args.out).expanduser(), work)
+
+
 def report(args: argparse.Namespace, work: Path) -> None:
     md = fix_lists(download(args.profile, "report", args.notebook, args.artifact, work).read_text())
     if args.break_before:
@@ -227,7 +253,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
     ]
     # Studio order is last-modified; a leading "N ·" in the title is the intended order.
     arts.sort(key=lambda a: int(m.group(1)) if (m := re.match(r"(\d+)\s*·", a.get("title") or "")) else 99)
-    title = json.loads(nlm(args.profile, "notebook", "get", args.notebook, "--json")).get("title", "")
+    title, url = notebook_of(args.profile, args.notebook)
     index = ["| | Pieza | Dónde |", "|---|---|---|"]
     # The start note ("0 · …") opens the index and is printed right after it.
     notes = json.loads(nlm(args.profile, "note", "list", args.notebook, "--json"))
@@ -285,7 +311,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
         else:
             body.append(f"*{html.escape(kind)}: no se imprime.*")
         body.append("")
-    md = "\n".join([f"# {title}", "", *index, "", *body])
+    md = "\n".join([f"# {title}", "", f"Tu cuaderno: [{url}]({url})", "", *index, "", *body])
     render(md, Path(args.out).expanduser(), work)
 
 
@@ -297,7 +323,9 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
     r.add_argument("--break-before", metavar="HEADING", help="a new page before this heading")
     t = sub.add_parser("topic")
     t.add_argument("notebook"), t.add_argument("out")
-    for s in (r, t):
+    k = sub.add_parser("link")
+    k.add_argument("notebook"), k.add_argument("out")
+    for s in (r, t, k):
         who = s.add_mutually_exclusive_group(required=True)
         who.add_argument("--student", help="the student whose notebook.nlm_profile is used")
         who.add_argument("--profile", help="an nlm profile, instead of the student's")
@@ -310,9 +338,10 @@ def parse(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> None:
     args = parse()
-    require_default(args.profile)
+    if args.cmd != "link":
+        require_default(args.profile)
     with tempfile.TemporaryDirectory() as tmp:
-        (report if args.cmd == "report" else topic)(args, Path(tmp))
+        {"report": report, "topic": topic, "link": link}[args.cmd](args, Path(tmp))
     print(Path(args.out).expanduser())
 
 
