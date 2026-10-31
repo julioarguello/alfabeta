@@ -475,6 +475,25 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
     administrador de tu institución debe revisar»), which a first-party token would hit too; mobile
     management may reject an unmanaged sign-in; the Classroom Android app may call a private
     endpoint, not `classroom.googleapis.com`. Spike S4 settles it with one read-only call.
+  - **Spike S4, measured 2026-10-31 from the family Mac (home address)**, gpsoauth 2.0.0, a fresh
+    Chrome profile with no automation attached, the family signing in by hand:
+    - the school account signs in at `accounts.google.com/EmbeddedSetup`, and its one-time
+      `oauth_token` cookie exchanges for a master token (`aas_et/…`): the account allows minting one;
+    - drawing a read-only access token from it failed for every client tried. The Classroom app
+      (`com.google.android.apps.classroom`) with gpsoauth's default Google certificate:
+      `UNREGISTERED_ON_API_CONSOLE` (package and certificate do not match). With the certificate
+      SHA-1 a third-party APK listing gives for that app (Softpedia, version 8.0.141; Google
+      publishes none): `RESTRICTED_CLIENT`, «Unregistered scope(s)», naming all seven public
+      read-only Classroom scopes asked for at once (`courses`, `coursework.me`,
+      `courseworkmaterials`, `announcements`, `topics`, `rosters`, `student-submissions.me`, each
+      `.readonly`). Play services (`com.google.android.gms`, default certificate):
+      `RESTRICTED_CLIENT` for `classroom.courses.readonly`;
+    - so the Classroom app is not registered for the public read-only scopes: it reads through
+      other scopes or a private endpoint, as feared above. Asking for those is outside FR-032a
+      (read-only by scope), and trying other Google apps one by one would be fishing for a client,
+      not a read. **The token route, as specified, is not built.** The home-versus-cloud question
+      was not reached. The master token was deleted from the keychain afterwards and the family
+      revokes the device on the account's security page.
   - Accepted risks (the family decides in the review): it poses as a Google first-party app, which
     is against Google's terms; the sign-in shows as a new Android device on the account; and the
     stored master token is **account-wide and bypasses the second factor** — read-only is only the
