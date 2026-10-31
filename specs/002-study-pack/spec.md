@@ -273,6 +273,13 @@ the final implementation.
   hemoglobin does, not where it is; the Basque Wikipedia article «Hemoglobina» says «barruko
   hemoglobina» (inside). So that correction came from the external reference, as FR-041 allows
   for terms when the textbook lacks a point.
+- Q: How often does it happen? → A: The same day, all thirteen pages of that topic's notes were
+  read against the textbook in both languages: three facts the textbook contradicts (vitamins
+  under the «inorganic» branch, carbon dioxide «expelled through the blood», arteries and veins
+  labelled by the gas they carry), none of them repeated or boxed; and three the textbook does not
+  treat that the notes repeat, one of them three times inside a box (glucose «entering the
+  mitochondrion»). The first three were corrected in the summaries; the last three became
+  questions for the family.
 
 ## User Scenarios & Testing *(mandatory)*
 
