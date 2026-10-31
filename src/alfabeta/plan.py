@@ -209,7 +209,12 @@ class Planner:
             return []
         folders = [p.name for p in subject_dir.iterdir() if p.is_dir() and p.name[:8].isdigit()]
         replicas = cast("dict[str, Any]", self.state.get("replicas", {}))
-        placed = {key.split("|")[1] for key in replicas if key.startswith(f"{CLASSROOM}|")}
+        # The topic folder each item's replicas sit in: `<school year>/<subject>/<topic folder>/…`.
+        where: dict[str, set[str]] = {}
+        for key, record in replicas.items():
+            parts = str(cast("dict[str, Any]", record).get("path", "")).split("/")
+            if key.startswith(f"{CLASSROOM}|") and len(parts) > 2:
+                where.setdefault(key.split("|")[1], set()).add(parts[2])
         pending: list[dict[str, Any]] = []
         for item in normalized.items:
             if item.topic_id is None or self.decisions.in_force(DecisionType.ITEM_MATCH, item.id) is not None:
@@ -228,7 +233,8 @@ class Planner:
             if len(subtopics) < 2:
                 continue  # a topic split into A alone has nowhere else to go
             split_day = min(f[:8] for f in subtopics[1:])
-            if item.id in placed and item.posted_at.strftime("%Y%m%d") < split_day:
+            in_a = subtopics[0] in where.get(item.id, set())  # placed while the topic was whole
+            if in_a and item.posted_at.strftime("%Y%m%d") < split_day:
                 continue
             pending.append(
                 {

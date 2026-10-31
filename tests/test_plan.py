@@ -226,7 +226,10 @@ def split_topic(tmp_path: Path, p: plan.Planner, *, whole_too: bool = False) -> 
 
 def test_an_item_since_the_split_is_proposed_its_subtopic(tmp_path: Path):
     # synth-old was placed and posted before the split: it stays in A unasked.
-    replicas = {f"classroom|{i}|synth-a": {"path": "x"} for i in ("synth-old", "synth-placed-new")}
+    in_a = "2026-2027/FyQ/20260915 - Tema 01A - Materia inventada/classroom/f.pdf"
+    replicas = {f"classroom|{i}|synth-a": {"path": in_a} for i in ("synth-old", "synth-placed-new")}
+    # synth-teacher sat in the teacher's own folder while its topic match waited: it is asked.
+    replicas["classroom|synth-teacher|synth-a"] = {"path": "2026-2027/FyQ/20261001 - Gasak/classroom/f.pdf"}
     p = planner(tmp_path, {"replicas": replicas})
     subject_dir = split_topic(tmp_path, p)
 
@@ -235,10 +238,11 @@ def test_an_item_since_the_split_is_proposed_its_subtopic(tmp_path: Path):
             item_on("synth-old", dt.date(2026, 10, 1)),
             item_on("synth-late", dt.date(2026, 10, 1)),  # posted before the split, captured after it
             item_on("synth-placed-new", dt.date(2026, 10, 21)),  # placed in A by an unattended run
+            item_on("synth-teacher", dt.date(2026, 10, 1)),
         )
 
     pending = p._pending_items(Captured(), SUBJECT, subject_dir)  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
-    assert [e["origin"] for e in pending] == ["synth-late", "synth-placed-new"]
+    assert [e["origin"] for e in pending] == ["synth-late", "synth-placed-new", "synth-teacher"]
     assert pending[0] == {
         "type": "item_match",
         "origin": "synth-late",
@@ -263,7 +267,7 @@ def test_an_item_since_the_split_is_proposed_its_subtopic(tmp_path: Path):
         TODAY,
     )
     again = p._pending_items(Captured(), SUBJECT, subject_dir)  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
-    assert [e["origin"] for e in again] == ["synth-placed-new"]
+    assert [e["origin"] for e in again] == ["synth-placed-new", "synth-teacher"]
 
 
 def test_a_topic_still_whole_asks_nothing_per_item(tmp_path: Path):
