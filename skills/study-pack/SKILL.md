@@ -56,7 +56,8 @@ email or an id into the repository.
   new folder and notebook (its textbook source: only its own lessons, each language's file cut at its own lesson heading, `## Lección N:` / `## Ikasgaia N:`), move the
   pages there on the family's word, and run every step below for that subtopic alone. Never make
   again a piece of another subtopic, and never make a piece that spans subtopics, an exam's
-  included (FR-045: `exam prep` once per subtopic). If the textbook in the subject's language lacks
+  included (FR-045: `exam prep` once per subtopic). Check the new pages' facts as in step 1
+  (FR-046) and name each correction in the report. If the textbook in the subject's language lacks
   the new lessons, capture them before the summary, the quiz, the flashcards, the glossary or the
   parent guide (FR-041).
 - **The day before an exam**, or when the family asks for the exam's sheets: alfabeta's own
@@ -99,6 +100,16 @@ email or an id into the repository.
      the mind map goes to a block or to an «out» line of `bloques.md` with its source. What maps to
      nothing is a question for the family, never an exclusion (measured 2026-10-28; see
      [the design page](../../docs/explanation/study-material.md)).
+   - **Check the notes' facts, not only their shape** (spec 002 FR-046). For every block, read
+     what its notes state against the textbook (both languages) and the teacher's material. Where
+     both are silent on a fact you doubt, check it against a named external reference and record
+     the check either way. Each fact a source contradicts and the notes do not insist on goes to «Correcciones a los apuntes» in
+     `bloques.md` with both quotes (notes page and line, source and lesson), and becomes that
+     block's `{notes_corrections}`; what goes to «Preguntas sobre los apuntes» never does. If the notes insist — the claim repeated on another page, boxed or underlined, marked as important («ojo», «importante»), or written as the teacher's own words — or the textbook and the
+     teacher's material disagree, keep the notes' version and list it under «Preguntas sobre los
+     apuntes» for the family. Silence is
+     not a contradiction. After download, search every piece for the notes' version stated as
+     true; the «Corrige en tus apuntes» line is not a hit.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
    anything the student sees, except the exam's problems sheet (see
