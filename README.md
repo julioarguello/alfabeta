@@ -131,6 +131,24 @@ Nothing extra is needed for Python: `build.py` and its `render.py` run in Claude
 > before downloading*. Otherwise every download waits for a click and an unattended run stalls
 > ([measured](specs/001-classroom-sync/research.md#r12-from-the-browser-to-disk)).
 
+### Run it every day
+
+The Classroom sync can run on its own on the family's Mac, as a scheduled task of the Claude
+desktop app (spec 001 FR-021a):
+
+1. Write the times in `[schedule]` of the student's configuration, one per weekday (`""` for no
+   run), and `wait_minutes`: how long a run waits for you to sign in before it stops.
+2. In the Claude desktop app, create a scheduled task for each time with the prompt
+   **«sincroniza alfabeta para <student> en modo programado»** ("sync alfabeta for <student> in
+   scheduled mode"), in a session whose permission mode lets it run commands without asking.
+3. Leave Chrome open with the extension, on a Classroom tab of the student's school account, and
+   the Mac awake.
+
+The school session lasts about an hour, so a run usually finds it expired. It then shows a
+notification on the Mac and waits up to `wait_minutes`: sign in to Classroom in that Chrome, leave
+the window on screen, and the run goes on by itself. If nobody signs in, it stops without writing
+anything and says so as the task's result.
+
 ## Commands
 
 What a family runs, from the clone: `uv run python -m alfabeta <command>`. Every command takes
@@ -148,6 +166,7 @@ What a family runs, from the clone: `uv run python -m alfabeta <command>`. Every
 | `notes run --student <id>` | Turns the photos of class notes not yet transcribed into pages of the topic's living file | after photos are added; it also runs in the cloud |
 | `notebook refresh --student <id> [--browser]` | Reads, as the notebook's owner, each living file that changed since its last read, so the notebook takes the new pages; with nothing changed it calls no `nlm`. A signed-out owner gets one Mac notification and an agenda line; `--browser` also lets `nlm` renew the session through its own browser profile, so use it only at the Mac | every `notebook.refresh_minutes` through the agent; by hand when the agenda says the session is signed out |
 | `notebook agent install --student <id>` · `notebook agent remove --student <id>` | Writes the launchd agent that runs `notebook refresh` in `~/Library/LaunchAgents` and loads it, or unloads and deletes it; its passes are appended to `notebook-agent.log` in the student's data folder | once per Mac, and again after changing `notebook.refresh_minutes` |
+| `notice signin --student <id>` | Shows a notification on the Mac asking you to sign in to Classroom, and prints how long a scheduled run waits | inside a scheduled run, from [#161](https://github.com/julioarguello/alfabeta/issues/161) on |
 | `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Asks the topic's notebook for a theory sheet and a problems sheet for the exam, and prints both into the topic's `exam/` folder; refuses, saying why, when notebooks are off or `nlm` does not work | the day before an exam, from [#106](https://github.com/julioarguello/alfabeta/issues/106) on |
 
 The Classroom sync is a skill, not a command: ask Claude «trae lo nuevo de Classroom» ("bring from

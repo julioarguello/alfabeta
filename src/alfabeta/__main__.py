@@ -37,7 +37,7 @@ from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar
 from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, cache_path
 from alfabeta.google.keychain import KeychainError, KeychainStore
-from alfabeta.google.notify import MacNotifier
+from alfabeta.google.notify import MacNotifier, Notifier, signin_needed
 from alfabeta.google.transport import TransportError, UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
@@ -132,6 +132,14 @@ def _cmd_log_stop(args: argparse.Namespace, home: Path) -> int:
         with contextlib.suppress(state.LockError):
             lock.release(run)
     _emit({"ok": True})
+    return EXIT_OK
+
+
+def cmd_notice_signin(home: Path, student: str, notifier: Notifier) -> int:
+    """Ask the family on the Mac to sign in to Classroom, and say how long the run waits (FR-021a)."""
+    minutes = config.load(home, student, ("schedule",)).schedule_wait_minutes
+    notifier.notify(signin_needed(student, minutes))
+    _emit({"ok": True, "wait_minutes": minutes})
     return EXIT_OK
 
 
@@ -745,6 +753,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     claude_set = claude_key.add_parser("set", help="store the key read from standard input in the keychain")
 
+    notice = groups.add_parser("notice", help="a notification on the family's Mac").add_subparsers(
+        dest="verb", required=True
+    )
+    signin = notice.add_parser("signin", help="ask the family to sign in to Classroom; prints the wait")
+
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
     probe = cal.add_parser("probe", help="a test event with one reminder at its start")
     probe.add_argument("--minutes", type=int, default=10)
@@ -780,6 +793,7 @@ def build_parser() -> argparse.ArgumentParser:
         agent_remove,
         exam_prep,
         claude_set,
+        signin,
     ):
         sub.add_argument("--student", required=True)
     return parser
@@ -828,6 +842,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_config_check(home, args.student)
         if args.group == "exam":
             return exam_cli.cmd_exam_prep(home, args, store)
+        if args.group == "notice":
+            return cmd_notice_signin(home, args.student, MacNotifier())
         if args.group == "notebook" and args.verb == "agent":
             agent_cfg = config.load(home, args.student, AGENT_TABLES)
             return notes_cli.cmd_notebook_agent(agent_cfg, home, args.action)

@@ -1,12 +1,13 @@
 """A lost link is loud, never silent (spec 004 T014, US4, FR-013…FR-015, research R9)."""
 
 import datetime as dt
+import json
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from alfabeta import __main__, config
+from alfabeta import __main__, config, sandbox
 from alfabeta.google import accounts, notify
 from tests.conftest import SCHOOL_ADDRESS, STUDENT_ADDRESS, FakeTransport, MemoryStore, json_response
 
@@ -78,3 +79,28 @@ def test_google_check_exits_2_and_notifies_the_mac(home: Path, store: MemoryStor
     monkeypatch.setattr(__main__, "UrllibTransport", lambda: FakeTransport([json_response(400, REVOKED)]))
     assert __main__.main(["--home", str(home), "google", "check", "--student", "s9"]) == 2
     assert len(seen.texts) == 1 and "«student»" in seen.texts[0]
+
+
+def test_the_sign_in_notice_names_the_id_and_the_wait_and_nothing_personal(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    sandbox.prepare(tmp_path, "sample")
+    seen = Recorder()
+    assert __main__.cmd_notice_signin(tmp_path, "sample", seen) == 0
+    [text] = seen.texts
+    assert "(sample)" in text and "Classroom" in text and "60 min" in text
+    display = config.load(tmp_path, "sample", ("student",)).data["student"]["display_name"]
+    assert display not in text and "@" not in text
+    assert json.loads(capsys.readouterr().out) == {"ok": True, "wait_minutes": 60}
+
+
+def test_the_sign_in_notice_refuses_a_configuration_without_the_wait(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    sandbox.prepare(tmp_path, "sample")
+    path = tmp_path / "sample" / "config.toml"
+    path.write_text(path.read_text().replace("wait_minutes = 60\n", ""))
+    seen = Recorder()
+    monkeypatch.setattr(__main__, "MacNotifier", lambda: seen)
+    assert __main__.main(["--home", str(tmp_path), "notice", "signin", "--student", "sample"]) == 1
+    assert seen.texts == [] and "schedule.wait_minutes" in capsys.readouterr().err

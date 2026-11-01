@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from alfabeta import config
+from alfabeta import config, sandbox
 
 SECRET_VALUE = "valor-que-no-debe-salir"
 
@@ -74,6 +74,7 @@ thursday = "15:15"
 friday = "16:15"
 saturday = ""
 sunday = ""
+wait_minutes = 60
 
 [google]
 project_label = "alfabeta (prueba)"
@@ -259,3 +260,15 @@ def test_a_price_of_zero_or_less_is_refused(home: Path, bad: str):
 def test_an_integer_price_is_a_type_problem(home: Path):
     write(home, text(home).replace("price_in = 2.0", "price_in = 2", 1))
     assert ("notes.price_in", "type") in keys(config.check(home, "s9")[0])
+
+
+@pytest.mark.parametrize(("value", "ok"), [("0", True), ("60", True), ("-1", False), ("true", False), ('"60"', False)])
+def test_the_sign_in_wait_takes_a_whole_number_of_minutes_from_zero(tmp_path: Path, value: str, ok: bool):
+    sandbox.prepare(tmp_path, "sample")
+    path = tmp_path / "sample" / "config.toml"
+    path.write_text(path.read_text().replace("wait_minutes = 60\n", f"wait_minutes = {value}\n"))
+    if ok:
+        assert config.load(tmp_path, "sample", ("schedule",)).schedule_wait_minutes == int(value)
+    else:
+        with pytest.raises(config.ConfigError, match="schedule.wait_minutes"):
+            _ = config.load(tmp_path, "sample", ("schedule",)).schedule_wait_minutes

@@ -106,6 +106,9 @@ thursday = "changeme"               # e.g. "15:15"
 friday = "changeme"                 # e.g. "16:15"
 saturday = "changeme"               # e.g. ""
 sunday = "changeme"                 # e.g. ""
+# Minutes a scheduled run waits for the family to sign in to Classroom, after notifying them on the
+# Mac, before it stops (spec 001 FR-021a). 0 = stop at once.
+wait_minutes = 60
 
 [google]
 # A label for the operator, never an id or a secret.
