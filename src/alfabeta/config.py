@@ -88,10 +88,10 @@ def _strs(data: Mapping[str, Any], path: str, *names: str, allow_empty: bool = F
     return tuple(cast("list[str]", value))
 
 
-def _int(data: Mapping[str, Any], path: str, *names: str) -> int:
+def _int(data: Mapping[str, Any], path: str, *names: str, minimum: int = 1) -> int:
     value = _at(data, path, names)
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ConfigError(f"key {path} must be a whole number of at least 1")
+    if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
+        raise ConfigError(f"key {path} must be a whole number of at least {minimum}")
     return value
 
 
@@ -224,6 +224,11 @@ class StudentConfig:
     def nlm_profile(self) -> str:
         """The `nlm` profile of the account that owns the notebooks."""
         return _str(self.data, "notebook.nlm_profile")
+
+    @property
+    def schedule_wait_minutes(self) -> int:
+        """Minutes a scheduled run waits for the family's sign-in before it stops (spec 001 FR-021a)."""
+        return _int(self.data, "schedule.wait_minutes", minimum=0)
 
     @property
     def notebook_refresh_minutes(self) -> int:

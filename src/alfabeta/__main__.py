@@ -12,6 +12,7 @@ import datetime as dt
 import json
 import os
 import sys
+import time
 import webbrowser
 from pathlib import Path
 from typing import Any, cast
@@ -37,7 +38,7 @@ from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar
 from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, cache_path
 from alfabeta.google.keychain import KeychainError, KeychainStore
-from alfabeta.google.notify import MacNotifier
+from alfabeta.google.notify import MacNotifier, Notifier, signin_needed
 from alfabeta.google.transport import TransportError, UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
@@ -110,6 +111,10 @@ def _cmd_lock(args: argparse.Namespace, home: Path) -> int:
                 return _fail(str(StopReason.INVALID_CONFIG), EXIT_INVALID, str(err))
             _emit({"ok": True, "run": lock.take(mode, idle)})
         elif args.verb == "renew":
+            if args.wait:
+                # A scheduled run waiting for the family's sign-in (FR-021a): one call, under the
+                # tool's two-minute limit, then the renewal.
+                time.sleep(args.wait)
             lock.renew(run)
             _emit({"ok": True})
         else:
@@ -132,6 +137,14 @@ def _cmd_log_stop(args: argparse.Namespace, home: Path) -> int:
         with contextlib.suppress(state.LockError):
             lock.release(run)
     _emit({"ok": True})
+    return EXIT_OK
+
+
+def cmd_notice_signin(home: Path, student: str, notifier: Notifier) -> int:
+    """Ask the family on the Mac to sign in to Classroom, and say how long the run waits (FR-021a)."""
+    minutes = config.load(home, student, ("schedule",)).schedule_wait_minutes
+    notifier.notify(signin_needed(student, minutes))
+    _emit({"ok": True, "wait_minutes": minutes})
     return EXIT_OK
 
 
@@ -399,6 +412,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) ->
     # with one line per report the cloud left in Drive (spec 005 T036).
     reports = _list_reports(cfg, lock.data_dir, keychain)
     agenda_written = _agenda_builder(cfg, lock.data_dir, applier.state, reports).write(cfg.base)
+    if args.stopped and not stopped:
+        stopped = {"": args.stopped}  # the class it never finished left no capture to name it
     partial = bool(stopped)
     line = {
         "run": run,
@@ -632,6 +647,9 @@ def build_parser() -> argparse.ArgumentParser:
     plan_cmd.add_argument("--subject", action="append", default=[])
     apply_cmd = groups.add_parser("apply", help="place what this run collected in the student's base folder")
     apply_cmd.add_argument("--subject", action="append", default=[])
+    apply_cmd.add_argument(
+        "--stopped", choices=["timeout"], help="a scheduled run's wait ended midway with no stop capture (FR-021a)"
+    )
     agenda_cmd = groups.add_parser("agenda", help="regenerate agenda.json and agenda.md, only if they change")
     dl = groups.add_parser("downloads", help="the browser's downloads folder").add_subparsers(
         dest="verb", required=True
@@ -685,6 +703,7 @@ def build_parser() -> argparse.ArgumentParser:
     take = lock.add_parser("take", help="start a run and hold the student's and the browser's lock")
     take.add_argument("--mode", required=True, choices=[str(m) for m in RunMode])
     renew = lock.add_parser("renew", help="renew the lock of the run in ALFABETA_RUN")
+    renew.add_argument("--wait", type=int, default=0, choices=range(101), metavar="0-100", help="seconds to wait first")
     release = lock.add_parser("release", help="release the lock of the run in ALFABETA_RUN")
     log = groups.add_parser("log", help="the run log").add_subparsers(dest="verb", required=True)
     stop = log.add_parser("stop", help="write the stopped line of a run halted before apply")
@@ -745,6 +764,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     claude_set = claude_key.add_parser("set", help="store the key read from standard input in the keychain")
 
+    notice = groups.add_parser("notice", help="a notification on the family's Mac").add_subparsers(
+        dest="verb", required=True
+    )
+    signin = notice.add_parser("signin", help="ask the family to sign in to Classroom; prints the wait")
+
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
     probe = cal.add_parser("probe", help="a test event with one reminder at its start")
     probe.add_argument("--minutes", type=int, default=10)
@@ -780,6 +804,7 @@ def build_parser() -> argparse.ArgumentParser:
         agent_remove,
         exam_prep,
         claude_set,
+        signin,
     ):
         sub.add_argument("--student", required=True)
     return parser
@@ -828,6 +853,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_config_check(home, args.student)
         if args.group == "exam":
             return exam_cli.cmd_exam_prep(home, args, store)
+        if args.group == "notice":
+            return cmd_notice_signin(home, args.student, MacNotifier())
         if args.group == "notebook" and args.verb == "agent":
             agent_cfg = config.load(home, args.student, AGENT_TABLES)
             return notes_cli.cmd_notebook_agent(agent_cfg, home, args.action)

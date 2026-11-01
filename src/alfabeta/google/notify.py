@@ -42,6 +42,14 @@ def link_failed(alias: str, status: str) -> str:
     return f"alfabeta no puede usar la cuenta «{alias}»: {_REASONS.get(status, 'estado desconocido')}"
 
 
+def signin_needed(student: str, minutes: int) -> str:
+    """What the family reads when a scheduled run finds Classroom's session gone (spec 001 FR-021a)."""
+    ask = f"alfabeta ({student}): inicia sesión en Classroom con la cuenta del colegio en el Chrome de alfabeta"
+    if not minutes:
+        return f"{ask}; esta vez no espero, la sincronización se para."
+    return f"{ask} y deja la ventana a la vista. Espero {minutes} min."
+
+
 def _osascript(argv: list[str]) -> None:
     subprocess.run(argv, check=True, capture_output=True, timeout=10)
 

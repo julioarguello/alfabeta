@@ -99,6 +99,7 @@ thursday = ""
 friday = ""
 saturday = ""
 sunday = ""
+wait_minutes = 60
 
 [google]
 project_label = "sandbox"

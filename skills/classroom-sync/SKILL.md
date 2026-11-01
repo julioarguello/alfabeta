@@ -20,6 +20,7 @@ What each piece does and why is in [the spec](../../specs/001-classroom-sync/spe
 | `classroom.account` | the school account, compared inside the page; never printed, never in a URL |
 | `downloads.folder` | where Chrome leaves captures and attachments |
 | `sync.lock_idle_minutes` | how long the run may go without renewing its lock |
+| `schedule.wait_minutes` | in a scheduled run, how long to wait for the family's sign-in |
 | `subjects` | the short name a class is linked to, and whether it has a book |
 
 Every command runs on the Mac through Bash, never in the app's virtual machine. Each tool call is a
@@ -153,6 +154,40 @@ Below, `alfabeta <command>` stands for that line.
 12. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
     classes, topics to confirm, attachments not fetched, each with its link), the exams detected
     with their dates, and why a run was `partial`. The agenda is `<school year>/agenda.md`.
+
+## Scheduled mode (spec 001 FR-021a)
+
+A scheduled task of the Claude desktop app runs these same steps, with three differences:
+
+- **`lock take --mode scheduled`** in step 1, and ask nothing: every proposal (class links, topic
+  matches, exam candidates) is written with `decisions propose` and left pending for the family;
+  the report says what waits for them.
+- **When the session is gone, the pages do not load, or there is no Classroom tab of the student's
+  account**, wait for the family instead of stopping or asking. The signs are: no such tab, or the
+  tab is on Google's sign-in (read `location.hostname` first), a load gives `SessionExpired`, or
+  `document.visibilityState` in the Classroom tab is `hidden` (the window is covered or minimised;
+  the extractor waits on hidden pages without a limit). Then:
+  1. `alfabeta notice signin` shows the family a notification on the Mac and prints `wait_minutes`.
+     With `0`, stop at once as the interactive mode does.
+  2. Repeat `alfabeta lock renew --wait 100` (one call waits 100 s, under the tool's two-minute
+     limit, and keeps the lock past `sync.lock_idle_minutes`), and after each one look at the tab:
+     only once it is back on `classroom.google.com`, check with a page-started load
+     (`X.iframeLoader(window)`, or `location.assign("/u/<n>/h")` run in the page), never the
+     extension's `navigate` (research R16). Never `sleep` in Bash: the tool refuses it.
+  3. When it answers: if the tab reloaded (the sign-in does that; `window.alfabetaExtract` is gone),
+     inject the extractor again and start the class that was cut short again; if it only became
+     visible, the extractor still in the page goes on by itself, so poll it as in step 6 and do not
+     start that class a second time. A later capture of a class replaces its earlier stop
+     (`plan.run_stops`).
+  4. When `wait_minutes` have passed: before any class was captured, `alfabeta log stop --reason
+     session_expired` (expired session or no tab) or `--reason timeout` (pages that did not load);
+     midway, `alfabeta apply`, adding `--stopped timeout` when the cut-short class left no stop
+     capture (hidden pages), so the run is logged `partial`.
+  A `challenge` (unusual traffic, a CAPTCHA) and the Drive not mounted stop at once.
+- **The result of the task is the notice**: the same Spanish summary as step 12, which the app
+  keeps as the task's result.
+
+How to create the task is in the repository's README («Run it every day»).
 
 ## Measured on real runs
 
