@@ -68,6 +68,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `notebook.share_with` | list of email addresses | Accounts each topic notebook is shared with as viewer (FR-011b); may be empty; never goes in a URL or the log |
 | `subjects` | list of `Subject` | At least one |
 | `schedule.monday` … `schedule.sunday` | time `HH:MM` or empty | Time of the scheduled task on that weekday; empty = no run that day, all empty = on demand only. With `runner.enabled`, the times of the runner's job instead (FR-032) |
+| `schedule.wait_minutes` | integer ≥ 0 | Minutes a scheduled run waits for the family to sign in after notifying them on the Mac, before it stops (FR-021a); 0 = stop at once. Required; no default in code |
 | `runner.enabled` | boolean | Whether the unattended runner reads this student's pending work (User Story 7); `false` leaves FR-006 and FR-021a unchanged. A local pointer so the Mac finds the job; the job gets its project and secret names from its environment, not this file. These `[runner]` keys are added to the config contract and the template by T087 when User Story 7 is built; they are not in the template yet, so an existing config is unaffected |
 | `runner.route` | `token` · `web` · empty | The route the spike settled (FR-032a, FR-032b); `""` when disabled |
 | `runner.session_secret` | text | Base name of the student's vault secrets; the runner derives one entry per purpose (FR-033a: the token or stored session, `-password`, `-totp`, `-drive`); never a value; `""` when disabled |

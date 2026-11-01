@@ -215,6 +215,20 @@ for the final implementation.
   beside it. No subtopic folder is created until the code accepts the form
   (julioarguello/alfabeta#146).
 
+### Session 2026-11-01
+
+- Q: With spike S4 failed, where does the daily run happen? → A: On the family's Mac, as a
+  scheduled task of the Claude desktop app (FR-021a). Spike S4 found no first-party client
+  registered for a read-only Classroom scope (research R15, 2026-10-31), and the operator chose the
+  Mac over the web route (S5): «Solo el Mac». This lifts, for the scheduled full sync, the
+  2026-10-27 exclusion of the Mac (research R1); User Story 7 stays specified, gated on S5/S6.
+- Q: The session lasts about an hour (research R16), so a run at 16:00 will usually find it
+  expired. Who signs in, and is the Mac ready? → A: The operator signs in; the Mac is not always
+  unlocked at that time, and Classroom pages hardly load while the Chrome window is hidden (skill,
+  «Measured»). So a scheduled run that finds the session expired, the window hidden or the Mac locked
+  notifies the operator on the Mac and waits for the sign-in, up to `schedule.wait_minutes`, rather
+  than stopping at once (FR-021a); only when the wait ends does it stop as before.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures and launches alfabeta), **the student**
@@ -816,7 +830,15 @@ Example of the resulting structure (invented names):
   tells the family, with the same rule as an interactive one: before capturing any class (or with the
   Drive not mounted), without writing to the student's folder; midway, it applies the classes already
   captured as `partial`. The notice is the result of the scheduled task in the Claude desktop
-  app, plus a line in the log. If a scheduled task cannot use the
+  app, plus a line in the log. Before it stops for an expired session, or for pages that do not load
+  because the Chrome window is hidden or the Mac locked, a scheduled run MUST show a macOS
+  notification asking the family, in Spanish and naming the student by its `id` (never a name or an
+  address), to
+  sign in to Classroom with the school account in that Chrome and leave the window on screen, and
+  MUST wait up to `schedule.wait_minutes` (from the configuration, no default in code), checking
+  every two minutes with a page-started load (never the extension's `navigate`, research R16). When
+  the session answers, the run goes on as if it had found it alive; when the wait ends, it stops as
+  above. A challenge it cannot clear by waiting (`challenge`) and the Drive not mounted stop at once. If a scheduled task cannot use the
   browser or download files without approval (spike S2), the scheduled run is limited to that
   notice («toca sincronizar», "time to sync") and the family launches the sync with the single
   request; that reduced mode also meets this requirement. For a student with the unattended runner
