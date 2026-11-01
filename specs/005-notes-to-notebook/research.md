@@ -339,6 +339,12 @@ own table is the subset the requirements rest on; this one is the full list.
     from a datacenter, and constitution III authorises an unattended credential only to read the
     student's own material. The operator declined it for now (spec, Clarifications,
     session 2026-10-28).
+    - *2026-11-01 update*: `notebooklm-py` 0.8.2 (read 2026-11-01) makes that Android route a
+      general-availability «server» backend — it mints short-lived tokens from a stored master token
+      and talks to the notebook's own service with no browser, and adds refresh and freshness calls,
+      a fit for an unattended cloud owner session. It is still a full-account credential (its own docs
+      say so), so this section's standing decision is unchanged; recorded as the concrete option for
+      if the operator revisits the cloud owner session.
   - The student owning the notebooks, so that his own access refreshes them: the notebooks belong to
     an adult account to avoid under-18 limits, and the student's Gmail is supervised by Family Link
     (decided 2026-10-26). Rejected.

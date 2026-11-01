@@ -720,3 +720,58 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 - **Rejected**: two homes with separate outputs, since both need the class links and the statuses
   and would drift apart; a separate Cloud Storage bucket for the state, which the constitution rules
   out for a cloud run (II and VII place the state folder in the student's Drive).
+
+### R20. 2026-11-01: route 1 re-measured closed, session length is per-domain, a reference for the internal-calls read
+
+Session 2026-11-01 (operator + Claude), review of the Classroom routes after spike S4 (R15). No
+code; external references and one operator-run check. External repositories below were read, not run
+against this account; the one account check is marked as the operator's.
+
+- **Route 1 (the Classroom API) reconfirmed closed, now from Google's own tool.** The operator opened
+  the official `courses.list` reference «Try it» for `classroom.courses.readonly` and signed in as
+  the student's school account (2026-11-01). Before any Classroom consent it answered «No tienes
+  acceso a este servicio … una organización … tiene este servicio desactivado para sus usuarios» —
+  the same org-level block already recorded for the OAuth Playground and our own OAuth client
+  (`docs/classroom-investigacion.md`), now also through Google's first-party reference tool. Route 1
+  stays shut unless the school authorises a client, which the operator will not ask for (standing
+  decision). The official remote Classroom MCP server (Developer Preview, OAuth) was noted but not
+  tried: it is the same OAuth path, so it meets the same block; it is the clean route only if route 1
+  ever opens.
+
+- **Session length (R16) is a per-domain admin policy, not Classroom behaviour.** Google Workspace
+  admin help, «Set session length for Google services» (read 2026-11-01): the web session length is
+  set by the domain's administrator per organisational unit (from a short limit to 14 days or none),
+  and it does **not** apply to native mobile apps or OAuth-authenticated apps, whose sessions persist
+  until a reauth event. So the short life this domain shows (R16: 54–83 min; R4: expired twice one
+  afternoon, once under 30 min) is this school's setting, not a universal. A peer project on another
+  domain (lifecoderua/classroom-advisor, read 2026-11-01) reports hand-signed sessions lasting days
+  (about 4 and 9.5), consistent with a different admin setting — not a contradiction. The number
+  cannot be read from the session cookie (its stored expiry is months/years; invalidation is
+  server-side), so it stays an empirical measure. **Open check (operator):** sign in once and look
+  the next morning — still signed in means a long session here; a sign-in prompt confirms short.
+  Prior same-day data already points to short, so the web route most likely needs a human sign-in
+  most runs (which is what FR-021a and the Mac notify-and-wait of #162 already assume).
+
+- **A concrete reference for the internal-calls read parked in R3.** R3 left «reading the Classroom
+  web app's internal calls (more stable, undocumented)» for the local MCP. lifecoderua/classroom-advisor
+  (read 2026-11-01) is a measured implementation of exactly that, on a school domain that also blocks
+  the API: from one loaded Classroom page it calls the web app's own read RPCs
+  (`/_/ClassroomUi/data/batchexecute`) with the session's cookies — courses, to-do and classwork
+  queries, submissions, materials, comments — behind a read-only rpcid allow-list, and reports the
+  direct calls succeed (headless included) with no challenge seen. It documents the response field
+  masks and the base64 item-id scheme (the same `<xB64>` this spec records in S3). External evidence,
+  not measured on this account; a pointer for if/when the internal-reads path is built, as a sturdier
+  alternative to the hidden-iframe DOM extractor (R3). Note: its attachment download uses
+  `drive.google.com/uc?export=download`, which this spec found fails in the built-in browser
+  (R4, issue #1); R4's `drive.usercontent.google.com/download` route stands.
+
+- **Classroom's per-event notification emails are not an independent channel on this domain.**
+  Measured 2026-11-01: the student's school account receives a per-event Classroom email (new
+  announcement with full text, new material, grade, private comment) carrying the course name, a
+  timestamp and the course and post ids inside its «Ver detalles» link. But the school domain blocks
+  adding an external forwarding address, so these cannot be auto-forwarded to a parent mailbox to be
+  read with the Gmail connector. They can only be read from inside a signed-in session of the
+  student's account — the same session the reader already holds — so they fold into the web-reader
+  route (a «something is new» trigger and extra metadata), not a separate low-risk feed. Guardian
+  email summaries (roadmap route 2) are still unset and give less (no grades, no attachments,
+  aggregate only).
