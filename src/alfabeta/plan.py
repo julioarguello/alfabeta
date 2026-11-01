@@ -333,16 +333,25 @@ def linked_classes(decisions: DecisionStore, subjects: Sequence[Subject]) -> dic
 
 
 def run_stops(captures_dir: Path, run: str) -> dict[str, str]:
-    """Class id → stop reason, for the `stop` captures of this run that name a class."""
-    stops: dict[str, str] = {}
+    """Class id → stop reason, for this run's `stop` captures that name a class.
+
+    A later capture of the same class in the run replaces its stop: a scheduled run that waited for
+    the family's sign-in captures that class again (spec 001 FR-021a).
+    """
+    latest: dict[str, tuple[str, dict[str, Any]]] = {}
     for path in sorted(captures_dir.glob(f"alfabeta-capture-{run}-*.json")):
         try:
             data = capture.read(path)
         except capture.CaptureError:
             continue
-        if data["type"] == "stop" and data.get("class") and data["run"] == run:
-            stops[str(data["class"])] = str(data["reason"])
-    return stops
+        if data["run"] != run or data["type"] not in ("stop", "class") or not data.get("class"):
+            continue
+        cls: object = data["class"]
+        key = str(cast("dict[str, Any]", cls)["id"]) if isinstance(cls, dict) else str(cls)
+        when = str(data["captured_at"])
+        if key not in latest or when >= latest[key][0]:
+            latest[key] = (when, data)
+    return {key: str(data["reason"]) for key, (_, data) in latest.items() if data["type"] == "stop"}
 
 
 def prune_captures(captures_dir: Path, kept: int) -> int:

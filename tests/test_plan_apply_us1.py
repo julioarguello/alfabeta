@@ -221,3 +221,14 @@ def test_without_a_base_folder_nothing_is_written(box: Box):
     assert done.returncode == 1 and '"drive_not_mounted"' in done.stdout
     assert not box.base.exists()
     box.run = ""  # the failed apply released the lock
+
+
+def test_a_wait_that_ended_midway_without_a_stop_capture_is_partial(box: Box):
+    box.collect_and_plan(drop_stop=True)
+    result, _ = box.apply("--stopped", "timeout")
+    assert (result["result"], result["reason"]) == ("partial", "timeout")
+
+
+def test_the_lock_renews_after_a_wait_of_at_most_100_seconds(box: Box):
+    assert box("lock", "renew", "--student", "sample", "--wait", "1").returncode == 0
+    assert box("lock", "renew", "--student", "sample", "--wait", "101").returncode == 2

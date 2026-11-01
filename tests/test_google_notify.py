@@ -104,3 +104,20 @@ def test_the_sign_in_notice_refuses_a_configuration_without_the_wait(
     monkeypatch.setattr(__main__, "MacNotifier", lambda: seen)
     assert __main__.main(["--home", str(tmp_path), "notice", "signin", "--student", "sample"]) == 1
     assert seen.texts == [] and "schedule.wait_minutes" in capsys.readouterr().err
+
+
+def test_a_mac_that_cannot_show_the_notice_still_exits_0_and_says_nothing_personal(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    sandbox.prepare(tmp_path, "sample")
+
+    def fail(_: list[str]) -> None:
+        raise OSError("no osascript")
+
+    assert __main__.cmd_notice_signin(tmp_path, "sample", notify.MacNotifier(run=fail)) == 0
+    err = capsys.readouterr().err
+    assert err and "sample" not in err and "Classroom" not in err
+
+
+def test_with_no_wait_the_notice_says_the_run_stops():
+    assert "no espero" in notify.signin_needed("s9", 0) and "min" not in notify.signin_needed("s9", 0)

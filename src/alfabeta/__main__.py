@@ -12,6 +12,7 @@ import datetime as dt
 import json
 import os
 import sys
+import time
 import webbrowser
 from pathlib import Path
 from typing import Any, cast
@@ -110,6 +111,10 @@ def _cmd_lock(args: argparse.Namespace, home: Path) -> int:
                 return _fail(str(StopReason.INVALID_CONFIG), EXIT_INVALID, str(err))
             _emit({"ok": True, "run": lock.take(mode, idle)})
         elif args.verb == "renew":
+            if args.wait:
+                # A scheduled run waiting for the family's sign-in (FR-021a): one call, under the
+                # tool's two-minute limit, then the renewal.
+                time.sleep(args.wait)
             lock.renew(run)
             _emit({"ok": True})
         else:
@@ -407,6 +412,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) ->
     # with one line per report the cloud left in Drive (spec 005 T036).
     reports = _list_reports(cfg, lock.data_dir, keychain)
     agenda_written = _agenda_builder(cfg, lock.data_dir, applier.state, reports).write(cfg.base)
+    if args.stopped and not stopped:
+        stopped = {"": args.stopped}  # the class it never finished left no capture to name it
     partial = bool(stopped)
     line = {
         "run": run,
@@ -640,6 +647,9 @@ def build_parser() -> argparse.ArgumentParser:
     plan_cmd.add_argument("--subject", action="append", default=[])
     apply_cmd = groups.add_parser("apply", help="place what this run collected in the student's base folder")
     apply_cmd.add_argument("--subject", action="append", default=[])
+    apply_cmd.add_argument(
+        "--stopped", choices=["timeout"], help="a scheduled run's wait ended midway with no stop capture (FR-021a)"
+    )
     agenda_cmd = groups.add_parser("agenda", help="regenerate agenda.json and agenda.md, only if they change")
     dl = groups.add_parser("downloads", help="the browser's downloads folder").add_subparsers(
         dest="verb", required=True
@@ -693,6 +703,7 @@ def build_parser() -> argparse.ArgumentParser:
     take = lock.add_parser("take", help="start a run and hold the student's and the browser's lock")
     take.add_argument("--mode", required=True, choices=[str(m) for m in RunMode])
     renew = lock.add_parser("renew", help="renew the lock of the run in ALFABETA_RUN")
+    renew.add_argument("--wait", type=int, default=0, choices=range(101), metavar="0-100", help="seconds to wait first")
     release = lock.add_parser("release", help="release the lock of the run in ALFABETA_RUN")
     log = groups.add_parser("log", help="the run log").add_subparsers(dest="verb", required=True)
     stop = log.add_parser("stop", help="write the stopped line of a run halted before apply")

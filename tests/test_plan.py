@@ -278,3 +278,44 @@ def test_a_topic_still_whole_asks_nothing_per_item(tmp_path: Path):
         items = (item_on("synth-new", dt.date(2026, 10, 21)),)
 
     assert p._pending_items(Captured(), SUBJECT, subject_dir) == []  # type: ignore[arg-type]  # pyright: ignore[reportPrivateUsage]
+
+
+def _write(folder: Path, name: str, data: dict[str, Any]) -> None:
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"alfabeta-capture-r1-{name}.json").write_text(json.dumps(data))
+
+
+STOP: dict[str, Any] = {"version": 1, "type": "stop", "run": "r1", "reason": "session_expired", "class": "c2"}
+CLASS: dict[str, Any] = {
+    "version": 1,
+    "type": "class",
+    "run": "r1",
+    "complete": True,
+    "class": {"id": "c2", "title": "Inventada"},
+    "topics": [],
+    "items": [],
+    "stream": [],
+}
+
+
+@pytest.mark.parametrize(
+    ("stop_at", "class_at", "expected"),
+    [
+        ("2026-11-02T15:20:00Z", "2026-11-02T15:40:00Z", {}),
+        ("2026-11-02T15:40:00Z", "2026-11-02T15:20:00Z", {"c2": "session_expired"}),
+    ],
+)
+def test_a_later_capture_of_the_class_replaces_its_stop(
+    tmp_path: Path, stop_at: str, class_at: str, expected: dict[str, str]
+):
+    _write(tmp_path, "stop-1", STOP | {"captured_at": stop_at})
+    _write(tmp_path, "c2-1", CLASS | {"captured_at": class_at})
+    assert plan.run_stops(tmp_path, "r1") == expected
+
+
+def test_a_stop_of_another_run_or_without_a_class_is_not_this_runs(tmp_path: Path):
+    _write(tmp_path, "stop-1", STOP | {"captured_at": "2026-11-02T15:20:00Z", "run": "r0"})
+    _write(
+        tmp_path, "stop-2", {k: v for k, v in STOP.items() if k != "class"} | {"captured_at": "2026-11-02T15:21:00Z"}
+    )
+    assert plan.run_stops(tmp_path, "r1") == {}
