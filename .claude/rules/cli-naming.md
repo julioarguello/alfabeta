@@ -26,7 +26,8 @@ python -m alfabeta [--home <dir>] <group> [<subgroup>] <verb>[-<object>] [--opti
   (`google account link|check|unlink`, `calendar probe create|delete`); a noun with **one** verb
   joins it as `<verb>-<object>` (`google set-client`, `claude set-key`, `log write-stop`), as
   `google.setClient()` would in Java.
-- **Verb**: from the closed list, one meaning CLI-wide. No synonyms (`update`, never `change`
+- **Verb**: from the closed list, one meaning CLI-wide. A verb may itself carry a hyphen (`sign-in`):
+  the whole leaf is the verb when the list has it; otherwise the part before `-` is the verb. No synonyms (`update`, never `change`
   beside `correct`), no vague verbs (`run`), no abbreviations (`prep`). A leaf never shares a
   group's name.
 - **Aggregates drop the verb**: a status view (none exists yet; the test's `AGGREGATES`) is the only leaf

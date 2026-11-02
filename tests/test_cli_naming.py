@@ -59,6 +59,7 @@ VERBS = {
     "anonymize": "replace a saved page's personal data with invented data",
     "apply": "write what a plan computed",
     "build": "generate files derived from the state",
+    "capture": "read a platform into a capture, guarded, without changing it",
     "check": "verify and report; changes nothing the family owns",
     "collect": "move a run's expected files into its data folder",
     "confirm": "accept or reject a proposal",
@@ -77,8 +78,9 @@ VERBS = {
     "replay": "simulate past days without writing anything",
     "send": "send a notice",
     "set": "store a value or a secret",
+    "sign-in": "open a window for the family to sign in by hand; types nothing",
     "stage": "copy files to where a later step expects them",
-    "sync": "make an outside copy (the calendar) match the state",
+    "sync": "write the state out to an outside copy (the calendar)",
     "take": "acquire a run's lock",
     "transcribe": "turn photos into text pages",
     "uninstall": "remove a system agent",
@@ -111,6 +113,10 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("calendar", "set-sharing"): "spec 003 contracts/cli.md",
     ("calendar", "delete-legacy"): "spec 003 contracts/cli.md",
     ("drive", "migrate"): "spec 004 contracts/cli.md",
+    ("classroom", "sign-in"): "spec 006 FR-021",
+    ("classroom", "refresh"): "spec 006 FR-022",
+    ("classroom", "capture"): "spec 006 FR-023",
+    ("classroom", "status"): "spec 006 FR-024",
 }
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {
@@ -148,7 +154,8 @@ def _options(parser: argparse.ArgumentParser) -> set[str]:
 
 
 def _verb(leaf: str) -> str:
-    return leaf.split("-", 1)[0]
+    """A leaf's verb: the whole leaf when it is a verb (`sign-in`), else the part before `-<object>`."""
+    return leaf if leaf in VERBS else leaf.split("-", 1)[0]
 
 
 LEAVES = _leaves()
