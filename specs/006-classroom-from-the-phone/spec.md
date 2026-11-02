@@ -32,7 +32,8 @@ other two, and the need to be at the Mac for the third.
 |---|---|---|
 | The Classroom API refuses the student's school account, also from Google's own reference «Try it» («una organización … tiene este servicio desactivado») | the operator, spec 001 research R20 | 2026-11-01 |
 | Neither client spike S4 tried, the Classroom Android app and Play services, drew a read-only Classroom token for the student's account, so the token route is not built | spike S4, spec 001 research R15 | 2026-10-31 |
-| The school session signed in at 20:12 was alive at 20:42 and gone at 21:12, after a page load at each: it reads as an absolute timeout between 30 and 60 minutes from the sign-in, which reloading does not extend | a probe on the operator's Mac, spec 001 research R20 | 2026-11-01 |
+| The school session signed in at 20:12 was alive at 20:42 and gone at 21:12, although a page was loaded at each. Whether the limit counts from the sign-in or from the last activity is not settled: both gaps were 30 minutes | a probe on the operator's Mac, spec 001 research R20 | 2026-11-01 |
+| The session's life varies: others of this account died within about 1 h 20 min or lasted at least 2 h 47 min; none has been seen to last from one day's read to the next | spec 001 research R1, R16 | 2026-10-25 to 2026-10-28 |
 | The family's hand sign-in was accepted in a visible browser window the probe itself had started, and the probe then loaded the Classroom home page from that profile with no window on screen. Only the home page was loaded; no class was read that way | the same probe, R20 | 2026-11-01 |
 | The school domain refuses adding an external forwarding address, so Classroom's per-event notification emails cannot leave the school account; they sit behind the same session | the operator, R20 | 2026-11-01 |
 | With the current extractor, the pages it loads hardly progress while the Classroom tab is hidden behind another window | spec 001 research, Observed facts | 2026-10-28 |
@@ -49,7 +50,12 @@ other two, and the need to be at the Mac for the third.
   read, for User Story 7; this spec needs it widened (FR-004).
 - Signing in, and unlocking the Mac, from the phone through a remote view of the Mac's screen
   (FR-012).
-- How long the notice email takes to reach the phone (FR-013).
+- How long the notice email takes to reach the phone, and whether Gmail notifies the phone at all for
+  an email the account sent to itself (FR-013).
+- One link that, opened on the Mac, brings the sign-in window to the front and, opened on the phone,
+  opens the remote view of the Mac (FR-013).
+- Whether the session's limit counts from the sign-in or from the last activity (a probe loading
+  every 5 minutes), and so how soon after the sign-in the read must start (FR-010).
 
 ### In this spec
 
@@ -59,8 +65,8 @@ other two, and the need to be at the Mac for the third.
   so replicas, mirrors and the agenda do not change.
 - **A notice with a link, and the sign-in from the phone.** When a read needs a sign-in, the family
   gets an email with one link. On the Mac the link brings the sign-in window to the front; on the
-  phone it opens a remote view of the Mac's screen with that window. The family signs in, closes the
-  window, and the read goes on alone.
+  phone it opens a remote view of the Mac's screen with that window. The family signs in; alfabeta
+  closes the window and the read goes on alone.
 - **Launching when the family wants**, from the Mac or, through the remote view, from the phone.
 
 ### Out of this spec
@@ -91,13 +97,15 @@ names and response shapes are a starting point, not a measurement of this accoun
 - **Constitution, Technical constraints** (2.5.0 → 2.6.0, MINOR): the environment allows this
   read's per-student browser profile, signed in by hand in a window alfabeta does not drive, and its
   start from the launchd agent with no app open.
-- **Spec 001 FR-006**: for a student with this read switched on, the scheduled read is this one;
-  the full sync launched with a request to Claude keeps the extension.
-- **Spec 004 FR-004 and FR-005**: a family account may be linked, role `family`, with Gmail send
-  only, for this spec's notices. This answers spec 001 research R17, which rejected an email
-  notice because no spec granted that scope.
-- **Spec 001 research R20**: the probe's details, and a correction of what the untouched session
-  showed.
+- **Spec 001 FR-006 and FR-021a**: for a student with this read switched on, the scheduled read is
+  this one, started by `[schedule]`; the full sync launched with a request to Claude keeps the
+  extension; this switch and the unattended runner cannot both be on.
+- **Spec 004 FR-004, FR-005, Key Entities and data model**: a family account may be linked, role
+  `family`, with Gmail send only, for this spec's notices. This answers spec 001 research R17, which
+  rejected an email notice because no spec granted that scope; R17 now points here.
+- **Spec 001 research R20**: the probe's details, and corrections of #165: only the probe's time of
+  death was measured, it does not tell an absolute limit from an idle one, and the session's life
+  varies (R1, R16).
 
 ## Clarifications
 
@@ -113,15 +121,17 @@ names and response shapes are a starting point, not a measurement of this accoun
   family signs in, and Google ties it to that device, so a sign-in on the phone's own browser would
   leave the Mac without it; and the read, Drive and the mirrors are on the Mac. From the phone the
   link opens the remote view of the Mac's screen. For the family the steps are the same on both:
-  click, sign in, close the window.
+  click and sign in.
 - Q: Notices to the phone, through what? → A: An email from a family account alfabeta links only
   for it (spec 004 as amended). A calendar reminder would ring for the student only (spec 003
   FR-002), and a messaging app is a third party (III).
 - Q: Can Classroom's own notification emails start a read? → A: No. They sit in the school account,
   behind the same session (R20), so they cannot be read before the sign-in.
 - Q: How does the read know the family has signed in, if alfabeta does not drive the sign-in
-  window? → A: The family closes the window when done. If they forget, the read closes it when the
-  wait ends and checks the session once.
+  window? → A: alfabeta watches only the address the window shows, never its content: when it
+  reaches Classroom, the sign-in is done and alfabeta closes the window and reads. The family may
+  also close it themselves. (First wording: only the family closing it, or the end of the wait,
+  ended it; the independent review found the session could die while the read waited.)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -164,16 +174,17 @@ capture of the same classes by the current extractor on the same day, and apply 
 
 A read that finds the session expired opens the Google sign-in for the school account in a browser
 window on the Mac and emails the family one link. The family clicks it on the phone, which opens a
-remote view of the Mac's screen; they unlock the Mac if needed, sign in, and close the sign-in
-window. The read goes on by itself, and when it ends the family gets the result by email.
+remote view of the Mac's screen; they unlock the Mac if needed and sign in. alfabeta closes the
+sign-in window. The read goes on by itself, and when it ends the family gets the result by email.
 
-**Why this priority**: the session lasts under an hour (R20), so nearly every read needs this.
+**Why this priority**: no session has been seen to last from one day's read to the next (R20), so
+nearly every read needs this.
 Without it the family still has to be at the Mac.
 
 **Independent Test**: with nobody at the Mac and the Claude app closed, let a scheduled read start
-with the session expired. On the phone, click the notice's link, sign in through the remote view
-and close the sign-in window; when the read ends, the topic folders show the new material and the
-result email has arrived.
+with the session expired. On the phone, click the notice's link and sign in through the remote
+view; when the read ends, the topic folders show the new material and the result email has
+arrived.
 
 **Acceptance Scenarios**:
 
@@ -181,8 +192,8 @@ result email has arrived.
    minute it has sent the notice email, in Spanish, naming the student only by its id, saying until
    when the sign-in waits and carrying one link, and a browser window with the Google sign-in for
    the school account is open on the Mac.
-2. **Given** that window, **When** the family signs in from the phone and closes it, **Then** the
-   read reads in the background and, when it ends, sends one result email with counts only.
+2. **Given** that window, **When** the family signs in from the phone, **Then** alfabeta closes
+   the window, the read reads in the background and, when it ends, sends one result email with counts only.
 3. **Given** no sign-in before the wait ends, **When** it ends, **Then** the read closes the
    window, finds the session expired, stops with `session_expired`, writes nothing to the student's
    folder, and says so once.
@@ -205,7 +216,7 @@ view. The read asks for the sign-in only if the session is not alive.
 something urgent or a scheduled read was missed.
 
 **Independent Test**: with the Claude app closed, open the launcher from the phone through the
-remote view; sign in when the window appears and close it; the read runs and the result email
+remote view; sign in when the window appears; the read runs and the result email
 arrives.
 
 **Acceptance Scenarios**:
@@ -227,8 +238,8 @@ arrives.
   never stores or types it.
 - **The remote view is not set up, or the phone has no connection.** The notice still says a sign-in
   is waiting on the Mac; signing in at the Mac works the same.
-- **The family signs in but leaves the window open.** The read waits until the end of the wait, then
-  closes the window and checks the session once; if it is alive, it reads.
+- **The family signs in but leaves the window open.** When the window's address reaches Classroom,
+  the read closes it and starts at once, so the session is not spent waiting.
 - **The session dies in the middle of a read.** Classes already read are applied as `partial` with
   `session_expired` (FR-021a's rule); the rest wait for the next read.
 - **Classroom changes a call name or a response shape.** A call not on the allowlist is blocked and
@@ -272,7 +283,8 @@ arrives.
   not built and the plan says so.
 - **FR-005**: Read-only MUST hold by construction during the whole read (constitution IV), with the
   guard of spec 001 research R18 installed in the browser before any page script runs. It blocks,
-  before they reach Classroom, every press, every document load outside the read's own pages, every
+  before they reach Classroom, every press, every document load outside the pages spec 001 FR-007
+  lets the full sync load, every
   call not on the allowlist, and every request to a form or quiz host. Downloads are allowed only
   for the attachments this read listed in this run, through the routes of spec 001 research R4.
   Every blocked item is counted, and the counts go into the log.
@@ -300,11 +312,13 @@ arrives.
 - **FR-010**: A read that finds the profile's session expired MUST open, on the Mac's screen, a
   browser window in the student's profile on Google's sign-in for the school account. alfabeta
   starts that browser and does not drive it: no script of alfabeta's runs in it, and alfabeta
-  presses, types and reads nothing in it while it is open. The read's guard is not in it, because
-  a person, not alfabeta, acts in it. The wait ends when the family closes the window or when
-  `schedule.wait_minutes` (spec 001 FR-021a) runs out, whichever comes first; at that deadline
-  alfabeta closes the window itself. The read then opens the profile with the guard on and checks
-  the session once. The read's lock is renewed while it waits.
+  presses, types and reads nothing in it while it is open, except the address of the page the
+  window shows. The read's guard is not in it, because a person, not alfabeta, acts in it. The wait
+  ends at the first of: the family closes the window; the window's address reaches Classroom,
+  which means the family has signed in; or `schedule.wait_minutes` (spec 001 FR-021a) runs out. In
+  the last two cases alfabeta closes the window itself. The read then opens the profile with the
+  guard on and checks the session once, so it starts as soon as the sign-in ends. The read's lock is
+  renewed while it waits.
 - **FR-011**: alfabeta MUST NOT type, fill or submit anything on a sign-in page: the family types
   everything (constitution III). A check a human must clear, met during the read beyond what the
   family typed, stops the read with `challenge` and is reported once; nothing is typed to get past
@@ -354,7 +368,8 @@ arrives.
 - **Read profile**: the browser profile kept for one student's read; holds the school session after
   the family signs in; lives in the student's data folder.
 - **Sign-in window**: the browser window alfabeta opens on Google's sign-in in the read profile and
-  does not drive; the family signs in in it and closes it.
+  does not drive; the family signs in in it, and alfabeta closes it when its address reaches
+  Classroom (or the family closes it).
 - **Read allowlist**: the names of Classroom's read calls the read may send, recorded on this
   account; anything else is blocked.
 - **Sign-in wait**: one read's wait for the family: when it started, until when it waits, and how it
@@ -370,7 +385,7 @@ arrives.
 - **SC-001**: Over 10 consecutive school days, at least 9 scheduled reads that the family signs in
   to from the phone update the topic folders with nobody at the Mac and the Claude app closed.
 - **SC-002**: Over the reads of SC-001, with the remote view set up and the Mac awake, the median
-  time from opening the notice's link on the phone to closing the sign-in window is under 2 minutes.
+  time from opening the notice's link on the phone to the end of the sign-in is under 2 minutes.
 - **SC-003**: A read of all the student's classes finishes within 30 minutes of the sign-in, inside
   the session's life (R20).
 - **SC-004**: Over those reads, nothing is pressed, no form or quiz is opened, and every call outside

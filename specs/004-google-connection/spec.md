@@ -259,7 +259,7 @@ run.
 ### Key Entities
 
 - **App**: the registered client in the Google Cloud project — audience, publishing status, scopes.
-- **Linked account**: an alias, a role (`student`), the scopes granted, the date it was linked, and
+- **Linked account**: an alias, a role (`student`, or `family` for spec 006's notices), the scopes granted, the date it was linked, and
   a keychain entry. Never its address in logs.
 - **Authorisation check**: per run and per account — ok, revoked, expired, or missing a scope.
 - **Upload record**: a file's path in the student's folder, its Drive id, size and checksum, and the

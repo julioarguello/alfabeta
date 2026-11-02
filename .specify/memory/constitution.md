@@ -221,7 +221,9 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   family started by hand — using a secret in the vault (II). On the Mac, alfabeta's own commands may
   also run from a launchd agent in the family's user session, with no app open, when a spec names
   the need (spec 005: the notebook owner's refresh, FR-018; spec 006: the Classroom read the family
-  signs in to); such an agent uses the secrets already on the Mac and adds none. Spec 006's read
+  signs in to); such an agent uses the secrets already on the Mac and adds only those its spec
+  names — for spec 006, the read profile's session and the link of the `family` account that sends
+  its notices (spec 004). Spec 006's read
   uses a browser profile alfabeta keeps for the student in the data folder (II): the family signs it
   in by hand in a window alfabeta starts and does not drive, and alfabeta reads with that session
   only through the browser guard of IV, never storing or typing a credential. That session is a

@@ -858,7 +858,9 @@ Example of the resulting structure (invented names):
   sync — which still needs the Mac for attachments and replicas — is launched on demand with the
   single request, or scheduled on the Mac for a time `[schedule]` does not name; the runner keeps
   the agenda current between full syncs. The runner's notice reaches the family with the Mac off
-  (FR-037).
+  (FR-037). For a student with spec 006's read switched on, `[schedule]` starts that read instead of
+  the desktop app's scheduled task (spec 006 FR-015); that switch and the unattended runner cannot
+  both be on for one student.
 - **FR-021b**: What needs no judgement (state, identifiers, names, structure, agenda,
   collecting downloads) MUST give the same result on every repetition. What does need it
   (proposing topic matches, detecting exams in a text) MUST be recorded with its

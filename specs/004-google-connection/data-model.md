@@ -17,7 +17,7 @@ the template keys.
 | Field | Where | Rule |
 |---|---|---|
 | `alias` | config `[google.accounts.<alias>]` | Lowercase ASCII, the only name logs and reports use |
-| `role` | same | `student` (only value this spec defines) |
+| `role` | same | `student` (this spec), or `family` (spec 006: Gmail send only, for its notices) |
 | `address` | same | The account's address, kept only in the private config. It is used to check that linking chose the right account, and never printed |
 | `scopes` | same | Exactly R4's list. A difference with the granted scopes is a `missing_scope` status |
 | `linked_on` | data `google/accounts.json` | Date of the last successful link |
