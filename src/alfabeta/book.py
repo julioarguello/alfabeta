@@ -19,18 +19,15 @@ import shutil
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
-from alfabeta.exam.printing import refresh_mirrors
-from alfabeta.google.keychain import run_command
 from alfabeta.model import ReplicaRole
 from alfabeta.placement import book_topic_number, clean, fit, subtopic_letter, undated
 from alfabeta.replicas import previous_name, sha256
 
 if TYPE_CHECKING:
     import datetime as dt
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable
     from pathlib import Path
 
-    from alfabeta.google.keychain import Runner
     from alfabeta.model import Subject
 
 NOTEBOOK_RESULTS = ("created", "unchanged", "failed", "disabled")
@@ -191,12 +188,6 @@ def _copy(origin: Path, destination: Path) -> None:
         temporary.replace(destination)
     finally:
         temporary.unlink(missing_ok=True)
-
-
-def refresh(base: Path, mirrors: Sequence[Path], runner: Runner = run_command) -> dict[str, int]:
-    """Bring every mirror up to date, one way and never deleting (FR-011a); how many are and failed, never which."""
-    failed = refresh_mirrors(base, mirrors, runner)
-    return {"up_to_date": len(mirrors) - failed, "failed": failed}
 
 
 def shares(text: str | None) -> dict[str, int]:

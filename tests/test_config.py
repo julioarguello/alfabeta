@@ -204,6 +204,24 @@ def test_mirrors_never_overlap_the_base_and_unmounted_is_a_warning(home: Path, t
     assert config.check(home, "s9") == ([], [config.Problem("drive.mirrors[0]", "not_mounted")])
 
 
+@pytest.mark.parametrize(
+    ("where", "reason"),
+    [
+        ("base", "overlaps_base"),
+        ("base/sub", "overlaps_base"),
+        ("", "overlaps_base"),
+        ("drive/Mi unidad", "is_my_drive"),
+    ],
+    ids=["the-base", "inside-the-base", "contains-the-base", "my-drive"],
+)
+def test_a_mirror_that_is_the_base_holds_it_or_is_my_drive_is_refused(
+    home: Path, tmp_path: Path, where: str, reason: str
+):
+    (tmp_path / where).mkdir(parents=True, exist_ok=True)
+    write(home, text(home).replace(str(tmp_path / "mirror"), str(tmp_path / where).rstrip("/")))
+    assert keys(config.check(home, "s9")[0]) == [("drive.mirrors[0]", reason)]
+
+
 def test_student_id_is_lowercase_ascii(home: Path):
     with pytest.raises(config.ConfigError, match="lowercase ASCII"):
         config.check(home, "S9")

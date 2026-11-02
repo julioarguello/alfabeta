@@ -145,12 +145,15 @@ Below, `alfabeta <command>` stands for that line.
     `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it. Leave
     `Classroom · <topic>.pdf` where it is: it is `notebook prepare`'s (spec 005) and a source of the
     topic's notebook; quarantine only what is beside it.
-11. **Apply.** `alfabeta classroom apply` (with the same `--subject`). `classroom apply` finds what was collected through
-    the current `plan.json`, so when subjects go one at a time, plan, download and apply each before
-    planning the next. On a subject's first run, apply once
-    more: it must report `added` 0 and `changed` 0. Every apply also rewrites the school year's
-    `agenda.md` and `agenda.json` if they changed; after a correction alone, `alfabeta agenda build`, inside
-    a run (`lock take`), does the same without applying. Then `alfabeta lock release`.
+11. **Apply.** `alfabeta classroom apply` (with the same `--subject`). `classroom apply` finds what
+    was collected through the current `plan.json`, so when subjects go one at a time, plan, download
+    and apply each before planning the next. On a subject's first run, apply once more: it must
+    report `added` 0 and `changed` 0. Every apply ends by copying the master into each folder of
+    `drive.mirrors` (FR-011a): the summary says «espejos al día: N, fallidos: M», and a failed mirror
+    stops nothing; `alfabeta drive sync-mirrors` alone repairs one once it is mounted again. Every
+    apply also rewrites the school year's `agenda.md` and `agenda.json` if they changed; after a
+    correction alone, `alfabeta agenda build`, inside a run (`lock take`), does the same without
+    applying. Then `alfabeta lock release`.
 12. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
     classes, topics to confirm, attachments not fetched, each with its link), the exams detected
     with their dates, and why a run was `partial`. The agenda is `<school year>/agenda.md`.
