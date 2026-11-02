@@ -1,4 +1,4 @@
-# Contract: `exam prep`
+# Contract: `exam build`
 
 This follows spec 001's [command contract](../../001-classroom-sync/contracts/cli.md) and spec
 005's [subcommands](../../005-notes-to-notebook/contracts/cli.md): `--home` before the subcommand,
@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
+| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -57,7 +57,7 @@ that fails does not stop the other.
    `0 ·`: piece 0 is the plan (FR-015), never compared, retitled or deleted. The new guide takes
    that guide's title, and every report taken for a guide is deleted, so one is live (FR-033). A
    topic whose living files are not set up yet skips the comparison and says so; one whose living
-   notes file is not where `notebook setup` put it (spec 005's `health = missing`) skips it too,
+   notes file is not where `notebook prepare` put it (spec 005's `health = missing`) skips it too,
    and that is code 3, the guide possibly stale.
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and

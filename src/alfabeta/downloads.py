@@ -1,11 +1,11 @@
 """The browser's downloads folder, from which a run takes only what is its own (spec 001 T040, R12).
 
-`downloads collect` moves to `data/` the captures of the run in progress (its `run` in the name and
+`download collect` moves to `data/` the captures of the run in progress (its `run` in the name and
 in the field) and the attachments the last plan requested: by their expected name or that name with
 the browser's « (n)» suffix, created after the plan, never a half-downloaded `.crdownload`. Two
 attachments with the same name are in different batches, and only the lowest batch still pending
 for a name can claim a file, so every file has one owner. Everything else stays where it is. A plan
-`apply` already placed requests nothing more.
+`classroom apply` already placed requests nothing more.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ def loosely_matches(file_name: str, expected: str) -> bool:
 
 
 def inbox_path(data_dir: Path, download: dict[str, Any]) -> Path:
-    """Where a collected attachment waits for `apply`."""
+    """Where a collected attachment waits for `classroom apply`."""
     return data_dir / "inbox" / f"{download['item']}__{download['attachment']}" / str(download["expected_name"])
 
 
@@ -137,7 +137,7 @@ def collect(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> dict[str, list[str]]:
-    """One `downloads collect`: the run's captures, then the plan's attachments, waiting up to `wait_seconds`."""
+    """One `download collect`: the run's captures, then the plan's attachments, waiting up to `wait_seconds`."""
     classes = inbox.collect_captures(run)
     plan_path = inbox.data_dir / "plan.json"
     if not plan_path.is_file():

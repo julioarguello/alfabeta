@@ -409,7 +409,7 @@ class LivingFile:
 
     topic: str
     kind: LivingKind
-    file_id: str | None = None  # set only by `notebook setup`
+    file_id: str | None = None  # set only by `notebook prepare`
     source_id: str | None = None
     built_md5: str | None = None
     pages: int = 0
@@ -421,7 +421,7 @@ class LivingFile:
         return self.file_id is None
 
     def set_up(self, file_id: str, source_id: str) -> LivingFile:
-        """The file once `notebook setup` created it and added it as a source."""
+        """The file once `notebook prepare` created it and added it as a source."""
         if self.file_id is not None and self.file_id != file_id:
             raise ValueError("a living file's id never changes once set")
         return replace(self, file_id=file_id, source_id=source_id)
@@ -546,7 +546,7 @@ class SourceRead:
 
     read_md5: str  # the living file's `built_md5` when the owner last read the source
     reads: int  # FIRST_READ after the read that saw that checksum, CONFIRMED after the next
-    read_at: dt.datetime | None = None  # `exam prep`'s first read may not say when (spec 002)
+    read_at: dt.datetime | None = None  # `exam build`'s first read may not say when (spec 002)
 
 
 @dataclass(frozen=True)

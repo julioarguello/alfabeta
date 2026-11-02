@@ -3,7 +3,7 @@
 `sandbox prepare` builds, inside a `--home` the operator names explicitly, the student `sample` (or
 another id): a valid configuration, its own base folder `drive/<student>/` with one book topic, the
 downloads folder every student of the home shares, as they share the Mac's browser, and the invented
-captures of `tests/fixtures/classroom/` in `sandbox-captures/`. `sandbox download --captures` copies
+captures of `tests/fixtures/classroom/` in `sandbox-captures/`. `sandbox stage --captures` copies
 them to the downloads folder with the current run, as the extractor would leave them. Attachments
 and decisions arrive with T039.
 """

@@ -1,4 +1,4 @@
-"""Proposals and decisions (spec 001 T038, contracts/cli.md `decisions *`). Every id is invented."""
+"""Proposals and decisions (spec 001 T038, contracts/cli.md `decision *`). Every id is invented."""
 
 from __future__ import annotations
 
@@ -222,15 +222,15 @@ def test_the_commands_need_the_lock_and_renew_it(tmp_path: Path):
     )
     file = tmp_path / "p.json"
     file.write_text(json.dumps([raw()]))
-    assert cli(tmp_path, "decisions", "propose", "--student", "s9", "--file", str(file)).returncode == 1
+    assert cli(tmp_path, "decision", "propose", "--student", "s9", "--file", str(file)).returncode == 1
     run = json.loads(cli(tmp_path, "lock", "take", "--student", "s9", "--mode", "interactive").stdout)["run"]
     try:
-        done = cli(tmp_path, "decisions", "propose", "--student", "s9", "--file", str(file), run=run)
+        done = cli(tmp_path, "decision", "propose", "--student", "s9", "--file", str(file), run=run)
         assert done.returncode == 0, done.stderr
         assert json.loads(done.stdout)["recorded"] == [{"type": "topic_match", "origin": "synth-t1"}]
-        args = ("decisions", "confirm", "--student", "s9", "--type", "topic_match", "--origin", "synth-t1")
+        args = ("decision", "confirm", "--student", "s9", "--type", "topic_match", "--origin", "synth-t1")
         assert cli(tmp_path, *args, run=run).returncode == 0
-        exam = ("decisions", "confirm", "--student", "s9", "--type", "detected_exam", "--origin", "x", "--reject")
+        exam = ("decision", "confirm", "--student", "s9", "--type", "detected_exam", "--origin", "x", "--reject")
         assert cli(tmp_path, *exam, run=run).returncode == 1
         assert cli(tmp_path, *args, run="otro-run").returncode == 1
     finally:

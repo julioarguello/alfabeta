@@ -182,7 +182,7 @@ _LIVING_CONDITIONS = {
     "missing": "el archivo vivo «{name}» no está donde se creó: no se actualiza",
     "over": "el archivo vivo «{name}» supera las {pages} páginas",
 }
-_WAITING_SETUP = "el tema espera a que se cree su cuaderno («notebook setup»)"
+_WAITING_SETUP = "el tema espera a que se cree su cuaderno («notebook prepare»)"
 SETUP = "setup"  # the snapshot's key, beside the living kinds, for a topic waiting for setup
 STARTS, CLEARS = "Comienza", "Resuelto"
 

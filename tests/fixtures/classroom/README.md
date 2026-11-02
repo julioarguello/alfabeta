@@ -7,7 +7,7 @@ Everything here is synthetic or invented. No page of a real student enters the r
 
 | File | Source page type | How it was made |
 |---|---|---|
-| `home.html` | Home (`/u/<n>/h`) | `anonymize` over the page saved by spike S3 on 2026-10-25 |
+| `home.html` | Home (`/u/<n>/h`) | `page anonymize` over the page saved by spike S3 on 2026-10-25 |
 | `classwork.html` | «Trabajo de clase» (`/u/<n>/w/<class>/t/all`) | same |
 | `assignment-detail.html` | Assignment detail (`/u/<n>/c/<class>/a/<item>/details`) | same |
 | `material-detail.html` | Material detail (`/u/<n>/c/<class>/m/<item>/details`) | same |
@@ -17,7 +17,7 @@ Everything here is synthetic or invented. No page of a real student enters the r
 | `classwork-other-language.html` | «Trabajo de clase» with English labels | written by hand |
 | `stream-announcements.html` | Stream with two announcements and a notice | written by hand, in the shape of a real stream (2026-10-28) |
 
-`stream-announcements.html` exists because `anonymize` gives every text the same length: on
+`stream-announcements.html` exists because `page anonymize` gives every text the same length: on
 `stream.html` the longest text of a post and its body cannot be told apart. Here the hidden
 teacher-only notice is longer than any line of a body, and one body is shorter than its author's
 header, as on the real page.
@@ -36,10 +36,10 @@ these selectors is the same in the original and in its synthetic page: `[data-st
 To regenerate one, from the real page saved outside the repository:
 
 ```bash
-uv run --locked python -m alfabeta anonymize ~/.alfabeta/<student>/data/raw-captures/<page>.html tests/fixtures/classroom/pages/<page>.html
+uv run --locked python -m alfabeta page anonymize ~/.alfabeta/<student>/data/raw-captures/<page>.html tests/fixtures/classroom/pages/<page>.html
 ```
 
 ## `*.json`: invented captures
 
 Captures shaped as the extractor would write them (`contracts/capture.schema.json`), with the
-invented run `run-sintetico`, which `sandbox download --captures` replaces (spec 001 T029).
+invented run `run-sintetico`, which `sandbox stage --captures` replaces (spec 001 T029).

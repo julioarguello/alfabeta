@@ -14,7 +14,7 @@ warn_pages = 100
 cloud_stale_hours = 2
 
 [notebook]
-# Name of each topic's notebook, used by `notebook setup` to find it (research R9). <topic> is the
+# Name of each topic's notebook, used by `notebook prepare` to find it (research R9). <topic> is the
 # topic folder's name after its date, so a teacher's topic without «Tema NN» is named the same way.
 title_pattern = "changeme"         # e.g. "{grade}. {subject}. {topic}"
 # `nlm` profile of the account that owns the notebooks.
@@ -28,11 +28,11 @@ refresh_minutes = 15
 
 [cloud]
 # Read by the how-to and by the setup checks, never by the cloud run itself.
-# Google Cloud project that runs `notes run` (constitution IX, 1.6.0).
+# Google Cloud project that runs `note transcribe` (constitution IX, 1.6.0).
 project = "changeme"
 # Region of the Cloud Run job and the Scheduler job; a Tier 1 region (research R11).
 region = "changeme"                 # e.g. "europe-west1"
-# How often the Scheduler starts `notes run`, as a cron expression in Europe/Madrid.
+# How often the Scheduler starts `note transcribe`, as a cron expression in Europe/Madrid.
 schedule = "*/15 * * * *"
 # Secret Manager names (research R3): the cloud's Google link (its own OAuth client and token), the
 # cloud's own Claude API key of the alfabeta workspace, and this configuration. Names only, never values.

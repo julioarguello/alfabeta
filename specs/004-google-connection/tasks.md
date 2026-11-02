@@ -53,7 +53,7 @@ other two channels of research R9 still ship.
 
 ## Phase 3: User Story 1 — the family links the student's Gmail once (P1) MVP
 
-**Goal**: `google client set`, `google link`, `google check` and `google unlink` work on the real
+**Goal**: `google set-client`, `google account link`, `google account check` and `google account unlink` work on the real
 accounts.
 
 **Independent test**: quickstart steps 1–4, and the school-account negative control of step 3.
@@ -74,7 +74,7 @@ accounts.
   - `check` returns one status per alias;
   - output never contains the address. Assert with the configured address of an invented fixture.
 - [ ] T011 [US1] Implement `src/alfabeta/google/accounts.py`: `link_account`, `check_accounts`, `unlink_account`, `set_client` (reads the downloaded client JSON), and `data/google/accounts.json` (`linked_on`). `check_accounts` also warns when a token fails with `invalid_grant` less than 8 days after `linked_on`, the symptom of an app left in Testing (data model, GoogleApp).
-- [ ] T012 [US1] Wire `google client set|link|check|unlink` into `src/alfabeta/__main__.py` per `contracts/cli.md`: JSON on stdout, exit 0 / 1 / 2, and the reasons `bad_client_file`, `wrong_account`, `school_account`, `missing_scope`, `denied`, `no_client`.
+- [ ] T012 [US1] Wire `google set-client` and `google account link|check|unlink` into `src/alfabeta/__main__.py` per `contracts/cli.md`: JSON on stdout, exit 0 / 1 / 2, and the reasons `bad_client_file`, `wrong_account`, `school_account`, `missing_scope`, `denied`, `no_client`.
 - [ ] T013 [US1] Run quickstart steps 1–4 on the real accounts. Save the token, refresh and revoke responses, with invented values, to `tests/fixtures/google/`. Record the dates in `specs/004-google-connection/research.md` under Observed facts.
 
 **Checkpoint**: alfabeta acts as the student's Gmail with no conversation open.
@@ -90,7 +90,7 @@ channel that does not need that link.
 
 - [x] T014 [P] [US4] Write `tests/test_google_notify.py`. A non-`ok` status from `check_accounts` calls the `Notifier` once per failed alias, with text naming the alias only, and the CLI exits 2.
 - [x] T015 [US4] Implement `src/alfabeta/google/notify.py`: a `Notifier` Protocol and `MacNotifier`, which calls `osascript -e 'display notification …'` with the alias, never the address. Call it from `check_accounts` (research R9, channels 1–2).
-- [x] T016 [US4] Make `google check` refresh every linked token on every run, even when the run writes nothing to Google (FR-015, research R10). Spec 001's run entry calls it first; a status other than `ok` skips the Google outputs and lets the others finish (FR-013).
+- [x] T016 [US4] Make `google account check` refresh every linked token on every run, even when the run writes nothing to Google (FR-015, research R10). Spec 001's run entry calls it first; a status other than `ok` skips the Google outputs and lets the others finish (FR-013).
 - [ ] T017 [US4] Run quickstart step 6. Revoke, check, see the notification, then link again. Save the `invalid_grant` response to `tests/fixtures/google/`.
 
 ---
@@ -108,7 +108,7 @@ channel that does not need that link.
   - a 409 on insert leads to get, then update with `status: confirmed` (research R5);
   - `timeZone` is `Europe/Madrid`.
 - [ ] T019 [US2] (The `patch` part is done by spec 003 T007–T008.) Implement `src/alfabeta/google/calendar.py`, the `CalendarClient`: `get`, `insert`, `patch`, `delete`, `upsert`. It writes only to the configured family calendar id.
-- [ ] T020 [US2] Add `calendar probe` and `calendar probe-clean` to `src/alfabeta/__main__.py` per `contracts/cli.md`.
+- [ ] T020 [US2] Add `calendar probe create` and `calendar probe delete` to `src/alfabeta/__main__.py` per `contracts/cli.md`.
 - [ ] T021 [US2] Run quickstart step 5 with the family, on the student's phone. Record:
   - the date the notification was seen (spec 003, FR-019);
   - the reminders of the probe event read as the owner;
@@ -156,7 +156,7 @@ each file.
 
 ## Phase 7: Polish and cross-cutting
 
-- [ ] T030 [P] Extend spec 001's guardrail patterns so that a refresh token (`1//…`), a client secret (`GOCSPX-…`) and the configured addresses are caught by `guardrail --all --history` (SC-006). Add the cases to `tests/test_guardrail.py`, built at run time. Add a test that scans the log lines and the reports under an invented `data/` written by a full test run, and finds no address, token or secret.
+- [ ] T030 [P] Extend spec 001's guardrail patterns so that a refresh token (`1//…`), a client secret (`GOCSPX-…`) and the configured addresses are caught by `guardrail check --all --history` (SC-006). Add the cases to `tests/test_guardrail.py`, built at run time. Add a test that scans the log lines and the reports under an invented `data/` written by a full test run, and finds no address, token or secret.
 - [ ] T031 Add the agenda's failure line, research R9 channel 3, when spec 001's agenda module exists. Otherwise leave a `TODO(tech-debt)` in `src/alfabeta/google/notify.py` naming that blocker and this branch's issue (`origin: #30`).
 - [ ] T032 [P] Update spec 001's `specs/001-classroom-sync/contracts/config-template.toml` comment on `[drive] root`, and the `study-pack` skill's path instructions, to the meanings this spec gives them.
 - [ ] T033 Run quickstart step 9 from the scheduled run of julioarguello/alfabeta#13: 8 days after linking, `ok` with no sign-in and 0 keychain prompts. Then count 30 consecutive scheduled runs for SC-001.

@@ -1,6 +1,6 @@
 """Placing the run's material in the student's base folder (spec 001 T041, FR-015…FR-019, FR-025).
 
-`apply` takes the newest capture of each class in scope, places each statement and material file
+`classroom apply` takes the newest capture of each class in scope, places each statement and material file
 the run collected, writes the notes (descriptions, statements, links, announcements, gradings), and records
 every replica in the state. A file identical to its replica is only deleted from `data/`; a file
 that changed keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)» (FR-015b). An
@@ -129,7 +129,7 @@ def _grading_from_json(raw: object) -> Grading | None:
 def due_from_json(raw: object) -> dt.datetime | dt.date | None:
     """A due date kept in the state: a Madrid date-time when Classroom gave a time, else a date.
 
-    A state written before the agenda (#8) kept none; the next `apply` of its class writes it.
+    A state written before the agenda (#8) kept none; the next `classroom apply` of its class writes it.
     """
     if not isinstance(raw, str) or not raw:
         return None

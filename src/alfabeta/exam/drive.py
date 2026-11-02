@@ -1,8 +1,8 @@
-"""The topic's living notes file as step 5 of `exam prep` reads it: spec 005's records in Drive.
+"""The topic's living notes file as step 5 of `exam build` reads it: spec 005's records in Drive.
 
 The records are `.alfabeta/state.json` at the root of the alfabeta folder, read through spec 004's
 adapter with the student's link; the topic is the Drive folder of that name inside the subject's,
-as `notebook setup` finds it. The revision time is the one Drive gives for the file now.
+as `notebook prepare` finds it. The revision time is the one Drive gives for the file now.
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ def living_notes_of(drive: TopicDrive, state: Mapping[str, Any], subject: str, f
     """The topic's living notes file from spec 005's records.
 
     None while it is not set up; `LivingNotesError("missing")` when it was set up and is not where
-    `notebook setup` put it (spec 005 data-model, `health`), or the topic folder is not one in Drive.
+    `notebook prepare` put it (spec 005 data-model, `health`), or the topic folder is not one in Drive.
     """
     topics = [
         f

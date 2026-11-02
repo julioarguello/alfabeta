@@ -21,16 +21,16 @@ own table is the subset the requirements rest on; this one is the full list.
 | Anthropic does not use images sent to the API to train models | Same page, FAQ | 2026-10-27 |
 | Anthropic's Usage Policy applies additional guidelines to products that let minors "directly interact" with products built on the API | anthropic.com/legal/aup, read | 2026-10-27 |
 | The Max plan's 200 USD monthly API credit reaches the Console organisation Server Startup; its workspace `alfabeta` has a 10 USD monthly limit | Claude Console billing and spend-limit pages, company account | 2026-10-27 |
-| The Mac's key of the workspace `alfabeta` is in the keychain; `GET /v1/models` answers 200 with it | `claude key set`, then a request printing only the status | 2026-10-27 |
-| `notebook setup` on Tema 01 created both living files in the topic folder, shared each read-only with the notebook owner and nothing else in the folder with anyone, and added two sources (10 to 12); a second run answered `unchanged` twice and added nothing. The four photos were adopted from the checked Markdown with no Claude call | `notebook setup --topic "FiQui/20261001 - Tema 01 - …"`, then the files' `permissions` and `nlm source list` | 2026-10-27 |
-| Tema 01's two living files, moved in the Drive for desktop mount from the topic's root into `notes/` and `classroom/`, kept their Drive ids; the Drive API then listed each in its new folder, and `notes run`'s check (`in_place`), evaluated on that listing without a run, counts each in place. As the owner, `nlm source sync` of the two sources succeeded with the same content length as before (6,237 and 83 characters), and the same question asked before and after the move, restricted to those two sources, was answered citing both. `nlm source stale` also said up to date, which proves nothing here (rows above) | The file ids read from the mount's extended attributes before and after; a read-only listing through `ScopedDrive`; `nlm` with the family profile (julioarguello/alfabeta#110) | 2026-10-28 |
+| The Mac's key of the workspace `alfabeta` is in the keychain; `GET /v1/models` answers 200 with it | `claude set-key`, then a request printing only the status | 2026-10-27 |
+| `notebook prepare` on Tema 01 created both living files in the topic folder, shared each read-only with the notebook owner and nothing else in the folder with anyone, and added two sources (10 to 12); a second run answered `unchanged` twice and added nothing. The four photos were adopted from the checked Markdown with no Claude call | `notebook prepare --topic "FiQui/20261001 - Tema 01 - …"`, then the files' `permissions` and `nlm source list` | 2026-10-27 |
+| Tema 01's two living files, moved in the Drive for desktop mount from the topic's root into `notes/` and `classroom/`, kept their Drive ids; the Drive API then listed each in its new folder, and `note transcribe`'s check (`in_place`), evaluated on that listing without a run, counts each in place. As the owner, `nlm source sync` of the two sources succeeded with the same content length as before (6,237 and 83 characters), and the same question asked before and after the move, restricted to those two sources, was answered citing both. `nlm source stale` also said up to date, which proves nothing here (rows above) | The file ids read from the mount's extended attributes before and after; a read-only listing through `ScopedDrive`; `nlm` with the family profile (julioarguello/alfabeta#110) | 2026-10-28 |
 | Drive accepts two `properties has { … }` clauses joined with `and` | The look-ups before create of the same setup, no error | 2026-10-27 |
 | A Drive PDF source listed by `nlm source list --json` has an empty `url`, type `pdf`, and the Drive file's name as its title, `.pdf` included, whatever `--title` said | Same notebook, after setup | 2026-10-27 |
 | Listing the whole alfabeta folder (384 items, 168 folders) takes 171 Drive requests and 73 s from the Mac | `ScopedDrive.open` with a counting transport | 2026-10-27 |
 | Step 2 on the four photos of 2026-10-26: Haiku 5.5 invents readings that change the meaning (an «ez dira» crossed out read as «eratzen»); Opus 5.5 invents a crossing-out where there is a wavy underline and adds boxes; Sonnet 5.5 keeps the layout, misreads one letter twice («dituten», «daitezke» for «duten», «daiteke») and marks its doubts. `claude-sonnet-5-5` stays. Each photo cost 2,466 tokens in and 326 to 553 out (effort `low`), about 0.009 USD a page at 2 and 10 USD per million tokens in and out | Quickstart step 2, each output compared with the checked Markdown and the photo | 2026-10-27 |
-| Step 3 on a test topic (an invented page drawn in a handwriting font): `notes run` wrote the page's Markdown and PDF next to the photo, the transcription equal to what was written, and one page headed «Transcripción automática» in the living file, `pages_added: 1`, 0.0065 USD. The notebook answered a question about the page's invented word, with a citation, on its first query. A second run printed `"topics": []` (no topic with anything to report, so `pages_added` 0) and left the living file's revision and checksum unchanged | The Markdown read back from Drive and compared line by line with the drawn text; `notebook setup` and `notes run` on `FiQui/20261027 - Tema 99 - Prueba alfabeta (borrar)`, `nlm notebook query` now and two minutes later, `headRevisionId` before and after | 2026-10-27 |
-| Step 3's viewer half (SC-002), same test topic: a second invented page reached the living file (`notes run`, `pages_added: 1`, the transcription equal to the page). The student's Gmail, invited as a viewer, opened the notebook and asked about the page's invented word; the operator reported no answer within five minutes. Then the owner, with nothing written in between, ran `nlm source list`, `nlm source stale` («All Drive sources are up to date»), `nlm source content`, which already held the page, and `nlm notebook query`, which answered with a citation. Asked again after that, the student's view answered too. This run does not separate two explanations: the student's access started the refresh and it landed after the five minutes, or a viewer's access does not refresh a Drive source and the owner's reads did, `source stale` having run just before the content was read. SC-002 was not met for a viewer on this attempt | The living PDF read back from Drive; the operator's report of both questions in the student's view; the four `nlm` commands as the owner at 08:40 UTC; the notebook was deleted before the owner-free repeat that quickstart step 3 describes | 2026-10-28 |
-| The owner-free repeat, on a second test topic: the student was invited as a viewer before the page existed (09:02 UTC); the page reached the living file at 09:09 UTC (`notes run`, `pages_added: 1`) and the owner touched nothing after it. The student's view, opened at 09:13 UTC, did not answer at 09:13, at about 09:56 or at 10:01 UTC (the operator could not look in between). The owner's `nlm source content` at 10:02:17 UTC still returned the cover alone, 260 characters; the next read, at 10:03:33 UTC, held the page, and the student's view answered at 10:05 UTC. A viewer's access does not refresh a Drive source; the owner's read did within 76 seconds, and the viewer then saw the page. SC-002 does not hold while only the student opens the notebook | `notes run` JSON; the living PDF read back from Drive; the operator's report of the student's view with its times; `nlm source content` as the owner, once a minute after the first read | 2026-10-28 |
+| Step 3 on a test topic (an invented page drawn in a handwriting font): `note transcribe` wrote the page's Markdown and PDF next to the photo, the transcription equal to what was written, and one page headed «Transcripción automática» in the living file, `pages_added: 1`, 0.0065 USD. The notebook answered a question about the page's invented word, with a citation, on its first query. A second run printed `"topics": []` (no topic with anything to report, so `pages_added` 0) and left the living file's revision and checksum unchanged | The Markdown read back from Drive and compared line by line with the drawn text; `notebook prepare` and `note transcribe` on `FiQui/20261027 - Tema 99 - Prueba alfabeta (borrar)`, `nlm notebook query` now and two minutes later, `headRevisionId` before and after | 2026-10-27 |
+| Step 3's viewer half (SC-002), same test topic: a second invented page reached the living file (`note transcribe`, `pages_added: 1`, the transcription equal to the page). The student's Gmail, invited as a viewer, opened the notebook and asked about the page's invented word; the operator reported no answer within five minutes. Then the owner, with nothing written in between, ran `nlm source list`, `nlm source stale` («All Drive sources are up to date»), `nlm source content`, which already held the page, and `nlm notebook query`, which answered with a citation. Asked again after that, the student's view answered too. This run does not separate two explanations: the student's access started the refresh and it landed after the five minutes, or a viewer's access does not refresh a Drive source and the owner's reads did, `source stale` having run just before the content was read. SC-002 was not met for a viewer on this attempt | The living PDF read back from Drive; the operator's report of both questions in the student's view; the four `nlm` commands as the owner at 08:40 UTC; the notebook was deleted before the owner-free repeat that quickstart step 3 describes | 2026-10-28 |
+| The owner-free repeat, on a second test topic: the student was invited as a viewer before the page existed (09:02 UTC); the page reached the living file at 09:09 UTC (`note transcribe`, `pages_added: 1`) and the owner touched nothing after it. The student's view, opened at 09:13 UTC, did not answer at 09:13, at about 09:56 or at 10:01 UTC (the operator could not look in between). The owner's `nlm source content` at 10:02:17 UTC still returned the cover alone, 260 characters; the next read, at 10:03:33 UTC, held the page, and the student's view answered at 10:05 UTC. A viewer's access does not refresh a Drive source; the owner's read did within 76 seconds, and the viewer then saw the page. SC-002 does not hold while only the student opens the notebook | `note transcribe` JSON; the living PDF read back from Drive; the operator's report of the student's view with its times; `nlm source content` as the owner, once a minute after the first read | 2026-10-28 |
 | `nlm source stale` printed «All Drive sources are up to date» while the notebook's copy lacked a page the Drive file had held for 47 minutes, and the copy was still without it 5.5 minutes later: the command did not detect that the source was behind, and did not refresh it within those minutes | `nlm source stale` at 09:56:49 UTC, `nlm source content` at 10:02:17 UTC, the same owner-free repeat, notebooklm-mcp-cli 0.15.8 | 2026-10-28 |
 | The owner's `nlm` profile on the Mac, signed in on 2026-10-26, was still valid; its Google session cookies (`SID`, `__Secure-1PSID` and the rest) expire on 2027-11-30, `SIDCC` and its variants on 2027-10-26, and it holds no `__Secure-1PSIDTS`. `nlm auth refresh --http-only` printed «HTTP-only session refresh validated» and the profile stayed valid | `nlm login --check` before and after, `nlm notebook list` as control; names and expiry dates read from the `Cookies` database of `nlm`'s own browser profile, never the values; notebooklm-mcp-cli 0.15.8 | 2026-10-28 |
 | `launchd.plist`: a job with `StartCalendarInterval` that falls due while the Mac sleeps starts once when it wakes, missed firings coalesced; one with `StartInterval` misses them | `man launchd.plist` on the operator's Mac, read | 2026-10-28 |
@@ -90,7 +90,7 @@ own table is the subset the requirements rest on; this one is the full list.
 
 - **Decision**: the cloud gets its own OAuth client, a second Desktop client in the same project.
   The operator downloads its JSON from Google and, on the Mac, runs
-  `alfabeta google link --student <id> --account student --client-file <that JSON> --scopes drive --print-token`.
+  `alfabeta google account link --student <id> --account student --client-file <that JSON> --scopes drive --print-token`.
   The command uses that client (never the keychain's), always adds `openid` and `email` so spec
   004's account check can run, validates the grant against the scopes it asked for, writes
   `{client_id, client_secret, refresh_token}` as one JSON line to standard output, keeps nothing, and
@@ -99,8 +99,8 @@ own table is the subset the requirements rest on; this one is the full list.
   at once: the one exception constitution II (1.6.0) names.
   The Mac's own client and token never leave the keychain, and the cloud's never enter it.
 - **Claude**: two API keys in the workspace `alfabeta`, each created in the Console for one place:
-  one stored in the Mac's keychain with `alfabeta claude key set` (read from standard input, like
-  spec 004's `google client set`), one in the cloud's secret store.
+  one stored in the Mac's keychain with `alfabeta claude set-key` (read from standard input, like
+  spec 004's `google set-client`), one in the cloud's secret store.
 - **Three secrets, mounted as files** into the job: the Google link, the Claude key, and the
   student's configuration. The job's service account may read exactly these three. A
   `FileTokenStore` implements spec 004's `TokenStore` over the mounted files. The student id is read
@@ -117,7 +117,7 @@ own table is the subset the requirements rest on; this one is the full list.
 - **Decision**: one JSON file `state.json` in a folder `.alfabeta` at the root of the alfabeta
   folder, read and written through `ScopedDrive`. It holds the record of every file and the month's
   spend ledger (data model); the cursor is in the run log (R2). Two writers exist: the cloud run, and
-  `notebook setup` on the Mac, and `notes run` started by hand on the Mac. All three read
+  `notebook prepare` on the Mac, and `note transcribe` started by hand on the Mac. All three read
   `headRevisionId` at start, re-read it immediately before writing, and on a difference stop without
   writing and retry once from the start.
 - **Look up before create** (public `properties`, not `appProperties`, which Drive keeps private to
@@ -191,7 +191,7 @@ own table is the subset the requirements rest on; this one is the full list.
 - **Dependencies**: `reportlab` to draw pages and `pypdf` to copy pages, pinned. `pypdf` is pure
   Python; `reportlab` 5.1.0 pulls Pillow, which ships binary wheels, and charset-normalizer
   (`uv add`, 2026-10-27).
-- **Who creates them**: only `notebook setup`. A run that finds a topic without living files records
+- **Who creates them**: only `notebook prepare`. A run that finds a topic without living files records
   and transcribes, and builds nothing (spec User Story 5, scenario 3). A run checks each recorded
   living file's parent and `trashed` before writing; a missing one is reported, never recreated.
 - **Alternatives**: a Google Doc as the living file, through Drive's HTML import: images in imported
@@ -225,12 +225,12 @@ own table is the subset the requirements rest on; this one is the full list.
 
 ## R9 — Setting up a topic, and Tema 01
 
-- **Decision**: `notebook setup --topic <subject>/<folder>` on the Mac finds the topic's notebook by
+- **Decision**: `notebook prepare --topic <subject>/<folder>` on the Mac finds the topic's notebook by
   `[notebook] title_pattern` (`nlm notebook list`), creates both living files from what is recorded
   when no file id is recorded, adds each with `nlm source add --drive <id> --type pdf`, and records
   the file and source ids in `state.json` (R4's check). It shares each living file read-only with
   the notebook owner's account, and nothing else (the measurement of 2026-10-27 shared exactly the
-  files), the account in `[notebook] owner`. Before building, it runs the same recording pass as `notes run` for that topic, so Tema
+  files), the account in `[notebook] owner`. Before building, it runs the same recording pass as `note transcribe` for that topic, so Tema
   01's adopted Markdown is in the first build. It lists the notebook's other sources whose
   title starts with «Apuntes ·» or «Classroom ·» and whose id is not a recorded living source
   (Tema 01's two, first table) for the family to remove by hand; alfabeta removes nothing (FR-011).
@@ -304,7 +304,7 @@ own table is the subset the requirements rest on; this one is the full list.
   SHA-256 of the student id, so the label carries neither the id nor a name; the job's arguments and
   log path, which `launchctl print` shows, do carry the id, never a name.
   `notebook agent install` writes the agent's plist under `~/Library/LaunchAgents/`
-  with that label and loads it; `notebook agent remove`
+  with that label and loads it; `notebook agent uninstall`
   unloads and deletes it. The agent's standard output and error are appended to `notebook-agent.log`
   in the student's data folder.
 - **Rationale**: the notebook takes a changed Drive file when its owner reads it, within two minutes,
@@ -328,7 +328,7 @@ own table is the subset the requirements rest on; this one is the full list.
   - The desktop app's scheduled task: runs only while the app is open (spec, first table), the
     dependency the operator wants gone. Rejected.
   - Only the daily scheduled sync: a page could wait a day. Rejected.
-  - The same launchd agent also running `notes run`, so that the cloud job is not needed: then
+  - The same launchd agent also running `note transcribe`, so that the cloud job is not needed: then
     transcription and the living files would also wait for the Mac. Rejected; the operator wants as
     little as possible to depend on it (spec, Clarifications, session 2026-10-28).
   - A cloud-held owner session, either a Compute Engine machine with Chrome and Chrome Remote

@@ -62,21 +62,21 @@ class Box:
         return sorted(str(p.relative_to(self.base)) for p in self.base.rglob("*") if p.is_file())
 
     def collect_and_plan(self, *, drop_stop: bool = False, skip: str | None = None) -> dict[str, object]:
-        assert self("sandbox", "download", "--student", "sample", "--captures").returncode == 0
-        assert self("downloads", "collect", "--student", "sample").returncode == 0
+        assert self("sandbox", "stage", "--student", "sample", "--captures").returncode == 0
+        assert self("download", "collect", "--student", "sample").returncode == 0
         if drop_stop:
             for stop in self.data.glob(f"captures/alfabeta-capture-{self.run}-stop-*.json"):
                 stop.unlink()
-        planned = self("plan", "--student", "sample")
+        planned = self("classroom", "plan", "--student", "sample")
         assert planned.returncode == 0, planned.stderr
-        assert self("sandbox", "download", "--student", "sample", "--batch", "0").returncode == 0
+        assert self("sandbox", "stage", "--student", "sample", "--batch", "0").returncode == 0
         if skip:
             (self.home / "downloads" / skip).unlink()
-        self("downloads", "collect", "--student", "sample")
+        self("download", "collect", "--student", "sample")
         return json.loads(planned.stdout)
 
     def apply(self, *extra: str) -> tuple[dict[str, object], str]:
-        done = self("apply", "--student", "sample", *extra)
+        done = self("classroom", "apply", "--student", "sample", *extra)
         assert done.returncode == 0, done.stderr
         return json.loads(done.stdout), done.stderr
 
@@ -142,11 +142,11 @@ def test_a_file_that_arrives_later_takes_its_no_traido_line_away(box: Box):
     assert "no traído" in (folder / "enlaces.md").read_text()
     box.release()
     box.take()  # a later run: its own plan asks for the file the first one did not get
-    assert box("sandbox", "download", "--student", "sample", "--captures").returncode == 0
-    box("downloads", "collect", "--student", "sample")
-    assert box("plan", "--student", "sample").returncode == 0
-    assert box("sandbox", "download", "--student", "sample", "--batch", "0").returncode == 0
-    box("downloads", "collect", "--student", "sample")
+    assert box("sandbox", "stage", "--student", "sample", "--captures").returncode == 0
+    box("download", "collect", "--student", "sample")
+    assert box("classroom", "plan", "--student", "sample").returncode == 0
+    assert box("sandbox", "stage", "--student", "sample", "--batch", "0").returncode == 0
+    box("download", "collect", "--student", "sample")
     box.apply()
     assert (folder / "submission" / "respuestas-inventadas.pdf").is_file()
     assert not (folder / "enlaces.md").exists()  # it had nothing else to say
@@ -173,7 +173,7 @@ def test_subject_limits_what_is_applied(box: Box):
 
 
 def test_apply_needs_the_lock(box: Box):
-    done = cli(box.home, "apply", "--student", "sample")
+    done = cli(box.home, "classroom", "apply", "--student", "sample")
     assert done.returncode == 1 and '"lock_not_held"' in done.stdout
 
 
@@ -195,8 +195,8 @@ def test_a_match_confirmed_later_moves_the_replicas_without_copies(box: Box):
             }
         )
     )
-    assert box("decisions", "propose", "--student", "sample", "--file", str(proposal)).returncode == 0
-    args = ("decisions", "confirm", "--student", "sample", "--type", "topic_match", "--origin", "synth-10")
+    assert box("decision", "propose", "--student", "sample", "--file", str(proposal)).returncode == 0
+    args = ("decision", "confirm", "--student", "sample", "--type", "topic_match", "--origin", "synth-10")
     assert box(*args).returncode == 0
     result, _ = box.apply()
     after = box.files()
@@ -210,14 +210,14 @@ def test_a_capture_of_another_run_is_not_collected(box: Box):
     other.write_text(
         (box.home / "sandbox-captures" / "class-synth-1.json").read_text().replace("run-sintetico", "otro")
     )
-    box("downloads", "collect", "--student", "sample")
+    box("download", "collect", "--student", "sample")
     assert other.exists()
 
 
 def test_without_a_base_folder_nothing_is_written(box: Box):
     box.collect_and_plan()
     box.base.rename(box.home / "elsewhere")
-    done = box("apply", "--student", "sample")
+    done = box("classroom", "apply", "--student", "sample")
     assert done.returncode == 1 and '"drive_not_mounted"' in done.stdout
     assert not box.base.exists()
     box.run = ""  # the failed apply released the lock

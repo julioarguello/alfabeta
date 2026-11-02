@@ -27,7 +27,7 @@ in [data-model.md](data-model.md).
 4. Store the client and delete the JSON:
 
    ```bash
-   uv run python -m alfabeta google client set --student <id> --from ~/Downloads/client_secret_*.json
+   uv run python -m alfabeta google set-client --student <id> --from ~/Downloads/client_secret_*.json
    ```
 
    Expected: `{"ok": true}`.
@@ -40,7 +40,7 @@ the student's Gmail with **Make changes to events**.
 ## 3. Link the student's Gmail
 
 ```bash
-uv run python -m alfabeta google link --student <id> --account student
+uv run python -m alfabeta google account link --student <id> --account student
 ```
 
 1. The browser opens Google's sign-in. Choose the student's Gmail.
@@ -56,7 +56,7 @@ nothing stored.
 ## 4. Check the link
 
 ```bash
-uv run python -m alfabeta google check --student <id>
+uv run python -m alfabeta google account check --student <id>
 ```
 
 Expected: `student: ok`, exit 0.
@@ -64,7 +64,7 @@ Expected: `student: ok`, exit 0.
 ## 5. A reminder that rings on the student's phone (US2, SC-002)
 
 ```bash
-uv run python -m alfabeta calendar probe --student <id> --minutes 10
+uv run python -m alfabeta calendar probe create --student <id> --minutes 10
 ```
 
 Within 10 minutes the student's phone shows «Prueba alfabeta · ignorar».
@@ -78,18 +78,18 @@ Within 10 minutes the student's phone shows «Prueba alfabeta · ignorar».
 5. Clean up:
 
    ```bash
-   uv run python -m alfabeta calendar probe-clean --student <id> --event <id>
+   uv run python -m alfabeta calendar probe delete --student <id> --event <id>
    ```
 
 ## 6. A lost link is loud (US4, SC-003)
 
 1. Remove alfabeta from the student's Google Account, in its security settings under third-party
    access.
-2. Run `google check`. Expected:
+2. Run `google account check`. Expected:
    - `student: revoked`;
    - exit 2;
    - a macOS notification;
-   - `drive push` and `calendar probe` refuse with exit 2 and write nothing.
+   - `drive push` and `calendar probe create` refuse with exit 2 and write nothing.
 3. Repeat step 3 to link again.
 
 ## 7. Drive: migrate, then move off the mount (US3, SC-004, SC-005)
@@ -115,7 +115,7 @@ ones, under `tests/fixtures/google/`, each named with its call and capture date.
 The schedule of julioarguello/alfabeta#13 runs this, not a person at the keyboard: a keychain
 prompt only shows when nobody is there to answer it.
 
-Eight days or more after step 3, the scheduled `google check` still returns `ok`:
+Eight days or more after step 3, the scheduled `google account check` still returns `ok`:
 
 - with no new sign-in, which proves the app is published, not in Testing;
 - with 0 keychain prompts.

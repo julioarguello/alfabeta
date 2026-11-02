@@ -37,7 +37,7 @@ running.
 response with invented content; a fake `NotebookSources` for `nlm`. Image fixtures are drawn by the
 test suite, never photos of real notes. The live proof is [quickstart.md](quickstart.md).
 
-**Target Platform**: Cloud Run job (Linux container) for `notes run`; macOS for `notebook setup`, the
+**Target Platform**: Cloud Run job (Linux container) for `note transcribe`; macOS for `notebook prepare`, the
 cloud link and the staleness check; a macOS launchd agent for `notebook refresh`.
 
 **Project Type**: subcommands of spec 001's local command (`python -m alfabeta`), plus a container
@@ -116,10 +116,10 @@ src/alfabeta/notes/
 ├── secrets.py        # FileTokenStore: spec 004's TokenStore over the files the cloud mounts
 ├── pdf.py            # PdfBuilder: deterministic living files with reportlab and pypdf
 ├── sources.py        # NotebookSources port + NlmSources (`nlm source add --drive`, `nlm source content`), Mac only
-├── run.py            # notes run: one reconciliation pass
-├── setup.py          # notebook setup
+├── run.py            # note transcribe: one reconciliation pass
+├── setup.py          # notebook prepare
 ├── refresh.py        # notebook refresh: the owner's read of changed sources, and its record (Mac only)
-├── agent.py          # notebook agent install|remove: the launchd agent's plist (Mac only)
+├── agent.py          # notebook agent install|uninstall: the launchd agent's plist (Mac only)
 ├── watch.py          # the Mac's check that the cloud ran recently (FR-017)
 └── report.py         # RunReport → reports/*.md, and "what it adds"
 deploy/notes-cloud-run/
@@ -145,7 +145,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 | Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `PdfBuilder`, `NotebookSources` (`add_drive_source`, `read_source`, `session_ok`, `renew_session`), `RefreshStore`, `Clock` | What the core needs from the outside |
 | Adapters | `DriveChangeFeed`, `DriveNotesStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore`, `LocalRefreshStore`, `LaunchdAgent` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
 | Services | `run_notes`, `setup_topic`, `check_cloud`, `write_report`, `refresh_sources` | One per subcommand or sync step; return results the CLI prints |
-| CLI | `notes run`, `notebook setup`, `notebook refresh`, `notebook agent install|remove`, `google link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
+| CLI | `note transcribe`, `notebook prepare`, `notebook refresh`, `notebook agent install|uninstall`, `google account link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
 
 ## Vertical slices (each leaves the system demonstrable)
 
@@ -153,7 +153,7 @@ The first slice's acceptance criterion is quickstart step 3: one photo, one page
 answers. Ports are written for it, not for the end state.
 
 1. **A photo becomes a page, run on the Mac.** Covers US1 (scenarios 3 to 5), US5 (scenarios 1, 3
-   and 4) and FR-004. `notebook setup` and `notes run` for notes only, with `changes`, `state`,
+   and 4) and FR-004. `notebook prepare` and `note transcribe` for notes only, with `changes`, `state`,
    `transcribe`, `pdf`, `sources`. Done when quickstart steps 1 to 3 pass.
 2. **The same pass in the cloud.** Covers US1 scenario 1, FR-014 and FR-017. The cloud's own link,
    `FileTokenStore`, the container, the job, the Scheduler job, the alert, the Mac's staleness check
@@ -169,7 +169,7 @@ answers. Ports are written for it, not for the end state.
 6. **Tema 01 and real use.** US5 scenario 2 on the real topic, then quickstart step 8.
 7. **The owner's refresh on the Mac.** Covers US1 scenarios 2 and 6, FR-018, FR-019 and SC-002.
    `notebook refresh` over the cloud run's records, a root-only open of Drive, its record on the
-   Mac, the session check and its renewals, the notice, and `notebook agent install|remove`. Done when quickstart step 3b
+   Mac, the session check and its renewals, the notice, and `notebook agent install|uninstall`. Done when quickstart step 3b
    passes: a page reaches the student's view with nobody touching the notebook as its owner.
 
 Slice 5 lives in spec 004 and can run in parallel with slices 1 to 4. Slice 7 needs slice 1 (the
@@ -180,7 +180,7 @@ to 4.
 
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
-| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes transcribed into the living files with the Mac off (clarify, 2026-10-27), and as little as possible to depend on the Mac (spec, Clarifications, session 2026-10-28); only the owner's read of the source stays on the Mac (research R14) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0. The launchd agent of FR-018 also running `notes run`, with no cloud job: transcription and the living files would then wait for the Mac too, and the student could not read a transcription in Drive while it is off |
+| A cloud job in the operator's Google Cloud project for alfabeta | The operator wants notes transcribed into the living files with the Mac off (clarify, 2026-10-27), and as little as possible to depend on the Mac (spec, Clarifications, session 2026-10-28); only the owner's read of the source stays on the Mac (research R14) | Mac only: rejected by the operator in clarify; constitution IX amended to 1.6.0. The launchd agent of FR-018 also running `note transcribe`, with no cloud job: transcription and the living files would then wait for the Mac too, and the student could not read a transcription in Drive while it is off |
 | A second OAuth client and refresh token for the student, and a second Claude key, in Secret Manager | The cloud cannot read the Mac's keychain; constitution II (1.6.0) forbids copying a secret between places (research R3) | A service account cannot act as a consumer Gmail |
 | One account-wide Drive read: the change feed | Drive v3's change feed takes no folder filter (research, first table); polling each folder instead costs one listing per folder per run | Spec 004 FR-009a amended: the adapter drops every change outside the allowlist before returning, keeps and logs nothing about it, and the scope test covers the feed |
 | The cloud's records in Drive instead of a database | One small JSON, two writers guarded by a revision check (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |

@@ -9,7 +9,7 @@ hint "Run 'nlm login' to authenticate."
 
 The owner's refresh (research R14, T043) adds three reads that never change a notebook: `source content`,
 whose output is discarded and never logged; `login --check`, which exits 0 when the profile's session
-works and 2 when it does not (read from `nlm`'s source, 0.15.8, 2026-10-28, as `exam prep` uses it); and
+works and 2 when it does not (read from `nlm`'s source, 0.15.8, 2026-10-28, as `exam build` uses it); and
 `auth refresh`, `--http-only` unless a person at the Mac asked for the renewal through `nlm`'s own
 browser profile. Each gets an empty, closed standard input, so a prompt fails instead of waiting.
 """

@@ -4,7 +4,7 @@
 
 A topic folder is found by the part of its name after the date, whatever that date is, and keeps
 the date it was created with: the posting date of the first item placed in it. Items must therefore
-be placed in posting order. The placer only computes paths; `apply` writes.
+be placed in posting order. The placer only computes paths; `classroom apply` writes.
 """
 
 from __future__ import annotations

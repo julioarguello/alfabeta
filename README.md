@@ -162,17 +162,17 @@ What a family runs, from the clone: `uv run python -m alfabeta <command>`. Every
 | Command | What it does | When |
 |---|---|---|
 | `config check --student <id>` | Lists every key of the student's configuration still missing or invalid, by name | after editing the configuration; every skill runs it first |
-| `google client set --student <id> --from <file>` | Stores alfabeta's own Google client in the keychain | once |
-| `google link --student <id> --account <alias>` | Links one Google account through Google's own sign-in | once per account |
-| `google check --student <id>` | Refreshes every linked account and says which one no longer works | when a run reports a link problem |
-| `google unlink --student <id> --account <alias>` | Revokes one account's link | to remove an account |
-| `claude key set --student <id>` | Stores the Claude API key that transcribes the photos of class notes | once per Mac |
-| `notebook setup --student <id> --topic <subject>/<folder>` | Adds the topic's two living files, class notes and Classroom, to its notebook | once per topic |
-| `notes run --student <id>` | Turns the photos of class notes not yet transcribed into pages of the topic's living file | after photos are added; it also runs in the cloud |
+| `google set-client --student <id> --from <file>` | Stores alfabeta's own Google client in the keychain | once |
+| `google account link --student <id> --account <alias>` | Links one Google account through Google's own sign-in | once per account |
+| `google account check --student <id>` | Refreshes every linked account and says which one no longer works | when a run reports a link problem |
+| `google account unlink --student <id> --account <alias>` | Revokes one account's link | to remove an account |
+| `claude set-key --student <id>` | Stores the Claude API key that transcribes the photos of class notes | once per Mac |
+| `notebook prepare --student <id> --topic <subject>/<folder>` | Adds the topic's two living files, class notes and Classroom, to its notebook | once per topic |
+| `note transcribe --student <id>` | Turns the photos of class notes not yet transcribed into pages of the topic's living file | after photos are added; it also runs in the cloud |
 | `notebook refresh --student <id> [--browser]` | Reads, as the notebook's owner, each living file that changed since its last read, so the notebook takes the new pages; with nothing changed it calls no `nlm`. A signed-out owner gets one Mac notification and an agenda line; `--browser` also lets `nlm` renew the session through its own browser profile, so use it only at the Mac | every `notebook.refresh_minutes` through the agent; by hand when the agenda says the session is signed out |
-| `notebook agent install --student <id>` · `notebook agent remove --student <id>` | Writes the launchd agent that runs `notebook refresh` in `~/Library/LaunchAgents` and loads it, or unloads and deletes it; its passes are appended to `notebook-agent.log` in the student's data folder | once per Mac, and again after changing `notebook.refresh_minutes` |
-| `notice signin --student <id>` | Shows a notification on the Mac asking you to sign in to Classroom, and prints how long a scheduled run waits | inside a scheduled run, from [#161](https://github.com/julioarguello/alfabeta/issues/161) on |
-| `exam prep --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Asks the topic's notebook for a theory sheet and a problems sheet for the exam, and prints both into the topic's `exam/` folder; refuses, saying why, when notebooks are off or `nlm` does not work | the day before an exam, from [#106](https://github.com/julioarguello/alfabeta/issues/106) on |
+| `notebook agent install --student <id>` · `notebook agent uninstall --student <id>` | Writes the launchd agent that runs `notebook refresh` in `~/Library/LaunchAgents` and loads it, or unloads and deletes it; its passes are appended to `notebook-agent.log` in the student's data folder | once per Mac, and again after changing `notebook.refresh_minutes` |
+| `notice send-sign-in --student <id>` | Shows a notification on the Mac asking you to sign in to Classroom, and prints how long a scheduled run waits | inside a scheduled run, from [#161](https://github.com/julioarguello/alfabeta/issues/161) on |
+| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]` | Asks the topic's notebook for a theory sheet and a problems sheet for the exam, and prints both into the topic's `exam/` folder; refuses, saying why, when notebooks are off or `nlm` does not work | the day before an exam, from [#106](https://github.com/julioarguello/alfabeta/issues/106) on |
 
 The Classroom sync is a skill, not a command: ask Claude «trae lo nuevo de Classroom» ("bring from
 Classroom what is not here yet"), and it runs the commands it needs.
@@ -193,7 +193,7 @@ Classroom what is not here yet"), and it runs the commands it needs.
 - **Generated material is checked, not trusted.** The study pack recomputes every numeric answer
   before it reaches the student — a teacher's answer key has been wrong before
   ([example](docs/explanation/study-material.md#three-sources-one-order-of-trust)). The exam sheets
-  of `exam prep`, from [#106](https://github.com/julioarguello/alfabeta/issues/106) on, are the
+  of `exam build`, from [#106](https://github.com/julioarguello/alfabeta/issues/106) on, are the
   exception: the notebook computes their numbers, an accepted risk
   ([spec 002](specs/002-study-pack/spec.md), FR-036).
 

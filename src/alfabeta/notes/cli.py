@@ -1,4 +1,4 @@
-"""`notes run`, `notebook setup|refresh|agent` and `claude key set` (spec 005 contracts/cli.md).
+"""`note transcribe`, `notebook prepare|refresh|agent` and `claude set-key` (spec 005 contracts/cli.md).
 
 JSON on stdout, one line for people on stderr; no output names an address, a key, a Drive id, a
 source id, a checksum or a path. Exit codes: 0 ok · 1 usage or validation (`no_nlm` too) · 2 a Google
@@ -98,12 +98,12 @@ def cmd_notes_run(
     ran_on: RanOn = RanOn.MAC,
     factory: Callable[[StudentConfig, TokenStore, RanOn], tuple[NotesDeps, Any]] = notes_deps,
 ) -> int:
-    """`notes run`: one pass."""
+    """`note transcribe`: one pass."""
     try:
         deps, _ = factory(cfg, store, ran_on)
         report = retry_once(lambda: run_notes(deps))
     except accounts.LinkError as err:
-        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google check`")
+        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google account check`")
     except (DriveError, TransportError):
         return _fail(
             "drive_failed", EXIT_PARTIAL, "Drive refused or did not answer; the next run reads the same changes"
@@ -112,7 +112,7 @@ def cmd_notes_run(
         return _fail("state_changed", EXIT_PARTIAL, "another run wrote the records twice meanwhile; nothing written")
     if report["no_key"]:
         where = "the cloud has" if ran_on == RanOn.CLOUD else "this Mac has"
-        print(f"alfabeta: {where} no Claude key; photos wait (`claude key set`).", file=sys.stderr)
+        print(f"alfabeta: {where} no Claude key; photos wait (`claude set-key`).", file=sys.stderr)
     _emit(report)
     if not report["ok"] or (report["no_key"] and ran_on == RanOn.CLOUD):
         return EXIT_PARTIAL
@@ -126,13 +126,13 @@ def cmd_notebook_setup(
     factory: Callable[[StudentConfig, TokenStore, RanOn], tuple[NotesDeps, Any]] = notes_deps,
     sources: Callable[[str], Any] = NlmSources,
 ) -> int:
-    """`notebook setup --topic <subject>/<folder>`."""
+    """`notebook prepare --topic <subject>/<folder>`."""
     setting = Setting(topic, cfg.notebook_title_pattern, cfg.grade_level, cfg.notebook_owner)
     try:
         deps, drive = factory(cfg, store, RanOn.MAC)
         out = setup_topic(deps, drive, sources(cfg.nlm_profile), setting)
     except accounts.LinkError as err:
-        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google check`")
+        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google account check`")
     except SetupError as err:
         return _fail(err.reason, EXIT_INVALID, f"setup stopped: {err.reason}")
     except SourcesError as err:
@@ -171,7 +171,7 @@ def cmd_notebook_refresh(
         deps = factory(cfg, store)
         report = refresh_sources(deps, browser=browser)
     except accounts.LinkError as err:
-        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google check`")
+        return _fail(err.reason, EXIT_LINK, "the student's Google link is not usable: run `google account check`")
     except NlmMissingError:
         return _fail("no_nlm", EXIT_INVALID, "nlm cannot be run: install it, then install the agent again")
     except SourcesError:
@@ -203,7 +203,7 @@ _AGENT_REFUSALS = {
 
 
 def cmd_notebook_agent(cfg: StudentConfig, home: Path, action: str, agent: LaunchdAgent | None = None) -> int:
-    """`notebook agent install|remove`: the launchd agent of `notebook refresh` (research R14)."""
+    """`notebook agent install|uninstall`: the launchd agent of `notebook refresh` (research R14)."""
     made = agent or system_agent()  # looked up now, so a test can hand in its own folder
     try:
         if action == "install":
@@ -221,7 +221,7 @@ def cmd_notebook_agent(cfg: StudentConfig, home: Path, action: str, agent: Launc
 
 
 def cmd_claude_key_set(student: str, store: TokenStore, stdin: str) -> int:
-    """`claude key set`: the place's own key of the workspace `alfabeta`, from standard input."""
+    """`claude set-key`: the place's own key of the workspace `alfabeta`, from standard input."""
     key = stdin.strip()
     if not key:
         return _fail("empty_key", EXIT_INVALID, "no key on standard input")

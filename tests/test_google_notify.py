@@ -77,7 +77,7 @@ def test_google_check_exits_2_and_notifies_the_mac(home: Path, store: MemoryStor
     monkeypatch.setattr(__main__, "KeychainStore", lambda: store)
     monkeypatch.setattr(__main__, "MacNotifier", lambda: seen)
     monkeypatch.setattr(__main__, "UrllibTransport", lambda: FakeTransport([json_response(400, REVOKED)]))
-    assert __main__.main(["--home", str(home), "google", "check", "--student", "s9"]) == 2
+    assert __main__.main(["--home", str(home), "google", "account", "check", "--student", "s9"]) == 2
     assert len(seen.texts) == 1 and "«student»" in seen.texts[0]
 
 
@@ -102,7 +102,7 @@ def test_the_sign_in_notice_refuses_a_configuration_without_the_wait(
     path.write_text(path.read_text().replace("wait_minutes = 60\n", ""))
     seen = Recorder()
     monkeypatch.setattr(__main__, "MacNotifier", lambda: seen)
-    assert __main__.main(["--home", str(tmp_path), "notice", "signin", "--student", "sample"]) == 1
+    assert __main__.main(["--home", str(tmp_path), "notice", "send-sign-in", "--student", "sample"]) == 1
     assert seen.texts == [] and "schedule.wait_minutes" in capsys.readouterr().err
 
 

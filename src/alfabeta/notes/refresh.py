@@ -73,7 +73,7 @@ def _when(value: object) -> dt.datetime | None:
 
 
 def record_of(data: Mapping[str, Any]) -> RefreshRecord:
-    """A record from its JSON; `exam prep`'s entries may lack `read_at`, and its record `session`."""
+    """A record from its JSON; `exam build`'s entries may lack `read_at`, and its record `session`."""
     sources = {
         str(source): SourceRead(str(read["read_md5"]), int(read.get("reads", 1)), _when(read.get("read_at")))
         for source, read in cast("dict[str, dict[str, Any]]", data.get("sources", {})).items()
@@ -150,7 +150,7 @@ def _living(state: Mapping[str, Any]) -> tuple[list[_Built], int]:
             record = records.get(str(kind))
             living = living_of(topic, kind, record)
             if record is None or living.source_id is None:
-                continue  # waiting for `notebook setup`: no source to read
+                continue  # waiting for `notebook prepare`: no source to read
             if Health(record.get("health", Health.OK)) != Health.OK:
                 missing += 1  # not read; FR-011's report covers it
             elif living.built_md5 is not None and living.source_id not in built:

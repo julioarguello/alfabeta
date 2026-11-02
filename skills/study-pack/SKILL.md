@@ -1,6 +1,6 @@
 ---
 name: study-pack
-description: Prepares a topic's study material inside its Gemini Notebook (NotebookLM) notebook — short explainer videos in Spanish per exam block, a practice sheet, quiz and flashcards in the subject's language, a bilingual glossary and a parent guide with a recomputed answer key — and prints the reports to A4 PDF in the topic's Drive folder; the day before an exam, alfabeta's `exam prep` asks the notebook for a theory sheet and a problems sheet and prints them. Use with «prepara el tema N de <asignatura>» (prepare topic N of <subject>), «el tema N ha terminado» (topic N is finished), «prepara el examen de <asignatura>» (prepare the exam of <subject>) or when Classroom shows material in a new topic.
+description: Prepares a topic's study material inside its Gemini Notebook (NotebookLM) notebook — short explainer videos in Spanish per exam block, a practice sheet, quiz and flashcards in the subject's language, a bilingual glossary and a parent guide with a recomputed answer key — and prints the reports to A4 PDF in the topic's Drive folder; the day before an exam, alfabeta's `exam build` asks the notebook for a theory sheet and a problems sheet and prints them. Use with «prepara el tema N de <asignatura>» (prepare topic N of <subject>), «el tema N ha terminado» (topic N is finished), «prepara el examen de <asignatura>» (prepare the exam of <subject>) or when Classroom shows material in a new topic.
 ---
 
 # Study pack — one topic, one notebook, a few pieces
@@ -49,17 +49,17 @@ email or an id into the repository.
   lesson whose heading covers it — pages on a new body system or chapter are usually a later lesson
   of the same textbook topic, not a new topic — and report it; move nothing on your own. A lesson
   a confirmed subtopic holds: the "what it adds" report, nothing more. A lesson no subtopic holds:
-  propose a subtopic, as one `subtopic` decision per subtopic (`alfabeta decisions propose`, origin
+  propose a subtopic, as one `subtopic` decision per subtopic (`alfabeta decision propose`, origin
   `<subject folder>/Tema NNX`, target `{"title": "<lesson title>", "lessons": "6"}`; on a first split, A too,
   with the lessons its blocks cover; re-proposing a rejected one at the next moment takes `origin_modified`,
-  the date the new material arrived, or it is ignored), confirmed by the family with `decisions confirm --type subtopic` (`Tema NNX - <lesson title>`; a lesson with no content of its own joins the
+  the date the new material arrived, or it is ignored), confirmed by the family with `decision confirm --type subtopic` (`Tema NNX - <lesson title>`; a lesson with no content of its own joins the
   next; lessons one scheme spans stay together). On a first split the existing `Tema NN` folder and
   its notebook are renamed `Tema NNA - …` and keep their pack, holding the lessons its blocks cover;
   later pieces for A are asked with their block as focus. Once the family confirms, make the
   new folder and notebook (its textbook source: only its own lessons, each language's file cut at its own lesson heading, `## Lección N:` / `## Ikasgaia N:`), move the
   pages there on the family's word, and run every step below for that subtopic alone. Never make
   again a piece of another subtopic, and never make a piece that spans subtopics, an exam's
-  included (FR-045: `exam prep` once per subtopic). Check the new pages' facts as in step 1
+  included (FR-045: `exam build` once per subtopic). Check the new pages' facts as in step 1
   (FR-046) and name each correction in the report. If the textbook in the subject's language lacks
   the new lessons, capture them before the summary, the quiz, the flashcards, the glossary or the
   parent guide (FR-041).
@@ -167,7 +167,7 @@ email or an id into the repository.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
    folder>/notebook/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
    (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
-   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam prep`
+   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam build`
    writes its own note under its moment, `EXAMEN <weekday> · Empieza aquí`. **Configure the tutor chat**
    ([`prompts.md`](prompts.md)).
 9b. **Generate the study guide** («Study guide — 0» in [`prompts.md`](prompts.md)) now that the
@@ -175,7 +175,7 @@ email or an id into the repository.
    with the plan you wrote, links included; regenerate at most three times (FR-040). Then rename it
    `0 · Guía de estudio · Empieza aquí` last, so it sits on top.
 
-   `exam prep` regenerates the theory guide when the notes changed after it, and never touches this
+   `exam build` regenerates the theory guide when the notes changed after it, and never touches this
    plan: a report whose title starts with `0 ·` is never taken for a guide (spec 002 FR-033).
 10. **Print the topic** for paper: `uv run --project <tools.repository> python
     <tools.repository>/skills/study-pack/scripts/print_pack.py topic <nb> "<topic folder>/notebook/Tema NN
@@ -200,7 +200,7 @@ Spec 002, User Story 7 (FR-029 to FR-037), and its [command contract](../../spec
 From julioarguello/alfabeta#106 on, alfabeta makes both sheets by itself, with no Claude:
 
 ```bash
-uv run --project <tools.repository> python -m alfabeta exam prep --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...
+uv run --project <tools.repository> python -m alfabeta exam build --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...
 ```
 
 An exam over several subtopics of a textbook topic (`Tema NNA`, `Tema NNB`…) takes one `--topic`
@@ -239,7 +239,7 @@ alfabeta makes them through the notebook. What that run measured:
 | Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
 | The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; whether the notebook finds them by itself is unmeasured), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | the table «Soluciones impresas que no cuadran», and the rounding rule in the prompt |
 | The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide made before the notes |
-| Nothing measured how the notebook does on these two prompts | the first run of `exam prep` is that measurement |
+| Nothing measured how the notebook does on these two prompts | the first run of `exam build` is that measurement |
 
 ## Measured behaviour of Gemini Notebook
 
@@ -270,6 +270,6 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
 - Show the student a wrong value from a teacher's key anywhere but the exam's problems sheet (its
   table of printed answers that do not match, and the solution of that same exercise), or name the
   teacher as wrong.
-- Write an exam sheet by hand: `exam prep` asks the notebook for it.
+- Write an exam sheet by hand: `exam build` asks the notebook for it.
 - Make a second notebook for the topic, or share the parent's material with the student.
 - Type a password. The family signs in.

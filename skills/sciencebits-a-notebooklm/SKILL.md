@@ -48,7 +48,7 @@ someone to sign in, and before each source `nlm` uploads: after `sync.lock_idle_
 released and the run stops as `idle`. Release it with `alfabeta lock release` at the end. A run that stops before
 placing anything (the session expired and nobody signs in again, a challenge page, an interface the steps do not
 describe, a timeout) stops the collector, `resize_window preset desktop`, and ends with
-`alfabeta log stop --reason session_expired|challenge|unexpected_ui|timeout`, which also releases the lock.
+`alfabeta log write-stop --reason session_expired|challenge|unexpected_ui|timeout`, which also releases the lock.
 
 ## Tools (in `$H`, copied from `scripts/`)
 - `discover_lessons.js` — on the unit page: `sem`, `rest` and `lessonId` of each lesson.
@@ -123,12 +123,12 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
    the repository's `specs/001-classroom-sync/contracts/cli.md`. From its JSON keep the `folder` (relative to
    `storage.base`), the files it `placed` (step 9 needs them) and `mirrors` (`up_to_date`, `failed`: a mirror that is
    not mounted or fails is caught up by the next run). If it exits 1, stop the collector, `resize_window preset
-   desktop` and say what happened; then end with `alfabeta log stop --reason drive_not_mounted` (or
+   desktop` and say what happened; then end with `alfabeta log write-stop --reason drive_not_mounted` (or
    `lock_not_held`) for those two reasons, and with `alfabeta lock release` for the others: `ambiguous_topic` (two
    folders of the subject are topic `Tema NN`: the family merges them, never you), `no_book` (no `[[subjects]]` entry
    with that folder, or it has no book), `invalid_topic`, `no_origin`, `nothing_to_place`, `name_clash` (two files
    would get one name), and `write_failed`, which records what it copied, so running it again completes it.
-9. **Gemini Notebook.** If `notebook.enabled` is false: `alfabeta log notebook --student <student> --topic "Tema NN -
+9. **Gemini Notebook.** If `notebook.enabled` is false: `alfabeta log write-notebook --student <student> --topic "Tema NN -
    <title>" --result disabled`, and go to step 10. Otherwise:
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
      profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**;
@@ -163,11 +163,11 @@ command with `--profile <notebook.nlm_profile>` (`login` included). Measured 202
      mirrors, so refresh each mounted one again as the study pack's step 9 does (`rsync -rlt --exclude .DS_Store
      "<storage.base>/" "<mirror>/"`, never `--delete`; one not mounted is skipped and reported by count).
    - Test: `nlm notebook query <id> "<short question>"`.
-   - `alfabeta log notebook --student <student> --topic "Tema NN - <title>" --result created|unchanged --shares
+   - `alfabeta log write-notebook --student <student> --topic "Tema NN - <title>" --result created|unchanged --shares
      <invited>,<already>,<failed>`: `unchanged` when the notebook already existed and no source was added or
      replaced, `created` otherwise; the three counts are over `notebook.share_with` (invited now, already listed,
      failed).
-   - If `nlm` fails: `uv tool upgrade notebooklm-mcp-cli` once; if it still fails, `alfabeta log notebook … --result
+   - If `nlm` fails: `uv tool upgrade notebooklm-mcp-cli` once; if it still fails, `alfabeta log write-notebook … --result
      failed --reason "<what failed, in a few words, with no id or address>" --shares <invited>,<already>,<failed>`
      with the counts reached so far, and tell the family the topic is in its folder but the notebook step failed.
      What step 8 placed stays as it is.

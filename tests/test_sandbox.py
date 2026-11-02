@@ -51,9 +51,9 @@ def test_the_sandbox_needs_an_explicit_home_and_never_the_real_one(tmp_path: Pat
 def test_download_carries_the_run_in_name_and_field(tmp_path: Path):
     home = tmp_path / "box"
     cli("--home", str(home), "sandbox", "prepare")
-    without = cli("--home", str(home), "sandbox", "download", "--student", "sample", "--captures")
+    without = cli("--home", str(home), "sandbox", "stage", "--student", "sample", "--captures")
     assert without.returncode == 1 and "ALFABETA_RUN" in without.stderr
-    done = cli("--home", str(home), "sandbox", "download", "--student", "sample", "--captures", run="r42")
+    done = cli("--home", str(home), "sandbox", "stage", "--student", "sample", "--captures", run="r42")
     assert done.returncode == 0, done.stderr
     written = json.loads(done.stdout)["written"]
     assert len(written) == len(list(sandbox.FIXTURES.glob("*.json")))
@@ -81,7 +81,7 @@ def test_prepare_leaves_attachments_and_decisions(tmp_path: Path):
 def test_download_batch_needs_a_plan(tmp_path: Path):
     home = tmp_path / "box"
     cli("--home", str(home), "sandbox", "prepare")
-    done = cli("--home", str(home), "sandbox", "download", "--student", "sample", "--batch", "0", run="r42")
+    done = cli("--home", str(home), "sandbox", "stage", "--student", "sample", "--batch", "0", run="r42")
     assert done.returncode == 1 and "no plan" in done.stderr
 
 
@@ -89,5 +89,5 @@ def test_download_without_a_flag_is_batch_0(tmp_path: Path):
     # contracts/cli.md: `(--captures | [--batch N])`; quickstart scenario 2 calls it with neither.
     home = tmp_path / "box"
     cli("--home", str(home), "sandbox", "prepare")
-    done = cli("--home", str(home), "sandbox", "download", "--student", "sample", run="r42")
+    done = cli("--home", str(home), "sandbox", "stage", "--student", "sample", run="r42")
     assert done.returncode == 1 and "no plan" in done.stderr

@@ -273,15 +273,15 @@ def test_a_changed_match_moves_the_replicas_without_copies(box: Box):
             }
         )
     )
-    assert box("decisions", "propose", "--student", "sample", "--file", str(proposal)).returncode == 0
+    assert box("decision", "propose", "--student", "sample", "--file", str(proposal)).returncode == 0
     assert (
-        box("decisions", "confirm", "--student", "sample", "--type", "topic_match", "--origin", "synth-10").returncode
+        box("decision", "confirm", "--student", "sample", "--type", "topic_match", "--origin", "synth-10").returncode
         == 0
     )
     box.apply()
     before = box.files()
     assert f"{BOOK}/20261006 - Ficha inventada de mezclas/enunciado - ficha-inventada.pdf" in before
-    change = ("decisions", "change", "--student", "sample", "--type", "topic_match", "--origin", "synth-10")
+    change = ("decision", "update-target", "--student", "sample", "--type", "topic_match", "--origin", "synth-10")
     assert box(*change, "--target", OTHER_BOOK_TOPIC).returncode == 0
     result, _ = box.apply()
     after = box.files()

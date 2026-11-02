@@ -130,7 +130,7 @@ def _settled(item: str, digest: str, in_force: list[Decision]) -> bool:
     """Whether a decision in force was taken on this text of `item`.
 
     A rejected dismissal does not count, and a decision on an older text counts only if the family
-    corrected that exam (contracts/cli.md, `decisions propose`).
+    corrected that exam (contracts/cli.md, `decision propose`).
     """
     corrected = {d.origin for d in in_force if d.type == DecisionType.EXAM_CORRECTION}
     dismissed = any(

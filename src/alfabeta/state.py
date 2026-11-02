@@ -168,7 +168,7 @@ class Lock:
         return lease
 
     def record_classes(self, run: str | None, classes: list[str]) -> dict[str, Any]:
-        """Add to the lease the classes whose captures `downloads collect` moved, and renew it."""
+        """Add to the lease the classes whose captures `download collect` moved, and renew it."""
         lease = self.require(run)
         known = list(lease.get("classes", []))
         lease["classes"] = known + [c for c in classes if c not in known]

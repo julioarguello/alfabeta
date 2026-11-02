@@ -168,7 +168,7 @@ class RunResult(StrEnum):
 
 
 class StopReason(StrEnum):
-    """Why a run stopped or was partial (contracts/cli.md, `log stop`)."""
+    """Why a run stopped or was partial (contracts/cli.md, `log write-stop`)."""
 
     SESSION_EXPIRED = "session_expired"
     CHALLENGE = "challenge"
@@ -255,7 +255,7 @@ class Decision:
     def moved_to(self, state: DecisionState, on: dt.date) -> Decision:
         """The same decision in `state`, if the transition is allowed."""
         # A detected exam or dismissed candidate counts while proposed, so a change in its source text
-        # supersedes it straight from there (contracts/cli.md, `decisions propose`).
+        # supersedes it straight from there (contracts/cli.md, `decision propose`).
         reopened = (
             self.state == DecisionState.PROPOSED
             and state == DecisionState.SUPERSEDED

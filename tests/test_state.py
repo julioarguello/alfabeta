@@ -195,20 +195,20 @@ def test_a_dead_watcher_leaves_no_lock(home: Path):
 @pytest.mark.parametrize("reason", [r for r in StopReason if r != StopReason.IDLE])
 def test_log_stop_writes_every_listed_reason(home: Path, reason: StopReason):
     (home / "s9" / "config.toml").write_text("not toml at all [")
-    done = cli(home, "log", "stop", "--student", "s9", "--reason", str(reason))
+    done = cli(home, "log", "write-stop", "--student", "s9", "--reason", str(reason))
     assert done.returncode == 0, done.stderr
     assert [(line["result"], line["reason"]) for line in log_lines(home)] == [("stopped", str(reason))]
 
 
 @pytest.mark.parametrize("reason", ["idle", "porque_si"])
 def test_log_stop_rejects_a_reason_not_in_the_list(home: Path, reason: str):
-    assert cli(home, "log", "stop", "--student", "s9", "--reason", reason).returncode == 1
+    assert cli(home, "log", "write-stop", "--student", "s9", "--reason", reason).returncode == 1
     assert log_lines(home) == []
 
 
 def test_log_stop_releases_its_own_run(home: Path):
     run = json.loads(take(home).stdout)["run"]
-    assert cli(home, "log", "stop", "--student", "s9", "--reason", "challenge", run=run).returncode == 0
+    assert cli(home, "log", "write-stop", "--student", "s9", "--reason", "challenge", run=run).returncode == 0
     assert not lock_of(home).held()
     [line] = log_lines(home)
     assert (line["run"], line["mode"], line["reason"]) == (run, "interactive", "challenge")
@@ -217,7 +217,7 @@ def test_log_stop_releases_its_own_run(home: Path):
 def test_the_log_never_carries_the_name_or_an_address(home: Path):
     run = json.loads(take(home).stdout)["run"]
     take(home)
-    cli(home, "log", "stop", "--student", "s9", "--reason", "session_expired", run=run)
+    cli(home, "log", "write-stop", "--student", "s9", "--reason", "session_expired", run=run)
     text = (home / "s9" / "data" / "log.jsonl").read_text()
     assert len(text.splitlines()) == 2
     assert NAME not in text and ADDRESS not in text and "@" not in text

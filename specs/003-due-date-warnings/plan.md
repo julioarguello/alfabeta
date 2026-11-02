@@ -91,7 +91,7 @@ constitution 2.2.0.
 | VIII. `Europe/Madrid` | Instants are built with `ZoneInfo("Europe/Madrid")`; reminder minutes are differences of instants; events carry `timeZone: "Europe/Madrid"`; tests at both changes | Pass |
 | IX. Simplicity | Standard library only; no new dependency; one subpackage; one key added to an existing contract | Pass |
 
-Re-checked after Phase 1: unchanged. The agenda change is additive, so spec 002's `exam prep`, which
+Re-checked after Phase 1: unchanged. The agenda change is additive, so spec 002's `exam build`, which
 reads the agenda by key, is unaffected ([research R1](research.md#r1--the-input-the-agenda-plus-one-key)).
 
 ## Project Structure
@@ -174,7 +174,7 @@ before its code; its proof is a quickstart step.
 
 1. **Facts on the timetable.** Covers US7 and FR-003, FR-004, FR-012, FR-013, FR-018, FR-022, FR-023,
    FR-024, SC-005, SC-009, SC-010. The agenda's `posted`, the timetable keys, placement, owned events,
-   `calendar sync` (a dry run unless `--apply`) and `calendar legacy`. Postings and due dates are
+   `calendar sync` (a dry run unless `--apply`) and `calendar delete-legacy`. Postings and due dates are
    written with no reminders, and every due-date event reads «Entrega ·» or «Entregado ·». Done
    when quickstart steps 1–4 pass. Blocked by gate 1.
 2. **Warnings by the lead-time rule.** Covers US1, US2, US3 and FR-005…FR-011, FR-012a, FR-020,
@@ -187,9 +187,9 @@ before its code; its proof is a quickstart step.
 4. **"For Thursday" read from the title.** Covers US5 and FR-016, FR-017, SC-004. Done when step 7's
    replay infers exactly one date. Blocked by slice 2: the proof is a replay, and an inferred due is
    warned by the rule.
-5. **In every run, with delivery on record.** Covers US6 and FR-002, FR-019. `calendar delivery`,
-   `calendar sharing` (research R13), the delivery and sharing lines of every run, and the sync run calling `calendar sync --apply` after the agenda
-   and after `google check`. Done when step 8 shows the run's delivery line and a broken link
+5. **In every run, with delivery on record.** Covers US6 and FR-002, FR-019. `calendar set-delivery`,
+   `calendar set-sharing` (research R13), the delivery and sharing lines of every run, and the sync run calling `calendar sync --apply` after the agenda
+   and after `google account check`. Done when step 8 shows the run's delivery line and a broken link
    stopping only the calendar. Blocked by slice 2 and gate 2 (julioarguello/alfabeta#120).
 6. **Warnings switched on.** The family step of SC-003 and SC-006: the operator accepts the replay's
    counts, the delivery check is on record, and `warnings = true` is set. Done when step 9's first
@@ -201,4 +201,4 @@ before its code; its proof is a quickstart step.
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
 | A change to another spec's contract (`agenda.json` gains `posted`, version 2) | FR-007's start date is the posting date, which the agenda does not carry for an assignment | Reading `data/state.json` couples the calendar to spec 001's internal state, which the agenda exists to hide; spec 001 names the agenda as this epic's input |
-| A deletion path (`calendar legacy --apply`) in a project whose principle V forbids deleting what left the origin | The family calendar holds all-day events that the chat connector wrote before spec 004; they break FR-023 and would show every fact twice | Deleting them by hand is the operator's work, which the operator declined for this project; deleting every foreign event would remove what the family added. Only events matched one-to-one to an owned event of the same fact go, on command, never in a run |
+| A deletion path (`calendar delete-legacy --apply`) in a project whose principle V forbids deleting what left the origin | The family calendar holds all-day events that the chat connector wrote before spec 004; they break FR-023 and would show every fact twice | Deleting them by hand is the operator's work, which the operator declined for this project; deleting every foreign event would remove what the family added. Only events matched one-to-one to an owned event of the same fact go, on command, never in a run |

@@ -40,7 +40,7 @@ def state_of(drive: MemoryDrive) -> dict[str, Any]:
 
 
 def set_up(drive: MemoryDrive) -> str:
-    """What `notebook setup` leaves: a notes living file in the topic's `notes/`, recorded."""
+    """What `notebook prepare` leaves: a notes living file in the topic's `notes/`, recorded."""
     living = drive.put("vivo-1", "Apuntes · Tema 01 - Materia inventada.pdf", "application/pdf", b"vacio")
     store = DriveNotesStateStore(drive)
     state = store.load()
@@ -307,7 +307,7 @@ TEMA_01, TEMA_02 = "Tema 01 - Materia inventada", "Tema 02 - Otra materia"
 
 
 def classroom_set_up(drive: MemoryDrive, topic: str = TOPIC, folder: str = CLASSROOM, name: str = TEMA_01) -> str:
-    """What `notebook setup` leaves: the topic's Classroom living file in its `classroom/`, recorded."""
+    """What `notebook prepare` leaves: the topic's Classroom living file in its `classroom/`, recorded."""
     living = drive.put(f"vivo-{topic}", f"Classroom · {name}.pdf", PDF_MIME, b"vacio", parent=folder)
     store = DriveNotesStateStore(drive)
     state = store.load()

@@ -1,4 +1,4 @@
-"""US6 (spec 001 T060): announcements and the grading, placed by `apply` in the sandbox."""
+"""US6 (spec 001 T060): announcements and the grading, placed by `classroom apply` in the sandbox."""
 
 from __future__ import annotations
 
