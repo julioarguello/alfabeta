@@ -112,6 +112,8 @@ names and response shapes are a starting point, not a measurement of this accoun
 - **Amendment of 2026-11-02 (commands, portability, credentials)**: `tests/test_cli_naming.py` lists
   the four `classroom` commands as planned and adds the verbs `capture` and `sign-in`;
   `classroom refresh` uses the existing `refresh`, and `sync` keeps its one meaning.
+- **Plan of 2026-11-02**: FR-015 and FR-016 name `classroom agent install|uninstall`, which installs
+  the launchd agent and the launcher; `tests/test_cli_naming.py` lists them as planned.
 
 ## Clarifications
 
@@ -364,9 +366,12 @@ arrives.
   `classroom refresh` (FR-022) instead of the desktop app's scheduled task of spec 001 FR-021a, and only if the Mac is
   awake; a time missed while it slept is logged and not made up outside those hours. This switch and
   spec 001's unattended runner (FR-032) MUST NOT both be on for one student: the configuration check
-  reports it.
+  reports it. The family installs the launchd agent that runs those times with
+  `classroom agent install --student <id>` and removes it with `classroom agent uninstall --student <id>`,
+  as spec 005's `notebook agent` (plan, 2026-11-02).
 - **FR-016**: The family MUST be able to start a read at any time with `classroom refresh`, and by opening
   a launcher on the Mac that runs it, which the notice's link and the remote view can open.
+  `classroom agent install` also puts the launcher in place, and `classroom agent uninstall` removes it.
 - **FR-017**: A launch while a read for that student is running or waiting for its sign-in MUST NOT
   start another; it tells the family one is under way (the browser lock of FR-021a), and, while the
   sign-in waits, brings its window to the front — so the notice's link does the same whether or not

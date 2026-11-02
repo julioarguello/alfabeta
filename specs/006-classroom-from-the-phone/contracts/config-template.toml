@@ -1,0 +1,23 @@
+# Spec 006's additions to config/template.toml (FR-019), declared there when the code lands.
+
+[classroom]
+# (existing) Email address of the school account. The read compares it, in memory, with the account
+# the Classroom page declares before any call (spec 006 FR-006); never in a URL, a log or an email.
+account = "changeme@example.org"
+# Spec 006: read Classroom on the Mac with alfabeta's own commands, from the read profile, with no
+# app open (classroom refresh, its launchd agent and launcher). Cannot be true together with spec
+# 001's unattended runner for this student: config check reports it.
+profile_read = false
+# Spec 006: alias of the [google.accounts.<alias>] table, role "family", whose account sends the
+# family the sign-in notice and the read's result, to itself (FR-013, FR-014).
+notice_account = "changeme"         # e.g. "family"
+
+# Spec 004 as amended by spec 006: a family account linked only to send those notices.
+[google.accounts.changeme]
+role = "family"
+address = "changeme@example.com"
+scopes = [
+  "https://www.googleapis.com/auth/gmail.send",
+  "openid",
+  "email",
+]
