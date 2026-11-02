@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,13 +31,19 @@
 
 ## Notes
 
-- One marker is open, in FR-001: whether the read runs on the family's Mac, as constitution IX
-  stands, or on a dedicated always-on machine at home, which needs IX amended first (a principle
-  change the operator must ask for). It is the operator's decision and blocks planning.
+- The first draft's one marker (FR-001: the Mac or a dedicated machine at home) was answered by the
+  operator on 2026-11-02 and is recorded under Clarifications: the read runs on the Mac, as
+  constitution IX stands; the link reaches it from the phone through a remote view.
+- An independent review of the first draft found six blocking findings; this version answers them:
+  the measured table now says only what the repo records, with what is not measured listed for the
+  plan's spikes; the notice channel is an email from a `family` account that spec 004 now allows;
+  the amendments the read needs (constitution Technical constraints, spec 001 FR-006, spec 004
+  FR-004 and FR-005) are made in the same pull request; the scope no longer contradicts FR-001; the
+  sign-in window is not driven by alfabeta, and the guard covers the whole read; and a per-student
+  switch says which read `[schedule]` starts.
 - The table "What was measured before writing this" names what each fact was observed with, as in
   spec 005. The requirements name the services the family uses (their Google account, a remote view
-  through it) and the existing alfabeta pieces they build on (spec 001's capture, FR-021a, R4, R18),
-  not how they are called. The one product named, Chrome Remote Desktop, is in Assumptions as the
-  family's own Google service for the remote view.
+  through it) and the existing alfabeta pieces they build on, not how they are called. The one
+  product named, Chrome Remote Desktop, is in Assumptions as the family's own Google service.
 - The peer project lifecoderua/classroom-advisor (MIT) is a reference for the pattern; nothing of it
   is a measurement of this account, and FR-004 requires the allowlist to be recorded here first.

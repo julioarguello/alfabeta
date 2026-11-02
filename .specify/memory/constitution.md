@@ -220,9 +220,13 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   reads either as a first-party client with a token, or with a headless browser whose session the
   family started by hand — using a secret in the vault (II). On the Mac, alfabeta's own commands may
   also run from a launchd agent in the family's user session, with no app open, when a spec names
-  the need (spec 005: the notebook owner's refresh, FR-018); such an agent uses the secrets already
-  on the Mac and adds none. Python 3.12 for the scripts; JavaScript only inside the browser, to
-  extract pages.
+  the need (spec 005: the notebook owner's refresh, FR-018; spec 006: the Classroom read the family
+  signs in to); such an agent uses the secrets already on the Mac and adds none. Spec 006's read
+  uses a browser profile alfabeta keeps for the student in the data folder (II): the family signs it
+  in by hand in a window alfabeta starts and does not drive, and alfabeta reads with that session
+  only through the browser guard of IV, never storing or typing a credential. That session is a
+  secret on the Mac like the browser session above, and never leaves it. Python 3.12 for the
+  scripts; JavaScript only inside the browser, to extract pages and to guard them.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
@@ -311,4 +315,4 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.5.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-31
+**Version**: 2.6.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-02

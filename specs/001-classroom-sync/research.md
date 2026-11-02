@@ -748,14 +748,19 @@ against this account; the one account check is marked as the operator's.
   (about 4 and 9.5), consistent with a different admin setting — not a contradiction. The number
   cannot be read from the session cookie (its stored expiry is months/years; invalidation is
   server-side), so it stays an empirical measure.
-  **Measured 2026-11-01 (operator's Mac, a fresh dedicated browser profile, hand sign-in, read
-  only):** two arms ran in parallel from one sign-in at 20:12 — one reloaded the Classroom home page
-  every 30 minutes, one was left untouched. The reloaded arm read alive at 20:12 and 20:42 and landed
-  on Google's sign-in page at 21:12; the untouched arm was signed out too. So the session died within
-  the hour (matching R16), the 20:42 reload did not extend it, and both arms expired in the same
-  window: the timeout reads as absolute (about one hour from sign-in), not idle-based, so reloading
-  more often would not keep it alive. One night, one domain; a probe every 5 minutes would settle
-  absolute-versus-idle beyond doubt, but the two arms dying together already point one way.
+  **Measured 2026-11-01 (operator's Mac, read only):** a small probe kept a fresh browser profile
+  of its own. The family signed in by hand at 20:12 in a visible browser window the probe itself had
+  started, and Google accepted it; every 30 minutes the probe then opened that profile with no window
+  on screen (headless) and loaded only the Classroom home page, reading no class. It read the
+  session alive at 20:12 and 20:42 and landed on Google's sign-in page at 21:12. Alive 30 minutes
+  after one load and dead 30 minutes after the next cannot both hold for a timeout that counts from
+  the last activity, if a page load counts as activity: the timeout reads as absolute, between 30
+  and 60 minutes from the sign-in (R16 saw the session alive 54 minutes in), so reloading more often
+  would not keep it alive. A second, untouched session, signed in by hand in a separate profile of
+  the family's everyday Chrome at a time not recorded, was found signed out the next morning, which
+  says nothing about its timing. Correction: the first wording of this paragraph (#165) said both
+  sessions expired in the same window; only the probe's time of death was measured. One session,
+  one domain; a probe every 5 minutes would settle absolute-versus-idle beyond doubt.
   **Consequence:** an unattended web reader cannot hold this domain's Classroom session; every run
   needs a human sign-in within the hour before it. That is the route FR-021a and #163 already
   specify (the run notifies and waits for the family's sign-in). The per-event notification emails

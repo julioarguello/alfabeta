@@ -576,8 +576,11 @@ test.
   tested in it. For a student with the unattended runner enabled (User Story 7), the scheduled read
   is the runner's — the token route's API calls, or the web route's headless browser (FR-032a,
   FR-032b) — with the secret the family placed in the vault (FR-033); the full sync keeps this
-  paragraph. On this interactive route, no tool types credentials; the runner's sign-in is governed
-  by the amended constitution III and FR-033.
+  paragraph. For a student with spec 006's read switched on, the scheduled read is spec 006's,
+  from the browser profile alfabeta keeps for the student on the Mac, which the family signs in to
+  by hand; the full sync launched with a request to Claude keeps this paragraph. On this interactive
+  route, no tool types credentials; the runner's sign-in is governed by the amended constitution III
+  and FR-033.
 - **FR-007**: alfabeta MUST NOT turn in, comment, mark as done, change any status or open
   a quiz or a form in Classroom. The only pages it navigates to are: the home
   page (class list), «Trabajo de clase», the stream and the detail page of each assignment,
