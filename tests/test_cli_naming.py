@@ -50,7 +50,7 @@ GROUPS = {
 }
 SUBGROUPS = {
     "account": "a linked Google account",
-    "agent": "the launchd agent of `notebook refresh`",
+    "agent": "a launchd agent that runs a command with no app open (`notebook refresh`, `classroom refresh`)",
     "probe": "a test calendar event",
 }
 # Verbs: one meaning each, CLI-wide. A leaf is a verb, or `<verb>-<object>` when the group has
@@ -121,6 +121,8 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("classroom", "refresh"): "spec 006 FR-022",
     ("classroom", "capture"): "spec 006 FR-023",
     ("classroom", "status"): "spec 006 FR-024",
+    ("classroom", "agent", "install"): "spec 006 FR-015, plan",
+    ("classroom", "agent", "uninstall"): "spec 006 FR-015, plan",
 }
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {
@@ -305,6 +307,13 @@ def _resolve(tokens: list[str], *, explicit: bool) -> str | None:
         elif _WORD.fullmatch(word) and path:
             if (*path, word) in PLANNED:
                 return None
+            if any(p[: len(path) + 1] == (*path, word) for p in PLANNED):  # a planned subgroup
+                after = words[1:2]
+                if after and after[0].startswith("--"):
+                    return f"{' '.join((*path, word))}: a group needs a verb before {after[0]}"
+                if not after or not _WORD.fullmatch(after[0]) or (*path, word, after[0]) in PLANNED:
+                    return None
+                return f"{' '.join((*path, word))}: a planned subgroup, but no planned {after[0]!r}"
             return f"{' '.join(path)}: no subcommand {word!r}"
         else:
             return None  # a placeholder, a wildcard or prose: not a command
@@ -348,6 +357,9 @@ def test_every_written_command_exists() -> None:
         "python -m alfabeta guardrail --all",  # a group that now needs its verb
         "python -m alfabeta exam prep --student x",  # an old verb in an explicit call
         "python -m alfabeta anonymize in out",  # an old top-level command
+        "`classroom agent start --student <id>`",  # a planned subgroup, an unplanned verb
+        "`classroom robot install --student <id>`",  # neither built nor planned
+        "`classroom agent --student <id>`",  # a planned subgroup that needs its verb
     ],
 )
 def test_the_written_command_check_fires(line: str) -> None:
@@ -363,6 +375,9 @@ def test_the_written_command_check_fires(line: str) -> None:
         "`classroom plan --student <id> [--subject <folder>]…`",  # the real command
         "python -m alfabeta <command>",  # a placeholder
         "`calendar sync --student <id> [--apply]`",  # planned by spec 003
+        "`classroom agent install --student <id>`",  # a planned subgroup's planned verb, spec 006
+        "`classroom agent install|uninstall`",  # its verbs listed
+        "`classroom agent`",  # a planned subgroup named on its own
     ],
 )
 def test_the_written_command_check_spares(line: str) -> None:
