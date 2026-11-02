@@ -281,6 +281,13 @@ def test_the_three_exam_texts_are_in_prompts_md_and_every_placeholder_is_filled(
         }
 
 
+def test_every_placeholder_of_prompts_md_is_declared_in_its_table_and_every_declared_one_is_used():
+    text = prompts.PROMPTS.read_text()
+    blocks = "".join(re.findall(r"^```text\n(.*?)\n^```", text, flags=re.MULTILINE | re.DOTALL))
+    declared = set(re.findall(r"^\| `\{(\w+)\}` \|", text, flags=re.MULTILINE))
+    assert set(re.findall(r"\{(\w+)\}", blocks)) == declared
+
+
 def test_a_value_is_never_read_again_for_placeholders_and_a_missing_one_raises():
     assert (
         prompts.fill("A {scope} B {slot}", {"scope": "{slot} {x}", "slot": "90 minutos"}) == "A {slot} {x} B 90 minutos"

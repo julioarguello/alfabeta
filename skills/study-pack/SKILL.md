@@ -95,7 +95,9 @@ email or an id into the repository.
      textbook's lessons and Classroom's items are hung from a branch, never the other way round.
      What no branch holds goes to the nearest branch or to a line apart; a branch no source
      explains is a question for the family. Every prompt's `{block}` and every piece's title then
-     names its branch, so the student finds it on his own page.
+     names its branch, so the student finds it on his own page, and every prompt's `{scheme}`
+     ([`prompts.md`](prompts.md)) carries the scheme and branch `bloques.md` names — empty when the
+     notes hold none, so the prompt reads as before.
    - **Before showing the blocks, map the sources.** Make the mind map first —
      `NOTEBOOKLM_HL=es nlm mindmap create <nb> -y`, the one piece made before confirmation: it takes
      no focus, so it reads the sources, not the blocks — and wait for it. Every lesson of the
