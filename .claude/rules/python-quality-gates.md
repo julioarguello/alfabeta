@@ -5,7 +5,7 @@ paths:
   - "Makefile"
   - ".github/workflows/**"
 ---
-<!-- Adapted on 2026-11-02 from Server Startup's shared rule rules/python-quality-gates.md (private repository); edit here, this copy is alfabeta's own. -->
+<!-- Adapted on 2026-11-02 from Server Startup's shared Python and CLI rules; edit here, this copy is alfabeta's own. -->
 
 # Python Quality Gates
 

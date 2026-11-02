@@ -3,7 +3,7 @@ paths:
   - "tests/**"
   - ".github/workflows/**"
 ---
-<!-- Adapted on 2026-11-02 from Server Startup's shared rule rules/python-test-cost.md (private repository); edit here, this copy is alfabeta's own. -->
+<!-- Adapted on 2026-11-02 from Server Startup's shared Python and CLI rules; edit here, this copy is alfabeta's own. -->
 
 # The Cost of a pytest CI Job
 

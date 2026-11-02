@@ -111,7 +111,6 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("calendar", "set-sharing"): "spec 003 contracts/cli.md",
     ("calendar", "delete-legacy"): "spec 003 contracts/cli.md",
     ("drive", "migrate"): "spec 004 contracts/cli.md",
-    ("classroom", "status"): "spec 006",
 }
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {

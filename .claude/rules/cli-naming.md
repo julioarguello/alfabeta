@@ -29,7 +29,7 @@ python -m alfabeta [--home <dir>] <group> [<subgroup>] <verb>[-<object>] [--opti
 - **Verb**: from the closed list, one meaning CLI-wide. No synonyms (`update`, never `change`
   beside `correct`), no vague verbs (`run`), no abbreviations (`prep`). A leaf never shares a
   group's name.
-- **Aggregates drop the verb**: a status view (`classroom status`, spec 006) is the only leaf
+- **Aggregates drop the verb**: a status view (none exists yet; the test's `AGGREGATES`) is the only leaf
   that is not a verb.
 - **Kebab-case** everywhere; **long options only** (`--student`, no `-s`); a secret is never an
   option (keychain or stdin); every command about a student takes `--student`.

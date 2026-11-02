@@ -18,7 +18,7 @@ paths:
   - "tests/test_sandbox.py"
   - "tests/test_state.py"
 ---
-<!-- Adapted on 2026-11-02 from Server Startup's shared rule rules/python-cli.md (private repository); edit here, this copy is alfabeta's own. -->
+<!-- Adapted on 2026-11-02 from Server Startup's shared Python and CLI rules; edit here, this copy is alfabeta's own. -->
 
 # Python CLI — Commands, Options, Parsing
 
@@ -47,8 +47,8 @@ a shared flag goes in that command's `help=`/description, not in the shared help
 
 `{group} {verb}`, group a **noun** of the domain, verb what happens (`lock take`,
 `decision confirm`, `book place`); a verb that could mean two things names its object or
-destination once a second object is conceivable. Aggregates drop the verb (a status view, such as
-spec 006's `classroom status`). alfabeta's grammar and closed verb list are in `cli-naming.md`.
+destination once a second object is conceivable. Aggregates drop the verb (a status view;
+none exists yet). alfabeta's grammar and closed verb list are in `cli-naming.md`.
 
 Rename in-branch, with tests, the spec's `contracts/cli.md` and the skills that call it, and
 **never ship a compatibility alias** — a second name for one concept is what the vocabulary

@@ -2,7 +2,7 @@
 paths:
   - "**/*.py"
 ---
-<!-- Adapted on 2026-11-02 from Server Startup's shared rule rules/python.md (private repository); edit here, this copy is alfabeta's own. -->
+<!-- Adapted on 2026-11-02 from Server Startup's shared Python and CLI rules; edit here, this copy is alfabeta's own. -->
 
 # Python Standards
 

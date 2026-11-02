@@ -18,7 +18,7 @@ paths:
   - "tests/test_sandbox.py"
   - "tests/test_state.py"
 ---
-<!-- Adapted on 2026-11-02 from Server Startup's shared rule rules/python-cli-output.md (private repository); edit here, this copy is alfabeta's own. -->
+<!-- Adapted on 2026-11-02 from Server Startup's shared Python and CLI rules; edit here, this copy is alfabeta's own. -->
 
 # Python CLI — Output, Errors, Version
 
