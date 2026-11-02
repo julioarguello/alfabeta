@@ -405,10 +405,12 @@ arrives.
   opening a window.
 - **FR-024**: `classroom status --student <id>` MUST say whether the profile's session is alive (one
   guarded load of a Classroom page), when the last read ran and how it ended, writing nothing in the
-  student's folder or the log. When the lock is held it says a read is under way and loads no page.
+  student's Drive folder or the run log (its only write is the lock of FR-024a, under `data/`). When the lock is held it says a read is under way and loads no page.
 - **FR-024a**: All four commands MUST take the student's lock and the Mac's browser lock (spec 001
   FR-021a) before they touch the read profile, so the profile is never open twice (FR-002); a
-  command that finds them held stops with `lock_busy`, except `classroom status` (FR-024).
+  command that finds them held by another run stops with `lock_busy`, except `classroom status`
+  (FR-024); the same run (`ALFABETA_RUN`, as spec 001's commands check) goes on, so
+  `classroom refresh` runs `sign-in` and `capture` inside its own lock.
 
 **Portability and credentials**
 
