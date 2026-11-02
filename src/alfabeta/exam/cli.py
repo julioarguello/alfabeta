@@ -15,7 +15,7 @@ import time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from alfabeta import config, decisions
+from alfabeta import config, decisions, mirror
 from alfabeta.exam import prompts
 from alfabeta.exam.drive import DriveLivingNotes
 from alfabeta.exam.nlm import NlmError, NlmNotebook
@@ -34,7 +34,7 @@ from alfabeta.exam.prep import (
     find_exam,
     topic_folders,
 )
-from alfabeta.exam.printing import PrintPack, refresh_mirrors
+from alfabeta.exam.printing import PrintPack
 from alfabeta.notes.run import topic_name
 
 if TYPE_CHECKING:
@@ -68,7 +68,7 @@ def exam_deps(cfg: config.StudentConfig, store: TokenStore) -> ExamDeps:
         notebook=NlmNotebook(cfg.nlm_profile),
         living=DriveLivingNotes(cfg, store),
         printer=PrintPack(cfg.nlm_profile),
-        mirrors=lambda: refresh_mirrors(cfg.base, cfg.mirrors),
+        mirrors=lambda: len(mirror.sync(cfg.base, cfg.mirrors)["failed"]),
         sleep=time.sleep,
         now=lambda: dt.datetime.now(MADRID),
     )

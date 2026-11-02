@@ -320,20 +320,6 @@ def test_the_mirrors_are_brought_up_to_date(box: Box, tmp_path: Path):
     assert str(mirror) not in done.stdout + done.stderr
 
 
-def test_a_mirror_that_is_not_mounted_is_counted_never_named(tmp_path: Path):
-    calls: list[list[str]] = []
-
-    def runner(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
-        calls.append(argv)
-        return subprocess.CompletedProcess(argv, 0, "", "")
-
-    mounted = tmp_path / "mounted"
-    mounted.mkdir()
-    counts = book.refresh(tmp_path / "base", [mounted, tmp_path / "absent"], runner)
-    assert counts == {"up_to_date": 1, "failed": 1}
-    assert calls == [["rsync", "-rlt", "--exclude", ".DS_Store", f"{tmp_path / 'base'}/", f"{mounted}/"]]
-
-
 @dataclass
 class InventedBook:
     """A third, invented book provider: its own subfolder, its own files, nothing else."""

@@ -18,8 +18,6 @@ from pypdf.errors import PdfReadError
 from alfabeta.google.keychain import run_command
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from alfabeta.google.keychain import Runner
 
 PRINT_PACK = Path(__file__).resolve().parents[3] / "skills" / "study-pack" / "scripts" / "print_pack.py"
@@ -50,15 +48,3 @@ class PrintPack:
             return len(PdfReader(pdf).pages)
         except (OSError, PdfReadError):
             return None
-
-
-def refresh_mirrors(base: Path, mirrors: Iterable[Path], runner: Runner = run_command) -> int:
-    """Bring every mirror up to date from the base folder; how many were not."""
-    failed = 0
-    for mirror in mirrors:
-        if not mirror.is_dir():
-            failed += 1
-            continue
-        done = runner(["rsync", "-rlt", "--exclude", ".DS_Store", f"{base}/", f"{mirror}/"], None)
-        failed += done.returncode != 0
-    return failed

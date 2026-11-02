@@ -27,6 +27,7 @@ from alfabeta import (
     decisions,
     downloads,
     guardrail,
+    mirror,
     plan,
     replicas,
     sandbox,
@@ -209,7 +210,7 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
         return _fail("write_failed", EXIT_INVALID, "a file could not be written in the base folder; run it again")
     if placer.state != current:
         store.save(placer.state)
-    mirrors = book.refresh(cfg.base, cfg.mirrors)
+    mirrors = mirror.counts(mirror.sync(cfg.base, cfg.mirrors))
     result = "placed" if placer.placed else "unchanged"
     store.log(line | {"result": result, "mirrors": mirrors})
     print(
@@ -412,6 +413,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) ->
     # with one line per report the cloud left in Drive (spec 005 T036).
     reports = _list_reports(cfg, lock.data_dir, keychain)
     agenda_written = _agenda_builder(cfg, lock.data_dir, applier.state, reports).write(cfg.base)
+    # Whatever was placed reaches the student's other Drives, even in a partial run (FR-011a).
+    mirrored = mirror.sync(cfg.base, cfg.mirrors)
     if args.stopped and not stopped:
         stopped = {"": args.stopped}  # the class it never finished left no capture to name it
     partial = bool(stopped)
@@ -431,12 +434,15 @@ def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) ->
         "unknown_statuses": applier.unknown_statuses,
         "pending_decisions": len(planned.get("pending_decisions", [])),
         "full_review": bool(planned.get("full_review")),
+        "mirrors": mirror.counts(mirrored),
     }
     store_log.log(line)
     for text in _summary(applier, list(planned.get("pending_decisions", [])), stopped, agenda_written):
         print(f"alfabeta: {text}", file=sys.stderr)
+    if cfg.mirrors:
+        print(f"alfabeta: {mirror.summary(mirrored)}", file=sys.stderr)
     _emit(
-        {k: line[k] for k in ("result", "reason", "added", "changed", "withdrawn", "unknown_statuses")}
+        {k: line[k] for k in ("result", "reason", "added", "changed", "withdrawn", "unknown_statuses", "mirrors")}
         | {"not_fetched": len(applier.not_fetched)}
     )
     return EXIT_OK
@@ -485,6 +491,29 @@ def _list_reports(cfg: config.StudentConfig, data_dir: Path, store: KeychainStor
         if new:
             print(f"alfabeta: {len(new)} new report(s) of the notes in Drive", file=sys.stderr)
     return watch.report_lines(data_dir)
+
+
+def _cmd_drive_sync_mirrors(args: argparse.Namespace, home: Path) -> int:
+    """`drive sync-mirrors`: the master into each of `drive.mirrors`, one way (FR-011a)."""
+    lock = _lock(home, args.student)
+    run = os.environ.get(state.RUN_ENV)
+    try:
+        lock.renew(run)
+    except state.LockError as err:
+        return _fail(str(err.reason), EXIT_INVALID, str(err))
+    cfg = config.load_all(home, args.student)
+    if not cfg.base.is_dir():
+        return _fail(
+            str(StopReason.DRIVE_NOT_MOUNTED), EXIT_INVALID, "the base folder is not there; nothing was copied"
+        )
+    result = mirror.sync(cfg.base, cfg.mirrors)
+    line = {"type": "mirrors", "at": dt.datetime.now(MADRID).isoformat(), "run": run}
+    state.StateStore(lock.data_dir).log(
+        line | {"result": "failed" if result["failed"] else "ok", "mirrors": mirror.counts(result)}
+    )
+    print(f"alfabeta: {mirror.summary(result)}", file=sys.stderr)
+    _emit(result)
+    return EXIT_INVALID if result["failed"] else EXIT_OK
 
 
 def _cmd_agenda(args: argparse.Namespace, home: Path) -> int:
@@ -655,6 +684,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     agenda = groups.add_parser("agenda", help="the student's agenda").add_subparsers(dest="verb", required=True)
     agenda_cmd = agenda.add_parser("build", help="regenerate agenda.json and agenda.md, only if they change")
+    drive = groups.add_parser("drive", help="the student's Drive folders").add_subparsers(dest="verb", required=True)
+    sync_mirrors = drive.add_parser(
+        "sync-mirrors", help="copy the master into each of drive.mirrors, one way, never deleting"
+    )
     dl = groups.add_parser("download", help="the browser's downloads folder").add_subparsers(dest="verb", required=True)
     collect = dl.add_parser("collect", help="move this run's captures and the planned attachments to data/")
     collect.add_argument("--wait", type=int, default=0)
@@ -804,6 +837,7 @@ def build_parser() -> argparse.ArgumentParser:
         plan_cmd,
         apply_cmd,
         agenda_cmd,
+        sync_mirrors,
         collect,
         notes_run,
         notebook_setup,
@@ -847,6 +881,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_log_stop(args, home) if args.verb == "write-stop" else _cmd_log_notebook(args, home)
         if args.group == "book":
             return _cmd_book_place(args, home)
+        if args.group == "drive":
+            return _cmd_drive_sync_mirrors(args, home)
         if args.group == "decision":
             return _cmd_decisions(args, home)
         if args.group == "classroom" and args.verb == "plan":

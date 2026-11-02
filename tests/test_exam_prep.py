@@ -34,7 +34,7 @@ from alfabeta.exam.prep import (
     Slot,
     topic_number,
 )
-from alfabeta.exam.printing import PrintPack, refresh_mirrors
+from alfabeta.exam.printing import PrintPack
 from alfabeta.google.drive import DriveFile
 from tests.conftest import MemoryStore
 
@@ -743,20 +743,6 @@ def test_every_nlm_command_but_config_carries_the_profile():
         ["nlm", "studio", "rename", "art-1", "Guía", "--profile", PROFILE],
         ["nlm", "studio", "delete", "nb-1", "art-1", "--confirm", "--profile", PROFILE],
     ]
-
-
-def test_mirrors_are_refreshed_without_delete_and_one_not_mounted_is_counted(tmp_path: Path):
-    base, mounted, absent = tmp_path / "base", tmp_path / "mirror", tmp_path / "not-mounted"
-    base.mkdir()
-    mounted.mkdir()
-    calls: list[list[str]] = []
-
-    def runner(argv: list[str], stdin: str | None) -> subprocess.CompletedProcess[str]:
-        calls.append(argv)
-        return subprocess.CompletedProcess(argv, 0, "", "")
-
-    assert refresh_mirrors(base, [mounted, absent], runner) == 1
-    assert calls == [["rsync", "-rlt", "--exclude", ".DS_Store", f"{base}/", f"{mounted}/"]]
 
 
 # --- what the review asked for ----------------------------------------------------------------------
