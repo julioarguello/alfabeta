@@ -216,7 +216,7 @@ def test_a_student_command_takes_student(path: tuple[str, ...], parser: argparse
 def test_the_vocabulary_has_no_stale_entry() -> None:
     used_groups = {p[0] for p, _ in LEAVES}
     used_subgroups = {s for p, _ in LEAVES for s in p[1:-1]}
-    used_verbs = {_verb(p[-1]) for p, _ in LEAVES} | {_verb(p[-1]) for p in PLANNED} - set(AGGREGATES)
+    used_verbs = ({_verb(p[-1]) for p, _ in LEAVES} | {_verb(p[-1]) for p in PLANNED}) - set(AGGREGATES)
     assert set(GROUPS) == used_groups | {p[0] for p in PLANNED}
     assert set(SUBGROUPS) == used_subgroups | {s for p in PLANNED for s in p[1:-1]}
     assert set(VERBS) == used_verbs
