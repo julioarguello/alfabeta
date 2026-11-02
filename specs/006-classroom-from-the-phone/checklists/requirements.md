@@ -47,6 +47,10 @@
   the sign-in window's address reaches Classroom, instead of waiting for the window to be closed.
   Its five low findings are answered too (spec 001 FR-021a, R17, spec 004's role, FR-005's pages,
   and two more items not measured).
+- The amendment of 2026-11-02 adds the four `classroom` commands (FR-021 to FR-024), the five seams
+  that keep them off macOS-only assumptions (FR-025, SC-007) and how each credential arrives
+  (FR-026), at the operator's request for a command-line tool that runs on the Mac today and could
+  run elsewhere later, aligned with the peer project.
 - The table "What was measured before writing this" names what each fact was observed with, as in
   spec 005. The requirements name the services the family uses (their Google account, a remote view
   through it) and the existing alfabeta pieces they build on, not how they are called. The one
