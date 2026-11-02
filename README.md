@@ -147,9 +147,8 @@ desktop app (spec 001 FR-021a):
 3. Leave Chrome open with the extension, on a Classroom tab of the student's school account, and
    the Mac awake.
 
-A student with `runner.enabled` gets no desktop task at the `[schedule]` times: those drive the
-unattended runner (spec 001 FR-021a). A configuration written before #161 needs the line
-`wait_minutes = <minutes>` under `[schedule]`, or `config check` reports it missing.
+A configuration written before #161 needs the line `wait_minutes = <minutes>` under `[schedule]`,
+or `config check` reports it missing.
 
 The school session lasts about an hour, so a run usually finds it expired. It then shows a
 notification on the Mac and waits up to `wait_minutes`: sign in to Classroom in that Chrome, leave
