@@ -309,6 +309,8 @@ def _resolve(tokens: list[str], *, explicit: bool) -> str | None:
                 return None
             if any(p[: len(path) + 1] == (*path, word) for p in PLANNED):  # a planned subgroup
                 after = words[1:2]
+                if after and after[0].startswith("--"):
+                    return f"{' '.join((*path, word))}: a group needs a verb before {after[0]}"
                 if not after or not _WORD.fullmatch(after[0]) or (*path, word, after[0]) in PLANNED:
                     return None
                 return f"{' '.join((*path, word))}: a planned subgroup, but no planned {after[0]!r}"
@@ -357,6 +359,7 @@ def test_every_written_command_exists() -> None:
         "python -m alfabeta anonymize in out",  # an old top-level command
         "`classroom agent start --student <id>`",  # a planned subgroup, an unplanned verb
         "`classroom robot install --student <id>`",  # neither built nor planned
+        "`classroom agent --student <id>`",  # a planned subgroup that needs its verb
     ],
 )
 def test_the_written_command_check_fires(line: str) -> None:

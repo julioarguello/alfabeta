@@ -44,7 +44,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   sends the allowlisted read calls (R3) one at a time with a pause between them (≥ 1 s, jittered),
   through `fetch` run inside that page so the request carries the page's own origin and cookies.
   It parses the answers into spec 001's capture (R7).
-- **Rationale**: the pages it loads carry no data of their own, and a read by calls needs one page
+- **Rationale**: the pages it loads carry no data of their own (read in the peer project; S8
+  measures it), and a read by calls needs one page
   load per run instead of 126; the hidden-iframe extractor stalls when its tab is not on screen
   (spec 001 Observed facts, 2026-10-28) and a headless page has no screen to lose. The peer
   project reports the same calls working headless (read, not measured — spikes S8 and S9).
@@ -117,8 +118,9 @@ measured on this account; they seed the spikes below and replace none of them (F
   - **background calls**: `batchexecute` only with every name on the allowlist (R3); requests to
     form or quiz hosts (`docs.google.com/forms`, `forms.gle`) blocked;
   - **session upkeep**: requests that only keep the session (Google's cookie rotation on
-    `accounts.google.com`, the device-bound session refresh) are allowed and counted, since blocking
-    them could end the session (Observed facts, DBSC); S8 records which appear and S9 checks the
+    `accounts.google.com`, the device-bound session refresh) follow the rule below like any other:
+    blocked until S8 records each one's exact host and path; then allowed by that host and path
+    and counted, since blocking them could end the session (Observed facts, DBSC). S9 checks the
     session survives a full read with them;
   - **everything else** a page asks for (telemetry, push channels) is blocked and counted, unless S8
     shows the page cannot load without it, in which case it is allowed by exact host and path and
@@ -134,25 +136,33 @@ measured on this account; they seed the spikes below and replace none of them (F
 ### R5. The sign-in window: the plain installed Chrome, and how alfabeta knows it is done (FR-010)
 
 - **Decision**: `classroom sign-in` starts the installed Google Chrome as a separate process —
-  `--user-data-dir=<read profile>` and the Google sign-in page for the school account — with no
-  Playwright, no extension and no script of alfabeta's. To know the family has signed in without
-  reading anything but the address, alfabeta starts that Chrome with `--remote-debugging-port=0`
-  and polls, every few seconds, the browser's local `GET /json/list` (on the loopback port Chrome
-  writes to `DevToolsActivePort` in the profile), which lists each tab's address, title and icon; the adapter keeps only each tab's `url` field and discards the rest of the answer unread, so a title that names the account is never kept; it never attaches
-  to a tab, never runs `Runtime` or any script, and compares each address with Classroom's in
-  memory without logging or storing it. When an address reaches `classroom.google.com`, alfabeta
+  `--user-data-dir=<read profile>` and Google's sign-in page whose continue address is Classroom —
+  with no Playwright, no extension and no script of alfabeta's. The address carries no account
+  hint (no `login_hint`, no email address), so neither the URL nor the process's arguments hold the
+  student's address (constitution III); at most it names the school's domain, if S7 shows the
+  sign-in needs it. To know the family has signed in without reading anything but the address,
+  alfabeta starts that Chrome with `--remote-debugging-pipe` and, every few seconds, sends one
+  browser-level `Target.getTargets` over the pipe (file descriptors 3 and 4, which only the process
+  that started Chrome holds; written with the standard library). The answer lists each tab's
+  address, title and other fields; the adapter keeps only each tab's `url` field and discards the
+  rest unread, so a title that names the account is never kept. It never attaches to a tab, never
+  sends `Runtime` or any page command, opens no network port and reads no file of the profile, and
+  compares each address with Classroom's in memory without logging or storing it. When an address reaches `classroom.google.com`, alfabeta
   closes the browser (SIGTERM, so Chrome writes its cookies; then SIGKILL after 10 s); the family may
   also close it; `schedule.wait_minutes` ends it otherwise.
 - **To be measured (spike S7)**: that Google accepts the hand sign-in in a Chrome started with that
   flag (the peer's reason for no automation is that Google refuses sign-ins it sees as automated;
-  the flag sets no `navigator.webdriver`, but this is not measured), and that `/json/list` shows
-  the address change.
+  the flag sets no `navigator.webdriver`, but this is not measured), and that `Target.getTargets`
+  shows the address change.
 - **Fallback if S7 refuses it**: the window starts with no flag, and alfabeta watches only the
   process: the wait ends when the family closes the window or at `wait_minutes`. That is the spec's
   first wording, which the independent review rejected because the session could die while the
   read waits; the notice would then ask the family to close the window, and FR-010 would be amended
   before building.
-- **Alternatives rejected**: AppleScript to Chrome for the active tab's address — with the family's
+- **Alternatives rejected**: `--remote-debugging-port` with `GET /json/list` — the same list, but
+  it opens a DevTools port on the loopback, which any local process can reach, on the profile that
+  holds the minor's session, for the whole wait, and its port is read from a file in the profile;
+  AppleScript to Chrome for the active tab's address — with the family's
   everyday Chrome running, "Google Chrome" names two processes and the script can read the wrong
   one, and it needs an Automation permission for the whole application; reading the profile's
   files (history, cookies) — reads more than the address, which FR-010 forbids.
@@ -281,7 +291,10 @@ Playwright's own headless browser on Linux, which tests the guard, not the Mac's
 
 ## Spikes before the build
 
-Each spike runs read-only, with code kept outside `main` (a `spike/166-…` branch, as S4 was), and
+Each live spike loads Classroom only behind the minimal guard of spec 001 R18 — the document-load
+allowlist and zero presses, installed in the browser before any page script — whether a person is
+at the Mac or not (S10 runs with nobody present, which constitution IV requires be read-only by
+construction). Each runs read-only, with code kept outside `main` (a `spike/166-…` branch, as S4 was), and
 records its result in this file with its date. Pass criteria are written so the gate is objective.
 **Who** says what each needs: *agent* — Claude alone; *family sign-in* — someone signs the school
 account in by hand at the Mac (or through the remote view); *family phone* — the family's own phone
@@ -290,7 +303,7 @@ the family's.
 
 | Spike | Who | Pass | If it fails |
 |---|---|---|---|
-| **S7 · The sign-in window and the profile.** Start the installed Chrome with a fresh profile in the data folder and `--remote-debugging-port=0`; the family signs in by hand; `/json/list` shows the address reach Classroom; alfabeta closes it; Playwright (`channel="chrome"`, keychain flags removed) opens the profile headless and loads one Classroom page with the session; the window can be brought to the front by process id | agent + family sign-in | Google accepts the sign-in with no extra check beyond the family's usual one; the address change is seen; the headless open reads the session with no keychain dialog | Sign-in refused with the flag: R5's fallback (watch the process only) and FR-010 amended. Session not readable headless: the read is not built |
+| **S7 · The sign-in window and the profile.** Start the installed Chrome with a fresh profile in the data folder and `--remote-debugging-pipe`; the family signs in by hand; `Target.getTargets` shows the address reach Classroom; alfabeta closes it; Playwright (`channel="chrome"`, keychain flags removed) opens the profile headless and loads one Classroom page with the session; the window can be brought to the front by process id | agent + family sign-in | Google accepts the sign-in with the same steps the R20 probe of 2026-11-01 showed, and no «this browser may not be secure» page; the address change is seen; the headless open reads the session with no keychain dialog | Sign-in refused with the flag: R5's fallback (watch the process only) and FR-010 amended. Session not readable headless: the read is not built |
 | **S8 · The calls of every page** (widens spec 001's S6). Behind the minimal guard (document-load allowlist, zero presses), load once each page kind of R3 for two classes, headless, and record per request: method, host, path, call names, response tag — never bodies or cookies | agent + family sign-in | Every capture field comes from a name whose responses are queries; the pages load with everything outside those names and the session upkeep blocked; the stream's announcements are found | A needed field only behind a non-query name: FR-004 not met, the read is not built, this plan says so |
 | **S9 · A whole read by calls, compared.** Same day, same classes: the current extractor (the family's usual run) and a throwaway read by S8's names from S7's profile, headless, timed; then fetch every listed attachment through the request context (R8) | agent + family sign-in | All classes read in under 30 minutes of the sign-in with no challenge; the same item ids (base64 of decimals), types, topics, attachments and stream posts; the status table of R7 filled with no contradiction; attachment bytes equal the replicas | A challenge: stop (constitution IV), record it, the read is not built. Differences: recorded per field; a field that cannot be matched is a spec question before building |
 | **S10 · From launchd, screen locked, no app open.** Install a throwaway LaunchAgent that runs S7's headless open at a set minute; the family locks the Mac and closes the Claude app; then a second agent opens the sign-in window | agent + family (lock the Mac, sign in) | The headless open reads the session with no keychain or other dialog; the window is there when the Mac is unlocked | A keychain dialog: the read profile's cookie key needs a one-time "Always allow" at set-up, recorded in the quickstart; a window that cannot open while locked: FR-012's unlock-first order is written into the notice |

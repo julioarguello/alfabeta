@@ -14,7 +14,8 @@ A browser profile kept for one student's read.
 | holder | none, the sign-in window, or the read; never two at once: the browser lock (FR-024a), and Chrome's own `SingletonLock` refused as `lock_busy` |
 
 Holds the school session after the family signs in (a secret, constitution II). alfabeta never
-reads its files; it only passes its path to Chrome or Playwright.
+reads its files; it only passes its path to Chrome or Playwright (the sign-in window's address
+comes over the pipe of research R5, not from a file).
 
 ## Sign-in wait
 

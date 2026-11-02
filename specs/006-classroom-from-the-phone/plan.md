@@ -120,7 +120,7 @@ src/alfabeta/classroom/
 ├── guard.py        # GuardedBrowser: Playwright context, init script, request routing, blocked counts
 ├── session.py      # ReadSession port + PlaywrightReadSession: open the profile, load one page, account check
 ├── capture.py      # classroom capture: the read, pacing, the materials cache, attachments through the request context
-├── signin.py       # SignInWindow port + ChromeSignInWindow (process, /json/list, front, close); classroom sign-in
+├── signin.py       # SignInWindow port + ChromeSignInWindow (process, the DevTools pipe's tab addresses, front, close); classroom sign-in
 ├── notice.py       # Mailer port + GmailMailer; the two Spanish templates
 ├── refresh.py      # classroom refresh: sign-in, capture, plan, apply under one lock; the log line
 ├── status.py       # classroom status
