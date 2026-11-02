@@ -758,9 +758,10 @@ against this account; the one account check is marked as the operator's.
   absolute-versus-idle beyond doubt, but the two arms dying together already point one way.
   **Consequence:** an unattended web reader cannot hold this domain's Classroom session; every run
   needs a human sign-in within the hour before it. That is the route FR-021a and #163 already
-  specify (the run notifies and waits for the family's sign-in), and it makes the per-event
-  notification emails above worth more as the trigger that asks for a sign-in only when something
-  is new.
+  specify (the run notifies and waits for the family's sign-in). The per-event notification emails
+  above cannot replace that sign-in as a trigger: they sit in the same school account, behind the
+  same hour-long session, so they serve only as a quick index of what is new once a run is signed
+  in; what asks for the sign-in stays the schedule.
 
 - **A concrete reference for the internal-calls read parked in R3.** R3 left «reading the Classroom
   web app's internal calls (more stable, undocumented)» for the local MCP. lifecoderua/classroom-advisor
