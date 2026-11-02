@@ -80,7 +80,7 @@ VERBS = {
     "set": "store a value or a secret",
     "sign-in": "open a window for the family to sign in by hand; types nothing",
     "stage": "copy files to where a later step expects them",
-    "sync": "make a copy match its source (the calendar, the student's folder)",
+    "sync": "write the state out to an outside copy (the calendar)",
     "take": "acquire a run's lock",
     "transcribe": "turn photos into text pages",
     "uninstall": "remove a system agent",
@@ -114,7 +114,7 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("calendar", "delete-legacy"): "spec 003 contracts/cli.md",
     ("drive", "migrate"): "spec 004 contracts/cli.md",
     ("classroom", "sign-in"): "spec 006 FR-021",
-    ("classroom", "sync"): "spec 006 FR-022",
+    ("classroom", "refresh"): "spec 006 FR-022",
     ("classroom", "capture"): "spec 006 FR-023",
     ("classroom", "status"): "spec 006 FR-024",
 }

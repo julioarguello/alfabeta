@@ -68,7 +68,7 @@ other two, and the need to be at the Mac for the third.
   phone it opens a remote view of the Mac's screen with that window. The family signs in; alfabeta
   closes the window and the read goes on alone.
 - **Launching when the family wants**, from the Mac or, through the remote view, from the phone.
-- **Commands that do not assume the Mac.** `classroom sign-in`, `capture`, `sync` and `status`;
+- **Commands that do not assume the Mac.** `classroom sign-in`, `capture`, `refresh` and `status`;
   what differs between machines sits behind five named seams, and each credential arrives by its
   own command (FR-021 to FR-026).
 
@@ -110,8 +110,8 @@ names and response shapes are a starting point, not a measurement of this accoun
   death was measured, it does not tell an absolute limit from an idle one, and the session's life
   varies (R1, R16).
 - **Amendment of 2026-11-02 (commands, portability, credentials)**: `tests/test_cli_naming.py` lists
-  the four `classroom` commands as planned, adds the verbs `capture` and `sign-in`, and widens `sync`
-  to "make a copy match its source" (it already named spec 003's `calendar sync`).
+  the four `classroom` commands as planned and adds the verbs `capture` and `sign-in`;
+  `classroom refresh` uses the existing `refresh`, and `sync` keeps its one meaning.
 
 ## Clarifications
 
@@ -136,13 +136,13 @@ names and response shapes are a starting point, not a measurement of this accoun
 - Q: The operator: «¿Podríamos tener algo con interfaz de línea de comandos? Hoy se ejecuta en el
   Mac y mañana Dios dirá … ¿Cómo recibiría ese algo las credenciales necesarias? Todo alineado con
   el otro proyecto de GitHub» → A: Four commands, named by the CLI convention (`classroom sign-in`,
-  `capture`, `sync`, `status`; FR-021 to FR-024), as the peer project has `login`, `sync` and
+  `capture`, `refresh`, `status`; FR-021 to FR-024), as the peer project has `login`, `sync` and
   `doctor`. What differs between machines sits behind five named seams (FR-025), so another machine
   is an implementation, not a rewrite. Each credential arrives by its own command (FR-026): the
   school session by signing in by hand in the read profile, as the peer project does — it never
-  moves between machines, so a new machine signs in again; the Google links and the Claude key by
-  their spec 004 and spec 005 commands, into the machine's secret store. Unlike the peer project,
-  which keeps keys in a `.env` file, alfabeta keeps none in a file the configuration sits beside
+  moves between machines, so a new machine signs in again; the Google links by
+  their spec 004 command, into the keychain. Unlike the peer project,
+  whose README keeps its keys in a `.env` file (read 2026-11-01), alfabeta keeps none in a file the configuration sits beside
   (constitution II).
 - Q: How does the read know the family has signed in, if alfabeta does not drive the sign-in
   window? → A: alfabeta watches only the address the window shows, never its content: when it
@@ -326,7 +326,8 @@ arrives.
 
 **Signing in**
 
-- **FR-010**: A read that finds the profile's session expired MUST open (`classroom sign-in`, FR-021), on the Mac's screen, a
+- **FR-010**: `classroom sign-in`, and a `classroom refresh` that finds the profile's session
+  expired (FR-021, FR-022), MUST open, on the Mac's screen, a
   browser window in the student's profile on Google's sign-in for the school account. alfabeta
   starts that browser and does not drive it: no script of alfabeta's runs in it, and alfabeta
   presses, types and reads nothing in it while it is open, except the address of the page the
@@ -360,14 +361,16 @@ arrives.
 **Launching**
 
 - **FR-015**: When a student's switch is on, the times `[schedule]` sets for each weekday MUST run
-  `classroom sync` (FR-022) instead of the desktop app's scheduled task of spec 001 FR-021a, and only if the Mac is
+  `classroom refresh` (FR-022) instead of the desktop app's scheduled task of spec 001 FR-021a, and only if the Mac is
   awake; a time missed while it slept is logged and not made up outside those hours. This switch and
   spec 001's unattended runner (FR-032) MUST NOT both be on for one student: the configuration check
   reports it.
-- **FR-016**: The family MUST be able to start a read at any time with `classroom sync`, and by opening
+- **FR-016**: The family MUST be able to start a read at any time with `classroom refresh`, and by opening
   a launcher on the Mac that runs it, which the notice's link and the remote view can open.
 - **FR-017**: A launch while a read for that student is running or waiting for its sign-in MUST NOT
-  start another; it tells the family one is under way (the browser lock of FR-021a).
+  start another; it tells the family one is under way (the browser lock of FR-021a), and, while the
+  sign-in waits, brings its window to the front — so the notice's link does the same whether or not
+  a read is already waiting (FR-013).
 - **FR-018**: The full sync launched with a request to Claude (spec 001 FR-021a) MUST keep working
   with the extension (spec 001 FR-006 as amended).
 
@@ -385,17 +388,27 @@ arrives.
 
 - **FR-021**: `classroom sign-in --student <id>` MUST open the sign-in window of FR-010, wait as
   FR-010 says, send the notice of FR-013, and end with `signed_in`, `session_expired` or
-  `challenge` (FR-011). It reads nothing but the one session check. The other commands run it when
-  they need a sign-in, and the family runs it to start the session on a machine the first time.
-- **FR-022**: `classroom sync --student <id>` MUST be the whole read: `classroom sign-in` when the
-  session is not alive, then `classroom capture`, then spec 001's `classroom plan`,
-  `classroom apply` and `agenda build`, under one lock, with one result email (FR-014) and one log
-  line (FR-020). It is what the schedule (FR-015), the launcher and the notice's link run.
+  `challenge` (FR-011). It reads nothing but the one session check. `classroom refresh` runs it when
+  it needs a sign-in, and the family runs it to start the session on a machine the first time — once
+  the `family` account is linked there, since the notice goes through it (spec 004 as amended).
+- **FR-022**: `classroom refresh --student <id>` MUST be the whole read: `classroom sign-in` when
+  the session is not alive, then `classroom capture`, then spec 001's `classroom plan` and
+  `classroom apply` (which regenerates the agenda), under one lock, with one result email (FR-014)
+  and one log line (FR-020). It is what the schedule (FR-015), the launcher and the notice's link
+  run. Its verb is `refresh` — re-read the source so the copy that depends on it is current — and
+  not `sync`, which alfabeta keeps for writing its state out to an outside copy (spec 003's
+  `calendar sync`) and which spec 001 uses for the full sync launched with Claude (FR-018).
 - **FR-023**: `classroom capture --student <id> [--subject <folder>]…` MUST be the guarded read of
-  FR-003 to FR-009 alone: it leaves the capture and the attachments it listed, and when the session
-  is not alive it stops with `session_expired` without opening a window.
-- **FR-024**: `classroom status --student <id>` MUST say, writing nothing, whether the profile's
-  session is alive (one guarded load of a Classroom page), when the last read ran and how it ended.
+  FR-003 to FR-009 alone: it leaves the capture and the attachments it listed, records in the lock
+  the classes it captured (as spec 001's `download collect` does, so `classroom plan` without
+  `--subject` finds them), and when the session is not alive it stops with `session_expired` without
+  opening a window.
+- **FR-024**: `classroom status --student <id>` MUST say whether the profile's session is alive (one
+  guarded load of a Classroom page), when the last read ran and how it ended, writing nothing in the
+  student's folder or the log. When the lock is held it says a read is under way and loads no page.
+- **FR-024a**: All four commands MUST take the student's lock and the Mac's browser lock (spec 001
+  FR-021a) before they touch the read profile, so the profile is never open twice (FR-002); a
+  command that finds them held stops with `lock_busy`, except `classroom status` (FR-024).
 
 **Portability and credentials**
 
@@ -403,17 +416,18 @@ arrives.
   only implementation today is the Mac's: where secrets live (the macOS keychain, alfabeta's
   `TokenStore`), what starts a read at the scheduled times (launchd), the remote view for the
   sign-in (Chrome Remote Desktop to the Mac), the local notification (macOS) and the mirrors
-  (Google Drive for desktop). Moving the read to another machine is then a new implementation of
-  those seams plus the amendment of constitution IX that the scope names, not a rewrite. This spec
-  moves nothing.
+  (Google Drive for desktop) — and, with them, what is Mac-only around the sign-in: the launcher
+  (FR-016), the browser installation (FR-002) and bringing a window to the front (FR-013, FR-017).
+  Moving the read to another machine is then a new implementation of those seams plus the
+  amendments it needs — constitution IX, where it runs, and II, where its secrets may live — not a
+  rewrite. This spec moves nothing.
 - **FR-026**: Each credential MUST arrive by its own command, and never as a password, an option, a
   configuration key or a log line (constitution II, III):
 
   | Credential | Arrives by | Lives on the Mac | On another machine |
   |---|---|---|---|
-  | The school session | `classroom sign-in`: the family signs in by hand | the read profile, in the student's data folder | signed in again there: a browser keeps a session encrypted with a key of its own machine, so it does not move |
-  | The Google links (the student's and the `family` account) | `google account link` (spec 004) | the keychain | that machine's secret store; constitution II already lets a secret minted on the Mac go straight to it |
-  | The Claude key | `claude set-key`, from standard input | the keychain | that machine's secret store |
+  | The school session | `classroom sign-in`: the family signs in by hand | the read profile, in the student's data folder | signed in again there with `classroom sign-in`: the session never leaves the Mac (constitution, Technical constraints) |
+  | The Google links (the student's and the `family` account) | `google account link` (spec 004) | the keychain | linked again there with `google account link`; where they may be stored is for the amendment of constitution II that moving needs (FR-025) |
 
   alfabeta never stores the school account's password, its second factor or the Mac's password.
 
@@ -454,8 +468,8 @@ arrives.
   gradings; a second apply writes nothing.
 - **SC-006**: No email, log line or URL from these reads contains a name, an email address or a
   Classroom title (the guardrail, and a test over the emails).
-- **SC-007**: Every `classroom` command's argument parsing, and all of its logic that does not drive
-  the browser, runs in CI — which runs on Linux, not macOS — through the seams of FR-025.
+- **SC-007**: Each `classroom` command's tests pass in the CI job, which runs on Linux, not macOS,
+  with a fake for each seam of FR-025.
 
 ## Assumptions
 
