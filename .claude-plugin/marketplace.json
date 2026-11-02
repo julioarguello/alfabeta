@@ -1,0 +1,15 @@
+{
+  "name": "alfabeta",
+  "description": "alfabeta's skills for Claude: the Classroom sync, Science Bits to Gemini Notebook, and the study pack.",
+  "owner": {
+    "name": "alfabeta",
+    "url": "https://github.com/julioarguello/alfabeta"
+  },
+  "plugins": [
+    {
+      "name": "alfabeta",
+      "source": "./",
+      "description": "classroom-sync, sciencebits-a-notebooklm and study-pack: the teacher's material from Classroom, each Science Bits topic as PDFs and a notebook, and the study pack per topic."
+    }
+  ]
+}
