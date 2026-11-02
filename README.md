@@ -119,10 +119,13 @@ Nothing extra is needed for Python: `build.py` and its `render.py` run in Claude
    pack stops before downloading from another account.
 3. Write the path of this clone in `tools.repository`; the Science Bits skill copies its
    `skills/sciencebits-a-notebooklm/scripts/` from it to the `tools.folder` of the configuration on each run. The study pack's scripts run from the clone.
-4. Add the skills to Claude by uploading `skills/sciencebits-a-notebooklm/` and
-   `skills/study-pack/`, or ask Claude «instala la skill sciencebits-a-notebooklm de
-   github.com/julioarguello/alfabeta» ("install the sciencebits-a-notebooklm skill from
-   github.com/julioarguello/alfabeta").
+4. Add the skills to Claude once, from this repository. It is a plugin marketplace
+   (`.claude-plugin/`) with one plugin, `alfabeta`, that carries every skill in `skills/`. In
+   claude.ai or the desktop app, open [**Customize > Plugins**](https://claude.ai/customize/plugins),
+   select **Add > Add marketplace**, enter `julioarguello/alfabeta`, turn on **Sync automatically**
+   and install `alfabeta`. From then on, whatever is merged into `main` reaches the skills by itself
+   in chat, Cowork and Claude Code; **Check for updates** pulls it at once. In Claude Code alone,
+   `/plugin install alfabeta --marketplace julioarguello/alfabeta` does the same.
 5. Ask Claude: **«hazme el siguiente tema de física»** ("do the next physics topic for me"). The
    student signs in to Science Bits when asked; no tool ever types a password.
 

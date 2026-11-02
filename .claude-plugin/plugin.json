@@ -1,0 +1,12 @@
+{
+  "name": "alfabeta",
+  "displayName": "alfabeta",
+  "description": "classroom-sync, sciencebits-a-notebooklm and study-pack: the teacher's material from Classroom, each Science Bits topic as PDFs and a notebook, and the study pack per topic.",
+  "author": {
+    "name": "alfabeta",
+    "url": "https://github.com/julioarguello/alfabeta"
+  },
+  "homepage": "https://github.com/julioarguello/alfabeta",
+  "repository": "https://github.com/julioarguello/alfabeta",
+  "license": "MIT"
+}
