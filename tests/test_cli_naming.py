@@ -86,6 +86,8 @@ VERBS = {
     "update": "change a recorded decision",
     "write": "write a line of the run log",
 }
+# A leaf that is not a verb: an aggregate view drops the verb (python-cli.md §6).
+AGGREGATES = {"status": "a status view"}
 # Words the vocabulary rejects, and what says it instead.
 REJECTED = {
     "run": "name the action (`note transcribe`)",
@@ -109,6 +111,7 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("calendar", "set-sharing"): "spec 003 contracts/cli.md",
     ("calendar", "delete-legacy"): "spec 003 contracts/cli.md",
     ("drive", "migrate"): "spec 004 contracts/cli.md",
+    ("classroom", "status"): "spec 006",
 }
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {
@@ -167,7 +170,7 @@ def _name_problems(path: tuple[str, ...]) -> list[str]:
     problems += [f"{sub}: not a subgroup of the vocabulary" for sub in middle if sub not in SUBGROUPS]
     problems += [f"{name}: names are kebab-case" for name in path if not KEBAB.match(name)]
     problems += [f"{name}: rejected word, say {REJECTED[name]}" for name in path if name in REJECTED]
-    if _verb(leaf) not in VERBS:
+    if _verb(leaf) not in VERBS and leaf not in AGGREGATES:
         problems.append(f"{leaf}: its verb {_verb(leaf)!r} is not in the vocabulary")
     if leaf in GROUPS or leaf in SUBGROUPS:
         problems.append(f"{leaf}: a leaf never shares a group's name")
@@ -214,7 +217,7 @@ def test_a_student_command_takes_student(path: tuple[str, ...], parser: argparse
 def test_the_vocabulary_has_no_stale_entry() -> None:
     used_groups = {p[0] for p, _ in LEAVES}
     used_subgroups = {s for p, _ in LEAVES for s in p[1:-1]}
-    used_verbs = {_verb(p[-1]) for p, _ in LEAVES} | {_verb(p[-1]) for p in PLANNED}
+    used_verbs = {_verb(p[-1]) for p, _ in LEAVES} | {_verb(p[-1]) for p in PLANNED} - set(AGGREGATES)
     assert set(GROUPS) == used_groups | {p[0] for p in PLANNED}
     assert set(SUBGROUPS) == used_subgroups | {s for p in PLANNED for s in p[1:-1]}
     assert set(VERBS) == used_verbs
@@ -233,7 +236,7 @@ def test_planned_commands_follow_the_grammar_and_are_not_built() -> None:
     for path, spec in PLANNED.items():
         assert path not in built, f"{' '.join(path)} is built: drop it from PLANNED ({spec})"
         assert path[0] in GROUPS and all(s in SUBGROUPS for s in path[1:-1])
-        assert _verb(path[-1]) in VERBS or path[-1] == "status", f"{' '.join(path)}: verb not in the vocabulary"
+        assert _verb(path[-1]) in VERBS or path[-1] in AGGREGATES, f"{' '.join(path)}: verb not in the vocabulary"
 
 
 # --- The documentation -----------------------------------------------------------------------

@@ -23,7 +23,7 @@ where this rule disagrees, those win.
 | Type check | Pyright strict — §2 | ✅ |
 | Test | `pytest` (0 collected MUST fail) | ✅ |
 | Browser JS | `node --test` | ✅ |
-| Personal data | `python -m alfabeta guardrail --all` | ✅ |
+| Personal data | `python -m alfabeta guardrail check --all` | ✅ |
 | Coverage | `pytest-cov` — **not adopted** | ❌ |
 
 All of them run through **`make ci`**, in that order (`CONTRIBUTING.md`, *The gate*).
