@@ -658,7 +658,8 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   `contracts/cli.md`), so the alert fires once. The notice carries the reason and the student's
   opaque `id`, and its documentation field says how to sign in again.
   Rejected: an event in the student's calendar, which holds only facts from Classroom (spec 003);
-  an email through the Gmail API, which needs a scope spec 004 does not grant.
+  an email through the Gmail API, which needs a scope spec 004 did not grant (spec 006 later
+  amends spec 004 to grant Gmail send to a `family` account, for spec 006's notices on the Mac).
 - **Custody, for the family to accept or refuse in the review of this amendment**: the cloud project
   lives in an organisation the operator administers for work. Moving the runner to a project owned
   by a family account changes nothing else in this design.
@@ -742,30 +743,40 @@ against this account; the one account check is marked as the operator's.
   admin help, «Set session length for Google services» (read 2026-11-01): the web session length is
   set by the domain's administrator per organisational unit (from a short limit to 14 days or none),
   and it does **not** apply to native mobile apps or OAuth-authenticated apps, whose sessions persist
-  until a reauth event. So the short life this domain shows (R16: 54–83 min; R4: expired twice one
-  afternoon, once under 30 min) is this school's setting, not a universal. A peer project on another
+  until a reauth event. So the lives this domain shows — varying, from under 30 minutes (R4) and
+  54–83 minutes (R16) to at least 2 h 47 min (R16, R1) — come from this school's setting and Google's
+  own checks, not from a universal rule. A peer project on another
   domain (lifecoderua/classroom-advisor, read 2026-11-01) reports hand-signed sessions lasting days
   (about 4 and 9.5), consistent with a different admin setting — not a contradiction. The number
   cannot be read from the session cookie (its stored expiry is months/years; invalidation is
   server-side), so it stays an empirical measure.
-  **Measured 2026-11-01 (operator's Mac, a fresh dedicated browser profile, hand sign-in, read
-  only):** two arms ran in parallel from one sign-in at 20:12 — one reloaded the Classroom home page
-  every 30 minutes, one was left untouched. The reloaded arm read alive at 20:12 and 20:42 and landed
-  on Google's sign-in page at 21:12; the untouched arm was signed out too. So the session died within
-  the hour (matching R16), the 20:42 reload did not extend it, and both arms expired in the same
-  window: the timeout reads as absolute (about one hour from sign-in), not idle-based, so reloading
-  more often would not keep it alive. One night, one domain; a probe every 5 minutes would settle
-  absolute-versus-idle beyond doubt, but the two arms dying together already point one way.
-  **Consequence:** an unattended web reader cannot hold this domain's Classroom session; every run
-  needs a human sign-in within the hour before it. That is the route FR-021a and #163 already
+  **Measured 2026-11-01 (operator's Mac, read only):** a small probe kept a fresh browser profile
+  of its own. The family signed in by hand at 20:12 in a visible browser window the probe itself had
+  started, and Google accepted it; every 30 minutes the probe then opened that profile with no window
+  on screen (headless) and loaded only the Classroom home page, reading no class. It read the
+  session alive at 20:12 and 20:42 and landed on Google's sign-in page at 21:12: this session died
+  between 30 and 60 minutes after the sign-in, although it was loaded every 30 minutes. That does
+  not settle whether the timeout counts from the sign-in or from the last activity: both gaps were
+  30 minutes to within seconds, so an idle limit of about 30 minutes fits the log as well as an
+  absolute one. And the lifetime is not fixed: R16 and R1 saw another session of this account still
+  alive 2 h 47 min after its sign-in. A second, untouched session, signed in by hand in a separate
+  profile of the family's everyday Chrome at a time not recorded, was found signed out the next
+  morning, which says nothing about its timing. A probe that loads every 5 minutes would tell idle
+  from absolute; it is left to spec 006's spikes. Correction: the first wordings of this paragraph
+  (#165) said both sessions expired in the same window and that the timeout was absolute; only the
+  probe's time of death was measured, and it does not separate the two.
+  **Consequence:** no session of this account has been seen to last from one day's read to the
+  next, and the shortest died within the hour, so an unattended web reader cannot count on holding
+  it: a daily run needs a human sign-in shortly before it, the route FR-021a and #163 already
   specify (the run notifies and waits for the family's sign-in). The per-event notification emails
   above cannot replace that sign-in as a trigger: they sit in the same school account, behind the
-  same hour-long session, so they serve only as a quick index of what is new once a run is signed
-  in; what asks for the sign-in stays the schedule.
+  same session, so they serve only as a quick index of what is new once a run is signed in; what
+  asks for the sign-in stays the schedule.
 
 - **A concrete reference for the internal-calls read parked in R3.** R3 left «reading the Classroom
   web app's internal calls (more stable, undocumented)» for the local MCP. lifecoderua/classroom-advisor
-  (read 2026-11-01) is a measured implementation of exactly that, on a school domain that also blocks
+  (its README and `docs/CLASSROOM-INTERNALS.md`, read 2026-11-01) is a measured implementation of
+  exactly that, on a school domain that also blocks
   the API: from one loaded Classroom page it calls the web app's own read RPCs
   (`/_/ClassroomUi/data/batchexecute`) with the session's cookies — courses, to-do and classwork
   queries, submissions, materials, comments — behind a read-only rpcid allow-list, and reports the

@@ -181,10 +181,14 @@ run.
 
 - **FR-004**: The accounts linked MUST be listed in the student's private configuration by alias
   and role. The first is the student's personal Gmail, role `student`. The operator's accounts are
-  not linked unless a later spec needs them.
+  not linked unless a later spec needs them. Spec 006 needs one: a family account, role `family`,
+  linked only to send the family its notices (spec 006 FR-013).
 - **FR-005**: Each linked account MUST be asked only for the scopes alfabeta uses: Calendar events,
   to create, update and delete events and their reminders as that account; Drive, as FR-009
   decides; and `openid` and `email`, which only identify the account that was linked (FR-006). A scope is added only by a spec that needs it, and adding one means linking again.
+  The account with role `family` (spec 006) is asked for Gmail send only, plus `openid` and
+  `email`: no Calendar, no Drive and no Gmail read. alfabeta sends from it only spec 006's notices,
+  and only to that same account.
 - **FR-006**: The school account MUST be refused at linking.
 
 **Where the authorisation lives**
@@ -255,7 +259,7 @@ run.
 ### Key Entities
 
 - **App**: the registered client in the Google Cloud project — audience, publishing status, scopes.
-- **Linked account**: an alias, a role (`student`), the scopes granted, the date it was linked, and
+- **Linked account**: an alias, a role (`student`, or `family` for spec 006's notices), the scopes granted, the date it was linked, and
   a keychain entry. Never its address in logs.
 - **Authorisation check**: per run and per account — ok, revoked, expired, or missing a scope.
 - **Upload record**: a file's path in the student's folder, its Drive id, size and checksum, and the
