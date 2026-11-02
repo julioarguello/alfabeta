@@ -22,8 +22,8 @@ project's vault, and reads one of two ways settled by a spike: the **token route
 first-party sign-in token exchanged for read-only access tokens to read Classroom through the API;
 or the **web route** (fallback), a headless Chromium with Playwright that loads the stored session,
 signs in again by a deterministic script when it has expired, and runs `extract.js` in a `todo` mode
-behind a browser-level read-only guard. Either way it feeds the same deterministic command (`plan`,
-`apply` (unattended, from the lock), `agenda`) on the student's single data home — a state folder in the student's Drive (constitution II/VII) — and the agenda goes to Drive through spec 004's connection. Nothing in it is
+behind a browser-level read-only guard. Either way it feeds the same deterministic command (`classroom plan`,
+`classroom apply` (unattended, from the lock), `agenda build`) on the student's single data home — a state folder in the student's Drive (constitution II/VII) — and the agenda goes to Drive through spec 004's connection. Nothing in it is
 Claude; constitution III is amended (MAJOR, 2.0.0) to permit the vault; and it is built only after
 its spikes pass (S4 decides the token route; S5 decides the web route, and S6 only settles how
 precise the web guard's background-call allowlist can be, not whether to build).
@@ -75,7 +75,7 @@ year.
 | IV. Read-only on the school's platforms | The extractor only reads the DOM; it navigates only to the home page, «Trabajo de clase» (Classwork), the stream and the detail page; it never follows forms or quizzes and never clicks the «Tu trabajo» (Your work) panel (a `jsdom` test checks this); it detects anti-bot challenges and stops; at least 2 s between pages. Reading a question's detail page is not opening a quiz: opening one means answering it or following its form, and S3 checks that reading it changes nothing (if it did, questions are read from the listing only) | Pass |
 | V. Idempotent, incremental sync | Classroom identifier per item, hash per replica, comparison before writing (the agenda too, which does not depend on the day), previous versions kept, nothing deleted (the mirrors are never pruned: `rsync` without `--delete`, which writes nothing to a mirror already up to date), a per-student lock and a lock on the Mac's browser with `fcntl.flock` for the whole run, renewed at every step and released only on idle. A run's captures, plan and log line are its own record (the exception V allows); state and decisions are not rewritten unless they change, and the date of the last full review is taken from the log, not from the state | Pass |
 | VI. One source, one isolated and tested provider | A shared `Source` port: `ClassroomSource` (captures) and `BookSource` (a book provider's directory); the subfolder comes from the source's name; adding another book touches neither `placement` nor `replicas`. Classroom extractor tested with `jsdom` on synthetic pages and the logic with `pytest`. Recorded exception: Science Bits' existing extractors remain untested (Complexity Tracking) | Pass with recorded exception |
-| VII. Every output is optional and degrades on its own | The Drive folder is the base output and the master of its mirrors; a mirror that fails is counted in the summary and the log and stops neither the master nor the other mirrors (FR-011a). The calendar is left for epic 2, with its `shared_with` list already in the template (FR-011b). The Science Bits notebook stays as it is today (enabled or not by configuration), and its result, a failure included, is logged with `log notebook`; if it fails, what was placed in the Drive is not touched | Pass |
+| VII. Every output is optional and degrades on its own | The Drive folder is the base output and the master of its mirrors; a mirror that fails is counted in the summary and the log and stops neither the master nor the other mirrors (FR-011a). The calendar is left for epic 2, with its `shared_with` list already in the template (FR-011b). The Science Bits notebook stays as it is today (enabled or not by configuration), and its result, a failure included, is logged with `log write-notebook`; if it fails, what was placed in the Drive is not touched | Pass |
 | VIII. Local time, always `Europe/Madrid` | A single date resolver with `zoneinfo`; year inferred from the school year; tests across clock changes and year changes | Pass |
 | IX. Simplicity | No runtime dependencies (runtime capture validation checks keys by hand); files instead of a database; `jsonschema`, Node and `jsdom` only in development (see Complexity Tracking); `uv`, already adopted for the environment, only prepares the environment and launches the command on the Mac, with no new libraries | Pass with justification |
 
@@ -140,7 +140,7 @@ src/alfabeta/
 ├── agenda.py                       # agenda.json and agenda.md («Pendiente» and «Hecho»)
 ├── anonymize.py                    # synthetic pages built from the structure of the real ones
 ├── book.py                         # `book place`
-├── sandbox.py                      # `sandbox prepare` and `sandbox download`: invented student for tests and the quickstart
+├── sandbox.py                      # `sandbox prepare` and `sandbox stage`: invented student for tests and the quickstart
 ├── guardrail.py                    # personal-data detector with a self-test
 ├── runner/                         # User Story 7, used only in the runner's image
 │   ├── browser.py                  # Playwright Chromium, the request guard and the single press function (research R18)
@@ -207,28 +207,28 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 1. `python -m alfabeta lock take --student <id> --mode <interactive|scheduled>` (its `run` goes in
    `ALFABETA_RUN` on every later command) and `config check --student <id>`: the student's and the
    browser's locks taken for the whole run, valid configuration, Drive mounted. If `lock take` fails,
-   it writes its own line; if anything else fails, `log stop` with its reason and a notice to the
+   it writes its own line; if anything else fails, `log write-stop` with its reason and a notice to the
    family. Every command runs on the Mac with
-   `uv run --project <tools.repository> python -m alfabeta`, and the skill calls `downloads collect`
+   `uv run --project <tools.repository> python -m alfabeta`, and the skill calls `download collect`
    after the class list, after each class and after each batch of downloads (every command renews
    the lock; `lock renew` is for long waits).
 2. Claude opens Classroom in Chrome, locates the school account by its index and checks the session
    and the UI language. If the session expired, there is a challenge or the UI is not the expected
-   one, `log stop` with its reason and a notice (FR-021a).
-3. It captures the class list; `downloads collect` and `plan` give the unlinked classes. Claude
-   proposes their links with `decisions propose`; in an interactive run the family confirms them on
+   one, `log write-stop` with its reason and a notice (FR-021a).
+3. It captures the class list; `download collect` and `classroom plan` give the unlinked classes. Claude
+   proposes their links with `decision propose`; in an interactive run the family confirms them on
    the spot, in a scheduled run they stay pending and those classes are not synced yet.
 4. For each linked class, it runs `extract.js` with the current `run`, which downloads the capture;
-   `downloads collect` moves it to `data/captures/`. If the session expires midway, a challenge
+   `download collect` moves it to `data/captures/`. If the session expires midway, a challenge
    appears or the UI is not the expected one, the extractor downloads a `stop` capture with `class`
    and the flow jumps to step 7 with the classes already captured (`partial`).
-5. `plan --student <id>`: writes `data/plan.json` with the downloads needed, the pending decisions and
+5. `classroom plan --student <id>`: writes `data/plan.json` with the downloads needed, the pending decisions and
    what would change. Claude proposes matches and detected exams (with reason and confidence); in an
    interactive run the family confirms the matches, and detected exams enter the agenda without
    confirmation.
 6. Claude downloads each requested attachment (the method from spike S1), in the plan's batches and
-   with at least 2 s between downloads; `downloads collect` after each batch verifies them.
-7. `apply --student <id>`: recomputes the targets with the decisions in force, places replicas,
+   with at least 2 s between downloads; `download collect` after each batch verifies them.
+7. `classroom apply --student <id>`: recomputes the targets with the decisions in force, places replicas,
    updates state and log, regenerates the agenda if it changes, brings each mirror up to date
    from the root (`rsync -rlt --exclude .DS_Store <root>/ <mirror>/`, no `--delete`; FR-011a) and
    prints the summary for the family, mirrors included by count. `lock release` at the end; if the run dies, the lock is released on idle.
@@ -248,12 +248,12 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
      stored session, opens `/u/0/h`, checks the account button locally against `classroom.account`
      and the Spanish labels, then runs `extract.js` in `todo` mode («Tareas pendientes» with each
      collapsed section by its header, «Sin entregar» with «Ver todo», each listed detail and the
-     `recheck` items `plan` computes, ≥2 s with jitter, each detail carrying its `seen_at`). A load
+     `recheck` items `classroom plan` computes, ≥2 s with jitter, each detail carrying its `seen_at`). A load
      to `accounts.google.com` the scripted sign-in cannot clear is `session_expired`; a CAPTCHA,
      `challenge`; missing labels, `unexpected_ui`; a page past its limit, `timeout`. The capture
      lands in `captures/`.
-4. `plan` and `apply` (unattended, from the lock) run with `--home` on the pulled-down copy of the Drive state folder, with nothing to download,
-   no replica, and no master or mirror write (H1); `apply` regenerates the agenda and uploads it
+4. `classroom plan` and `classroom apply` (unattended, from the lock) run with `--home` on the pulled-down copy of the Drive state folder, with nothing to download,
+   no replica, and no master or mirror write (H1); `classroom apply` regenerates the agenda and uploads it
    through spec 004's connection with the credential of FR-033a, confirmed by Drive, and only if its
    hash changed (FR-036).
 5. It stores the renewed secret as a new version only if it changed, destroys the older ones,
@@ -279,7 +279,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
   Downloads, and `book place` moves it through `BookSource` to
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title>/<book>/` inside the Drive root (the subfolder is
   the value of `book`), with the same hash and previous-version rules as Classroom, and then brings the
-  mirrors up to date as `apply` does. It reuses the
+  mirrors up to date as `classroom apply` does. It reuses the
   existing folder named `Tema NN - <title>` after its date, whatever the date and the title (of two,
   the one already holding `<book>/`); only if there is none does it create one dated today.
 - It neither reads nor writes Dropbox; what was captured there before stays as it is.
@@ -291,7 +291,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
   (`nlm share invite <id> <account> --role viewer`; FR-011b). Measured 2026-10-26: the school domain
   allows a notebook owned by a personal Gmail account to be shared with the school account as
   viewer, and it opens there. After that step, the skill calls
-  `log notebook` with its result and the sharing counts (`created`, `unchanged`, `failed` with a reason, or `disabled`): a
+  `log write-notebook` with its result and the sharing counts (`created`, `unchanged`, `failed` with a reason, or `disabled`): a
   notebook failure does not undo what was placed and shows in the log (constitution VII).
 
 ## Spikes before the implementation tasks
@@ -303,7 +303,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
   without anyone approving anything at that moment. If it cannot, the scheduled run stays in the
   reduced mode FR-021a allows (a notice, and a sync launched with the single command).
 - **S3 · Real structure and synthetic pages**: save a class's real pages outside the repository,
-  generate their synthetic versions with `anonymize`, check with the guardrail that nothing real
+  generate their synthetic versions with `page anonymize`, check with the guardrail that nothing real
   remains, check that a question's detail page can be read without creating state, and measure how
   long a whole class takes.
 

@@ -124,7 +124,7 @@ def test_a_new_build_after_the_confirming_read_is_read_again_from_one(tmp_path: 
 
 
 def test_exam_preps_first_read_gets_its_confirming_read(tmp_path: Path):
-    # `exam prep` writes `reads = 1` and no session (spec 002 contracts/cli.md, step 5).
+    # `exam build` writes `reads = 1` and no session (spec 002 contracts/cli.md, step 5).
     (tmp_path / "data").mkdir()
     (tmp_path / "data" / RECORD).write_text(json.dumps({"sources": {"src-1": {"read_md5": MD5_A, "reads": 1}}}))
     deps, owner, _ = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")))

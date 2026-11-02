@@ -1,9 +1,9 @@
 """The plan of a run: what to download, what each item becomes and what needs a decision (spec 001 T039).
 
-`plan` reads the latest capture of each class in scope, the state and the decisions, and writes
+`classroom plan` reads the latest capture of each class in scope, the state and the decisions, and writes
 `data/plan.json`. It downloads only what is new, what the teacher modified after the last replica,
 what changed name, or everything when the periodic full review is due (FR-026, research R3/S1).
-What a run cut before `apply` already collected into `data/inbox/` is listed under
+What a run cut before `classroom apply` already collected into `data/inbox/` is listed under
 `already_collected` instead of being downloaded again (FR-029). Two attachments with the same
 expected name never share a batch, so each downloaded file has one owner. The exam candidates of
 the `Classifier` join `pending_decisions` with the subject's language, for Claude to judge (T048);
@@ -150,7 +150,7 @@ class Planner:
         return "review" if self.full_review else None
 
     def _collected(self, item: Item, wanted: dict[str, Any]) -> bool:
-        """Whether a run cut before `apply` already left this attachment in `data/inbox/`.
+        """Whether a run cut before `classroom apply` already left this attachment in `data/inbox/`.
 
         A copy collected before the teacher's last modification is stale: it is deleted, and asked for again.
         """

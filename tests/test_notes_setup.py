@@ -1,4 +1,4 @@
-"""`notebook setup` with a fake notebook (spec 005 T016, T017, T028). Every value is invented."""
+"""`notebook prepare` with a fake notebook (spec 005 T016, T017, T028). Every value is invented."""
 
 from __future__ import annotations
 

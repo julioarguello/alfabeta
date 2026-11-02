@@ -1,4 +1,4 @@
-"""A book provider's result in its topic's folder (spec 001 US4, contracts/cli.md `book place`, `log notebook`).
+"""A book provider's result in its topic's folder (spec 001 US4, contracts/cli.md `book place`, `log write-notebook`).
 
 `book place` copies what a provider built for one topic (the Science Bits skill's `TemaNN_<LANG>.pdf`
 and `.md`) into `<school-year>/<subject>/<topic>/<book>/`. `<topic>` is the subject's folder named
@@ -8,7 +8,7 @@ it, or a new `<today> - Tema NN - <title>` when there is none. A topic split int
 takes the one that already holds `<book>/`, and otherwise never guesses. Each file is a replica keyed
 `<book>|Tema NN[X]|<file>` with its hash and version: an identical file writes nothing, a changed one
 keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)» (FR-015b). The origin is only
-read, and nothing is written outside the base folder. `log notebook` writes the line of the book's
+read, and nothing is written outside the base folder. `log write-notebook` writes the line of the book's
 notebook step, whatever its result (constitution VII).
 """
 
@@ -212,7 +212,7 @@ def shares(text: str | None) -> dict[str, int]:
 def notebook_line(
     run: str | None, at: str, topic: str, result: str, reason: str | None, shared: str | None
 ) -> dict[str, Any]:
-    """The `log notebook` line; `reason` only, and always, with `failed`."""
+    """The `log write-notebook` line; `reason` only, and always, with `failed`."""
     if result not in NOTEBOOK_RESULTS:
         raise BookError("invalid_result", f"--result must be one of: {', '.join(NOTEBOOK_RESULTS)}")
     said = " ".join((reason or "").split())[:REASON_CHARS]

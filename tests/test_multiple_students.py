@@ -58,12 +58,12 @@ def take(home: Path, student: str) -> str:
 def sync(home: Path, student: str, run: str) -> None:
     """Scenario 2 of quickstart.md for one student: captures, plan, attachments, apply."""
     for args, checked in (
-        (("sandbox", "download", "--student", student, "--captures"), True),
-        (("downloads", "collect", "--student", student), True),
-        (("plan", "--student", student), True),
-        (("sandbox", "download", "--student", student, "--batch", "0"), True),
-        (("downloads", "collect", "--student", student), False),  # 1 while a later batch is pending
-        (("apply", "--student", student), True),
+        (("sandbox", "stage", "--student", student, "--captures"), True),
+        (("download", "collect", "--student", student), True),
+        (("classroom", "plan", "--student", student), True),
+        (("sandbox", "stage", "--student", student, "--batch", "0"), True),
+        (("download", "collect", "--student", student), False),  # 1 while a later batch is pending
+        (("classroom", "apply", "--student", student), True),
     ):
         done = cli(home, *args, run=run)
         assert done.returncode == 0 or not checked, (args, done.stderr)
@@ -117,8 +117,8 @@ def test_while_one_syncs_the_other_cannot_take_the_browser(home: Path):
     assert first.browser_lock == second.browser_lock  # one Chrome, one downloads folder
     assert first.student_lock != second.student_lock
     run = take(home, "sample")
-    assert cli(home, "sandbox", "download", "--student", "sample", "--captures", run=run).returncode == 0
-    assert cli(home, "downloads", "collect", "--student", "sample", run=run).returncode == 0
+    assert cli(home, "sandbox", "stage", "--student", "sample", "--captures", run=run).returncode == 0
+    assert cli(home, "download", "collect", "--student", "sample", run=run).returncode == 0
     running = tree(home / "sample")
 
     busy = cli(home, "lock", "take", "--student", "sample2", "--mode", "interactive")
@@ -126,12 +126,12 @@ def test_while_one_syncs_the_other_cannot_take_the_browser(home: Path):
     lines = [json.loads(line) for line in (home / "sample2" / "data" / "log.jsonl").read_text().splitlines()]
     assert [(line["result"], line["reason"]) for line in lines] == [("stopped", "lock_busy")]
     # The first run's run id holds nothing of the other student's, and the refusal left it alone.
-    other = cli(home, "plan", "--student", "sample2", run=run)
+    other = cli(home, "classroom", "plan", "--student", "sample2", run=run)
     assert other.returncode == 1 and '"lock_not_held"' in other.stdout
     assert first.held() and not second.held()
     assert tree(home / "sample") == running
 
-    assert cli(home, "plan", "--student", "sample", run=run).returncode == 0
+    assert cli(home, "classroom", "plan", "--student", "sample", run=run).returncode == 0
     assert cli(home, "lock", "release", "--student", "sample", run=run).returncode == 0
     later = take(home, "sample2")
     assert second.held() and not first.held()

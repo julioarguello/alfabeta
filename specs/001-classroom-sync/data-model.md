@@ -28,7 +28,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Agenda entry `corrected: true` | «corregido» |
 | Agenda entry `date: null` | «sin fecha» |
 | Attachment not fetched, noted in `enlaces.md` | «no traído» |
-| Summary for the family (stderr of `apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
+| Summary for the family (stderr of `classroom apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
 | Book topic folder | `YYYYMMDD - Tema NN - <title>` |
 | Teacher's topic folder with no book equivalent, or with its match not yet confirmed | `YYYYMMDD - <teacher's title>` |
 | Folder for what Classroom posts with no topic | `YYYYMMDD - No topic` |
@@ -222,7 +222,7 @@ One line per run: `started_at`, `ended_at`, `mode` (`interactive` · `scheduled`
 `classes` visited, counters `added`, `changed`, `withdrawn`, `not_fetched` (with a reason per
 item, without student data), `unknown_statuses`, `pending_decisions`, `full_review`
 (boolean: the next full review is counted from the last line that has it), `result` (`ok` ·
-`partial` · `stopped`) and `reason` (of the stop or of a `partial` one. A stop in the browser —session expired, challenge or unexpected interface— before capturing any class leaves the run `stopped` without writing to the student's folder; after capturing at least one, `apply` applies those already captured, leaves the class of the `stop` capture unapplied and the result is `partial` with that reason. The same in both modes. Drive not mounted, lock busy or invalid configuration always stop before writing) (`session_expired`, `challenge`,
+`partial` · `stopped`) and `reason` (of the stop or of a `partial` one. A stop in the browser —session expired, challenge or unexpected interface— before capturing any class leaves the run `stopped` without writing to the student's folder; after capturing at least one, `classroom apply` applies those already captured, leaves the class of the `stop` capture unapplied and the result is `partial` with that reason. The same in both modes. Drive not mounted, lock busy or invalid configuration always stop before writing) (`session_expired`, `challenge`,
 `unexpected_ui`, `timeout`, `drive_not_mounted`, `lock_busy`, `lock_not_held`,
 `invalid_config`, `idle`, and, for the unattended runner, `account_blocked` (the API refuses the
 account), `drive_write_failed` (the agenda upload was not confirmed) and `store_unavailable` (the
@@ -231,12 +231,12 @@ number of the stored secret's version it used, never its value; a later run that
 same reason and the same version ends 0 without reaching Classroom and without a new notice, and a
 stopped run stores no new version, FR-037) and `blocked` (the count of page loads, presses and
 requests the web-route guard blocked, FR-038; absent on the token route). Each line carries the
-`run` of its lock. The `apply` line also carries
+`run` of its lock. The `classroom apply` line also carries
 `mirrors`: `{up_to_date, failed}`, counts of the configured mirrors (FR-011a), never their paths.
 `book place` writes a shorter
 line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`;
 a placement cut short by a write error has `result: failed`, `reason: write_failed` and `placed` (how many files it copied) instead of `mirrors`.
-`log notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
+`log write-notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
 `unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data), and
 `shares`: `{invited, already, failed}`, counts of the accounts in `notebook.share_with` (FR-011b),
 never their addresses. `unchanged`: the notebook already existed and

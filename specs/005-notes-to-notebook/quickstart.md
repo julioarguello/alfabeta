@@ -6,7 +6,7 @@ photos of 2026-10-26 and never leaves the operator's machine and the alfabeta wo
 
 ## Prerequisites
 
-- Spec 004's link of the student's Gmail is `ok` (`python -m alfabeta google check --student <id>`)
+- Spec 004's link of the student's Gmail is `ok` (`python -m alfabeta google account check --student <id>`)
   and its scoped Drive adapter is built.
 - Two API keys in the Claude Console workspace `alfabeta` of the organisation Server Startup, one for
   the Mac's keychain and one for the cloud's secret store. Check first, in *Settings → Profile*, that
@@ -17,7 +17,7 @@ photos of 2026-10-26 and never leaves the operator's machine and the alfabeta wo
 ## 1. A test topic with its living files
 
 ```bash
-python -m alfabeta notebook setup --student <id> --topic "<subject>/<test topic folder>"
+python -m alfabeta notebook prepare --student <id> --topic "<subject>/<test topic folder>"
 ```
 
 Expect: `{ok: true}` with both sources set; the notebook lists exactly two Drive sources; each living
@@ -38,7 +38,7 @@ put it in `[notes] model`. Record the cost per page; it replaces the estimate in
 Upload one invented photo of handwritten notes to the test topic's `notes/`, then:
 
 ```bash
-python -m alfabeta notes run --student <id>
+python -m alfabeta note transcribe --student <id>
 ```
 
 Expect: a PDF and a Markdown next to the photo; one page in `Apuntes · <topic>.pdf` headed
@@ -71,7 +71,7 @@ reads every living source that has no record yet, the next pass reads them again
 the passes after it show `read: 0`.
 
 Quit the Claude desktop app. Upload one invented photo to the topic's `notes/` and run
-`notes run` by hand (or wait for the cloud run once step 5 is done). From then on nobody touches the
+`note transcribe` by hand (or wait for the cloud run once step 5 is done). From then on nobody touches the
 notebook as its owner: the student opens it and asks about a word only that page holds. Expect, in
 the log, one pass with `read: 1` after `pages_added: 1`, one more with `read: 1` (the confirming
 read), then only `read: 0`, and the student's answer within 20 minutes of `pages_added: 1`
@@ -91,7 +91,7 @@ says `signed_out`; since `<copy>` holds its own record, the real agenda is untou
 
 ## 4. The student's marks
 
-Rename the transcription PDF adding « (mal)», run `notes run`: the page reads «En corrección» and
+Rename the transcription PDF adding « (mal)», run `note transcribe`: the page reads «En corrección» and
 the report names it. Rename it to « (revisada)», run again: the page reads «Revisada por el alumno».
 Edit the page's Markdown in Drive and record whether Drive keeps the same file id with a new checksum
 or converts it to a Google Doc; the correction rule of research R7 assumes the first.
@@ -99,7 +99,7 @@ or converts it to a Google Doc; the correction rule of research R7 assumes the f
 ## 5. The cloud job
 
 Deploy as `docs/how-to/notes-cloud-run.md` says (written with slice 2), including the cloud's own
-link: `python -m alfabeta google link --student <id> --account student --client-file <cloud client
+link: `python -m alfabeta google account link --student <id> --account student --client-file <cloud client
 JSON> --scopes drive --print-token` piped into `gcloud secrets versions add <google_link_secret>
 --data-file=-`, then delete the JSON. Record what each free tier of research R11 showed at setup. Then, with the Mac
 **off**, upload a second invented photo from the phone.
@@ -120,7 +120,7 @@ enter.
 ## 7. Limits and budget
 
 - Read Google's current limit for one notebook source and record it in research R12.
-- Set the workspace's spend limit to 0.01 USD for one run: `notes run` exits 0 with `budget_wait > 0`,
+- Set the workspace's spend limit to 0.01 USD for one run: `note transcribe` exits 0 with `budget_wait > 0`,
   the report says transcription waits, the Classroom step still runs; the next runs that day do not
   report it again. Restore the 10 USD limit.
 - Stop the Scheduler job for three hours with the Mac on: the agenda warns that the cloud has not run.

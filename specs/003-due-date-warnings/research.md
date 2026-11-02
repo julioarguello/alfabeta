@@ -29,7 +29,7 @@ Phase 0 of [plan.md](plan.md). Each decision names what it rests on. The spec's 
 - **Rationale**: FR-007's start date is the posting date. For a material or an announcement the
   agenda's `date` already is it; for an assignment, a quiz or an exam it is not there. The agenda is
   regenerated on every run from the state, so the new version replaces the old one the next run.
-  Spec 002's `exam prep` reads entries by key, so an added key changes nothing for it.
+  Spec 002's `exam build` reads entries by key, so an added key changes nothing for it.
 - **FR-016 reads the title only.** The agenda carries no description, and the one measured case is a
   title. Adding the first line of every description to the agenda for a form never measured there
   would put more of the teacher's text in a second file for no case. Recorded in the spec's
@@ -157,7 +157,7 @@ at 23:59 is 23:59–24:00).
   event and reminders back. The run counts
   them. Nothing is deleted (V).
 - **A moved due date** moves the same event (same id) and recomputes its reminders (FR-011).
-- **Legacy events**: the events the chat connector wrote before spec 004. `calendar legacy` selects
+- **Legacy events**: the events the chat connector wrote before spec 004. `calendar delete-legacy` selects
   only events of the school year that hold all three marks: no alfabeta property, all-day (a
   `start.date`, no `start.dateTime`), and `created` before alfabeta's first applied run
   (`first_apply_at`). A timed event, or one created later, is never selected, so an event the
@@ -242,7 +242,7 @@ at 23:59 is 23:59–24:00).
 ## R12 — The switch and the delivery check
 
 - **Decision**: `[calendar] warnings = false` in the template. While false, events are written with
-  no reminders and the run says the warnings are off. `calendar delivery --account <alias> --seen-on
+  no reminders and the run says the warnings are off. `calendar set-delivery --account <alias> --seen-on
   <date>` records the family's check; every run states whether a check is on record. The code does
   not refuse to write reminders without one (US6, scenario 1): gate 1 and slice 6 order the steps,
   and the run's line keeps the gap visible.
@@ -266,7 +266,7 @@ at 23:59 is 23:59–24:00).
   (Observed facts), and spec 004 R5 keeps sharing a step the operator does by hand. The check is
   therefore the family's, by hand, in quickstart step 1: the calendar's sharing settings list
   exactly the accounts of `calendar.shared_with`, each able to see all event details, recorded
-  with its date (T019). `calendar sharing --checked-on <date>` records that check with a hash of
+  with its date (T019). `calendar set-sharing --checked-on <date>` records that check with a hash of
   `calendar.shared_with`; every run says «Comprobar con quién se comparte el calendario» while the
   list's hash differs from the recorded one, so a change to the list asks for the check again.
   Adding `calendar.acls.readonly` so a run could check it would mean linking

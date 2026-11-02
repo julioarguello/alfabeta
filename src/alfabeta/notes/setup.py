@@ -1,4 +1,4 @@
-"""`notebook setup`: a topic gets its two living files and they become its notebook's sources (R9).
+"""`notebook prepare`: a topic gets its two living files and they become its notebook's sources (R9).
 
 Only this command creates living files (research R6). It runs on the Mac, where `nlm` is signed in.
 It first runs the recording pass, so an adopted Markdown and the topic's Classroom items are in the

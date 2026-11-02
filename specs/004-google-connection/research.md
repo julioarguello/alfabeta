@@ -39,7 +39,7 @@ the family's accounts the same day.
 
 ## R2 — Sign-in: installed-app flow on loopback with PKCE
 
-- **Decision**: a Desktop OAuth client. `google link` opens the browser at Google's authorisation
+- **Decision**: a Desktop OAuth client. `google account link` opens the browser at Google's authorisation
   URL, with:
   - `redirect_uri=http://127.0.0.1:<free port>`;
   - `code_challenge` (S256) and a random `state`;
@@ -175,5 +175,5 @@ the family's accounts the same day.
 
 ## R10 — Every token used on every run
 
-- **Decision**: `google check` refreshes the access token of every linked account at the start of
+- **Decision**: `google account check` refreshes the access token of every linked account at the start of
   each run, which also counts as use (FR-015). A run that skips Google outputs still runs the check.

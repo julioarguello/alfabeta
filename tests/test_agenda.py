@@ -556,7 +556,7 @@ def test_an_announcements_entry_gets_its_folder(box: Box):
 
 def test_a_familys_correction_prevails_in_the_next_run(box: Box):
     first_run(box)
-    fix = ("decisions", "correct", "--student", "sample", "--origin", "synth-30#exam-1", "--date", "2026-11-10")
+    fix = ("decision", "update-exam", "--student", "sample", "--origin", "synth-30#exam-1", "--date", "2026-11-10")
     assert box(*fix).returncode == 0
     box.apply()
     assert (agenda(box)["synth-30#exam-1"]["date"], agenda(box)["synth-30#exam-1"]["corrected"]) == ("2026-11-10", True)
@@ -568,16 +568,16 @@ def test_a_familys_correction_prevails_in_the_next_run(box: Box):
 def test_the_agenda_command_writes_only_what_changed(box: Box):
     first_run(box)
     (box.base / "2026-2027" / "agenda.md").unlink()
-    done = box("agenda", "--student", "sample")
+    done = box("agenda", "build", "--student", "sample")
     assert done.returncode == 0, done.stderr
     assert json.loads(done.stdout) == {"written": ["2026-2027/agenda.md"]}
     assert str(box.base) not in done.stderr and "alfabeta: agenda:" in done.stderr
-    again = box("agenda", "--student", "sample")
+    again = box("agenda", "build", "--student", "sample")
     assert json.loads(again.stdout) == {"written": []} and "sin cambios" in again.stderr
 
 
 def test_the_agenda_command_needs_the_lock(box: Box):
-    done = cli(box.home, "agenda", "--student", "sample")
+    done = cli(box.home, "agenda", "build", "--student", "sample")
     assert done.returncode == 1 and '"lock_not_held"' in done.stdout
 
 
@@ -588,7 +588,7 @@ def test_another_today_rewrites_nothing(box: Box, monkeypatch: pytest.MonkeyPatc
     stamps = [p.stat().st_mtime_ns for p in files]
     for day in (dt.date(2026, 11, 20), dt.date(2027, 6, 1)):  # after the exam, and near the end of the year
         monkeypatch.setattr(decisions_module, "today", lambda day=day: day)
-        assert cli_main.main(["--home", str(box.home), "agenda", "--student", "sample"]) == 0
+        assert cli_main.main(["--home", str(box.home), "agenda", "build", "--student", "sample"]) == 0
         assert json.loads(capsys.readouterr().out) == {"written": []}
     assert [p.stat().st_mtime_ns for p in files] == stamps
 
@@ -600,10 +600,10 @@ def test_the_macs_sync_shows_the_owners_session_line_while_it_is_signed_out(box:
     record.write_text(
         json.dumps({"sources": {}, "session": "signed_out", "session_since": "2026-10-28T10:00:00+01:00"})
     )
-    assert box("agenda", "--student", "sample").returncode == 0
+    assert box("agenda", "build", "--student", "sample").returncode == 0
     md = (box.base / "2026-2027" / "agenda.md").read_text()
     assert md.splitlines()[2] == AGENDA_LINE
     record.write_text(json.dumps({"sources": {}, "session": "ok", "session_since": "2026-10-28T10:15:00+01:00"}))
-    again = box("agenda", "--student", "sample")
+    again = box("agenda", "build", "--student", "sample")
     assert json.loads(again.stdout) == {"written": ["2026-2027/agenda.md"]}
     assert AGENDA_LINE not in (box.base / "2026-2027" / "agenda.md").read_text()

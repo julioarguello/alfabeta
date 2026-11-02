@@ -1,4 +1,4 @@
-"""`exam prep --student <id> --subject <folder> [--exam] [--slot] [--topic]...` (spec 002 contracts/cli.md).
+"""`exam build --student <id> --subject <folder> [--exam] [--slot] [--topic]...` (spec 002 contracts/cli.md).
 
 JSON on stdout, messages for people on stderr; no message names an address, a Drive id, a notebook
 id or an absolute path. Exit codes: 0 ok · 1 usage or validation, and the refusals `notebook_disabled`,
@@ -112,7 +112,7 @@ def cmd_exam_prep(
     factory: Callable[[config.StudentConfig, TokenStore], ExamDeps] | None = None,
     today: Callable[[], dt.date] = decisions.today,
 ) -> int:
-    """`exam prep`: steps 1 to 4 here, 5 to 9 in `ExamPrep`."""
+    """`exam build`: steps 1 to 4 here, 5 to 9 in `ExamPrep`."""
     # 1. The configuration, as `config check` reads it; notebooks may be switched off.
     problems, warnings = config.check(home, args.student)
     for warning in warnings:

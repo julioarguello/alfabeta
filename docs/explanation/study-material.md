@@ -55,7 +55,7 @@ teacher never touched still exists, at low priority.
 Trust also has limits in the other direction. On the same date, the teacher's answer key had three
 wrong answers out of eighteen: the key gave 25.85 % where the answer is 5.08 %, 0.13 g/mL where the
 density is 1.095 g/mL, and the wrong sign on an exponent. Material generated for the student never copies an answer key:
-every numeric answer is recomputed. The exam sheets of `exam prep` are the one exception: the
+every numeric answer is recomputed. The exam sheets of `exam build` are the one exception: the
 notebook computes their numbers, an accepted risk ([spec 002](../../specs/002-study-pack/spec.md),
 FR-036).
 
@@ -145,7 +145,7 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 | Videos and the parent's material in Spanish; practice in the subject's language, except the exam's problems sheet, in Spanish with each statement also in its original language (spec 002 FR-029) | Sustatu and HABE on Basque audio quality; Saalbach on switching; the split itself is a **hypothesis** |
 | Few pieces for the student, each named by what it is, what about and how long (`Vídeo 4 min · Kontzentrazioa`) | Choice overload ([Chernev et al. 2015](https://www.kellogg.northwestern.edu/faculty/research/detail/2015/when-product-assortment-leads-to-choice-overload-a-conceptual)); the count is a **hypothesis** |
 | The parent's material (topic map, recomputed answer key, translated exercises, a questioning guide with the Basque term) lives in the topic's `notebook/` folder in Drive, with the rest of what the notebook generates, and leaves the notebook's Studio | A viewer sees everything in Studio (sharing help) |
-| Numeric answers are recomputed before any material reaches the student, except the exam sheets of `exam prep`, whose numbers the notebook computes (an accepted risk, spec 002 FR-036) | The answer-key errors above |
+| Numeric answers are recomputed before any material reaches the student, except the exam sheets of `exam build`, whose numbers the notebook computes (an accepted risk, spec 002 FR-036) | The answer-key errors above |
 | The tutor gives hints before answers and never attributes authorship | Bastani et al.; the invented attribution measured above |
 | The calendar holds only objective Classroom facts — assignments, exams, posted material — never study blocks | A family decision: study time is planned by hand |
 

@@ -1,4 +1,4 @@
-"""The topic's notebook as `exam prep` uses it, through `nlm` (spec 002 contracts/cli.md). Mac only.
+"""The topic's notebook as `exam build` uses it, through `nlm` (spec 002 contracts/cli.md). Mac only.
 
 Output shapes read from `nlm`'s source, version 0.15.8, on 2026-10-28: `login --check` exits 0 when
 the profile's session works and 2 when it does not; `config get auth.default_profile` prints the name;
@@ -53,7 +53,7 @@ class Note:
 
 
 class Notebook(Protocol):
-    """What `exam prep` asks of the notebook tool."""
+    """What `exam build` asks of the notebook tool."""
 
     def check_session(self) -> None:
         """Raise unless the profile's session works."""
@@ -146,7 +146,7 @@ class NlmNotebook:
         return self._call("config", "get", "auth.default_profile", profiled=False).strip()
 
     def find_notebook(self, title: str) -> str | None:
-        """By exact title, as `notebook setup` finds it."""
+        """By exact title, as `notebook prepare` finds it."""
         try:
             return NlmSources(self._profile, self._run).find_notebook(title)
         except SourcesError as err:

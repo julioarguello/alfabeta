@@ -1,4 +1,4 @@
-"""`exam prep` with an invented student and a fake `nlm` (spec 002 US7, contracts/cli.md).
+"""`exam build` with an invented student and a fake `nlm` (spec 002 US7, contracts/cli.md).
 
 The fake answers `nlm` at the runner, as the command line would, so the adapter's command lines are
 tested with the flow. No test calls nlm, Drive, pandoc or Chrome: the printer writes blank PDFs.
@@ -700,7 +700,7 @@ def test_the_command_is_wired_into_alfabeta(world: World, capsys: pytest.Capture
         "--home",
         str(world.home),
         "exam",
-        "prep",
+        "build",
         "--student",
         STUDENT,
         "--subject",
@@ -932,7 +932,7 @@ def test_a_missing_living_notes_file_is_code_3_and_says_so(world: World, capsys:
     world.living = FakeLiving(fails=True, reason="missing")
     assert world.run() == 3
     result, err = output(capsys)
-    assert "not where `notebook setup` put it" in err and "may be stale" in err
+    assert "not where `notebook prepare` put it" in err and "may be stale" in err
     assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, True]
 
 

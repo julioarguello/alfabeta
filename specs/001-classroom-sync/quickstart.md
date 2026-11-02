@@ -25,21 +25,21 @@ guardrail green, each one named in the output.
 export ALFABETA_SANDBOX=$(mktemp -d)
 uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox prepare
 export ALFABETA_RUN=$(uv run python -m alfabeta --home "$ALFABETA_SANDBOX" lock take --student sample --mode interactive | python3 -c 'import json,sys;print(json.load(sys.stdin)["run"])')
-uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox download --student sample --captures
-uv run python -m alfabeta --home "$ALFABETA_SANDBOX" downloads collect --student sample
-uv run python -m alfabeta --home "$ALFABETA_SANDBOX" plan --student sample
-uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox download --student sample
-uv run python -m alfabeta --home "$ALFABETA_SANDBOX" downloads collect --student sample
-uv run python -m alfabeta --home "$ALFABETA_SANDBOX" apply --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox stage --student sample --captures
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" download collect --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" classroom plan --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" sandbox stage --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" download collect --student sample
+uv run python -m alfabeta --home "$ALFABETA_SANDBOX" classroom apply --student sample
 uv run python -m alfabeta --home "$ALFABETA_SANDBOX" lock release --student sample
 ```
 
 `sandbox prepare` leaves the invented captures in `sandbox-captures/` and the attachments in `sandbox-attachments/`,
 both outside the downloads. `lock take` returns the `run` we export;
-`sandbox download --captures` leaves the captures in the downloads with that `run` (what the extractor leaves in a
-real run) and the first `downloads collect` takes them and fixes the scope; `sandbox download` copies to the downloads, after the
-plan, the attachments it requests (what Claude does), and the second `downloads collect` collects them. If the plan
-spreads downloads over batches, `sandbox download --batch N` and `downloads collect` for each batch. Expected: `2026-2027/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/classroom/` with
+`sandbox stage --captures` leaves the captures in the downloads with that `run` (what the extractor leaves in a
+real run) and the first `download collect` takes them and fixes the scope; `sandbox stage` copies to the downloads, after the
+plan, the attachments it requests (what Claude does), and the second `download collect` collects them. If the plan
+spreads downloads over batches, `sandbox stage --batch N` and `download collect` for each batch. Expected: `2026-2027/<subject>/<YYYYMMDD> - <Tema NN - title | teacher's title | No topic>/classroom/` with
 materials `YYYYMMDD - <title>`, assignment folders with `enunciado - <name>` and `enlaces.md` notes;
 every item of the capture in its place or noted with link and reason (SC-001).
 
@@ -48,13 +48,13 @@ every item of the capture in its place or noted with link and reason (SC-001).
 After scenario 2: `2026-2027/agenda.md` opens with «Pendiente» (nearest first, undated at the
 end), continues with «Hecho» and ends with «Publicado» (material and announcements); the exam announced in the sample stream, whose proposal `sandbox prepare` seeds, appears as
 detected with a link (SC-004a); `agenda.json` is valid against `contracts/agenda.schema.json`. With `lock take --mode interactive` (exporting its `run` as in scenario 2) /
-`lock release` around it, correct the exam with `decisions correct … --date <other>` and apply
+`lock release` around it, correct the exam with `decision update-exam … --date <other>` and apply
 again: the agenda keeps the correction.
 
 ## 4. US3: repeating with no changes and with changes (no Classroom)
 
 - Repeat on the same `$ALFABETA_SANDBOX` the commands of scenario 2 from `lock take` to
-  `lock release` (`sandbox download --captures` leaves the captures again with the new `run`): the summary says «sin cambios», `apply`'s JSON counts
+  `lock release` (`sandbox stage --captures` leaves the captures again with the new `run`): the summary says «sin cambios», `classroom apply`'s JSON counts
   the sample classes (not zero), and `find "$ALFABETA_SANDBOX/drive" -newer <marker>` is empty (SC-002). The repeated captures carry the
   same `captured_at`; the case of another `captured_at` with no dates in between is tested by T051. That
   the agenda does not depend on the day is tested by T045 with a simulated "today", without changing the system clock.
@@ -72,14 +72,14 @@ again: the agenda keeps the correction.
   scenario 2 → `git status` unchanged
   (SC-006) and separate folders.
 - Add to a staged file an email and a macOS user path, both invented →
-  `uv run python -m alfabeta guardrail --staged` exits with 1 and names file and line without repeating the
+  `uv run python -m alfabeta guardrail check --staged` exits with 1 and names file and line without repeating the
   value (SC-007). In a clone with no local configurations the guardrail warns on stderr and goes on with the
   generic detectors.
 
 ## 6. Spike S1: downloading a Drive attachment
 
 With a real material of the student, try the methods of research R4 in order and record the first one that
-leaves the complete file in the downloads folder. `downloads collect` must move it and verify it.
+leaves the complete file in the downloads folder. `download collect` must move it and verify it.
 
 ## 7. Spike S2: scheduled task with a browser
 
@@ -90,7 +90,7 @@ anyone approving anything. If not, the scheduled run stays in the reduced mode o
 ## 8. Spike S3: real structure and synthetic pages
 
 Save the real pages of a class in `data/raw-captures/`, generate their synthetic versions
-with `anonymize`, run the guardrail over them before adding them to `tests/fixtures/classroom/`,
+with `page anonymize`, run the guardrail over them before adding them to `tests/fixtures/classroom/`,
 check that reading the detail page of a question changes nothing in «Tu trabajo» (Your work), and record
 how long a full class takes.
 

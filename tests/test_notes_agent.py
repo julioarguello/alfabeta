@@ -239,7 +239,7 @@ def test_the_agent_command_prints_its_state_and_no_path(
     plist = bench.plist()
     assert plist["ProgramArguments"][plist["ProgramArguments"].index("--home") + 1] == str(home.resolve())
     assert plist["StandardOutPath"] == str((home / "s9" / "data").resolve() / LOG)
-    assert __main__.main(["--home", str(home), "notebook", "agent", "remove", "--student", "s9"]) == 0
+    assert __main__.main(["--home", str(home), "notebook", "agent", "uninstall", "--student", "s9"]) == 0
     assert printed(capsys)[0]["agent"] == "removed"
 
 

@@ -11,7 +11,18 @@ def test_version_runs():
 
 def test_missing_home_is_refused(tmp_path: Path):
     done = subprocess.run(
-        [sys.executable, "-m", "alfabeta", "--home", str(tmp_path / "nope"), "google", "check", "--student", "s9"],
+        [
+            sys.executable,
+            "-m",
+            "alfabeta",
+            "--home",
+            str(tmp_path / "nope"),
+            "google",
+            "account",
+            "check",
+            "--student",
+            "s9",
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -23,7 +34,7 @@ def test_missing_home_is_refused(tmp_path: Path):
 def test_guardrail_runs_without_a_configuration_folder(tmp_path: Path):
     repo = Path(__file__).resolve().parents[1]
     done = subprocess.run(
-        [sys.executable, "-m", "alfabeta", "--home", str(tmp_path / "nope"), "guardrail", "--all"],
+        [sys.executable, "-m", "alfabeta", "--home", str(tmp_path / "nope"), "guardrail", "check", "--all"],
         capture_output=True,
         text=True,
         check=False,

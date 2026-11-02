@@ -44,15 +44,15 @@ def sandbox(tmp_path: Path) -> Iterator[tuple[Path, str]]:
 
 
 def collect_captures(home: Path, run: str) -> None:
-    assert cli(home, "sandbox", "download", "--student", "sample", "--captures", run=run).returncode == 0
-    done = cli(home, "downloads", "collect", "--student", "sample", run=run)
+    assert cli(home, "sandbox", "stage", "--student", "sample", "--captures", run=run).returncode == 0
+    done = cli(home, "download", "collect", "--student", "sample", run=run)
     assert json.loads(done.stdout)["classes"] == ["synth-1", "synth-2"]
 
 
 def test_the_sandbox_run_plans_downloads_places_and_asks(sandbox: tuple[Path, str]):
     home, run = sandbox
     collect_captures(home, run)
-    done = cli(home, "plan", "--student", "sample", run=run)
+    done = cli(home, "classroom", "plan", "--student", "sample", run=run)
     assert done.returncode == 0, done.stderr
     result = json.loads(done.stdout)
     names = sorted(d["expected_name"] for d in result["downloads"])
@@ -88,15 +88,15 @@ def test_the_sandbox_run_plans_downloads_places_and_asks(sandbox: tuple[Path, st
     topic = next(p for p in result["pending_decisions"] if p["origin"] == "synth-10")
     assert topic["book_topics"] == ["Tema 01 - Materia inventada"]
 
-    assert cli(home, "sandbox", "download", "--student", "sample", "--batch", "0", run=run).returncode == 0
-    collected = json.loads(cli(home, "downloads", "collect", "--student", "sample", run=run).stdout)
+    assert cli(home, "sandbox", "stage", "--student", "sample", "--batch", "0", run=run).returncode == 0
+    collected = json.loads(cli(home, "download", "collect", "--student", "sample", run=run).stdout)
     assert sorted(collected["collected"]) == names and collected["pending"] == []
 
 
 def test_subject_limits_the_scope(sandbox: tuple[Path, str]):
     home, run = sandbox
     collect_captures(home, run)
-    result = json.loads(cli(home, "plan", "--student", "sample", "--subject", "Ingles", run=run).stdout)
+    result = json.loads(cli(home, "classroom", "plan", "--student", "sample", "--subject", "Ingles", run=run).stdout)
     assert result["downloads"] == [] and all(c["path"].startswith("2026-2027/Ingles/") for c in result["changes"])
 
 
@@ -107,7 +107,7 @@ def test_a_capture_outside_the_school_year_stops_the_run(sandbox: tuple[Path, st
     data = json.loads(captured.read_text())
     data["captured_at"] = "2025-10-27T16:22:00+01:00"
     captured.write_text(json.dumps(data))
-    done = cli(home, "plan", "--student", "sample", run=run)
+    done = cli(home, "classroom", "plan", "--student", "sample", run=run)
     assert done.returncode == 1 and '"invalid_config"' in done.stdout
     last = json.loads((home / "sample" / "data" / "log.jsonl").read_text().splitlines()[-1])
     assert (last["result"], last["reason"], last["run"]) == ("stopped", "invalid_config", run)
@@ -117,7 +117,7 @@ def test_a_capture_outside_the_school_year_stops_the_run(sandbox: tuple[Path, st
 def test_plan_needs_the_lock(tmp_path: Path):
     home = tmp_path / "box"
     cli(home, "sandbox", "prepare")
-    done = cli(home, "plan", "--student", "sample")
+    done = cli(home, "classroom", "plan", "--student", "sample")
     assert done.returncode == 1 and '"lock_not_held"' in done.stdout
 
 

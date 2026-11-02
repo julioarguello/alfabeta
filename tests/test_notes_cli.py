@@ -1,4 +1,4 @@
-"""The JSON and exit codes of `notes run`, `notebook setup` and `claude key set` (spec 005 T020)."""
+"""The JSON and exit codes of `note transcribe`, `notebook prepare` and `claude set-key` (spec 005 T020)."""
 
 from __future__ import annotations
 
@@ -186,9 +186,9 @@ def test_claude_key_set_reads_stdin_and_refuses_empty(
     store = MemoryStore()
     monkeypatch.setattr(__main__, "KeychainStore", lambda: store)
     monkeypatch.setattr("sys.stdin", io.StringIO("  sk-ant-clave-inventada\n"))
-    assert __main__.main(["--home", str(tmp_path), "claude", "key", "set", "--student", "s9"]) == 0
+    assert __main__.main(["--home", str(tmp_path), "claude", "set-key", "--student", "s9"]) == 0
     assert store.get(claude_key_name("s9")) == "sk-ant-clave-inventada"
     assert "sk-ant" not in capsys.readouterr().out
     monkeypatch.setattr("sys.stdin", io.StringIO("\n"))
-    assert __main__.main(["--home", str(tmp_path), "claude", "key", "set", "--student", "s9"]) == 1
+    assert __main__.main(["--home", str(tmp_path), "claude", "set-key", "--student", "s9"]) == 1
     assert out(capsys)["reason"] == "empty_key"

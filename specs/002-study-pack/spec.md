@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Amended**: 2026-10-28 — the day before an exam: alfabeta's `exam prep` asks the topic's notebook
+**Amended**: 2026-10-28 — the day before an exam: alfabeta's `exam build` asks the topic's notebook
 for a theory sheet and a problems sheet and prints them (User Story 7, julioarguello/alfabeta#97;
 the command is julioarguello/alfabeta#106).
 
@@ -42,14 +42,14 @@ A second procedure was run by hand and checked 2026-10-28, for one exam the next
 on paper for the day before the exam, a theory sheet and a problems sheet (the topic's
 `Teoría para el examen` and `Problemas tipo` PDFs). An agent wrote them that day from the topic
 folder; the operator then decided that alfabeta makes them by itself, with its own command
-`exam prep` asking the topic's notebook (User Story 7, FR-029 to FR-037, and the
+`exam build` asking the topic's notebook (User Story 7, FR-029 to FR-037, and the
 [command contract](contracts/cli.md)). They add to the spaced practice of Stories 1 and 5 and do
 not replace it: the design page's case against material made only the night before still holds;
 these sheets narrow what was practised to what the announcement names.
 
 Out of this spec: writing to Classroom or to the textbook platform, the calendar beyond the facts
 spec 001 puts there and the two links of FR-026, audio overviews, and recognising handwriting in the class-note
-photos (it is a dependency, not a requirement here). Running `exam prep` by itself when an exam is
+photos (it is a dependency, not a requirement here). Running `exam build` by itself when an exam is
 close belongs to the unattended runner (spec 001 User Story 7) and is later work.
 
 ## Clarifications
@@ -137,7 +137,7 @@ done that day; the last three, what the operator decided once it was done (User 
   teacher's key.
 - Q: Who prepares the two sheets after that day? → A: alfabeta, by itself, through the topic's
   notebook. The operator does not want to prepare an exam in front of Claude, but to have their own
-  tool do it unattended, and chose that alfabeta's command `exam prep` asks the notebook for the two
+  tool do it unattended, and chose that alfabeta's command `exam build` asks the notebook for the two
   sheets as reports with fixed prompts and prints them, with no Claude and no Claude API («Sí, haz
   tu recomendación. Y actualiza el README con estos comandos que tendríamos en alfabeta»). The two
   sheets are therefore pieces of the notebook, in the moment «EXAMEN» (FR-014), and each is also
@@ -152,7 +152,7 @@ done that day; the last three, what the operator decided once it was done (User 
   it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
   printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
   `{corrections}` of the parent-guide prompt), so whether the notebook finds a wrong printed
-  answer by itself has not been measured: the first run of `exam prep` measures it. A check by a
+  answer by itself has not been measured: the first run of `exam build` measures it. A check by a
   model that executes code may later be added for that step alone (FR-036).
 - Q: What if notebooks are switched off, or `nlm` does not work? → A: The command refuses before it
   asks the notebook for anything, with a message that says why, and prints nothing: the notebook is
@@ -601,7 +601,7 @@ and cannot judge what the notebook writes.
 - **FR-009**: Before the family is told the pack is ready, alfabeta MUST check the language of
   every piece's whole text (for a video, its on-screen text), recompute every numeric answer, and,
   for the practice sheet, compare its data with the teacher's sheets. The exam sheets of
-  `exam prep` are the one exception: nothing checks them before they print but their page count,
+  `exam build` are the one exception: nothing checks them before they print but their page count,
   neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
   regenerated or reported.
@@ -627,7 +627,7 @@ and cannot judge what the notebook writes.
   that numbers every other piece in study order, says how to use each video (notes taken on the
   student's own scheme), gives each session its minutes and a break, and says what the student can
   do when the session ends, and holds no theory; and among the pieces «Resumen de tus apuntes»,
-  the notes condensed on their schemes, one short part per content block (FR-001), each studied with its video. The guide replaces the note «0 · Empieza aquí» (2026-10-29). `exam prep`
+  the notes condensed on their schemes, one short part per content block (FR-001), each studied with its video. The guide replaces the note «0 · Empieza aquí» (2026-10-29). `exam build`
   (FR-029) writes its note under its moment, «EXAMEN <weekday> · Empieza aquí», and leaves a note
   «0 · …» as it is (#141). No title and no note may
   present a piece as optional.
@@ -682,7 +682,7 @@ and cannot judge what the notebook writes.
 
 **The exam eve**
 
-- **FR-029**: alfabeta MUST provide a command, `exam prep` ([contract](contracts/cli.md)), that for
+- **FR-029**: alfabeta MUST provide a command, `exam build` ([contract](contracts/cli.md)), that for
   a known exam (FR-022) asks the topic's notebook for two reports with fixed prompts, a theory
   sheet and a problems sheet, titles them as pieces of the moment `EXAMEN <weekday>` (FR-014),
   numbered after the pieces that moment already holds, rewrites the start note (FR-015), records
@@ -812,7 +812,7 @@ and cannot judge what the notebook writes.
     reverse). Its title is its lesson's, or one naming the lessons it groups; its letter follows the
     lessons' order and never changes once given.
   - **When**: a topic with no pack yet holds all its lessons and is never split while it has none.
-    The split is proposed, as a decision the family confirms or rejects (`alfabeta decisions`), in
+    The split is proposed, as a decision the family confirms or rejects (`alfabeta decision`), in
     two moments only: when the topic's first pack is about to be made and the lessons its material
     covers would not fit one study day (more than three videos, FR-042) — subtopics are then
     proposed instead of one pack; and when the topic already has a pack and material arrives for a
@@ -862,7 +862,7 @@ and cannot judge what the notebook writes.
   No piece covers more than one subtopic, an exam's included (FR-045).
 - **FR-045**: Preparing an exam that covers several subtopics MUST mean preparing each of their
   notebooks (the operator, 2026-10-30: «que preparar un examen sea preparar todos los cuadernos»):
-  `exam prep` takes one `--topic` per subtopic the exam covers and, for each, asks that subtopic's
+  `exam build` takes one `--topic` per subtopic the exam covers and, for each, asks that subtopic's
   own notebook for its two sheets, from its own sources, as FR-029 to FR-037 describe for a topic.
   The study slot is shared in equal parts among them, in the subtopics' order, and each theory
   sheet's plan covers its part only. A sheet's sections are the announcement's points its
@@ -921,7 +921,7 @@ and cannot judge what the notebook writes.
   or whose statement lacks a datum.
 - **Pack record**: per topic, the blocks, the pieces with their moment, the materials each «HOY»
   piece covers, and the corrections, with dates (FR-024).
-- **Exam sheet**: one of the two reports `exam prep` asks the notebook for, theory or problems: a
+- **Exam sheet**: one of the two reports `exam build` asks the notebook for, theory or problems: a
   piece of the moment «EXAMEN», also printed as its own A4 PDF in the topic's `exam/` folder
   (FR-029).
 - **Pattern**: one way of solving that a group of the photocopies' exercises shares: a formula
@@ -991,14 +991,14 @@ and cannot judge what the notebook writes.
 - Whether the notebook's reports follow the fixed prompts closely enough — every exercise in a
   pattern, the terms first in the subject's language, the page count, the table of wrong printed
   answers — has not been measured: the sheets observed 2026-10-28 were written by an agent, not by
-  the notebook. The first run of `exam prep` is that measurement, and the prompts are unmeasured
+  the notebook. The first run of `exam build` is that measurement, and the prompts are unmeasured
   until then.
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
   or added as sources); a photocopy that is not cannot be mapped.
 - An exam announced only in class, or detected in a material or an assignment, has no announcement
   text, so the command refuses it; how the family
   would give such an exam's scope is not designed.
-- The quota cost of `exam prep` (two reports, three when the guide is regenerated) has not been
+- The quota cost of `exam build` (two reports, three when the guide is regenerated) has not been
   measured; SC-006 measured a whole pack.
 
 ## Dependencies

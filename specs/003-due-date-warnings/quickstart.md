@@ -9,7 +9,7 @@ folder.
 ## Prerequisites
 
 - Spec 001's agenda exists: `<storage.base>/<school_year>/agenda.json`, version 2 (slice 1).
-- Spec 004's link of the student's Gmail is `ok`: `alfabeta google check`.
+- Spec 004's link of the student's Gmail is `ok`: `alfabeta google account check`.
 - **Gate 1** for slice 1 on: the family has watched a reminder set as the student's Gmail ring on
   the student's own phone, and stated the date, and the account by its alias, in their own words; no address, and nothing about the device is recorded, here or anywhere
   (spec 004 T021). A pre-written answer is not a measurement.
@@ -69,7 +69,7 @@ alfabeta calendar sync --apply
 ## 4. The legacy events (slice 1)
 
 ```bash
-alfabeta calendar legacy
+alfabeta calendar delete-legacy
 ```
 
 Step 3 gave each legacy event its owned twin. The family reads the private report
@@ -77,7 +77,7 @@ Step 3 gave each legacy event its owned twin. The family reads the private repor
 want to keep. Then, with that report:
 
 ```bash
-alfabeta calendar legacy --apply --report legacy-<run>.json
+alfabeta calendar delete-legacy --apply --report legacy-<run>.json
 ```
 
 Expect `deleted` equal to the reviewed `matched`. The family decides about each unmatched event by
@@ -136,7 +136,7 @@ Only when gate 3's daily sync runs (julioarguello/alfabeta#13).
 1. The family records the delivery check they saw in gate 1, in their own words:
 
    ```bash
-   alfabeta calendar delivery --account <alias> --seen-on <date>
+   alfabeta calendar set-delivery --account <alias> --seen-on <date>
    ```
 
 2. The operator reads step 5's weekly counts and accepts them (SC-003). The acceptance is quoted

@@ -302,7 +302,7 @@ class DecisionStore:
     def confirm(self, kind: DecisionType, origin: str, on: dt.date, *, reject: bool = False) -> Decision:
         """Confirm or reject the proposal of `(kind, origin)`."""
         if reject and kind == DecisionType.DETECTED_EXAM:
-            raise DecisionError("a detected exam is not rejected; discard it with `decisions correct --discard`")
+            raise DecisionError("a detected exam is not rejected; discard it with `decision update-exam --discard`")
         current = self.in_force(kind, origin)
         if current is None or current.decision.state != DecisionState.PROPOSED:
             raise DecisionError("there is no proposal of that type for that origin")

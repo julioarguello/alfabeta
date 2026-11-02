@@ -79,7 +79,7 @@ def test_command_writes_nothing_on_refusal(tmp_path: Path):
 
     def cli() -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, "-m", "alfabeta", "--home", str(tmp_path), "anonymize", str(source), str(target)],
+            [sys.executable, "-m", "alfabeta", "--home", str(tmp_path), "page", "anonymize", str(source), str(target)],
             capture_output=True,
             text=True,
             check=False,

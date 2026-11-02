@@ -1,4 +1,4 @@
-"""`exam prep`'s steps (spec 002 contracts/cli.md, FR-029 to FR-037).
+"""`exam build`'s steps (spec 002 contracts/cli.md, FR-029 to FR-037).
 
 Steps 1 to 4 find what the command needs and ask the notebook for nothing: a refusal there is a
 `Refusal` and prints nothing. Steps 5 to 9 are `ExamPrep.run`: from there a failure is code 3 and
@@ -290,7 +290,7 @@ class Printer(Protocol):
 
 @dataclass
 class ExamDeps:
-    """The ports of one `exam prep`."""
+    """The ports of one `exam build`."""
 
     notebook: Notebook
     living: LivingNotesReader
@@ -419,7 +419,7 @@ class ExamPrep:
             living = self.deps.living.living_notes(self.subject, self.folder.name)
         except LivingNotesError as err:
             cause = (
-                "the topic's living notes file is not where `notebook setup` put it"
+                "the topic's living notes file is not where `notebook prepare` put it"
                 if err.reason == "missing"
                 else "Drive did not answer"
             )

@@ -104,7 +104,7 @@ src/alfabeta/google/
 ├── transport.py      # HttpTransport protocol + UrllibTransport (the only module that opens sockets)
 ├── keychain.py       # TokenStore protocol + KeychainStore over `security -i`
 ├── oauth.py          # loopback + PKCE sign-in, token refresh, revoke, account validation
-├── accounts.py       # LinkedAccount, AuthCheck, `google link/check/unlink/client set`
+├── accounts.py       # LinkedAccount, AuthCheck, `google account link/check/unlink/client set`
 ├── calendar.py       # CalendarClient: get/insert/patch/delete with deterministic ids and explicit reminders
 ├── drive.py          # ScopedDrive: root resolution, folder allowlist, list, upload (multipart/resumable), md5 check
 ├── migrate.py        # migration plan and apply; uploads.jsonl
@@ -134,16 +134,16 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 The first slice's acceptance criterion comes before its ports. Each slice is proved by its
 quickstart steps.
 
-1. **Link and check.** Covers US1 and US4. `google client set`, `link`, `check`, `unlink`, through
+1. **Link and check.** Covers US1 and US4. `google set-client`, `link`, `check`, `unlink`, through
    `transport`, `keychain`, `oauth` and `accounts`. Done when quickstart steps 1–4 and 6 pass on the
    real accounts.
-2. **A reminder that rings.** Covers US2 and unblocks spec 003. `calendar probe` and `probe-clean`
+2. **A reminder that rings.** Covers US2 and unblocks spec 003. `calendar probe create` and `calendar probe delete`
    through `CalendarClient`. Done when step 5 is seen on the phone and recorded.
 3. **Drive migration.** Covers US3 and FR-009a, FR-010. `drive migrate`, dry run then apply,
    through `ScopedDrive` and `migrate`. Done when step 7's report shows `differs: 0` and the apply
    uploads only `to_upload`.
 4. **Drive in every run.** Covers FR-011 to FR-015. `drive push`, the mount check, `notify`, and
-   `google check` at the start of spec 001's runs. Done when two consecutive pushes report
+   `google account check` at the start of spec 001's runs. Done when two consecutive pushes report
    `uploaded: 0`, and when a revoked link shows in the notification and the agenda.
 
 Spec 003's calendar writes reuse slice 2's `CalendarClient`. Spec 001's replicas reach Drive through

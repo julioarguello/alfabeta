@@ -131,15 +131,15 @@ Written atomically, mode 0600, only when its bytes change.
 | `<alias>` | The account's alias (`[google.accounts.<alias>]`, role `student`) |
 | `seen_on` | The date the family saw a reminder ring on the student's phone, as they state it |
 
-Only `calendar delivery` writes it. Every run reads it and says `seen` with the date or `unseen`.
+Only `calendar set-delivery` writes it. Every run reads it and says `seen` with the date or `unseen`.
 
 ## Run line (`data/log.jsonl`, spec 001's log)
 
 When the sync run calls `calendar sync --apply`, it runs under that run's lock and its line carries
 that `run`. Called alone, it takes the student's lock for a run of its own and releases it.
 
-`calendar sync --apply` and `calendar legacy --apply` each append one line, as `book place` and
-`log notebook` do: `type: calendar` (or `calendar_legacy`), `at`, `run`, `result` (`ok` ·
+`calendar sync --apply` and `calendar delete-legacy --apply` each append one line, as `book place` and
+`log write-notebook` do: `type: calendar` (or `calendar_legacy`), `at`, `run`, `result` (`ok` ·
 `partial` · `stopped`), `reason` if not `ok` (`link_<status>`, `no_agenda`, `old_agenda`, `no_student_account`, `write_failed`), the
 counts `created`, `updated`, `marked`, `unchanged`, `failed` (legacy: `matched`, `unmatched`,
 `deleted`), `warnings_on` and `delivery` (`seen` · `unseen`). Counts and ids only, never a title
@@ -169,6 +169,6 @@ Due-date event:  none ──agenda has a date──▶ «Entrega ·» (reminders
                  any ──date moves──▶ same id, new placement, basis_at reset
                  any ──item withdrawn or date gone──▶ «Retirado ·» (no reminders, kept)
 Warnings switch: false (events only) ──slice 6, gates 1–4──▶ true
-Delivery:        unseen ──calendar delivery──▶ seen <date>
+Delivery:        unseen ──calendar set-delivery──▶ seen <date>
 Legacy event:    present ──legacy --apply, matched──▶ deleted; unmatched ──▶ left for the family
 ```

@@ -3,7 +3,7 @@
 `.alfabeta/state.json` holds the records and is written only when one changed (SC-004);
 `.alfabeta/last-run.json` is the run's own log, with the change cursor, written every run;
 `.alfabeta/conversions/` holds an Office file's Google copy for the moment it is exported. Three
-writers share them (the cloud run, `notebook setup` and `notes run` on the Mac), so a write first
+writers share them (the cloud run, `notebook prepare` and `note transcribe` on the Mac), so a write first
 checks that nobody wrote since the read.
 """
 

@@ -3,7 +3,7 @@
 The pass reads the records and the run log, reads the change feed from the cursor, records what
 arrived, transcribes the pending photos, writes each page's Markdown and PDF next to its photo, checks
 every recorded Classroom item against this run's listing, and rebuilds the living files of every
-topic that changed. It never creates a living file: only `notebook setup` does (research R6). It
+topic that changed. It never creates a living file: only `notebook prepare` does (research R6). It
 writes `state.json` only when a record changed, and the run log always. A run that changed
 something leaves the family's report in `reports/` (report.py). It calls no study-pack generation
 (FR-012).

@@ -66,7 +66,7 @@ def _fail(reason: str, code: int, message: str) -> int:
 TABLES = {
     "google": ("classroom", "google"),
     "calendar": ("classroom", "calendar", "google"),
-    "notes": ("google", "drive", "notes"),
+    "note": ("google", "drive", "notes"),
     "notebook": ("student", "google", "drive", "notes", "notebook"),
 }
 # `notebook agent` reads only the clone it runs and the refresh interval (spec 005 T046).
@@ -89,7 +89,7 @@ def _cmd_config_check(home: Path, student: str) -> int:
     return EXIT_INVALID if problems else EXIT_OK
 
 
-# Reasons a skill may give `log stop`; `idle` is the watcher's own (contracts/cli.md).
+# Reasons a skill may give `log write-stop`; `idle` is the watcher's own (contracts/cli.md).
 LOG_STOP_REASONS = tuple(r for r in StopReason if r != StopReason.IDLE)
 
 
@@ -261,7 +261,7 @@ def _cmd_decisions(args: argparse.Namespace, home: Path) -> int:
         kind = DecisionType(args.type) if getattr(args, "type", None) else DecisionType.DETECTED_EXAM
         if args.verb == "confirm":
             decision = store.confirm(kind, args.origin, on, reject=args.reject)
-        elif args.verb == "correct":
+        elif args.verb == "update-exam":
             target = (
                 {"date": args.date}
                 if args.date
@@ -634,30 +634,32 @@ def build_parser() -> argparse.ArgumentParser:
     google = groups.add_parser("google", help="alfabeta's own Google connection").add_subparsers(
         dest="verb", required=True
     )
-    client_set = google.add_parser("client", help="the app's OAuth client").add_subparsers(dest="action", required=True)
-    setter = client_set.add_parser("set", help="store the Desktop client JSON in the keychain")
+    setter = google.add_parser("set-client", help="store the Desktop client JSON in the keychain")
     setter.add_argument("--from", dest="from_file", required=True)
-    link = google.add_parser("link", help="link an account through Google's sign-in")
+    account = google.add_parser("account", help="a linked Google account").add_subparsers(dest="action", required=True)
+    link = account.add_parser("link", help="link an account through Google's sign-in")
     link.add_argument("--account", required=True)
-    google.add_parser("check", help="refresh and report every linked account")
-    unlink = google.add_parser("unlink", help="revoke an account's link")
+    account_check = account.add_parser("check", help="refresh and report every linked account")
+    unlink = account.add_parser("unlink", help="revoke an account's link")
     unlink.add_argument("--account", required=True)
 
-    plan_cmd = groups.add_parser("plan", help="what this run downloads, places and asks")
+    classroom = groups.add_parser("classroom", help="the Classroom sync (spec 001)").add_subparsers(
+        dest="verb", required=True
+    )
+    plan_cmd = classroom.add_parser("plan", help="what this run downloads, places and asks")
     plan_cmd.add_argument("--subject", action="append", default=[])
-    apply_cmd = groups.add_parser("apply", help="place what this run collected in the student's base folder")
+    apply_cmd = classroom.add_parser("apply", help="place what this run collected in the student's base folder")
     apply_cmd.add_argument("--subject", action="append", default=[])
     apply_cmd.add_argument(
         "--stopped", choices=["timeout"], help="a scheduled run's wait ended midway with no stop capture (FR-021a)"
     )
-    agenda_cmd = groups.add_parser("agenda", help="regenerate agenda.json and agenda.md, only if they change")
-    dl = groups.add_parser("downloads", help="the browser's downloads folder").add_subparsers(
-        dest="verb", required=True
-    )
+    agenda = groups.add_parser("agenda", help="the student's agenda").add_subparsers(dest="verb", required=True)
+    agenda_cmd = agenda.add_parser("build", help="regenerate agenda.json and agenda.md, only if they change")
+    dl = groups.add_parser("download", help="the browser's downloads folder").add_subparsers(dest="verb", required=True)
     collect = dl.add_parser("collect", help="move this run's captures and the planned attachments to data/")
     collect.add_argument("--wait", type=int, default=0)
 
-    dec = groups.add_parser("decisions", help="Claude's proposals and the family's decisions").add_subparsers(
+    dec = groups.add_parser("decision", help="Claude's proposals and the family's decisions").add_subparsers(
         dest="verb", required=True
     )
     propose = dec.add_parser("propose", help="record Claude's proposals from a JSON file")
@@ -666,13 +668,13 @@ def build_parser() -> argparse.ArgumentParser:
     confirm.add_argument("--type", required=True, choices=[str(t) for t in decisions.PROPOSABLE])
     confirm.add_argument("--origin", required=True)
     confirm.add_argument("--reject", action="store_true")
-    correct = dec.add_parser("correct", help="correct a detected exam")
+    correct = dec.add_parser("update-exam", help="correct a detected exam")
     correct.add_argument("--origin", required=True)
     fix = correct.add_mutually_exclusive_group(required=True)
     fix.add_argument("--date", type=lambda v: dt.date.fromisoformat(v).isoformat())
     fix.add_argument("--category", choices=[str(c) for c in AgendaCategory])
     fix.add_argument("--discard", action="store_true")
-    change = dec.add_parser("change", help="change a confirmed or rejected match")
+    change = dec.add_parser("update-target", help="change the target of a confirmed or rejected match")
     change.add_argument("--type", required=True, choices=[str(t) for t in decisions.PROPOSABLE])
     change.add_argument("--origin", required=True)
     change.add_argument("--target", required=True)
@@ -682,17 +684,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     box_prepare = box.add_parser("prepare", help="create the invented student in an explicit --home")
     box_prepare.add_argument("--student", default=sandbox.DEFAULT_STUDENT)
-    box_download = box.add_parser("download", help="copy the sandbox captures to the downloads folder")
-    box_download.add_argument("--student", required=True)
-    what = box_download.add_mutually_exclusive_group()
+    box_stage = box.add_parser("stage", help="copy the sandbox captures to the downloads folder")
+    box_stage.add_argument("--student", required=True)
+    what = box_stage.add_mutually_exclusive_group()
     what.add_argument("--captures", action="store_true")
     what.add_argument("--batch", type=int, default=0)
 
-    anon = groups.add_parser("anonymize", help="a synthetic page from a saved Classroom page")
+    page = groups.add_parser("page", help="a saved Classroom page").add_subparsers(dest="verb", required=True)
+    anon = page.add_parser("anonymize", help="a synthetic page from a saved Classroom page")
     anon.add_argument("input")
     anon.add_argument("output")
 
-    guard = groups.add_parser("guardrail", help="look for personal data before it is published")
+    guardrail_group = groups.add_parser("guardrail", help="the personal-data guardrail").add_subparsers(
+        dest="verb", required=True
+    )
+    guard = guardrail_group.add_parser("check", help="look for personal data before it is published")
     scope = guard.add_mutually_exclusive_group()
     scope.add_argument("--staged", dest="scope", action="store_const", const="staged", help="the staged change")
     scope.add_argument("--all", dest="scope", action="store_const", const="all", help="every tracked file")
@@ -706,9 +712,9 @@ def build_parser() -> argparse.ArgumentParser:
     renew.add_argument("--wait", type=int, default=0, choices=range(101), metavar="0-100", help="seconds to wait first")
     release = lock.add_parser("release", help="release the lock of the run in ALFABETA_RUN")
     log = groups.add_parser("log", help="the run log").add_subparsers(dest="verb", required=True)
-    stop = log.add_parser("stop", help="write the stopped line of a run halted before apply")
+    stop = log.add_parser("write-stop", help="write the stopped line of a run halted before apply")
     stop.add_argument("--reason", required=True)
-    log_notebook = log.add_parser("notebook", help="write the line of a book topic's notebook step")
+    log_notebook = log.add_parser("write-notebook", help="write the line of a book topic's notebook step")
     log_notebook.add_argument("--topic", required=True, help="Tema NN[X] - <title>")
     log_notebook.add_argument("--result", required=True, help=", ".join(book.NOTEBOOK_RESULTS))
     log_notebook.add_argument("--reason", help="short, without student data; required with failed")
@@ -726,14 +732,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cfg_check = cfg_group.add_parser("check", help="compare the configuration with the template")
 
-    notes = groups.add_parser("notes", help="class notes into the topic's notebook (spec 005)").add_subparsers(
+    note = groups.add_parser("note", help="class notes into the topic's notebook (spec 005)").add_subparsers(
         dest="verb", required=True
     )
-    notes_run = notes.add_parser("run", help="one pass: new photos become pages of the living file")
+    notes_run = note.add_parser("transcribe", help="one pass: new photos become pages of the living file")
     notebook = groups.add_parser("notebook", help="the topic's notebook (spec 005)").add_subparsers(
         dest="verb", required=True
     )
-    notebook_setup = notebook.add_parser("setup", help="the topic's two living files, added as sources")
+    notebook_setup = notebook.add_parser("prepare", help="the topic's two living files, added as sources")
     notebook_setup.add_argument("--topic", required=True, help="<subject>/<topic folder>")
     notebook_refresh = notebook.add_parser("refresh", help="the owner reads each changed living file's source")
     notebook_refresh.add_argument(
@@ -745,11 +751,11 @@ def build_parser() -> argparse.ArgumentParser:
         dest="action", required=True
     )
     agent_install = agent.add_parser("install", help="write the agent in ~/Library/LaunchAgents and load it")
-    agent_remove = agent.add_parser("remove", help="unload the agent and delete it")
+    agent_remove = agent.add_parser("uninstall", help="unload the agent and delete it")
     exam = groups.add_parser("exam", help="the sheets for the day before an exam (spec 002)").add_subparsers(
         dest="verb", required=True
     )
-    exam_prep = exam.add_parser("prep", help="the topic's notebook writes a theory and a problems sheet; both print")
+    exam_prep = exam.add_parser("build", help="the topic's notebook writes a theory and a problems sheet; both print")
     exam_prep.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
     exam_prep.add_argument("--exam", type=dt.date.fromisoformat, help="the exam's date (default: the next one)")
     exam_prep.add_argument("--slot", help="the study slot, HH:MM-HH:MM (default: 90 minutes)")
@@ -759,26 +765,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="the exam's topic folder, once per subtopic it covers (default: the subject's most recent)",
     )
     claude = groups.add_parser("claude", help="this place's Claude API key").add_subparsers(dest="verb", required=True)
-    claude_key = claude.add_parser("key", help="the key of the workspace alfabeta").add_subparsers(
-        dest="action", required=True
+    claude_set = claude.add_parser(
+        "set-key", help="store the key of the workspace alfabeta, read from standard input, in the keychain"
     )
-    claude_set = claude_key.add_parser("set", help="store the key read from standard input in the keychain")
 
     notice = groups.add_parser("notice", help="a notification on the family's Mac").add_subparsers(
         dest="verb", required=True
     )
-    signin = notice.add_parser("signin", help="ask the family to sign in to Classroom; prints the wait")
+    signin = notice.add_parser("send-sign-in", help="ask the family to sign in to Classroom; prints the wait")
 
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
-    probe = cal.add_parser("probe", help="a test event with one reminder at its start")
+    probe_group = cal.add_parser("probe", help="a test event with one reminder at its start").add_subparsers(
+        dest="action", required=True
+    )
+    probe = probe_group.add_parser("create", help="create a probe event")
     probe.add_argument("--minutes", type=int, default=10)
-    clean = cal.add_parser("probe-clean", help="delete a probe event")
+    clean = probe_group.add_parser("delete", help="delete a probe event")
     clean.add_argument("--event", required=True)
 
     for sub in (
         setter,
         link,
-        google.choices["check"],
+        account_check,
         unlink,
         probe,
         clean,
@@ -816,7 +824,7 @@ def main(argv: list[str] | None = None) -> int:
     home = Path(args.home or "~/.alfabeta").expanduser()
     if args.group == "sandbox":
         return _cmd_sandbox(args)
-    if args.group == "anonymize":
+    if args.group == "page":
         try:
             _emit({"ok": True, "written": anonymize.run(Path(args.input), Path(args.output), home)})
         except anonymize.AnonymizeError as err:
@@ -829,25 +837,25 @@ def main(argv: list[str] | None = None) -> int:
         return _fail("no_home", EXIT_INVALID, "the configuration folder does not exist")
     store = KeychainStore()
     try:
-        if args.group == "google" and args.verb == "client":
+        if args.group == "google" and args.verb == "set-client":
             return _cmd_client_set(args, store)
         if args.group == "claude":
             return notes_cli.cmd_claude_key_set(args.student, store, sys.stdin.read())
         if args.group == "lock":
             return _cmd_lock(args, home)
         if args.group == "log":
-            return _cmd_log_stop(args, home) if args.verb == "stop" else _cmd_log_notebook(args, home)
+            return _cmd_log_stop(args, home) if args.verb == "write-stop" else _cmd_log_notebook(args, home)
         if args.group == "book":
             return _cmd_book_place(args, home)
-        if args.group == "decisions":
+        if args.group == "decision":
             return _cmd_decisions(args, home)
-        if args.group == "plan":
+        if args.group == "classroom" and args.verb == "plan":
             return _cmd_plan(args, home)
-        if args.group == "apply":
+        if args.group == "classroom":
             return _cmd_apply(args, home, store)
         if args.group == "agenda":
             return _cmd_agenda(args, home)
-        if args.group == "downloads":
+        if args.group == "download":
             return _cmd_collect(args, home)
         if args.group == "config":
             return _cmd_config_check(home, args.student)
@@ -859,19 +867,19 @@ def main(argv: list[str] | None = None) -> int:
             agent_cfg = config.load(home, args.student, AGENT_TABLES)
             return notes_cli.cmd_notebook_agent(agent_cfg, home, args.action)
         cfg = config.load(home, args.student, TABLES[args.group])
-        if args.group == "notes":
+        if args.group == "note":
             return notes_cli.cmd_notes_run(cfg, store)
         if args.group == "notebook" and args.verb == "refresh":
             return notes_cli.cmd_notebook_refresh(cfg, store, browser=args.browser)
         if args.group == "notebook":
             return notes_cli.cmd_notebook_setup(cfg, store, args.topic)
         if args.group == "google":
-            if args.verb == "link":
+            if args.action == "link":
                 return _cmd_link(args, cfg, store)
-            if args.verb == "check":
+            if args.action == "check":
                 return _cmd_check(cfg, store)
             return _cmd_unlink(args, cfg, store)
-        if args.verb == "probe":
+        if args.action == "create":
             return _cmd_probe(args, cfg, store)
         return _cmd_probe_clean(args, cfg, store)
     except config.ConfigError as err:

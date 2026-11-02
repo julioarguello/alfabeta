@@ -3,11 +3,11 @@
 The prompts are in Spanish because they were measured in Spanish (2026-10-26); a translation is an
 untested prompt. `{placeholders}` come from the configuration, from the topic's confirmed blocks
 (`notebook/bloques.md`) or, for the exam sheets, from the exam and its announcement, and for the
-exam's start note from the title `exam prep` gives the theory sheet. Replace every one before
+exam's start note from the title `exam build` gives the theory sheet. Replace every one before
 sending; a prompt that still holds a `{` is a bug.
 
 > [!IMPORTANT]
-> `exam prep` finds its three texts by their exact headings: «Theory sheet — for an exam»,
+> `exam build` finds its three texts by their exact headings: «Theory sheet — for an exam»,
 > «Problems sheet — for an exam» and «Start note — for an exam». Renaming one makes the command
 > refuse (`invalid_prompt`) and ask the notebook for nothing.
 
@@ -84,7 +84,7 @@ Tarjetas de vocabulario del tema: en el anverso el término en {language} tal co
 
 ## Theory sheet — for an exam
 
-`exam prep` sends it (spec 002 FR-029 to FR-033):
+`exam build` sends it (spec 002 FR-029 to FR-033):
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`.
 Not measured: the sheet it describes, observed 2026-10-28, was written by an agent, not by the notebook.
 
@@ -94,7 +94,7 @@ Hoja de teoría para estudiar mañana un examen, para un alumno de {grade} que d
 
 ## Problems sheet — for an exam
 
-`exam prep` sends it the same way (spec 002 FR-034 to FR-036). Not measured either.
+`exam build` sends it the same way (spec 002 FR-034 to FR-036). Not measured either.
 
 ```text
 Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · Examen del {exam_day} — Problemas tipo». Usa solo los problemas de las fotocopias que el profesor ha puesto en Classroom, ejemplos resueltos incluidos. 1) Nombra cada fotocopia con su fecha. 2) Reparte todos los problemas en el menor número de patrones posible: una fórmula es un patrón, y usarla al derecho o al revés, despejando otra incógnita, es el mismo patrón; un patrón también puede ser una cadena de fórmulas o una clasificación sin fórmula. Pon una tabla Patrón | Problemas | El más difícil en la que cada problema esté en un solo patrón; señala los problemas que se repiten en dos fotocopias y marca con ★ los que el profesor mandó hacer. 3) Di en qué orden repasarlos, unos diez minutos por patrón. 4) Para cada patrón, el problema más difícil, uno de los mandados si lo hay: su enunciado copiado tal cual en su idioma, su traducción al castellano y por qué es el más difícil; puedes añadir otro del mismo patrón para si sobra tiempo. 5) Después, bajo el título «Soluciones», cada uno de esos problemas resuelto con su planteamiento. 6) Al final, bajo el título «Soluciones impresas que no cuadran», recalcula cada resultado que imprimen las fotocopias, compáralo con la precisión con que está impreso y pon en una tabla Problema | Impreso | Calculado | Qué pasa cada uno que no coincida, y cada enunciado al que le falte un dato con el resultado de cada lectura. Si la diferencia solo viene de redondear antes del final, dilo junto a su solución y no lo pongas en la tabla. No culpes ni nombres a nadie. Cada término, primero en {language} y después en castellano. Comprueba dos veces cada número.
@@ -105,7 +105,7 @@ Hoja de problemas para un examen de mañana, para un alumno de {grade} que da la
 The pack's first piece: `0 · Guía de estudio · Empieza aquí`, a report, so every viewer sees it. It
 is **only the plan** — order, sessions, minutes, breaks, what the student can do at the end — and
 points at the other pieces by number. **No theory**: the operator found the first version, plan plus
-content, "muy densa" (2026-10-29). It replaces the ordinary start note below; `exam prep` writes its
+content, "muy densa" (2026-10-29). It replaces the ordinary start note below; `exam build` writes its
 own under its moment. Write the plan yourself, with the real numbers and the notes' pages, and check
 after downloading that it came back unchanged, or regenerate.
 
@@ -169,7 +169,7 @@ is a hypothesis.
 
 ## Start note — for an exam
 
-`exam prep` writes it once the theory sheet is in Studio, as the note `EXAMEN <weekday> · Empieza
+`exam build` writes it once the theory sheet is in Studio, as the note `EXAMEN <weekday> · Empieza
 aquí`, rewritten by a second run for the same exam; a note «0 · …» is the pack's and stays as it
 is (spec 002 FR-015, FR-029): `{theory}` is that sheet's title.
 

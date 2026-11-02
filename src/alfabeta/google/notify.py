@@ -20,11 +20,11 @@ TITLE = "alfabeta"
 _SCRIPT = ("on run argv", "display notification (item 1 of argv) with title (item 2 of argv)", "end run")
 # What each status of `accounts.STATUSES` means to the family, and what to do about it.
 _REASONS = {
-    "revoked": "el permiso se retiró; vuelve a vincularla con «alfabeta google link»",
-    "expired": "el permiso caducó; vuelve a vincularla con «alfabeta google link»",
-    "missing_scope": "le falta un permiso; vuelve a vincularla con «alfabeta google link»",
-    "no_token": "no está vinculada; vincúlala con «alfabeta google link»",
-    "no_client": "falta el cliente de alfabeta; guárdalo con «alfabeta google client set»",
+    "revoked": "el permiso se retiró; vuelve a vincularla con «alfabeta google account link»",
+    "expired": "el permiso caducó; vuelve a vincularla con «alfabeta google account link»",
+    "missing_scope": "le falta un permiso; vuelve a vincularla con «alfabeta google account link»",
+    "no_token": "no está vinculada; vincúlala con «alfabeta google account link»",
+    "no_client": "falta el cliente de alfabeta; guárdalo con «alfabeta google set-client»",
     "network": "Google no respondió; se vuelve a intentar en la siguiente ejecución",
 }
 

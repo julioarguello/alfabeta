@@ -9,8 +9,8 @@ the template keys.
 | Field | Where | Rule |
 |---|---|---|
 | `project_label` | config `[google]` | Free text for the operator, e.g. "alfabeta (work account)". Never an id |
-| client id, client secret | keychain `alfabeta.google` / `<student>/client` | Set by `google client set` from the JSON Google offers for download. That file is then deleted by the operator |
-| publishing status | not stored | `google check` warns if a refresh token was issued less than 8 days ago and the run sees `invalid_grant`, the Testing symptom |
+| client id, client secret | keychain `alfabeta.google` / `<student>/client` | Set by `google set-client` from the JSON Google offers for download. That file is then deleted by the operator |
+| publishing status | not stored | `google account check` warns if a refresh token was issued less than 8 days ago and the run sees `invalid_grant`, the Testing symptom |
 
 ## LinkedAccount
 

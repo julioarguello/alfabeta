@@ -39,4 +39,4 @@ test-js:
 	@echo "==> node --test"; npm test --silent
 
 guardrail:
-	@echo "==> guardrail --all"; uv run --locked python -m alfabeta guardrail --all
+	@echo "==> guardrail check --all"; uv run --locked python -m alfabeta guardrail check --all

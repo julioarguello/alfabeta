@@ -30,7 +30,7 @@ It runs, in this order:
 3. strict `pyright`;
 4. `pytest`, which fails if it collects no tests;
 5. `node --test` for the browser JavaScript;
-6. the personal-data guardrail over every tracked file (`python -m alfabeta guardrail --all`).
+6. the personal-data guardrail over every tracked file (`python -m alfabeta guardrail check --all`).
 
 Outside CI, `make ci` also fails if the pre-commit hook is missing or stale.
 
@@ -44,6 +44,20 @@ job beside it only reports what ruff would change and never blocks.
 - The guardrail names `file:line: detector` and never the value. An invented value that reached
   the published history goes in `.guardrail-allow`, with a comment; a real one never does.
 
+## Agent rules and command names
+
+`.claude/rules/` holds the rules Claude Code loads when it touches the files each one names in
+its `paths:`. The Python and CLI ones (`python.md`, `python-cli.md`, `python-cli-output.md`,
+`python-quality-gates.md`, `python-test-cost.md`) are adapted from Server Startup's shared rules;
+the constitution wins where they disagree. `cli-naming.md` is alfabeta's own.
+
+Every command is `python -m alfabeta <group> [<subgroup>] <verb>`: a singular noun, then a verb
+from a closed list with one meaning each (`decision confirm`, `google account link`,
+`log write-stop`). The list lives in `tests/test_cli_naming.py`, which fails the gate when a
+command breaks the grammar or when a skill, a spec, a doc or a message writes a command or an
+option the parser does not have. A rename ships no alias: it changes the parser, the tests, the
+contracts, the skills and the messages in one pull request.
+
 ## What may go into the repository
 
 The repository is public. It holds code and templates only, never a student's data. The
@@ -51,7 +65,7 @@ The repository is public. It holds code and templates only, never a student's da
 
 - **Configuration:** only `config/template.toml`, with `changeme` values. A student's configuration
   lives in `~/.alfabeta/<student>/`.
-- **Test fixtures:** only invented data, and only synthetic pages generated with `anonymize` go into
+- **Test fixtures:** only invented data, and only synthetic pages generated with `page anonymize` go into
   `tests/fixtures/`. A real Classroom page, a real name, an email address or a real id never does.
 - **Secrets:** tokens and cookies live in the macOS keychain or the data folder, never here.
 

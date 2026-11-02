@@ -34,7 +34,7 @@ Below, `alfabeta <command>` stands for that line.
 
 ## Steps
 
-1. **Open the run.** `alfabeta config check`, then `alfabeta google check`, which refreshes every
+1. **Open the run.** `alfabeta config check`, then `alfabeta google account check`, which refreshes every
    linked Google account and so keeps each link in use (spec 004 FR-013, FR-015). Exit 2 means an
    account is not `ok`: the Mac shows which one. No step of this skill writes to Google, so the run
    goes on; say it in the report. Then `alfabeta lock take --mode interactive`; keep its
@@ -61,9 +61,9 @@ Below, `alfabeta <command>` stands for that line.
    const classes = X.captureClasses({ run, doc: document, path: location.pathname, now });
    X.save(classes, window); ({ type: classes.type, reason: classes.reason, n: classes.classes?.length })
    ```
-   A `stop` (`challenge`, `unexpected_ui`) ends the run: `alfabeta log stop --reason <reason>`
+   A `stop` (`challenge`, `unexpected_ui`) ends the run: `alfabeta log write-stop --reason <reason>`
    (it writes the line and releases the lock; it sends nothing), and tell the family what to do.
-   Otherwise `alfabeta downloads collect --wait 10` and `alfabeta plan`.
+   Otherwise `alfabeta download collect --wait 10` and `alfabeta classroom plan`.
 5. **Link the classes.** For each `class_link` in `plan.json`'s `pending_decisions`, propose the
    subject whose `classroom_class` names that class — the family wrote it for this — with the reason
    and a confidence, in one file:
@@ -71,8 +71,8 @@ Below, `alfabeta <command>` stands for that line.
    [{"type": "class_link", "origin": "<class id>", "target": {"subject": "<short name>"},
      "reason": "<why>", "confidence": "high"}]
    ```
-   `alfabeta decisions propose --file <file>`, then ask the family and record each answer with
-   `alfabeta decisions confirm --type class_link --origin <class id>` (add `--reject` for a class
+   `alfabeta decision propose --file <file>`, then ask the family and record each answer with
+   `alfabeta decision confirm --type class_link --origin <class id>` (add `--reject` for a class
    that is not a subject). A hidden class is never linked; the summary lists it.
 6. **Capture each linked class** (or only the subject asked for), one at a time, in the background:
    ```js
@@ -84,11 +84,11 @@ Below, `alfabeta <command>` stands for that line.
    ```
    Poll in calls of at most 36 s — the tool call dies at 45 s:
    `for (let i = 0; i < 9 && window.__ab.status === "running"; i++) await new Promise((r) => setTimeout(r, 4000)); window.__ab`.
-   Then `alfabeta downloads collect --wait 10`, which also renews the lock. A `stop` midway
+   Then `alfabeta download collect --wait 10`, which also renews the lock. A `stop` midway
    (`session_expired`, `challenge`, `unexpected_ui`) is saved and collected like a capture: capture
    no more classes and go on to step 7 with what you have; the run ends `partial` with that reason.
    `complete: false` means some page did not load; the next run reads it again.
-7. **Match the topics.** `alfabeta plan` (with `--subject <short name>` when the family asked for one).
+7. **Match the topics.** `alfabeta classroom plan` (with `--subject <short name>` when the family asked for one).
    For each `topic_match` pending, propose the book topic it covers, copying the entry's `title` and
    `book_topics` into the proposal, or a rejected match reopens on every run:
    ```json
@@ -96,9 +96,9 @@ Below, `alfabeta <command>` stands for that line.
      "origin_title": "<title from plan.json>", "book_topics": ["<from plan.json>"],
      "reason": "<why>", "confidence": "medium"}]
    ```
-   Ask the family, then `decisions confirm --type topic_match --origin <topic id>` or, for a topic
+   Ask the family, then `decision confirm --type topic_match --origin <topic id>` or, for a topic
    that belongs to no book topic, the same with `--reject`: it keeps its own
-   `<YYYYMMDD> - <teacher's title>` folder. Then `alfabeta plan` again.
+   `<YYYYMMDD> - <teacher's title>` folder. Then `alfabeta classroom plan` again.
    For each `item_match` pending — an item of a book topic split into subtopics, posted since the
    split (spec 001 FR-013) — read the item and propose the subtopic, among the entry's
    `subtopics`, whose textbook lessons its content covers:
@@ -126,30 +126,30 @@ Below, `alfabeta <command>` stands for that line.
     {"type": "dismissed_candidate", "origin": "<item-b>", "target": {}, "reason": "<why it is no exam>",
      "confidence": "medium", "origin_hash": "<from plan.json>"}]
    ```
-   `alfabeta decisions propose --file <file>`. A detected exam counts from that moment, unconfirmed:
-   the next `apply` puts it in the agenda, marked «detectado». In an interactive run, tell the family
+   `alfabeta decision propose --file <file>`. A detected exam counts from that moment, unconfirmed:
+   the next `classroom apply` puts it in the agenda, marked «detectado». In an interactive run, tell the family
    each one with its date and each candidate you dismissed; what they say
-   is a correction, `alfabeta decisions correct --origin <item>#exam-<k>` with `--date YYYY-MM-DD`,
+   is a correction, `alfabeta decision update-exam --origin <item>#exam-<k>` with `--date YYYY-MM-DD`,
    `--category <category>` or, when it is no exam, `--discard`; a dismissal they disagree with is
-   `alfabeta decisions confirm --type dismissed_candidate --origin <item> --reject`. In a scheduled run ask nothing: they
-   stay as detected. Then `alfabeta plan` again.
+   `alfabeta decision confirm --type dismissed_candidate --origin <item> --reject`. In a scheduled run ask nothing: they
+   stay as detected. Then `alfabeta classroom plan` again.
 9. **Download the attachments.** `plan.json`'s `downloads` hold `url`, `expected_name` and `batch`.
    For each batch, starting at 0, load every `url` in a hidden iframe created in the Classroom tab,
-   2–3 s apart; they arrive with no dialog (research R4). Then `alfabeta downloads collect --wait 30`
+   2–3 s apart; they arrive with no dialog (research R4). Then `alfabeta download collect --wait 30`
    before the next batch: a batch is how two files with the same name do not overwrite each other.
-   A file that never arrives (a large video stops at Drive's virus-scan notice) is left; `apply`
+   A file that never arrives (a large video stops at Drive's virus-scan notice) is left; `classroom apply`
    notes it as «no traído» with its link.
 10. **Before the first apply of a subject**, look at its topic folders in Drive. A `classroom/` folder
     made before alfabeta (an earlier import, a hand copy) would sit beside the run's own files with
     other names. With the family's agreement, move it to
     `~/.alfabeta/<student>/data/quarantine/<YYYYMMDD>-<what>/`; never delete it. Leave
-    `Classroom · <topic>.pdf` where it is: it is `notebook setup`'s (spec 005) and a source of the
+    `Classroom · <topic>.pdf` where it is: it is `notebook prepare`'s (spec 005) and a source of the
     topic's notebook; quarantine only what is beside it.
-11. **Apply.** `alfabeta apply` (with the same `--subject`). `apply` finds what was collected through
+11. **Apply.** `alfabeta classroom apply` (with the same `--subject`). `classroom apply` finds what was collected through
     the current `plan.json`, so when subjects go one at a time, plan, download and apply each before
     planning the next. On a subject's first run, apply once
     more: it must report `added` 0 and `changed` 0. Every apply also rewrites the school year's
-    `agenda.md` and `agenda.json` if they changed; after a correction alone, `alfabeta agenda`, inside
+    `agenda.md` and `agenda.json` if they changed; after a correction alone, `alfabeta agenda build`, inside
     a run (`lock take`), does the same without applying. Then `alfabeta lock release`.
 12. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
     classes, topics to confirm, attachments not fetched, each with its link), the exams detected
@@ -160,14 +160,14 @@ Below, `alfabeta <command>` stands for that line.
 A scheduled task of the Claude desktop app runs these same steps, with three differences:
 
 - **`lock take --mode scheduled`** in step 1, and ask nothing: every proposal (class links, topic
-  matches, exam candidates) is written with `decisions propose` and left pending for the family;
+  matches, exam candidates) is written with `decision propose` and left pending for the family;
   the report says what waits for them.
 - **When the session is gone, the pages do not load, or there is no Classroom tab of the student's
   account**, wait for the family instead of stopping or asking. The signs are: no such tab, or the
   tab is on Google's sign-in (read `location.hostname` first), a load gives `SessionExpired`, or
   `document.visibilityState` in the Classroom tab is `hidden` (the window is covered or minimised;
   the extractor waits on hidden pages without a limit). Then:
-  1. `alfabeta notice signin` shows the family a notification on the Mac and prints `wait_minutes`.
+  1. `alfabeta notice send-sign-in` shows the family a notification on the Mac and prints `wait_minutes`.
      With `0`, stop at once as the interactive mode does.
   2. Repeat `alfabeta lock renew --wait 100` (one call waits 100 s, under the tool's two-minute
      limit, and keeps the lock past `sync.lock_idle_minutes`), and after each one look at the tab:
@@ -179,9 +179,9 @@ A scheduled task of the Claude desktop app runs these same steps, with three dif
      visible, the extractor still in the page goes on by itself, so poll it as in step 6 and do not
      start that class a second time. A later capture of a class replaces its earlier stop
      (`plan.run_stops`).
-  4. When `wait_minutes` have passed: before any class was captured, `alfabeta log stop --reason
+  4. When `wait_minutes` have passed: before any class was captured, `alfabeta log write-stop --reason
      session_expired` (expired session or no tab) or `--reason timeout` (pages that did not load);
-     midway, `alfabeta apply`, adding `--stopped timeout` when the cut-short class left no stop
+     midway, `alfabeta classroom apply`, adding `--stopped timeout` when the cut-short class left no stop
      capture (hidden pages), so the run is logged `partial`.
   A `challenge` (unusual traffic, a CAPTCHA) and the Drive not mounted stop at once.
 - **The result of the task is the notice**: the same Spanish summary as step 12, which the app
@@ -199,9 +199,9 @@ Measured 2026-10-27 on one real class of the school account; details in research
 | A page's iframe `load` event came more than 30 s after its content | the extractor polls readiness instead |
 | An attachment's label reads «Archivo adjunto: <tipo>: <name>» | the extractor keeps only the name |
 | Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
-| The second `apply` over the same captures changed nothing | step 11 is the check |
+| The second `classroom apply` over the same captures changed nothing | step 11 is the check |
 | An empty «Trabajo de clase» shows «Aún no hay tareas…» and an empty stream «Aquí se mostrarán novedades…», with no rows (2026-10-28) | the extractor takes both as loaded |
-| Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `downloads collect` falls back to comparing letters and digits |
+| Drive keeps a double space the page collapses, and a Google Doc's export can arrive with a leading «_» (2026-10-28) | `download collect` falls back to comparing letters and digits |
 | The school session lasted between 54 and 83 minutes after sign-in (2026-10-28) | sign-in again is the family's; a sync that runs longer stops `partial` |
 | Eleven classes took 14 minutes; the session was still alive 50 minutes after the family signed in (2026-10-28) | a whole sync fits in one sign-in |
 | On the stream, «Fecha de creación: » and its date are two text nodes, and every post hides a teacher-only notice longer than any line of its text (2026-10-28) | the extractor reads the label's whole element and the post's own text block |

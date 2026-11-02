@@ -629,14 +629,14 @@ test.
   amendment does not rewrite it, and the runner (FR-036) already writes only through that
   connection.)
 - **FR-011a**: The master is the source of the mirrors. After every sync **on the Mac** that reaches
-  `apply`, and after a book provider places a topic (`book place`), alfabeta MUST bring each folder
+  `classroom apply`, and after a book provider places a topic (`book place`), alfabeta MUST bring each folder
   in `drive.mirrors` up to date from the master, one-way: it copies what is new or changed in the
   master, never deletes anything from a mirror and never copies from a mirror into the master. A
   mirror already up to date MUST receive zero writes (FR-025). A mirror that is not mounted or fails
   MUST NOT stop the sync, the master or the other mirrors: it is reported and brought up to date by
   the next sync. The summary for the family MUST say how many mirrors are up to date and how many
   failed, never their paths (FR-031). An empty list means no mirrors. The unattended runner does not
-  touch the master or the mirrors (FR-036): its `apply` skips both.
+  touch the master or the mirrors (FR-036): its `classroom apply` skips both.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
   permission to see all event details (the operator shares it by hand; spec 003 research R13 checks
@@ -894,7 +894,7 @@ Example of the resulting structure (invented names):
   that no due or exam date falls between the previous capture and this one: if one does, the
   entry changes list (FR-020c) and that is a change. It writes only that run's own
   records: its log line, its captures, its plan, its lock file, the attachments it
-  collects into the data folder (which `apply` deletes once placed or found identical) and the
+  collects into the data folder (which `classroom apply` deletes once placed or found identical) and the
   deletion of its captures older than `kept_captures` (never in the student's folder). An unattended
   runner run without changes writes only the same own records in its data home; it stores a new
   secret version only if the token or session actually changed (FR-033), and uploads the agenda only
@@ -1019,10 +1019,10 @@ Example of the resulting structure (invented names):
 - **FR-036**: The runner's outputs MUST be only its data home; the agenda (FR-020), written to the
   school-year folder in Drive through alfabeta's own Google connection (spec 004, with the
   credential of FR-033a) and counted as written only when Drive confirms it; and the calendar, once
-  spec 003 builds it. Its `apply` MUST skip the master folder and the mirrors, which stay with the
+  spec 003 builds it. Its `classroom apply` MUST skip the master folder and the mirrors, which stay with the
   full sync on the Mac. The data home keeps the hash of the agenda last written to Drive; any run,
   on the Mac or the runner, that is about to upload `agenda.*` MUST first regenerate it from the
-  shared data home and upload only if that hash changed, so no path (a Mac `apply`, `book place`, a
+  shared data home and upload only if that hash changed, so no path (a Mac `classroom apply`, `book place`, a
   spec 004 upload) ever pushes a stale agenda over a newer one.
 - **FR-037**: The runner MUST never wait for a person and never hang: a per-page (or per-call) and a
   per-run time limit (`[runner]` keys, data-model), and the job platform ends a run that outlives the

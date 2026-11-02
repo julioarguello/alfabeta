@@ -35,7 +35,7 @@ including the Limited Use requirements.
 - Remove alfabeta from the account's third-party access, in
   [Google Account → Security → Your connections to third-party apps & services](https://myaccount.google.com/connections).
   This revokes the authorisation at once.
-- Or, on the family's Mac: `python -m alfabeta google unlink --student <id> --account <alias>`,
+- Or, on the family's Mac: `python -m alfabeta google account unlink --student <id> --account <alias>`,
   which revokes it and deletes it from the keychain.
 - What alfabeta wrote stays in the calendar and the Drive, where the family can keep or delete it.
 

@@ -167,13 +167,13 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   last log line with `full_review: true`, not a state field: a review that finds the same bytes does
   not rewrite the state. That avoids hundreds of downloads a day (FR-010, FR-026) and meets
   principle V.
-- **Collection**: `downloads collect` (over the `[downloads] folder` folder) moves each expected file
+- **Collection**: `download collect` (over the `[downloads] folder` folder) moves each expected file
   and ignores Chrome's half-downloaded `.crdownload` files, checks that it is complete and leaves it
   ready to place (FR-018). It collects only what it requested.
 
 - **First real run, measured 2026-10-27** (operator's Chrome, extension profile, school account,
   one class with 13 items, read only; no title, name or id printed):
-  - The class list was captured and downloaded as a file with no dialog, and `downloads collect`
+  - The class list was captured and downloaded as a file with no dialog, and `download collect`
     took it.
   - In the hidden iframe, a page's content was readable 4–13 s after loading started, but the
     iframe's `load` event sometimes came after more than 30 s. The loader now polls from the start
@@ -195,7 +195,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   «Microsoft PowerPoint», «vídeo de YouTube»).
 - **First apply, measured 2026-10-27** (FiQui, with the family's go-ahead): the 26 October import's
   `classroom/` folders were moved to a local quarantine, then 16 replicas were placed and a second
-  `apply` reported 0 added, 0 changed. The 9 downloaded files are byte-identical to the imported
+  `classroom apply` reported 0 added, 0 changed. The 9 downloaded files are byte-identical to the imported
   ones. The descriptions had lost their line breaks: the extractor read `textContent`, which joins
   the lines a `<br>` separates; it now ends a line at a `<br>` or a block element.
 - **The other eleven classes, measured 2026-10-28** (the family confirmed the class links and the
@@ -205,7 +205,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   - Downloads: 71 of 72 arrived in two batches. The one missing is a video that Drive holds behind
     its virus-scan notice; it is noted «no traído» with its link.
   - Apply: 27 imported `classroom/` folders (172 files, compared by sha256) went to a local
-    quarantine, then 128 replicas were placed; a second `apply` reported 0 added and 0 changed.
+    quarantine, then 128 replicas were placed; a second `classroom apply` reported 0 added and 0 changed.
   - Against the import: 63 of its 79 binaries are byte-identical in the new tree. The other 16 are
     the student's own submissions, which the import had filed as statements and US1 does not
     replicate (US6), or attachments the teacher has since replaced.
@@ -249,9 +249,9 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   each poll of a Science Bits capture); if `lock_idle_minutes` pass without a renewal, the watcher
   assumes the run died, releases both and writes a `stopped` line with reason `idle`. If the watcher
   dies, the system releases the `flock`s. A busy lock stops the run with its own reason (FR-030).
-- **Stops before apply**: `log stop --reason <r>` writes the `stopped` line of a run that stops in
+- **Stops before apply**: `log write-stop --reason <r>` writes the `stopped` line of a run that stops in
   the browser (expired session, challenge, unexpected UI) or before it (Drive not mounted). A busy
-  lock is logged by `lock take` itself, and a stop in `plan` or `apply` by those commands themselves.
+  lock is logged by `lock take` itself, and a stop in `classroom plan` or `classroom apply` by those commands themselves.
 - **Reason**: standard library, human-readable, enough for hundreds of items per school year. A
   second run with no changes compares hashes and writes nothing (FR-025).
 - **Alternative**: SQLite. More robust at high volume; unnecessary here (constitution IX).
@@ -271,7 +271,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 ### R8. Tests against synthetic pages
 
 - **Decision**: real pages are saved only outside the repository (`data/raw-captures/`). What enters
-  `tests/fixtures/classroom/` is **synthetic** pages: `anonymize` keeps the structure (tags, CSS
+  `tests/fixtures/classroom/` is **synthetic** pages: `page anonymize` keeps the structure (tags, CSS
   classes, hierarchy) and the UI labels on an allowlist («Trabajo de clase», «Fecha de entrega»,
   «Tu trabajo»…), and invents every remaining text and attribute: titles, descriptions, dates, file
   names, ids and accessible text. It refuses to write if any input text outside that list survives.
@@ -355,7 +355,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 - **Decision**: the extractor does not return the JSON to the conversation: it downloads it as a file
   (`alfabeta-capture-<run>-<class>-<stamp>.json`, with the `run` Claude passes it when injecting it)
   to the downloads folder, just as the Science Bits capture downloads its zips, and
-  `python -m alfabeta downloads collect` moves it to `data/captures/`.
+  `python -m alfabeta download collect` moves it to `data/captures/`.
 - **Reason**: hundreds of items per class must not pass through Claude's context; a file can be
   saved, compared and used as a test.
 - **Open risk, against the unattended requirement**: a run must not wait for anyone to approve
@@ -395,7 +395,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 
 ### R13. Personal-data guardrail
 
-- **Decision**: `python -m alfabeta guardrail` checks the files in the change (pre-commit hook) or
+- **Decision**: `python -m alfabeta guardrail check` checks the files in the change (pre-commit hook) or
   the whole repository (CI). Generic detectors: emails (except `example.org` and `example.com`),
   user paths, and identifiers shaped like Classroom, Drive or notebook ids (UUID) (dependency lock
   files excluded: `uv.lock` and `package-lock.json`). Placeholders between `<…>` and the synthetic
@@ -404,7 +404,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   `classroom_class`) and the Classroom and Drive ids stored in their `data/decisions.json` and
   `data/state.json`, never displaying them; book topic titles are not personal data and are not
   searched for. Because the repository is public, whatever is in a commit is already published: on
-  top of the tree, T000 (by hand, before the guardrail exists) and T059 (`guardrail --history`) run
+  top of the tree, T000 (by hand, before the guardrail exists) and T059 (`guardrail check --history`) run
   the detectors over the history (`git log --all -p`).
 - **Id shapes**: the exact Classroom and Drive shapes come from the URL patterns S3 records; a long
   code identifier (`snake_case`, `camelCase`, test file names) does not count.

@@ -2,7 +2,7 @@
 
 `book place` leaves `TemaNN_<LANG>.pdf` and `.md` in `<school-year>/<subject>/<YYYYMMDD> - Tema NN -
 <title>/<book>/`, reusing the folder that holds `Tema NN - ` whatever its date, with hash and previous
-version, and never touches `classroom/`; `log notebook` writes its line with every result.
+version, and never touches `classroom/`; `log write-notebook` writes its line with every result.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def place(box: Box, origin: Path, topic: str = TOPIC, subject: str = "FyQ") -> s
 
 
 def notebook(box: Box, *args: str) -> subprocess.CompletedProcess[str]:
-    return box("log", "notebook", "--student", "sample", "--topic", TOPIC, *args)
+    return box("log", "write-notebook", "--student", "sample", "--topic", TOPIC, *args)
 
 
 def tree(root: Path) -> dict[str, tuple[int, str]]:
@@ -428,7 +428,7 @@ def test_log_notebook_refuses_and_writes_no_line(box: Box, args: tuple[str, ...]
 
 
 def test_log_notebook_needs_a_book_topic_and_the_lock(box: Box):
-    done = box("log", "notebook", "--student", "sample", "--topic", "Apuntes", "--result", "created")
+    done = box("log", "write-notebook", "--student", "sample", "--topic", "Apuntes", "--result", "created")
     assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "invalid_topic"
     box.release()
     done = notebook(box, "--result", "created")

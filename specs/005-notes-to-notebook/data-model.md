@@ -79,8 +79,8 @@ Two per topic.
 |---|---|
 | `topic` | Topic folder id |
 | `kind` | `notes` (`Apuntes · <topic>.pdf`) or `classroom` (`Classroom · <topic>.pdf`) |
-| `file_id` | Drive id; set only by `notebook setup`, never changes once set |
-| `source_id` | The notebook source bound to it, set by `notebook setup` |
+| `file_id` | Drive id; set only by `notebook prepare`, never changes once set |
+| `source_id` | The notebook source bound to it, set by `notebook prepare` |
 | `built_md5` | Checksum of the last uploaded revision; a rebuild with the same checksum is not uploaded |
 | `pages` | Page count of the last build, reported above `[notes] warn_pages` |
 | `health` | `ok`, or `missing` (deleted, trashed or moved out of its own folder of the topic, `notes/` or `classroom/`); a check that finds it there again sets `ok`: reported, never recreated |
@@ -90,7 +90,7 @@ file is created, and the report says so.
 
 ## RefreshRecord (on the Mac: `notebook-refresh.json` in the student's data folder)
 
-Written by `notebook refresh` (FR-018), and by spec 002's `exam prep`, which makes only the first
+Written by `notebook refresh` (FR-018), and by spec 002's `exam build`, which makes only the first
 read of a changed source (`reads = 1`; the confirming read stays with `notebook refresh`) before
 an exam (its contract, step 5), only when a field changes; never in Drive, the
 repository or a log (research R14). The per-source fields sit under `sources`, keyed by the
