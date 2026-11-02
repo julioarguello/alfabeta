@@ -747,10 +747,20 @@ against this account; the one account check is marked as the operator's.
   domain (lifecoderua/classroom-advisor, read 2026-11-01) reports hand-signed sessions lasting days
   (about 4 and 9.5), consistent with a different admin setting — not a contradiction. The number
   cannot be read from the session cookie (its stored expiry is months/years; invalidation is
-  server-side), so it stays an empirical measure. **Open check (operator):** sign in once and look
-  the next morning — still signed in means a long session here; a sign-in prompt confirms short.
-  Prior same-day data already points to short, so the web route most likely needs a human sign-in
-  most runs (which is what FR-021a and the Mac notify-and-wait of #162 already assume).
+  server-side), so it stays an empirical measure.
+  **Measured 2026-11-01 (operator's Mac, a fresh dedicated browser profile, hand sign-in, read
+  only):** two arms ran in parallel from one sign-in at 20:12 — one reloaded the Classroom home page
+  every 30 minutes, one was left untouched. The reloaded arm read alive at 20:12 and 20:42 and landed
+  on Google's sign-in page at 21:12; the untouched arm was signed out too. So the session died within
+  the hour (matching R16), the 20:42 reload did not extend it, and both arms expired in the same
+  window: the timeout reads as absolute (about one hour from sign-in), not idle-based, so reloading
+  more often would not keep it alive. One night, one domain; a probe every 5 minutes would settle
+  absolute-versus-idle beyond doubt, but the two arms dying together already point one way.
+  **Consequence:** an unattended web reader cannot hold this domain's Classroom session; every run
+  needs a human sign-in within the hour before it. That is the route FR-021a and #163 already
+  specify (the run notifies and waits for the family's sign-in), and it makes the per-event
+  notification emails above worth more as the trigger that asks for a sign-in only when something
+  is new.
 
 - **A concrete reference for the internal-calls read parked in R3.** R3 left «reading the Classroom
   web app's internal calls (more stable, undocumented)» for the local MCP. lifecoderua/classroom-advisor
