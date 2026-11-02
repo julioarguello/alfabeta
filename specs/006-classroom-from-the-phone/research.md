@@ -138,7 +138,7 @@ measured on this account; they seed the spikes below and replace none of them (F
   Playwright, no extension and no script of alfabeta's. To know the family has signed in without
   reading anything but the address, alfabeta starts that Chrome with `--remote-debugging-port=0`
   and polls, every few seconds, the browser's local `GET /json/list` (on the loopback port Chrome
-  writes to `DevToolsActivePort` in the profile), which lists each tab's address; it never attaches
+  writes to `DevToolsActivePort` in the profile), which lists each tab's address, title and icon; the adapter keeps only each tab's `url` field and discards the rest of the answer unread, so a title that names the account is never kept; it never attaches
   to a tab, never runs `Runtime` or any script, and compares each address with Classroom's in
   memory without logging or storing it. When an address reaches `classroom.google.com`, alfabeta
   closes the browser (SIGTERM, so Chrome writes its cookies; then SIGKILL after 10 s); the family may

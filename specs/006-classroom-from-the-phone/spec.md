@@ -137,7 +137,7 @@ names and response shapes are a starting point, not a measurement of this accoun
   behind the same session (R20), so they cannot be read before the sign-in.
 - Q: The operator: «¿Podríamos tener algo con interfaz de línea de comandos? Hoy se ejecuta en el
   Mac y mañana Dios dirá … ¿Cómo recibiría ese algo las credenciales necesarias? Todo alineado con
-  el otro proyecto de GitHub» → A: Four commands, named by the CLI convention (`classroom sign-in`,
+  el otro proyecto de GitHub» → A: Four commands (and, from the plan, the agent's install and uninstall), named by the CLI convention (`classroom sign-in`,
   `capture`, `refresh`, `status`; FR-021 to FR-024), as the peer project has `login`, `sync` and
   `doctor`. What differs between machines sits behind five named seams (FR-025), so another machine
   is an implementation, not a rewrite. Each credential arrives by its own command (FR-026): the
