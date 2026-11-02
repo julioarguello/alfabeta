@@ -313,7 +313,8 @@ arrives.
   browser window in the student's profile on Google's sign-in for the school account. alfabeta
   starts that browser and does not drive it: no script of alfabeta's runs in it, and alfabeta
   presses, types and reads nothing in it while it is open, except the address of the page the
-  window shows. The read's guard is not in it, because a person, not alfabeta, acts in it. The wait
+  window shows, which it only compares with Classroom's and never logs or stores (a sign-in address
+  can carry the account's email). The read's guard is not in it, because a person, not alfabeta, acts in it. The wait
   ends at the first of: the family closes the window; the window's address reaches Classroom,
   which means the family has signed in; or `schedule.wait_minutes` (spec 001 FR-021a) runs out. In
   the last two cases alfabeta closes the window itself. The read then opens the profile with the
@@ -386,8 +387,9 @@ arrives.
   to from the phone update the topic folders with nobody at the Mac and the Claude app closed.
 - **SC-002**: Over the reads of SC-001, with the remote view set up and the Mac awake, the median
   time from opening the notice's link on the phone to the end of the sign-in is under 2 minutes.
-- **SC-003**: A read of all the student's classes finishes within 30 minutes of the sign-in, inside
-  the session's life (R20).
+- **SC-003**: A read of all the student's classes finishes within 30 minutes of the sign-in. The
+  session's life varies and has been seen under 30 minutes (R20), so a read the session outlives is
+  not guaranteed: one cut short is applied as `partial` (FR-009).
 - **SC-004**: Over those reads, nothing is pressed, no form or quiz is opened, and every call outside
   the allowlist is blocked and counted; in the offline test, a planted press, a planted form link and
   a planted write call are all blocked and never reach the fake server.
