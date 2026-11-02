@@ -24,24 +24,24 @@ other two channels of research R9 still ship.
 ## Phase 1: Setup
 
 - [x] T001 Add the keys of `specs/004-google-connection/contracts/config-template.toml` to `config/template.toml`. Change the comment of `[drive] root` to "the alfabeta folder's path inside the student's My Drive", and add `[storage] base`, `[calendar] id` and `[google]`. Run spec 001's `tests/test_template_covers_reads.py`.
-- [ ] T002 [P] Create `src/alfabeta/google/__init__.py` and the empty `tests/fixtures/google/README.md`. The README says every file there is a recorded response with invented values, named `<call>-<YYYY-MM-DD>.json`.
+- [ ] T002 [P] (partial: `google/__init__.py` exists; `tests/fixtures/google/` does not) Create `src/alfabeta/google/__init__.py` and the empty `tests/fixtures/google/README.md`. The README says every file there is a recorded response with invented values, named `<call>-<YYYY-MM-DD>.json`.
 
 ---
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T003 [P] Write `tests/test_google_transport.py`, two parts:
+- [x] T003 [P] (done; `FakeTransport` in `tests/conftest.py` serves queued responses, not files from `tests/fixtures/google/`) Write `tests/test_google_transport.py`, two parts:
   - `FakeTransport` serves files from `tests/fixtures/google/` keyed by method and URL path, and fails on any unmatched request.
   - An AST walk asserts that no module under `src/alfabeta/` except `google/transport.py` imports `urllib.request`, `http.client` or `socket`.
-- [ ] T004 Implement `src/alfabeta/google/transport.py`:
+- [x] T004 (done: `google/transport.py`) Implement `src/alfabeta/google/transport.py`:
   - the `HttpTransport` Protocol, `request(method, url, *, headers, body) -> Response(status, headers, body)`;
   - `UrllibTransport`, which never logs URLs with query strings or bodies.
-- [ ] T005 [P] Write `tests/test_google_keychain.py` against a fake `security` runner. Assert three things:
+- [x] T005 [P] (done: `tests/test_google_keychain.py`, `tests/test_google_accounts.py`) Write `tests/test_google_keychain.py` against a fake `security` runner. Assert three things:
   - `set`/`get`/`delete` send their commands on stdin to `security -i`;
   - no secret appears in the argv passed to the subprocess;
   - service `alfabeta.google`, account `<student>/<alias>` and `<student>/client`.
-- [ ] T006 Implement `src/alfabeta/google/keychain.py`: the `TokenStore` Protocol and `KeychainStore` over `security -i` (research R3).
-- [ ] T007 [P] Implement the domain values of `data-model.md` in `src/alfabeta/google/model.py`:
+- [x] T006 (done: `google/keychain.py`) Implement `src/alfabeta/google/keychain.py`: the `TokenStore` Protocol and `KeychainStore` over `security -i` (research R3).
+- [ ] T007 [P] (partial: the statuses and `AccountStatus` in `google/accounts.py`, `AccountConfig` in `config.py`, `DriveFile` in `google/drive.py`; no `google/model.py`, `UploadRecord` or `MigrationPlan`) Implement the domain values of `data-model.md` in `src/alfabeta/google/model.py`:
   - `LinkedAccount`: alias lowercase ASCII; role `student`, "only value this spec defines";
   - `AuthStatus`: `ok` · `revoked` · `expired` · `missing_scope` · `no_token` · `network`;
   - `UploadRecord` and `MigrationPlan`: lists `adopted`, `to_upload`, `differs`, `native`, `only_in_drive`;
@@ -58,24 +58,24 @@ accounts.
 
 **Independent test**: quickstart steps 1–4, and the school-account negative control of step 3.
 
-- [ ] T008 [P] [US1] Write `tests/test_google_oauth.py`. It covers:
+- [x] T008 [P] [US1] (done: `tests/test_google_oauth.py`, revoke in `tests/test_google_accounts.py`) Write `tests/test_google_oauth.py`. It covers:
   - the authorisation URL carries `code_challenge_method=S256`, `state`, `access_type=offline`, `prompt=consent` and R4's scopes, and **no `login_hint`**;
   - the loopback server rejects a callback with a wrong `state`;
   - the exchange and the refresh map `invalid_grant` to `expired` (or `revoked` when Google says so);
   - `revoke` calls Google's revocation endpoint.
-- [ ] T009 [US1] Implement `src/alfabeta/google/oauth.py` (research R2):
+- [x] T009 [US1] (done: `google/oauth.py`) Implement `src/alfabeta/google/oauth.py` (research R2):
   - the loopback and PKCE flow with `http.server` on `127.0.0.1` and a free port;
   - the exchange, refresh and revoke;
   - reading the `email` claim from the `id_token` payload, with no signature check needed for a token received directly from Google's token endpoint over TLS. A comment cites that.
-- [ ] T010 [P] [US1] Write `tests/test_google_accounts.py`:
+- [x] T010 [P] [US1] (done: `tests/test_google_accounts.py`) Write `tests/test_google_accounts.py`:
   - link validation per `data-model.md`: "The `email` claim of the token response's `id_token` equals `address`"; the domain is not `accounts.school`'s; the granted scopes include every scope in `scopes`;
   - on failure the token is revoked and nothing is stored;
   - re-link replaces the keychain entry;
   - `check` returns one status per alias;
   - output never contains the address. Assert with the configured address of an invented fixture.
-- [ ] T011 [US1] Implement `src/alfabeta/google/accounts.py`: `link_account`, `check_accounts`, `unlink_account`, `set_client` (reads the downloaded client JSON), and `data/google/accounts.json` (`linked_on`). `check_accounts` also warns when a token fails with `invalid_grant` less than 8 days after `linked_on`, the symptom of an app left in Testing (data model, GoogleApp).
-- [ ] T012 [US1] Wire `google set-client` and `google account link|check|unlink` into `src/alfabeta/__main__.py` per `contracts/cli.md`: JSON on stdout, exit 0 / 1 / 2, and the reasons `bad_client_file`, `wrong_account`, `school_account`, `missing_scope`, `denied`, `no_client`.
-- [ ] T013 [US1] Run quickstart steps 1–4 on the real accounts. Save the token, refresh and revoke responses, with invented values, to `tests/fixtures/google/`. Record the dates in `specs/004-google-connection/research.md` under Observed facts.
+- [x] T011 [US1] (done: `google/accounts.py`) Implement `src/alfabeta/google/accounts.py`: `link_account`, `check_accounts`, `unlink_account`, `set_client` (reads the downloaded client JSON), and `data/google/accounts.json` (`linked_on`). `check_accounts` also warns when a token fails with `invalid_grant` less than 8 days after `linked_on`, the symptom of an app left in Testing (data model, GoogleApp).
+- [x] T012 [US1] (done: `google set-client`, `google account link|check|unlink`) Wire `google set-client` and `google account link|check|unlink` into `src/alfabeta/__main__.py` per `contracts/cli.md`: JSON on stdout, exit 0 / 1 / 2, and the reasons `bad_client_file`, `wrong_account`, `school_account`, `missing_scope`, `denied`, `no_client`.
+- [ ] T013 [US1] (partial: the student account linked on 2026-10-27; no response recorded in `tests/fixtures/google/`) Run quickstart steps 1–4 on the real accounts. Save the token, refresh and revoke responses, with invented values, to `tests/fixtures/google/`. Record the dates in `specs/004-google-connection/research.md` under Observed facts.
 
 **Checkpoint**: alfabeta acts as the student's Gmail with no conversation open.
 
@@ -101,14 +101,14 @@ channel that does not need that link.
 
 **Independent test**: quickstart step 5. It unblocks building spec 003 (its gate 1; the plan went ahead, 2026-10-28).
 
-- [ ] T018 [P] [US2] Write `tests/test_google_calendar.py`. It covers:
+- [x] T018 [P] [US2] (done: `tests/test_google_calendar.py`) Write `tests/test_google_calendar.py`. It covers:
   - insert with a deterministic base32hex id of 5 to 1024 characters, "lowercase letters a-v and digits 0-9";
   - `reminders.useDefault` is always `false`, with at most 5 overrides of 0–40320 minutes; a sixth raises;
   - patch only when an owned field differs;
   - a 409 on insert leads to get, then update with `status: confirmed` (research R5);
   - `timeZone` is `Europe/Madrid`.
-- [ ] T019 [US2] (The `patch` part is done by spec 003 T007–T008.) Implement `src/alfabeta/google/calendar.py`, the `CalendarClient`: `get`, `insert`, `patch`, `delete`, `upsert`. It writes only to the configured family calendar id.
-- [ ] T020 [US2] Add `calendar probe create` and `calendar probe delete` to `src/alfabeta/__main__.py` per `contracts/cli.md`.
+- [x] T019 [US2] (done as scoped: `google/calendar.py`; `update` still sends PUT until spec 003 T007–T008) (The `patch` part is done by spec 003 T007–T008.) Implement `src/alfabeta/google/calendar.py`, the `CalendarClient`: `get`, `insert`, `patch`, `delete`, `upsert`. It writes only to the configured family calendar id.
+- [x] T020 [US2] (done: `calendar probe create|delete`) Add `calendar probe create` and `calendar probe delete` to `src/alfabeta/__main__.py` per `contracts/cli.md`.
 - [ ] T021 [US2] Run quickstart step 5 with the family, on the student's phone. Record:
   - the date the notification was seen (spec 003, FR-019);
   - the reminders of the probe event read as the owner;
@@ -127,17 +127,17 @@ each file.
 
 **Independent test**: quickstart step 7.
 
-- [ ] T023 [P] [US3] Write `tests/test_google_drive_scope.py` (FR-009a). Two checks:
+- [x] T023 [P] [US3] (done in julioarguello/alfabeta#78) Write `tests/test_google_drive_scope.py` (FR-009a). Two checks:
   - every public method of `ScopedDrive`, called with a file or parent id outside the folder allowlist, raises before any request reaches `FakeTransport`;
   - the allowlist is rebuilt from `files.list` per run, and a trashed root fails the run.
-- [ ] T024 [P] [US3] Write `tests/test_google_drive.py`:
+- [x] T024 [P] [US3] (done in julioarguello/alfabeta#78) Write `tests/test_google_drive.py`:
   - multipart upload up to 5 MB, resumable above;
   - an upload counts as done only when the response's `size` and `md5Checksum` equal the local file's (FR-012);
   - a changed local file becomes `files.update` with media on the same Drive id, never a second file.
-- [ ] T025 [US3] Implement `src/alfabeta/google/drive.py`, the `ScopedDrive` of research R6. It resolves the root from `[drive] root`, caches `root_id` in `data/google/drive.json`, and lists, uploads and updates, always inside the allowlist.
+- [x] T025 [US3] (done in julioarguello/alfabeta#78) Implement `src/alfabeta/google/drive.py`, the `ScopedDrive` of research R6. It resolves the root from `[drive] root`, caches `root_id` in `data/google/drive.json`, and lists, uploads and updates, always inside the allowlist.
 - [ ] T026 [P] [US3] Write `tests/test_google_migrate.py`. Match by relative path; same size and md5 → `adopted`; missing → `to_upload`; different → `differs`; no checksum → `native`; Drive-only → `only_in_drive`. `--apply` refuses while `differs` is non-empty, and nothing is ever deleted.
 - [ ] T027 [US3] Implement `src/alfabeta/google/migrate.py` and `drive migrate [--apply]`. Write `data/google/migration-<run>.json` with names, and print counts only.
-- [ ] T028 [US3] Implement `drive push` and the mount check of FR-011:
+- [ ] T028 [US3] (partial: `config check` reports a base inside the mount (`inside_drive_mount`); no `drive push`) Implement `drive push` and the mount check of FR-011:
   - refuse a `[storage] base` under `~/Library/CloudStorage/GoogleDrive-*`;
   - append to `data/google/uploads.jsonl`;
   - exit 3 on a partial failure, after finishing the other files.
@@ -158,7 +158,7 @@ each file.
 
 - [ ] T030 [P] Extend spec 001's guardrail patterns so that a refresh token (`1//…`), a client secret (`GOCSPX-…`) and the configured addresses are caught by `guardrail check --all --history` (SC-006). Add the cases to `tests/test_guardrail.py`, built at run time. Add a test that scans the log lines and the reports under an invented `data/` written by a full test run, and finds no address, token or secret.
 - [ ] T031 Add the agenda's failure line, research R9 channel 3, when spec 001's agenda module exists. Otherwise leave a `TODO(tech-debt)` in `src/alfabeta/google/notify.py` naming that blocker and this branch's issue (`origin: #30`).
-- [ ] T032 [P] Update spec 001's `specs/001-classroom-sync/contracts/config-template.toml` comment on `[drive] root`, and the `study-pack` skill's path instructions, to the meanings this spec gives them.
+- [x] T032 [P] (done: the contract's template matches `config/template.toml`) Update spec 001's `specs/001-classroom-sync/contracts/config-template.toml` comment on `[drive] root`, and the `study-pack` skill's path instructions, to the meanings this spec gives them.
 - [ ] T033 Run quickstart step 9 from the scheduled run of julioarguello/alfabeta#13: 8 days after linking, `ok` with no sign-in and 0 keychain prompts. Then count 30 consecutive scheduled runs for SC-001.
 
 ---
