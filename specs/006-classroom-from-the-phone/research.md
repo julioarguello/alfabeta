@@ -155,7 +155,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   `schedule.wait_minutes` ends it otherwise.
 - **Measured (spike S7, passed)**: Google accepted the hand sign-in in a Chrome started with that
   flag (the peer's reason for no automation is that Google refuses sign-ins it sees as automated;
-  the flag sets no `navigator.webdriver`), and `Target.getTargets` showed the address change.
+  the flag sets no `navigator.webdriver`, but this is not measured), and `Target.getTargets`
+  showed the address change.
 - **Fallback, had S7 refused it**: the window starts with no flag, and alfabeta watches only the
   process: the wait ends when the family closes the window or at `wait_minutes`. That is the spec's
   first wording, which the independent review rejected because the session could die while the
@@ -348,11 +349,11 @@ is usually in front already, so whether it raises a window that is behind others
 What it changed or left open:
 
 - **The window is closed in order, after a wait.** The first sign-in was ended by a SIGTERM
-  5 seconds after Classroom; Chrome exited with code 0. Both headless reads after it found 4
-  cookies for Classroom's and Google's sign-in addresses, none of the session's (no `SID`,
-  `__Secure-1PSID` or `SSID`), and landed on Google's sign-in page. A one-off count of the
+  5 seconds after Classroom; Chrome exited with code 0. Both headless reads after it landed on
+  Google's sign-in page; the second found 4 cookies for Classroom's and Google's sign-in addresses,
+  none of the session's (no `SID`, `__Secure-1PSID` or `SSID`). A one-off count of the
   profile's Google cookie rows after those reads (names and creation times only) found 4 rows, all
-  created in the first minute of that sign-in. The second sign-in, closed with `Browser.close` 40
+  created in the first 65 seconds of that sign-in. The second sign-in, closed with `Browser.close` 40
   seconds after Classroom, left 22 rows with the session's cookies. R5 now does both. Which of the
   two is enough on its own was not measured; that Chrome writes its cookies periodically is the
   likely reason, not a measurement. The second sign-in was also not in a fresh profile.
