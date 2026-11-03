@@ -139,8 +139,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   `--user-data-dir=<read profile>` and Google's sign-in page whose continue address is Classroom —
   with no Playwright, no extension and no script of alfabeta's. The address carries no account
   hint (no `login_hint`, no email address), so neither the URL nor the process's arguments hold the
-  student's address (constitution III); at most it names the school's domain, if S7 shows the
-  sign-in needs it. To know the family has signed in without reading anything but the address,
+  student's address (constitution III); S7 found the sign-in needs no hint, not
+  even the school's domain. To know the family has signed in without reading anything but the address,
   alfabeta starts that Chrome with `--remote-debugging-pipe` and, every few seconds, sends one
   browser-level `Target.getTargets` over the pipe (file descriptors 3 and 4, which only the process
   that started Chrome holds; written with the standard library). The answer lists each tab's
@@ -148,13 +148,16 @@ measured on this account; they seed the spikes below and replace none of them (F
   rest unread, so a title that names the account is never kept. It never attaches to a tab, never
   sends `Runtime` or any page command, opens no network port and reads no file of the profile, and
   compares each address with Classroom's in memory without logging or storing it. When an address reaches `classroom.google.com`, alfabeta
-  closes the browser (SIGTERM, so Chrome writes its cookies; then SIGKILL after 10 s); the family may
-  also close it; `schedule.wait_minutes` ends it otherwise.
-- **To be measured (spike S7)**: that Google accepts the hand sign-in in a Chrome started with that
+  waits 40 seconds, then closes the browser with the browser-level `Browser.close` over the same
+  pipe; if it has not exited 20 seconds later, a SIGTERM, and a SIGKILL 10 seconds after that. A
+  SIGTERM 5 seconds after Classroom left none of the session's cookies on disk; the wait and the
+  orderly close together kept them (S7 result below). The family may also close it;
+  `schedule.wait_minutes` ends it otherwise.
+- **Measured (spike S7, passed)**: Google accepted the hand sign-in in a Chrome started with that
   flag (the peer's reason for no automation is that Google refuses sign-ins it sees as automated;
-  the flag sets no `navigator.webdriver`, but this is not measured), and that `Target.getTargets`
-  shows the address change.
-- **Fallback if S7 refuses it**: the window starts with no flag, and alfabeta watches only the
+  the flag sets no `navigator.webdriver`, but this is not measured), and `Target.getTargets`
+  showed the address change.
+- **Fallback, had S7 refused it**: the window starts with no flag, and alfabeta watches only the
   process: the wait ends when the family closes the window or at `wait_minutes`. That is the spec's
   first wording, which the independent review rejected because the session could die while the
   read waits; the notice would then ask the family to close the window, and FR-010 would be amended
@@ -167,8 +170,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   one, and it needs an Automation permission for the whole application; reading the profile's
   files (history, cookies) — reads more than the address, which FR-010 forbids.
 - **Bringing the window to the front** (FR-013, FR-017): by the process id alfabeta started, through
-  the macOS seam (`NSRunningApplication` activation via `osascript`/System Events, a one-time
-  permission granted at set-up, never mid-run). S7 checks it does not raise a prompt during a run.
+  the macOS seam: `NSRunningApplication` activation through `osascript -l JavaScript`, which sends
+  no Apple event and so needs no Automation permission. S7 saw no prompt when run from a shell of
+  the Claude app; whether it raises a window that is behind others, and whether it works from
+  launchd, are not measured (S10).
 
 ### R6. The account check (FR-006)
 
@@ -318,3 +323,52 @@ Vertical slices).
 
 Note on S13: loading a page every 5 minutes is a measurement, not a route. Keeping the session
 alive between reads is out of this spec (reading with nobody signing in, spec 001 User Story 7).
+
+## Spike results
+
+### S7 · The sign-in window and the profile — passed
+
+Measured 2026-11-03 against the school account on the operator's Mac, with the family signing in by
+hand twice in the same profile, with the installed Google Chrome and Playwright 1.64.1. The code is
+`spikes/s7_signin.py` on branch `spike/166-s7-signin`. The first sign-in ran an earlier, uncommitted
+revision (a 5-second wait, then SIGTERM); the second ran the committed one. The log kept instants,
+categories, and the host and path of the headless read's navigations; never a query, a title, a
+body or a cookie.
+
+| Pass criterion | Seen |
+|---|---|
+| Google accepts the sign-in in a Chrome started with `--remote-debugging-pipe`, no «this browser may not be secure» page | Accepted both times, with no account hint in the address; no tab reached Google's rejection page, and the family noticed no such warning |
+| The address change is seen | `Target.getTargets`, asked every 3 seconds, showed the tab go from `accounts.google.com` to `classroom.google.com`: 4 min 3 s after the window opened in the first sign-in, 3 min 48 s in the second |
+| The headless open reads the session with no keychain dialog | Met after the second sign-in only (see below). Playwright (`channel="chrome"`, headless, `--use-mock-keychain` and `--password-store=basic` removed, checked absent from the process arguments) read 21 cookies for Classroom's and Google's sign-in addresses, the session's included, and landed on the Classroom home page; the whole read, a fixed 5-second pause included, took 6 seconds. The family noticed no macOS dialog, during the sign-in or the read. The session's rows were still on disk after the read |
+
+The window was also brought to the front by its process id, a step of S7 though not one of its
+pass criteria: `NSRunningApplication` activation answered `true`, the family believes the window
+came to the front, and noticed no prompt. It was called 3 seconds after launch, when a new window
+is usually in front already, so whether it raises a window that is behind others is not measured.
+
+What it changed or left open:
+
+- **The window is closed in order, after a wait.** The first sign-in was ended by a SIGTERM
+  5 seconds after Classroom; Chrome exited with code 0. Both headless reads after it landed on
+  Google's sign-in page; the second found 4 cookies for Classroom's and Google's sign-in addresses,
+  none of the session's (no `SID`, `__Secure-1PSID` or `SSID`). A one-off count of the
+  profile's Google cookie rows after those reads (names and creation times only) found 4 rows, all
+  created in the first 65 seconds of that sign-in. The second sign-in, closed with `Browser.close` 40
+  seconds after Classroom, left 22 rows with the session's cookies. R5 now does both. Which of the
+  two is enough on its own was not measured; that Chrome writes its cookies periodically is the
+  likely reason, not a measurement. The second sign-in was also not in a fresh profile.
+- **Chrome's own sign-in offers.** On reaching Classroom, Chrome offered to sign in to the browser
+  and to switch to, or open without, a profile (an extra internal page beside Classroom in the tab
+  list). The family declined them. Whether a launch switch can suppress them, or the notice must
+  tell the family to decline them, is open for the plan before slice 2.
+- **Passwords.** The profile offered no saved username or password; the family typed both. Whether
+  Chrome offers to save the password, and how that is refused (a launch switch or policy, or the
+  notice), is not measured.
+- **The minimal guard blocked two frame loads**, one on `accounts.google.com` and one on
+  `ogs.google.com` (Google's bar); the main frame stayed on Classroom. Their exact paths are S8's
+  (R4, session upkeep).
+- **Questions for the plan, not measured**: the 40-second wait sits beside spec.md's «the read
+  closes it and starts at once»; and on macOS closing the last window leaves Chrome running, so a
+  family that closes the window is seen only when the pipe closes or at `wait_minutes`.
+- Not measured here: whether the peer's claim holds that Playwright's keychain flags break the read
+  (S7 ran only with them removed).
