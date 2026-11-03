@@ -148,8 +148,11 @@ measured on this account; they seed the spikes below and replace none of them (F
   rest unread, so a title that names the account is never kept. It never attaches to a tab, never
   sends `Runtime` or any page command, opens no network port and reads no file of the profile, and
   compares each address with Classroom's in memory without logging or storing it. When an address reaches `classroom.google.com`, alfabeta
-  closes the browser (SIGTERM, so Chrome writes its cookies; then SIGKILL after 10 s); the family may
-  also close it; `schedule.wait_minutes` ends it otherwise.
+  waits 40 seconds, then closes the browser with the browser-level `Browser.close` over the same
+  pipe, which writes the cookie store (SIGTERM, then SIGKILL, only if it has not exited 20 seconds
+  later). A SIGTERM 5 seconds after Classroom lost every cookie set after Chrome's last periodic
+  write, the session's among them (S7 result below). The family may also close it;
+  `schedule.wait_minutes` ends it otherwise.
 - **To be measured (spike S7)**: that Google accepts the hand sign-in in a Chrome started with that
   flag (the peer's reason for no automation is that Google refuses sign-ins it sees as automated;
   the flag sets no `navigator.webdriver`, but this is not measured), and that `Target.getTargets`
@@ -318,3 +321,38 @@ Vertical slices).
 
 Note on S13: loading a page every 5 minutes is a measurement, not a route. Keeping the session
 alive between reads is out of this spec (reading with nobody signing in, spec 001 User Story 7).
+
+## Spike results
+
+### S7 · The sign-in window and the profile — passed
+
+Measured 2026-11-03 against the school account on the operator's Mac, with the family signing in by
+hand, from branch `spike/166-s7-signin` (`spikes/s7_signin.py`, Playwright 1.64.1, the installed
+Google Chrome). The log kept instants and categories only, never an address, a title or a value.
+
+| Pass criterion | Seen |
+|---|---|
+| Google accepts the sign-in in a Chrome started with `--remote-debugging-pipe`, no «this browser may not be secure» page | Accepted twice, with no account hint in the address; no tab reached Google's rejection page, and the family noticed no such warning |
+| The address change is seen | `Target.getTargets` showed the tab go from `accounts.google.com` to `classroom.google.com`, 3 min 48 s and 4 min 3 s after the window opened |
+| The headless open reads the session with no keychain dialog | Playwright (`channel="chrome"`, headless, `--use-mock-keychain` and `--password-store=basic` removed, checked absent from the process arguments) read 21 cookies for Classroom's and Google's sign-in addresses, the session's included, and loaded the Classroom home page, landing on Classroom, in 6 seconds. The family noticed no macOS dialog, during the sign-in or the read. The session's rows were still on disk after the read |
+| The window can be brought to the front by process id | `NSRunningApplication` activation by the pid (`osascript -l JavaScript`, no Apple event, so no Automation permission) answered `true`; the family believes the window came to the front, and noticed no prompt. Run from a shell of the Claude app; from launchd is S10's |
+
+What it changed or left open:
+
+- **The window must be closed in order, after the cookie flush.** The first sign-in was ended by a
+  SIGTERM 5 seconds after Classroom: Chrome exited with code 0, but the only Google cookies left on
+  disk were the 4 written in the first minute of the sign-in, none of the session's, and the
+  headless read landed on Google's sign-in page. The second, closed with `Browser.close` 40 seconds
+  after Classroom, left 22 rows with the session's cookies. R5 now says so. Which of the two (the
+  wait or the orderly close) is enough on its own was not measured; the adapter does both.
+- **Chrome's own sign-in offers.** On reaching Classroom, Chrome offered to sign in to the browser
+  and to switch to, or open without, a profile (an extra internal page beside Classroom in the tab
+  list). The family declined them. Whether a launch switch can suppress them, or the notice must
+  tell the family to decline them, is open for the plan before slice 2.
+- **The minimal guard blocked two frame loads**, one on `accounts.google.com` and one on
+  `ogs.google.com` (Google's bar), and the home page still loaded. Their exact paths are S8's
+  (R4, session upkeep).
+- **Typing from scratch.** The fresh profile offered no saved username or password; the family typed
+  both. This is the profile holding no password, as constitution II wants.
+- Not measured here: whether the peer's claim holds that Playwright's keychain flags break the read
+  (S7 ran only with them removed).
