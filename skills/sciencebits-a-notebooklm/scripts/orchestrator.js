@@ -3,7 +3,8 @@
 // Each lesson opens in a same-origin iframe; the job inside captures every screen (and every
 // button state) with html2canvas, stores text + cleaned HTML, zips it and downloads sb_<lang>_<id>.zip.
 // Poll window.__orch: {done, results:[{tag,n,size,err}], current, stopped}, back to back with calls of 30-35 s.
-// err HIDDEN: the teacher hid that lesson since discovery; it is skipped and the others go on, never forced.
+// err HIDDEN: the teacher hid that lesson since discovery; it is skipped and the others go on, never forced. Its words
+// are the list pages' tooltips (read 2026-11-05) and an older message; a hidden lesson's own page is not yet measured.
 (() => {
 const jobFn = async () => {
   const cfg = window.__CFG || {tag: 'x'};

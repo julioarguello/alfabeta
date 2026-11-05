@@ -13,6 +13,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -155,7 +156,12 @@ def capture_zip(raw: Path, tag: str, items: list[dict[str, str]] | None = None) 
         "text": "Agua H2O",
         "html": "<p>Agua H<sub>2</sub>O y CO<sub>2</sub>, <b>en negrita</b> e <i>inclinada</i>.</p>",
     }
-    meta = {"tag": tag, "title": "Lección inventada", "menu": ["Empezamos Inicio 1"], "items": [screen] if items is None else items}
+    meta = {
+        "tag": tag,
+        "title": "Lección inventada",
+        "menu": ["Empezamos Inicio 1"],
+        "items": [screen] if items is None else items,
+    }
     raw.mkdir(exist_ok=True)
     path = raw / f"sb_{tag}.zip"
     with zipfile.ZipFile(path, "w") as capture:
@@ -243,9 +249,8 @@ def test_the_collector_waits_for_a_zip_still_being_written_and_skips_an_empty_ca
     assert collect(str(raw), str(downloads), NOW, seen) == [("es_L3", 1)]
 
 
-def test_a_skill_script_runs_with_no_vm_and_no_absolute_font_path():
-    render = (SCRIPTS / "render.py").read_text()
-    assert "/usr/share/fonts" not in render
+def test_the_fonts_travel_with_the_renderer():
+    assert "/usr/share/fonts" not in (SCRIPTS / "render.py").read_text()
     assert {p.name for p in (SCRIPTS / "fonts").iterdir()} == {
         "DejaVuSans.ttf",
         "DejaVuSans-Bold.ttf",
@@ -253,3 +258,13 @@ def test_a_skill_script_runs_with_no_vm_and_no_absolute_font_path():
         "DejaVuSans-BoldOblique.ttf",
         "LICENSE",
     }
+
+
+def test_the_skill_names_only_what_the_mac_has_and_only_scripts_that_exist():
+    """Measured 2026-11-05: none of these tools is available in a run on the family's Mac."""
+    skill = (SCRIPTS.parent / "SKILL.md").read_text()
+    for gone in ("device_bash", "Desktop Commander", "start_process", "preview_start", "request_access", "sleep 170"):
+        assert gone not in skill
+    assert "NOT_AVAILABLE" not in skill and "NOT_AVAILABLE" not in (SCRIPTS / "orchestrator.js").read_text()
+    for script in re.findall(r"`?\$H/(\w+\.py)", skill) + re.findall(r"`(\w+\.(?:py|js))`", skill):
+        assert (SCRIPTS / script).is_file() or script == "print_pack.py", script
