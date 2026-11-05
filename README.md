@@ -95,14 +95,15 @@ account to be shared with the school account and opened there.
 
 | You need | Why |
 |---|---|
-| The [Claude desktop app](https://claude.ai/download) | The skill drives the app's built-in browser |
-| The [Desktop Commander](https://github.com/wonderwhy-er/DesktopCommanderMCP) connector in Claude | The skill reads your configuration and runs commands on your Mac through it |
+| The [Claude desktop app](https://claude.ai/download) | It runs the skills' commands on your Mac |
+| [Google Chrome](https://www.google.com/chrome/) with the Claude in Chrome extension | The Science Bits and Classroom skills read their pages in it, with your own sign-in. For Science Bits, allow automatic downloads and pop-ups for `learning-bits.com` and turn off «Ask where to save each file» |
 | [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
 | [pandoc](https://pandoc.org/installing.html), [Graphviz](https://graphviz.org/download/) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports and mind maps to PDF with them |
 | A folder synced to your cloud storage | The skills write each topic under `storage.base` and copy it to each folder in `drive.mirrors`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
-Nothing extra is needed for Python: `build.py` and its `render.py` run in Claude's VM, which ships
-`reportlab`, `beautifulsoup4` and `pypdf`.
+Nothing extra is needed for Python beyond uv: `build.py` and its `render.py` run under `uv run`, which installs
+`reportlab`, `beautifulsoup4` and `pypdf` from this repository's lock, and the fonts they draw with are in
+`skills/sciencebits-a-notebooklm/scripts/fonts/`.
 
 ### Set up
 

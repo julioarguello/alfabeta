@@ -94,6 +94,7 @@ def test_the_topic_goes_in_the_book_subfolder_of_its_folder(box: Box, tmp_path: 
     assert done.returncode == 0, done.stderr
     result = json.loads(done.stdout)
     assert result["folder"] == f"{TOPIC_FOLDER}/sciencebits" and result["result"] == "placed"
+    assert result["topic_folder"] == TOPIC_FOLDER  # where the skill leaves notebook/, beside sciencebits/
     assert sorted(result["placed"]) == list(BUILT) and result["unchanged"] == []
     assert sorted(p.name for p in (box.base / TOPIC_FOLDER / "sciencebits").iterdir()) == list(BUILT)
     record = replicas(box)["sciencebits|Tema 01|Tema01_ES.pdf"]
@@ -434,6 +435,7 @@ def test_a_topic_split_into_subtopics_gets_the_book_in_every_subtopic(box: Box, 
     out = json.loads(done.stdout)
     assert out["folders"] == [f"{FYQ}/{first.name}/sciencebits", f"{FYQ}/{second.name}/sciencebits"]
     assert out["folder"] == out["folders"][0]
+    assert out["topic_folder"] == f"{FYQ}/{first.name}"
     assert sorted(out["placed"]) == sorted(BUILT)  # one entry per file, not per subtopic
     for topic in (first, second):
         assert sorted(p.name for p in (topic / "sciencebits").iterdir()) == sorted(BUILT)

@@ -1,10 +1,10 @@
 // Science Bits capture orchestrator. Run in a learning-bits.com tab (logged in) whose viewport is 1280x800.
-// Before running, set:
-//   window.__SB = {sem:'<sem>', rest:'&repertorio=..&unidad=..', queue:[{lang:'es', id:'L1', lessonId:'l1h1234'}, ...]}
-//   (sem, rest and lessonId come from discover_lessons.js)
+// window.__SB comes from discover_lessons.js, in the same tab: {queue:[{lang:'es', id:'L1', sem, code, title}, ...]}.
 // Each lesson opens in a same-origin iframe; the job inside captures every screen (and every
 // button state) with html2canvas, stores text + cleaned HTML, zips it and downloads sb_<lang>_<id>.zip.
-// Poll window.__orch: {done, results:[{tag,n,size,err}], current, stopped}. Keep each poll call short (<40 s).
+// Poll window.__orch: {done, results:[{tag,n,size,err}], current, stopped}, back to back with calls of 30-35 s.
+// err HIDDEN: the teacher hid that lesson since discovery; it is skipped and the others go on, never forced. Its words
+// are the list pages' tooltips (read 2026-11-05) and an older message; a hidden lesson's own page is not yet measured.
 (() => {
 const jobFn = async () => {
   const cfg = window.__CFG || {tag: 'x'};
@@ -44,6 +44,7 @@ const jobFn = async () => {
   job.done = true;
 };
 const SB = window.__SB;
+const HIDDEN = /not available|no está disponible|ez dago eskuragarri|Oculta por el docente|Irakasleak ezkutatua|Hidden by the teacher/i;
 window.__orch = {done: false, results: [], current: null, stopped: null};
 (async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -53,21 +54,17 @@ window.__orch = {done: false, results: [], current: null, stopped: null};
     document.getElementById('__fr')?.remove();
     const f = document.createElement('iframe'); f.id = '__fr';
     f.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:800px;z-index:999999;border:0;background:#fff';
-    const s2h = s => [...s].map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-    const code = q.code ? q.code + (SB.tail || '') : s2h(q.lessonId + '_' + q.lang + SB.rest);
-    f.src = '/intranet/' + q.lang + '/mylesson/index?sem=' + SB.sem + '&code=' + code;
+    f.src = '/intranet/' + q.lang + '/mylesson/index?sem=' + q.sem + '&code=' + q.code;
     document.body.appendChild(f);
-    for (let i = 0; i < 60; i++) { await sleep(500); try { const h = f.contentWindow.location.href; if (h.includes('/login')) return {tag, err: 'SESSION_EXPIRED'}; if (/not available|no está disponible|ez dago eskuragarri/i.test(f.contentDocument.body?.innerText || '')) return {tag, err: 'NOT_AVAILABLE'}; if (h.includes('refreshed=true') && f.contentDocument.readyState == 'complete' && f.contentDocument.getElementById('root')) break; } catch (e) {} }
+    for (let i = 0; i < 60; i++) { await sleep(500); try { const h = f.contentWindow.location.href; if (h.includes('/login')) return {tag, err: 'SESSION_EXPIRED'}; if (h.includes('refreshed=true') && f.contentDocument.readyState == 'complete' && f.contentDocument.getElementById('root')) break; if (HIDDEN.test(f.contentDocument.body?.innerText || '')) return {tag, err: 'HIDDEN'}; } catch (e) {} }
     await sleep(3000);
     f.contentWindow.__CFG = {tag}; f.contentWindow.eval('(' + jobFn.toString() + ')()');
     let j; for (let i = 0; i < 1200; i++) { await sleep(1000); try { if (f.contentWindow.location.href.includes('/login')) return {tag, err: 'SESSION_EXPIRED'}; } catch (e) {} j = f.contentWindow.__job; if (j && j.done) break; }
     return {tag, n: j?.n, size: j?.size, err: j?.err, pages: j?.log?.length};
   };
-  const skipLang = new Set();
   for (const q of SB.queue) {
-    if (skipLang.has(q.lang)) { window.__orch.results.push({tag: q.lang + '_' + q.id, err: 'NOT_AVAILABLE'}); continue; }
     let r = await runOne(q);
-    if (r.err === 'NOT_AVAILABLE') { skipLang.add(q.lang); window.__orch.results.push(r); continue; }
+    if (r.err === 'HIDDEN') { window.__orch.results.push(r); continue; }
     if (r.err === 'SESSION_EXPIRED') { window.__orch.stopped = 'SESSION_EXPIRED at ' + r.tag; window.__orch.results.push(r); break; }
     if (!r.n) r = await runOne(q);   // one retry
     window.__orch.results.push(r);

@@ -19,6 +19,7 @@ constitution wins (its Governance says so).
 | Lint + format | `ruff` | — |
 | Schemas in tests | `jsonschema` (dev group) | — |
 | PDF | `pypdf`, `reportlab` (spec 005) | — |
+| HTML | `beautifulsoup4` (the Science Bits skill's `render.py`) | — |
 | Retry | — (none declared) | `tenacity` |
 | Boundary models | `dataclasses` | `pydantic` |
 | Config | TOML with template mirroring (`config/template.toml`, §4); env only for run plumbing (`ALFABETA_RUN`) | `pydantic-settings` |

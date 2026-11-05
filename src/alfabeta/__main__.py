@@ -227,6 +227,7 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
             "result": result,
             "folder": folders[0],
             "folders": folders,
+            "topic_folder": folders[0].removesuffix(f"/{subject.book}"),
             "placed": placer.placed,
             "unchanged": placer.unchanged,
             "previous": placer.previous,
