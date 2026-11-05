@@ -26,6 +26,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Item `status` `pending` · `turned_in` · `turned_in_late` · `returned` · `overdue` · `missing_per_teacher` | «pendiente» · «entregada» · «entregada tarde» · «devuelta» · «vencida» · «falta según el profesor» |
 | Agenda entry `detected: true` | «detectado» |
 | Agenda entry `corrected: true` | «corregido» |
+| Agenda entry `declared: true` (spec 007, not built yet) | «declarado por la familia» |
 | Agenda entry `date: null` | «sin fecha» |
 | Attachment not fetched, noted in `enlaces.md` | «no traído» |
 | Summary for the family (stderr of `classroom apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
@@ -106,7 +107,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 | Field | Type | Rule |
 |---|---|---|
 | `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) · `declared_exam` and `exam_match` (spec 007, not built yet; only the family and the agenda's rebuild write them) · `subtopic` (one subtopic of a split textbook topic, spec 002 FR-043; origin `<subject folder>/Tema NNX`, target `title` and `lessons`, the textbook's lesson numbers comma-separated; no lesson in two subtopics of one topic; a confirmed one never changes) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
-| `origin` | Classroom id (class, topic or item); for `detected_exam` and `exam_correction`, `<item>#exam-<k>`, where Claude assigns `k` = 1, 2… when proposing (the classifier gives a single candidate per item) | Unique key per `(type, origin)` among the non-superseded ones; a repeated proposal does not write |
+| `origin` | Classroom id (class, topic or item); for `detected_exam` and `exam_correction`, `<item>#exam-<k>` (or a declared exam's `declared-<n>`, spec 007, not built yet), where Claude assigns `k` = 1, 2… when proposing (the classifier gives a single candidate per item) | Unique key per `(type, origin)` among the non-superseded ones; a repeated proposal does not write |
 | `target` | subject, topic folder, exam (`date`, `reason`), correction (`date`, `category`, `discarded`) | |
 | `reason` | text | What led to the proposal or to the correction |
 | `confidence` | `high` · `medium` · `low` | Only in proposals |

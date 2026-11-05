@@ -8,11 +8,12 @@ not change. Not measured: the family reads the first real run (plan, gate 1; spe
 | Placeholder | Source |
 |---|---|
 | `{exam_name}` | `Examen del martes 12 de mayo` with a date, `Examen sin fecha` with none |
+| `{part}` | Empty for one topic. Over several, with no announcement: «; este examen abarca varios temas y este cuaderno solo tiene «<topic>» (parte N de M): cubre solo ese tema», with no final full stop. It replaces the announced variant, which refers to points of an announcement |
 
 ## Theory sheet — for an exam with no announcement
 
 ```text
-Hoja de teoría para estudiar un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Teoría y plan de estudio». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». No inventes ni cites ningún anuncio, y no dejes fuera ninguna parte del tema{part}. Si los apuntes del alumno tienen un esquema del tema, las secciones de la hoja son sus ramas, en su orden y con sus palabras, y nombras la rama; lo que el esquema no tiene va después de su rama más cercana o aparte, diciendo de qué fuente sale, sin llamarlo opcional. Si no tienen esquema, las secciones siguen el orden de los apuntes, y luego el de las fotocopias de Classroom y el del libro. Mandan los apuntes de clase del alumno; las fotocopias de Classroom y el libro solo completan lo que falta en ellos. Cada término va primero en {language}, tal como lo escribe el material de clase, y después en castellano; si los apuntes, las fotocopias y el libro llaman de forma distinta a una misma cosa, o usan una palabra para dos cosas, muestra cada forma y cómo distinguirlas. Después de esa frase, un plan ({slot}) en una tabla Hora | Qué | Cómo: una fila por sección, un descanso de cinco minutos y una última fila de unos quince minutos de hoja en blanco, para escribir de memoria y en {language} lo que el examen pide reproducir, corregir con esta hoja y rodear lo que falle. Cada sección acaba con una prueba para hacer sin mirar, con sus respuestas. Señala las trampas típicas. Los problemas no van aquí, sino en la hoja «Problemas tipo». Como mucho {pages} páginas A4. Comprueba dos veces cada número.
+Hoja de teoría para estudiar un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Teoría y plan de estudio». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». No inventes ni cites ningún anuncio, y no dejes fuera ninguna parte del tema{part}. Si los apuntes del alumno tienen un esquema del tema, las secciones de la hoja son sus ramas, en su orden y con sus palabras, y nombras la rama; lo que el esquema no tiene va después de su rama más cercana o aparte, diciendo de qué fuente sale, sin llamarlo opcional. Si no tienen esquema, las secciones siguen el orden de los apuntes, y luego el de las fotocopias de Classroom y el del libro. Los apuntes de clase del alumno mandan en la estructura y las palabras, no en los hechos; las fotocopias de Classroom y el libro completan lo que falta en ellos. Si una fotocopia o el libro contradicen un hecho de los apuntes, enseña lo que dice la fuente y añade «Corrige en tus apuntes: …»; si los apuntes insisten en ese hecho (repetido, en un recuadro, subrayado o marcado como importante), mantenlo y añade «Pregunta en casa: tus apuntes y <la fuente> no coinciden». Cada término va primero en {language}, tal como lo escribe el material de clase, y después en castellano; si los apuntes, las fotocopias y el libro llaman de forma distinta a una misma cosa, o usan una palabra para dos cosas, muestra cada forma y cómo distinguirlas. Después de esa frase, un plan ({slot}) en una tabla Hora | Qué | Cómo: una fila por sección, un descanso de cinco minutos y una última fila de unos quince minutos de hoja en blanco, para escribir de memoria y en {language} lo que el examen pide reproducir, corregir con esta hoja y rodear lo que falle. Cada sección acaba con una prueba para hacer sin mirar, con sus respuestas. Señala las trampas típicas. Los problemas no van aquí, sino en la hoja «Problemas tipo». Como mucho {pages} páginas A4. Comprueba dos veces cada número.
 ```
 
 ## Problems sheet — for an exam with no announcement
@@ -21,13 +22,14 @@ The text of «Problems sheet — for an exam», with its opening replaced by thi
 problemas de las fotocopias» on:
 
 ```text
-Hoja de problemas para un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Problemas tipo». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». 
+Hoja de problemas para un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Problemas tipo». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». Si las fuentes no tienen fotocopias con problemas, dilo en una frase y no inventes ninguno. 
 ```
 
-## Start note — for an exam with no date
+## Start note — for an exam with no announcement
 
-An exam with a date and no announcement uses the note of an announced exam, since it needs only the day.
+The announced note says «Hoy», which is false for a preparation days ahead, for the reason the theory text drops
+«mañana». This one holds with or without a date.
 
 ```text
-Para este examen sin fecha: «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
+Para este examen ({exam_name}): «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
 ```

@@ -26,7 +26,7 @@ uv run python -m alfabeta exam build --student <id> --subject <folder> --topic <
 
 Expected: two PDFs in the topic's `exam/` folder, named `(sin fecha)`, or with the date if the agenda holds one.
 The family reads, and records as a count only (SC-010): how many of the scheme's top-level branches have a section,
-and that the first page of both says no announcement backs them. The agenda's bytes do not change.
+that the first page of both says no announcement backs them, and that the problems sheet holds only the sources' problems or says it has none. The agenda's bytes do not change.
 
 ## 2. Declaring, correcting, cancelling (slice 2)
 
@@ -51,7 +51,7 @@ Expected: the line is gone, and the record stays in `data/decisions.json`.
 
 ## 3. The teacher posts it (slice 2)
 
-Covered with invented captures by `tests/test_agenda.py` and `tests/test_decisions.py`: an assignment titled as a
+Covered with invented captures by `tests/test_declared.py`: an assignment titled as a
 test, a stream post and a material on the declared day give one line (SC-003); with matching disabled, two.
 
 On the real student, after the next sync with a teacher's post: count the exam lines of that subject; expected one.

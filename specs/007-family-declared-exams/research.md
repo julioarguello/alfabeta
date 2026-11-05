@@ -26,6 +26,11 @@ left to the plan, read against the code on `main` at the plan's date.
   | no, and no agenda exam on that day | no | Refuses `no_exam` |
   | no | yes | Proceeds with no announcement, for `--exam`, else the next exam in the agenda, else undated |
 
+  `topic_folders` learns whether an announcement exists: without one, `--topic` may name several topics of any
+  kind, each with its notebook and an equal part of the slot. A paper exam can span whole topics, and the
+  family's «the topics» meant that. With an announcement, `no_topic` stands, as
+  `test_topics_that_are_not_distinct_subtopics_of_one_topic_are_refused` holds.
+
 - **Rationale**: naming a topic is a new statement by the family. The default "most recent topic" stays
   behind an announcement, so a command typed with no thought never prints a whole-topic sheet by chance.
   No new option is needed, so `tests/test_cli_naming.py` needs no `PLANNED_OPTIONS` entry.
@@ -40,8 +45,10 @@ left to the plan, read against the code on `main` at the plan's date.
   texts do not change.
 - **Rationale**: the announced theory prompt is built around `{scope}` («Qué entra», sections in the
   announcement's order, what does not enter). It also says «mañana», which a preparation days ahead or
-  undated makes false. The new text keeps the rest word for word, because that is what will have been
-  measured by then.
+  undated makes false. The rest of the new text follows it, with two differences. Constitution X's last
+  bullet is written in: «Mandan los apuntes» alone would teach a wrong fact on a whole-topic sheet, since
+  `exam build` reads no `bloques.md` and `{notes_corrections}` never arrives. And `{part}` gets its own
+  variant, because the announced one refers to points of an announcement that does not exist here.
 - **Not measured**: how the notebook does on them. Gate 1 of the plan is that measurement.
 - **Alternatives**: filling `{scope}` with a sentence saying there is none: the prompt would then order
   sections by an announcement's points, and copy a false «anuncio».
@@ -55,8 +62,9 @@ left to the plan, read against the code on `main` at the plan's date.
   date does today, and a dated run sits beside it.
 - **Alternatives**: the day it was made: a date in a file's name that is not the exam's would be read as
   the exam's.
-- **Constitution**: Storage says the date goes in each file's name. Patched to "the exam's date when it is
-  known, else «sin fecha»" (2.6.1).
+- **Constitution**: Storage says the date goes in each file's name. Amended to "the exam's date when it is
+  known, else «sin fecha»" (2.7.0, MINOR: it allows what the sentence forbade, and an undated pair per topic
+  gives up what the date guaranteed).
 
 ## R5 — A declaration is a decision
 
@@ -72,7 +80,9 @@ left to the plan, read against the code on `main` at the plan's date.
 
 - **Decision**: `DecisionStore.correct` accepts an origin with a declared exam in force, and the rest of its
   rule holds: a correction merges with the one before; a date on a discarded exam brings it back.
-  `--category` on a declared id exits 1, and so does a date another declared exam in force holds.
+  `--category` on a declared id exits 1, and so does a date another active declared exam holds as its effective
+  date (FR-004). `--date` is parsed in the handler, so a malformed value exits 1 and is not echoed (FR-002); the
+  parser's `type=` today exits 2 and prints it.
 - **Rationale**: the family has one correction command, and `exam_correction` already means this.
 - **Consequence**: `decision update-exam` rewrites the agenda for a declared id (FR-009). A detected exam's
   correction keeps prevailing "in the following runs", unchanged.
@@ -88,9 +98,12 @@ left to the plan, read against the code on `main` at the plan's date.
   - A rule recomputed on each run would break the pair when the teacher moves the exam, leaving the family's
     old date as a second exam. Recorded, the entry follows the teacher (US3, scenario 2).
   - `AgendaBuilder` stays a pure function of the state and the decisions (spec 001 FR-020).
+  - A match other than the first ends when its entry no longer shares the merged entry's day, or a moved
+    Classroom date would hide behind a stale one (constitution V).
 - **Checked against the consumers**:
-  - `exam build` finds the announcement through the entry's `origin`, which a match with a detected exam
-    carries.
+  - `exam build` finds the announcement through the entry's `origin`. Today it tries every entry of the day;
+    the merged entry has one, so it takes a detected exam whose item has an `#announcement` replica when
+    there is one (SC-008).
   - `AgendaEntry.__post_init__` requires an origin exactly when `detected`: the merged entry takes both or
     neither.
 - **Alternatives**: the Classroom id, for the reason above; `calendar` code re-keying the event: Google's
@@ -109,8 +122,9 @@ left to the plan, read against the code on `main` at the plan's date.
 
 - **Decision**: a required boolean `declared`, and `classroom_link` documented as possibly empty. `agenda.md`'s
   line prints the link and the folder only when there are any, and drops an empty title.
-- **Version**: the schema's `const` rises by one in whichever of this slice and spec 003's T004 lands first,
-  and the other takes the next. `tests/test_contracts.py` keeps the two copies identical.
+- **Version and `posted`**: the schema's `const` rises by one in whichever of this slice and spec 003's T004
+  lands first, and the other takes the next. The second to land also makes the two keys agree: a declared
+  entry's `posted` is the day it was declared. Spec 003 T004 says so too. `tests/test_contracts.py` keeps the two copies identical.
 - **Consumers read**: `exam/prep.py` reads `category`, `subject`, `date` and `origin`, so a new key is harmless.
 
 ## R10 — When a declared exam is done
@@ -128,6 +142,8 @@ left to the plan, read against the code on `main` at the plan's date.
   - its `posted` is the declaration's date, which drops a `d7` on or before it, as an announcement's does;
   - its description gains `Declarado por la familia`, and the `Classroom:` line appears only with a link;
   - a label for its time follows spec 003 FR-014, and needs nothing new (Q2);
+  - `calendar delete-legacy`'s match on the Classroom title never fires for an entry with no link: an empty
+    title is contained in every title, which would select any all-day event that day (spec 003 research R7);
   - the count of FR-021 reads the events of that day once, when the writer first creates the declared
     exam's event, and writes `data/calendar/hand-<run>.json`.
 - **Rationale**: once, not on each run: spec 003 keeps to one paged listing per run, and a second count of the

@@ -23,6 +23,12 @@ Not in `PROPOSABLE`, so Claude cannot propose it and `decision confirm` does not
 As over a detected exam, with its origin the declared id: `target.date`, or `target.discarded = "true"`.
 Corrections merge; a date on a discarded exam brings it back. `target.category` is refused.
 
+### Active, and the effective date
+
+A declared exam is **active** while it is in force and its corrections have not discarded it. A cancelled exam is
+in force but not active: it holds no date, is not matched and takes part in no notice. Its **effective date** is the
+`date` of the table under «Agenda entry». FR-004, the correction's check and the match all use these two.
+
 ### `exam_match`
 
 | Field | Rule |
@@ -33,15 +39,16 @@ Corrections merge; a date on a discarded exam brings it back. `target.category` 
 | `date` | The day it was recorded |
 
 One in force per Classroom entry; several may point to one declared exam. The first in file order gives the
-merged entry its title, link and folder. Not in `PROPOSABLE`.
+merged entry its title, link, folder, status and list. Not in `PROPOSABLE`.
 
-**Recording** (`declared.py`, called by the commands that rebuild the agenda, under the lock):
+**Recording** (`declared.py`, called under the lock by every command that rebuilds the agenda: `agenda build`,
+`classroom apply`, `exam create`, `decision update-exam`):
 
 1. Build the Classroom exam entries, as today.
-2. For each declared exam in force and not discarded, record a match with every entry of its subject on its
-   day in `Europe/Madrid` that has none.
-3. Supersede a match whose Classroom entry is no longer an exam of the agenda, or whose declared exam is
-   discarded.
+2. Supersede a match whose Classroom entry is no longer an exam of the agenda, whose declared exam is no longer
+   active, or which is not the first and whose entry no longer shares the effective date's day.
+3. For each active declared exam, record a match with every entry of its subject on its effective date's day in
+   `Europe/Madrid` that has none.
 
 The same run's second pass, and the next run with no change, write nothing (FR-024).
 
@@ -61,11 +68,11 @@ For a declared entry:
 | `subject` | The declaration's | The declaration's |
 | `category` | `exam` | `exam` |
 | `title` | The family's, or empty | The first match's |
-| `date` | The family's, with its corrections | The first match's, unless a correction later in the file than the match, which prevails |
+| `date` | The family's, with its corrections | A correction later in the file than the match, else the first match's, else, when that has no date, the family's |
 | `date_only` | `true` | The date's own |
 | `status` | Empty | The first match's |
 | `list` | R10: `pending` until any capture is later than the date, then `done` | The first match's |
-| `detected`, `origin` | `false`, empty | `true` and the source item when a detected exam is among the matches; otherwise `false`, empty |
+| `detected`, `origin` | `false`, empty | `true` and the source item when a detected exam is among the matches, preferring one whose item has an `#announcement` replica; otherwise `false`, empty |
 | `corrected` | `true` after a date correction | `true` after a date correction, or if a match carries one |
 | `classroom_link`, `folder` | Empty | The first match's |
 | `declared` | `true` | `true` |
@@ -78,13 +85,14 @@ Classroom's entries return under their own ids (FR-014).
 
 ## Notices
 
-Lines at the top of `agenda.md`, never in `agenda.json`, while both exams are in «Pendiente»:
+Lines at the top of `agenda.md`, never in `agenda.json`, while the exams named are in «Pendiente»:
 
 | Condition | Line |
 |---|---|
 | A Classroom exam of the subject with another date, up to 14 days away | `Examen de <Asignatura>: la familia dijo <fecha> y Classroom dice <fecha>.` |
 | A Classroom exam of the subject with no date | `Examen de <Asignatura>: la familia dijo <fecha> y Classroom anuncia uno sin fecha.` |
 | A matched entry whose family correction differs from Classroom's date | `Examen de <Asignatura>: la familia corrigió a <fecha> y Classroom dice <fecha>.` |
+| Two active declared exams of the subject on one day, after a teacher's move | `Examen de <Asignatura>: hay dos declarados el <fecha>.` |
 
 A notice holds the date, like the rest of `agenda.md`, in the family's folder only.
 

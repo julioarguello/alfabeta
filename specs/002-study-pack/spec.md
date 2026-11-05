@@ -695,7 +695,8 @@ and cannot judge what the notebook writes.
   `exam/Problemas tipo · TNN[X] (<D> <mmm>).pdf`, with the topic's or subtopic's number and the exam's date
   (`(sin fecha)` with none, spec 007, not built yet). The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
-  pages it allows, the subject's folder and language, and the grade level. Both reports are asked
+  pages it allows, the subject's folder and language, and the grade level (and, with no announcement, the
+  topic's name, spec 007, not built yet). Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
   option, so the account-wide setting of FR-007 is not touched. That makes the problems sheet an
   exception to FR-005, which puts practice in the subject's language: it is the sheet the parent

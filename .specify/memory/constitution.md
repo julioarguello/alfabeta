@@ -317,4 +317,4 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.6.1 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-05
+**Version**: 2.7.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-05

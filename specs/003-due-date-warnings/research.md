@@ -163,7 +163,7 @@ at 23:59 is 23:59–24:00).
   (`first_apply_at`). A timed event, or one created later, is never selected, so an event the
   family adds by hand after that run is out of reach. A selected event matches when one owned event
   holds the same fact: the same date in `Europe/Madrid` and the item's Classroom title contained in
-  its title. Dates and titles go only to `data/calendar/legacy-<run>.json`; the command prints counts.
+  its title; a declared exam with no Classroom link (spec 007) matches none, having no such title. Dates and titles go only to `data/calendar/legacy-<run>.json`; the command prints counts.
 - **The family reviews before anything goes.** `--apply` takes the report the family read
   (`--report legacy-<run>.json`) and deletes only the events it lists as `matched` and that still
   match; it re-reads each one first. Unmatched ones are never touched. No run calls it.
@@ -190,7 +190,7 @@ at 23:59 is 23:59–24:00).
   none, because its origin item already owns its own events.
 - **Its warnings** (FR-015): 7 days before and the evening before, at the home slot, with R4's bound,
   basis and catch-up. The start date for dropping a step is the posting date of the item that
-  announced it.
+  announced it, or the day a declared exam was declared (spec 007, not built yet).
 
 ## R9 — Reading "for Thursday" (FR-016)
 

@@ -2,7 +2,7 @@
 
 What the family reads in the calendar, in Spanish. Every event restates facts from the agenda: no
 advice («empieza hoy», «date prisa»), no priority alfabeta made up, no estimated effort (FR-003,
-US7). `<Asignatura>` is the subject's folder name; `<título>` is the Classroom title as captured,
+US7). `<Asignatura>` is the subject's folder name; `<título>` is the Classroom title as captured, or the family's for a declared exam (spec 007),
 whitespace collapsed.
 
 ## Titles
@@ -13,7 +13,7 @@ whitespace collapsed.
 | Due date, not handed in | `Entrega · <Asignatura> · <título>` |
 | Due date, handed in («Entregado», «Calificado», «Entregado con retraso») | `Entregado · <Asignatura> · <título>` |
 | Exam | `Examen · <Asignatura> · <título>`; a declared exam with no title, `Examen · <Asignatura>` |
-| Any of the above whose fact left Classroom | `Retirado · ` + the title it had |
+| Any of the above whose fact left Classroom or the family cancelled | `Retirado · ` + the title it had |
 
 A reminder shows only the title and the time (FR-003), so the title alone says what and for which
 subject; the reminder's time says when.

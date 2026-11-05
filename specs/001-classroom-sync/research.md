@@ -657,7 +657,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   for the same reason with the same version logs its `stopped` line and ends with 0 (R16,
   `contracts/cli.md`), so the alert fires once. The notice carries the reason and the student's
   opaque `id`, and its documentation field says how to sign in again.
-  Rejected: an event in the student's calendar, which holds only facts from Classroom (spec 003);
+  Rejected: an event in the student's calendar, which holds only facts about the student's school work (spec 003, spec 007);
   an email through the Gmail API, which needs a scope spec 004 did not grant (spec 006 later
   amends spec 004 to grant Gmail send to a `family` account, for spec 006's notices on the Mac).
 - **Custody, for the family to accept or refuse in the review of this amendment**: the cloud project
