@@ -163,7 +163,10 @@ def _announcement(state: dict[str, Any], base: Path, entry: dict[str, Any]) -> t
     named = _ANNOUNCEMENT.match(note.name)
     if named is None or not note.is_file():
         return None
-    text = note.read_text().strip()
+    try:
+        text = note.read_text().strip()
+    except (OSError, UnicodeError):
+        return None
     return (text, dt.datetime.strptime(named.group(1), "%Y%m%d").date()) if text else None
 
 
@@ -220,11 +223,11 @@ def find_exam(
             announced = _announcement(records, base, entry)
             if announced is not None:
                 return Exam(on, *announced)
-        if topics_named and any(_announcement_lost(records, entry) for entry in found):
+        if any(_announcement_lost(records, entry) for entry in found):
             raise Refusal(
                 "no_announcement",
                 "the exam's captured announcement cannot be read, and it would set the scope; nothing was asked."
-                " Run the sync again, or give --undated if this is another exam",
+                " Run the sync again, or give --undated and --topic to prepare the whole of the topics with no date",
             )
     if topics_named:
         return Exam(on)
@@ -261,15 +264,15 @@ def notes_corrections(topic: Path) -> list[str]:
     level = 0  # the open section's heading level; 0 with none open
     for line in text.splitlines():
         heading = _HEADING.match(line)
-        if not heading:
-            if level and line.strip():
-                lines.append(line.strip())
-            continue
         words = line.casefold()
-        if CORRECTIONS_HEADING.casefold() in words:
-            level = len(heading.group(1))
-        elif level and (len(heading.group(1)) <= level or QUESTIONS_HEADING.casefold() in words):
+        if QUESTIONS_HEADING.casefold() in words:  # in any form: a question must never read as a correction
             level = 0
+        elif heading and CORRECTIONS_HEADING.casefold() in words:
+            level = min(level, len(heading.group(1))) if level else len(heading.group(1))
+        elif heading:
+            level = 0 if len(heading.group(1)) <= level else level
+        elif level and line.strip():
+            lines.append(line.strip())
     if not lines and CORRECTIONS_HEADING.casefold() in text.casefold():
         _say(f"{topic.name}: {BLOCKS_FILE[-1]} names «{CORRECTIONS_HEADING}» but no line was read under such a heading")
     return lines

@@ -44,7 +44,7 @@ Which exam and which scope:
 | Yes | Either | As spec 002's [contract](../../002-study-pack/contracts/cli.md) |
 | No, an agenda exam that day | None | Exit 1 `no_announcement`; the message says to name the topics |
 | No, no agenda exam that day | None | Exit 1 `no_exam`; the message says to name the topics |
-| No, and state records one whose note cannot be read | Given | Exit 1 `no_announcement`: it would set the scope (FR-029); the message says to sync again, or `--undated` |
+| No, and state records one whose note cannot be read | Either | Exit 1 `no_announcement`: it would set the scope (FR-029); the message says to sync again, or `--undated` with `--topic` |
 | No | Given | Proceeds with the prompts of [prompts.md](prompts.md) over the topics named |
 | Not looked at | Given, with `--undated` | Proceeds undated with those prompts, whatever the agenda holds. `--undated` with no `--topic`, or with `--exam`, exits 1 `no_topic` or is refused by the parser |
 

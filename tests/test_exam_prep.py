@@ -1324,8 +1324,11 @@ def test_an_announced_exam_does_not_read_bloques(world: World, capsys: pytest.Ca
 def test_an_announcement_captured_but_unreadable_is_refused_even_with_a_topic(
     world: World, capsys: pytest.CaptureFixture[str]
 ):
-    (world.base / NOTE_PATH).unlink()
+    (world.base / NOTE_PATH).write_bytes(b"\xff\xfe no es texto")
     assert "--undated" in refused(world, capsys, 1, "no_announcement", "--topic", WHOLE)  # FR-029
+    (world.base / NOTE_PATH).unlink()
+    assert "--undated" in refused(world, capsys, 1, "no_announcement", "--topic", WHOLE)
+    assert "--undated" in refused(world, capsys, 1, "no_announcement")  # never a loop back to --topic
 
 
 def test_with_no_announcement_subtopics_keep_their_order(world: World, capsys: pytest.CaptureFixture[str]):
@@ -1367,3 +1370,40 @@ def test_a_bloques_with_no_section_says_nothing_and_an_unreadable_one_warns_with
     assert f"{WHOLE}: bloques.md could not be read" in err
     for prompt in theory_and_problems(world):
         assert "Correcciones ya comprobadas" not in prompt
+
+
+@pytest.mark.parametrize(
+    ("text", "kept", "dropped"),
+    [
+        # A heading of the same or a higher level closes the section.
+        ("### Correcciones a los apuntes\n- Uno\n### Otro\n- Fuera\n", "- Uno", "- Fuera"),
+        ("### Correcciones a los apuntes\n- Uno\n# Otro\n- Fuera\n", "- Uno", "- Fuera"),
+        # A deeper Correcciones while one is open does not narrow it: what follows its subheading stays.
+        (
+            "## Correcciones a los apuntes\n- Uno\n### correcciones a los apuntes\n- Dos\n### Sub\n- Tres\n",
+            "- Tres",
+            "Sub",
+        ),
+        # A question in any form is never a correction.
+        ("## Correcciones a los apuntes\n- Uno\n**Preguntas sobre los apuntes**\n- Fuera\n", "- Uno", "- Fuera"),
+    ],
+)
+def test_where_a_section_of_corrections_ends(
+    world: World, capsys: pytest.CaptureFixture[str], text: str, kept: str, dropped: str
+):
+    write_agenda(world, [])
+    (world.topic / "notebook").mkdir(parents=True)
+    (world.topic / "notebook" / "bloques.md").write_text(text)
+    assert world.run("--topic", WHOLE) == 0
+    for prompt in theory_and_problems(world):
+        assert kept in prompt and dropped not in prompt
+
+
+def test_the_warning_of_an_empty_section_names_the_topic_whatever_the_case(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    write_agenda(world, [])
+    (world.topic / "notebook").mkdir(parents=True)
+    (world.topic / "notebook" / "bloques.md").write_text("## CORRECCIONES A LOS APUNTES\n## Otro\n")
+    assert world.run("--topic", WHOLE) == 0
+    assert f"{WHOLE}: bloques.md names" in output(capsys)[1]

@@ -44,7 +44,8 @@ that fails does not stop the other.
    `data/state.json` records for the item the exam was detected in (the entry's `origin`). An exam
    with no announcement, including one
    spec 001 detected in a material or an assignment (its FR-020b), is `no_announcement`. Both are
-   code 1, and both give way when the family names the topics with `--topic` (spec 007 FR-025).
+   code 1. When the family names the topics with `--topic`, both give way (spec 007 FR-025), except for a captured
+   announcement whose note cannot be read, which stays `no_announcement`.
 4. Finds each topic (every `--topic`, or the most recent one, `subtopics_unnamed` when that is a
    subtopic) and its notebook, by
    `notebook.title_pattern`. No notebook is `no_notebook`, code 1.

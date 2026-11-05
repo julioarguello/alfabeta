@@ -24,6 +24,7 @@ left to the plan, read against the code on `main` at the plan's date.
   | yes | either | As today |
   | no, and an agenda exam on that day | no | Refuses `no_announcement` |
   | no, and no agenda exam on that day | no | Refuses `no_exam` |
+  | no, and state records one whose note cannot be read | either | Refuses `no_announcement` |
   | no | yes | Proceeds with no announcement, for `--exam`, else the next exam in the agenda, else undated |
   | not looked at | `--undated` with it | Proceeds undated, whatever the agenda holds |
 

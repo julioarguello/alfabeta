@@ -2,7 +2,8 @@
 
 JSON on stdout, messages for people on stderr; no message names an address, a Drive id, a notebook
 id or an absolute path. Exit codes: 0 ok · 1 usage or validation, and the refusals `notebook_disabled`,
-`no_exam`, `no_announcement` (both when no `--topic` names the scope, spec 007), `no_notebook`,
+`no_exam` and `no_announcement` (when no `--topic` names the scope, or a captured announcement cannot be read,
+spec 007), `no_notebook`,
 `subtopics_unnamed` · 3 a step from 5 on failed · 5 `nlm` is not usable.
 Steps 1 to 4 refuse before the notebook is asked for anything, and then nothing is printed.
 """
