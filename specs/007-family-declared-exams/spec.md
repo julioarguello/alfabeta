@@ -10,7 +10,9 @@
 Classroom. Give the family a command to declare such an exam with its subject and date, its source
 shown as the family's, so that it enters the agenda; match it when the teacher later posts the same
 exam, so it does not appear twice; say how the calendar writer treats it, given that spec 003's
-writer is not built yet; and say how a correction or a cancellation works. Tracked in
+writer is not built yet; and say how a correction or a cancellation works. Added by the operator in
+review: an exam can be prepared with nothing declared (translated: "I want to prepare an exam without
+it having to be declared"; «yo quiero preparar un examen sin que pueda estar declarado»). Tracked in
 julioarguello/alfabeta#183.
 
 ## Context and scope
@@ -41,33 +43,35 @@ route for the chat.
 - Correcting and cancelling a declared exam.
 - Matching a declared exam with the teacher's later post of the same exam.
 - What spec 003's calendar writer does with a declared exam, as changes to that spec's design.
+- Preparing an exam's sheets with no announcement and no declaration, as a change to spec 002 FR-030.
 
 ### Out of scope
 
 - Building the calendar writer. Spec 003 slices 1 to 3 (julioarguello/alfabeta#134,
   julioarguello/alfabeta#135, julioarguello/alfabeta#136) build it; this spec only adds what it
   reads.
-- An exam's scope. `exam build` keeps refusing an exam with no captured announcement (spec 002
-  FR-030), and a declared exam has none until the teacher posts it. How the family would give a
-  scope stays undesigned, as spec 002 says (Open questions, Q6).
+- A way to state an exam's scope more finely than by naming its topics.
 - Reading paper: the family types the subject and the date; alfabeta reads no photo of a sheet.
 - Assignments or anything else that is not an exam.
 - Writing to Classroom (constitution IV).
 
-## Open questions for the family
+## Clarifications
 
-None of these blocks the draft: each states the default this spec is written on, so an answer only
-changes the requirements named. They wait for `/speckit-clarify`.
+### Session 2026-11-05
 
-| # | Question | Default taken | If the answer differs |
+The operator accepted the first draft's proposal for Q1 to Q5 and Q7, and changed Q6. Q8 is the one
+question still open.
+
+| # | Question | Answer | Applies to |
 |---|---|---|---|
-| Q1 | The calendar holds only objective facts from Classroom (spec 002 FR-025). May it also hold an exam the family declares, labelled as the family's? | Yes: an exam date on a teacher's sheet is an objective fact, and its source is named on the event | User Story 4 and FR-016 to FR-021 leave the spec; the exam stays in the agenda only |
-| Q2 | Does a sheet ever give the hour, and does an exam ever fall outside its subject's session? | Date only. The event sits in the subject's session («Hora según horario»), else at break time («Hora no conocida») | `exam create` gains a time, and spec 003 FR-014 a label for it (FR-002, FR-017) |
+| Q1 | The calendar holds only objective facts from Classroom (spec 002 FR-025). May it also hold an exam the family declares, labelled as the family's? | Yes: an exam date on a teacher's sheet is an objective fact, and its source is named on the event | User Story 4, FR-016 to FR-021 |
+| Q2 | Does a sheet ever give the hour, and does an exam ever fall outside its subject's session? | Date only. The event sits in the subject's session («Hora según horario»), else at break time («Hora no conocida») | FR-002, FR-017 |
 | Q3 | When the teacher posts an exam of that subject on another date, does Classroom win by itself? | No: both stay, and the agenda says they differ, until the family decides. The notice covers dates up to 14 days apart, a number nothing has measured | FR-012 |
 | Q4 | A detected exam of that subject has no date, and the family declares a date. Is that the same exam? | Not by itself: the measured notices may belong to an earlier exam. Both stay, with a notice, until the family gives the detected one a date or discards it | FR-012 |
 | Q5 | When the writer starts, what happens to the events written by hand? | alfabeta never touches them. Its run lists the ones that look like a declared exam, and the family deletes those by hand | FR-021 |
-| Q6 | A declared exam has no announcement, so `exam build` refuses it. Should the family be able to give an exam's scope? | Not in this spec: it would be a change to spec 002 FR-030, in its own issue | A follow-up issue |
-| Q7 | The operator, on the teacher later posting the same exam, relayed by another session and not yet a decision: «si hay examen de la misma asignatura, pues ya ves que en duplicado, ¿no?». Is a visible duplicate acceptable, so that automatic matching is not needed, or a simple version is enough? | Match them (FR-011), as the request asked: once the writer runs, a duplicate is two events and two sets of warnings for one exam | No matching: two lines, each saying its source. User Story 3's scenarios 1 to 3 and 5, FR-011, FR-013, FR-014 and SC-003 leave the spec, and `exam build` keeps finding the announcement on the Classroom line. A simple version: FR-011 hides the Classroom line only while both are on the same day, with no recorded match, so a teacher's move shows both again and FR-013 goes |
+| Q6 | A declared exam has no announcement, so `exam build` refuses it. Should the family be able to prepare it anyway? | Yes, and with no declaration either. The family names the topics; the sheets cover all of them and say no announcement backs them | User Story 5, FR-025 to FR-029 |
+| Q7 | Is a visible duplicate acceptable when the teacher later posts the same exam, so that matching is unnecessary? | No: they are matched (FR-011). Once the writer runs, a duplicate is two events and two sets of warnings for one exam | User Story 3, FR-011 |
+| Q8 | **Open.** Must an exam be preparable when the family does not know its date? | Proposed: no. The date names the printed files and the sheet's «EXAMEN `<día>`», so `--exam` is required when the agenda holds no exam that day | FR-025, FR-026 |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -131,8 +135,7 @@ or a stream post or material that a run detects as an exam. The agenda keeps one
 gains what Classroom knows.
 
 **Why this priority**: without it the feature makes the agenda worse: two lines and, later, two
-events and two sets of warnings for one exam. Q7 asks whether the operator accepts that cost, which
-would lower this story or remove most of it.
+events and two sets of warnings for one exam (Q7).
 
 **Independent Test**: invented captures in which a declared exam's teacher post appears as each of
 the three kinds, on the same day, on another day and with no date; run the sync and count the exam
@@ -160,7 +163,7 @@ entries of that subject.
 
 Once spec 003's writer exists, a declared exam gets the same event and the same warnings as any
 other exam. Unlike an event added by hand, it rings on the student's phone, because alfabeta sets the
-reminder as the student's account (spec 003 FR-001). It depends on Q1.
+reminder as the student's account (spec 003 FR-001).
 
 **Why this priority**: it is what the seven events written by hand lacked, but it cannot ship before
 the writer does, and the agenda alone already gives the family a record.
@@ -182,6 +185,37 @@ writer exists, the agenda's entry is checked against spec 003's data model only.
    loses its reminders and is titled «Retirado ·» (spec 003 research R7).
 5. **Given** events the family wrote by hand on the day of a declared exam, **When** the writer first
    places that exam, **Then** those events are untouched and the run names how many it found.
+
+---
+
+### User Story 5 - An exam can be prepared with nothing declared and nothing announced (Priority: P1)
+
+The family knows an exam is coming. The teacher posted no announcement, and the family may not have
+declared it. They run `exam build` naming the topics, and the two sheets print over all of them. Today
+the command refuses: `no_exam` when the agenda holds none that day, `no_announcement` when it holds one
+with no captured announcement.
+
+**Why this priority**: the sheets matter most for the exams that reach the family on paper, and those
+are exactly the ones the command refuses. It needs nothing from User Stories 1 to 4 and can ship first.
+
+**Independent Test**: the refusals and what is passed to the notebook, with the stand-in for `nlm` of
+spec 002's tests. What the sheets say needs a real notebook, as spec 002 User Story 7 says.
+
+**Acceptance Scenarios**:
+
+1. **Given** no exam of the subject in the agenda, **When** the family runs
+   `exam build --student <id> --subject <folder> --exam YYYY-MM-DD --topic <folder>`, **Then** both
+   sheets print in the topic's `exam/` folder, and the agenda and the calendar do not change.
+2. **Given** a declared exam with no announcement, **When** the family runs the command with `--topic`,
+   **Then** both sheets print for that exam's date.
+3. **Given** no captured announcement, **When** the command runs with no `--topic`, **Then** it refuses
+   with `no_announcement`, says to name the topics, and asks the notebook for nothing.
+4. **Given** no exam of the subject in the agenda, **When** the command runs with no `--exam`, **Then**
+   it refuses with `no_exam`, says to give the date, and asks the notebook for nothing.
+5. **Given** no announcement, **When** the theory sheet prints, **Then** it opens saying that no
+   announcement backs it and it covers the whole of the topics named, its sections follow the student's
+   scheme, and it leaves out nothing.
+6. **Given** a captured announcement, **When** the command runs, **Then** it behaves as today.
 
 ### Edge Cases
 
@@ -206,9 +240,13 @@ writer exists, the agenda's entry is checked against spec 003's data model only.
   date now.
 - **A match that was wrong**: the family discards the declared exam, and Classroom's own entry comes
   back alone (FR-014).
-- **The declared exam is the subject's next one and has no announcement**: `exam build` refuses it
-  with its usual reason (`no_announcement`), even if a later exam has one. The family names the later
-  exam with `--exam`.
+- **The declared exam is the subject's next one and has no announcement, and a later exam has one**:
+  with no `--exam` the command means the next one, so it refuses without `--topic` and prepares that
+  exam with it. The family names the later exam with `--exam`.
+- **An announcement arrives after the sheets printed**: nothing is regenerated by itself. The family
+  runs the command again, and the announcement then sets the scope.
+- **The topics named hold more than the slot allows**: the sheet prints and the command reports its page
+  count, as spec 002 FR-031 already does; it is not cut to fit, because no source says what is out.
 - **The family stops declaring and keeps writing by hand**: nothing changes; a hand-written event is
   still an event alfabeta does not own (spec 003, Plan clarifications).
 
@@ -287,7 +325,7 @@ writer exists, the agenda's entry is checked against spec 003's data model only.
   discard stays a fact of the agenda (spec 001 FR-020b offers no such correction).
 - **FR-015**: A cancelled declared exam MUST NOT be matched or take part in a notice.
 
-**The calendar writer** (spec 003's design, no calendar code here; depends on Q1)
+**The calendar writer** (spec 003's design, no calendar code here)
 
 - **FR-016**: The writer MUST treat a declared exam as an agenda entry with `category` exam: it owns
   one `exam` event while it has a date, and nothing in spec 003 reads a separate list. Until the writer
@@ -320,6 +358,25 @@ writer exists, the agenda's entry is checked against spec 003's data model only.
   of the `decision` commands. No new configuration key is read.
 - **FR-024**: Two runs in a row with no change in Classroom and no new decision MUST write nothing for
   declared exams: no decision, no agenda bytes and, once the writer exists, no event (constitution V).
+
+**Preparing an exam with no announcement** (a change to spec 002 FR-030)
+
+- **FR-025**: `exam build` MUST NOT need an announcement or an agenda entry when the family names the
+  exam's topics with `--topic` and, if the agenda holds no exam of the subject that day, its date with
+  `--exam` (Q8). It gains no option: naming the topics is the family's statement of the scope.
+- **FR-026**: With no announcement and no `--topic` it MUST keep refusing with `no_announcement`,
+  because the subject's most recent topic is a guess at the scope that only an announcement can
+  excuse. With no exam in the agenda and no `--exam` it MUST keep refusing with `no_exam`. Each message
+  says what to name, and the notebook is asked for nothing.
+- **FR-027**: With no announcement the scope MUST be the whole of the topics named. Nothing is left out,
+  because no source says it is out (spec 002, Clarifications). The theory sheet's sections MUST follow
+  the student's scheme, or the order of the sources where the notes hold none (constitution X). Both
+  sheets MUST say on their first page, in Spanish, that no announcement backs them and the scope is not
+  confirmed; no announcement is invented or quoted.
+- **FR-028**: Preparing an exam MUST NOT declare it: it writes no decision and no agenda entry and owns
+  no event. The date only names the printed files and the sheet's day.
+- **FR-029**: A captured announcement MUST keep setting the scope exactly as spec 002 FR-030 says, also
+  when `--topic` is given. The command's answer MUST say whether an announcement backed the sheets.
 
 ### Key Entities
 
@@ -356,9 +413,14 @@ writer exists, the agenda's entry is checked against spec 003's data model only.
   or key the schema gains, so the feature costs nothing to a family that never uses it.
 - **SC-007**: No log line, error message or run report outside the data folder holds a declared exam's
   title or date; a test plants a marker title and looks for it.
-- **SC-008**: `exam build` gives the same answers as today for every exam that is not declared. For a
-  declared exam it refuses with `no_announcement` until a detected exam with a captured announcement
-  is matched, and from then on finds that announcement.
+- **SC-008**: `exam build` gives the same answers as today for every exam with a captured announcement,
+  and a declared exam matched with a detected one finds that announcement.
+- **SC-009**: With no announcement, the family gets both sheets from one command that names the topics
+  and, if needed, the date, with the agenda's bytes unchanged. Without those names, the notebook receives
+  no request at all (a test counts them with the stand-in).
+- **SC-010**: On the first real run with no announcement, each top-level branch of the topic's scheme has
+  a section on the theory sheet, and the first page of both sheets says no announcement backs them. The
+  family reads this on the printed sheets; nothing measures it before that run.
 
 ## Assumptions
 
@@ -382,14 +444,15 @@ writer exists, the agenda's entry is checked against spec 003's data model only.
 
 - Spec 001: the agenda, its decisions, `decision update-exam`, `agenda build` and the notices.
 - Spec 003 slices 1 to 3, for User Story 4 only. User Stories 1 to 3 need nothing from it.
-- Spec 002 FR-030, unchanged: it decides what `exam build` does with an exam with no announcement.
+- Spec 002 FR-030, which this spec changes for an exam with no announcement. Prompts with no announcement
+  are new: nothing has measured how the notebook does on them (SC-010).
 - `tests/test_cli_naming.py`: `exam create` is in `PLANNED` with this spec, so the grammar test holds
   from this pull request on.
 
 ## Changes elsewhere once this spec is approved
 
-None is applied in this draft, because Q1 can still change them. They land in the pull request that
-approves this spec, with its plan, as spec 003's own did.
+None is applied in this draft. They land in the pull request that approves this spec, with its plan,
+as spec 003's own did.
 
 | Where | Change |
 |---|---|
@@ -397,5 +460,6 @@ approves this spec, with its plan, as spec 003's own did.
 | Spec 003: research R8; data model `posted` and the ownership table; `contracts/events.md` (the «Classroom: <link>» line is no longer "always"; add «Declarado por la familia»); `contracts/cli.md` and research R7 (FR-021's count); tasks T029 and T030; julioarguello/alfabeta#136 | The writer's design for a declared exam |
 | Spec 002 FR-025, its Clarification on the calendar, its Edge Case and Assumption on exams announced only in class; `skills/study-pack/SKILL.md`; `README.md`; `docs/roadmap.md`; `docs/explanation/study-material.md`; spec 001 research's mention | "Facts from Classroom" gains "and exams the family declares, labelled as such". The ban on study blocks stays whole |
 | Spec 001 FR-020b, FR-020c's table; data model (Decision, Agenda entry, language of names); `contracts/cli.md` (`exam create`, `decision update-exam`'s origin); `contracts/agenda.schema.json` when it is built, whose `classroom_link` may then be empty and whose new key marks the source (spec 003 T004 takes version 2; whichever lands second takes the next) | The declared exam as a decision and an entry; `agenda.md`'s line prints the Classroom link only when there is one |
+| Spec 002: FR-030, Clarification on the exam's scope, User Story 7's scenario 2, the Edge Case and Assumption on exams announced only in class, `contracts/cli.md`; `skills/study-pack/SKILL.md` | An exam with no announcement is prepared when the family names its topics (FR-025 to FR-029) |
 | `skills/classroom-sync/SKILL.md` | How the family's request becomes the command, and the notices relayed in the summary |
 | Outside the repository | The calendar policy line of the student's private configuration, and the operator's standing instruction, as spec 003 already records for its own change |
