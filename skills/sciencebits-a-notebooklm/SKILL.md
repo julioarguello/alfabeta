@@ -116,14 +116,16 @@ nothing, and the collector would then go on copying the next unit's zips.
 4. **Discover the lessons.** First, once per unit, `WORK=<downloads.folder>/alfabeta_work/<Subject>_TemaNN` with
    `raw/` and `out/`, both empty: move what an earlier attempt left to `$WORK/previous-<YYYYMMDDHHMMSS>/`, never delete
    it, because `book place` copies every file in `out/`. Then, on the classes page of a language that shows the unit,
-   run in a single `javascript_tool` call `window.__UNIT={name:'<the unit's title on this page>',langs:[<sciencebits.languages>]};` +
+   run in a single `javascript_tool` call `window.__UNIT={name:'<the unit's title on this page>',langs:[<the languages step 3 found showing it>]};` +
    the contents of `discover_lessons.js`. It answers per language `lessons`, `hidden`, `assessments` and `unread`,
    and leaves the queue in `window.__SB`, which only that tab holds: from here until the capture ends, do not navigate
    it. A language with no `lessons` is skipped and reported, never forced; `queued: 0` means the unit is left out. Two
    answers mean the page was not read, not that the teacher hid anything, and stop the run as `unexpected_ui`: any
-   `unread` row, and all four lists empty in a language step 3 found showing the unit. `error`:
+   `unread` row, and all four lists empty in a language. `error`:
    `unit_not_shown_on_this_page` (go to a language that shows it), `ambiguous_unit` (a longer `name`),
-   `SESSION_EXPIRED` (step 2, then this call again), `no_load` (once more, then stop as `unexpected_ui`).
+   `SESSION_EXPIRED` (step 2, then this call again), `no_load` (once more, then stop as `unexpected_ui`),
+   `language_without_assessment_words` (the script cannot tell that language's assessments, which must never open, so
+   stop as `unexpected_ui` and tell the family).
    **Assessments**: never opened, started or clicked; `discover_lessons.js` lists them and leaves them out.
 5. **Capture.** Start the collector with the Bash tool in the background, before the capture and only once:
    `caffeinate -i python3 -u $H/watch.py $WORK/raw <downloads.folder> > $WORK/watch.log 2>&1`. If it dies, start it

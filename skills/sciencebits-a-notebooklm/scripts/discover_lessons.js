@@ -9,7 +9,9 @@
 (async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const text = e => (e.textContent || '').replace(/\s+/g, ' ').trim();
-  // The last phase of a unit and the title of its assessment, in each language render.py knows.
+  // The last phase of a unit and the title of its assessment, in each language render.py knows. An assessment must
+  // never be opened (constitution IV), so a language without its words here is refused, not read.
+  const ASSESSMENT_LANGS = ['es', 'eu', 'en'];
   const ASSESSMENT = /\b(Evaluamos|Evaluaci[oó]n|Ebaluatu|Ebaluazioa|Evaluate|Evaluation|Assessment)\b/i;
   const LOAD_MS = 20000;
   const SETTLE_MS = 1500;
@@ -17,6 +19,8 @@
 
   delete window.__SB;   // a failed discovery must not leave another unit's queue for orchestrator.js
   const {name, langs} = window.__UNIT;
+  const unknown = langs.find(lang => !ASSESSMENT_LANGS.includes(lang));
+  if (unknown) return {error: 'language_without_assessment_words', lang: unknown};
   const links = [...document.querySelectorAll('a.btn-acceder:not(.desactivado)')]
     .filter(a => text(a.closest('.box-center-unidad') || a).includes(name));
   if (links.length !== 1) return {error: links.length ? 'ambiguous_unit' : 'unit_not_shown_on_this_page', name};

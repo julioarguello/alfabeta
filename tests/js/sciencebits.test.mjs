@@ -112,6 +112,27 @@ test("the unit is looked up among the ones shown: hidden or ambiguous stops befo
   assert.equal((await both.window.eval(DISCOVER)).error, "ambiguous_unit");
 });
 
+test("an assessment is left out in every language the script knows", async () => {
+  for (const [lang, row] of [
+    ["es", "Evaluación: invento Materia Evaluamos"],
+    ["eu", "Ebaluazioa: asmakizuna Gaia Ebaluatu"],
+    ["en", "Assessment: invention Subject Evaluate"],
+  ]) {
+    const page = `<body><div><div class="box-center-unidad margin-vertical-0">${row}</div><a onclick="verleccion1('aa')"></a></div></body>`;
+    const { report, frames } = await discover({ [lang]: page }, "Unidad inventada", [lang]);
+    assert.deepEqual(report.langs[lang].assessments, [row]);
+    assert.equal(report.queued, 0);
+    assert.deepEqual(plain(frames[0].clicks), []);
+  }
+});
+
+test("a language whose assessments the script cannot tell is refused before any page opens", async () => {
+  const { report, frames, window } = await discover({ ca: UNIT_PAGE }, "Unidad inventada", ["es", "ca"]);
+  assert.deepEqual(report, { error: "language_without_assessment_words", lang: "ca" });
+  assert.equal(frames.length, 0);
+  assert.equal(window.__SB, undefined);
+});
+
 test("a failed discovery leaves no earlier unit's queue behind", async () => {
   const { window } = classesPage({});
   window.__SB = { queue: [{ lang: "es", id: "L1" }] };
