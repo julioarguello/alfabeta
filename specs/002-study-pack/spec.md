@@ -109,7 +109,7 @@ done that day; the last three, what the operator decided once it was done (User 
 
 - Q: Where does an exam's scope come from? → A: From the teacher's announcement of the exam on the
   class's Classroom stream, whose text and date spec 001 captures. The theory sheet's sections are
-  the announcement's points, in its order. (Revised by spec 007, not built yet: with no announcement, the
+  the announcement's points, in its order. (Revised by spec 007: with no announcement, the
   family names the topics, and the sheets cover all of them.)
 - Q: What does the student work through the day before? → A: One theory sheet that follows the
   class notes (notes > Classroom > textbook), sized to the study slot the family has: a 90-minute
@@ -146,7 +146,7 @@ done that day; the last three, what the operator decided once it was done (User 
   printed on its own into the topic's `exam/` folder.
 - Q: Where in the topic folder do the printed sheets go? → A: In its `exam/` subfolder, whose name
   carries no date; the exam's date stays in each file's name, so a second exam on the same topic
-  sits beside the first (spec 007, not built yet: «sin fecha» when no date is known). The operator set this when deciding the topic folders' layout, with every
+  sits beside the first (spec 007: «sin fecha» when no date is known). The operator set this when deciding the topic folders' layout, with every
   directory name the code decides in English, because the project is public; file names keep their
   language. The constitution was amended the same day to match (2.2.0, julioarguello/alfabeta#110).
   That day's two PDFs were moved there by hand.
@@ -508,7 +508,7 @@ and cannot judge what the notebook writes.
    theory sheet's sections are those three points in the announcement's order.
 2. **Given** an exam whose announcement has not been captured, **When** the command runs with no
    `--topic`, **Then** it refuses, says so, and asks the notebook for nothing. (With `--topic`, spec 007
-   User Story 5, not built yet: both sheets over the topics named.)
+   User Story 5: both sheets over the topics named.)
 3. **Given** notebooks switched off in the configuration, or `nlm` signed out or failing, **When**
    the command starts, **Then** it refuses with a message that names the cause, and prints nothing.
 4. **Given** a study slot, **When** the theory sheet is printed, **Then** it fits the pages that
@@ -545,7 +545,7 @@ and cannot judge what the notebook writes.
   cannot be steered.
 - An exam is announced only in class, or spec 001 detected it in a material or an assignment, so
   there is no announcement: the command refuses it unless the family names the topics, which then are
-  the scope (FR-030; spec 007 User Story 5, not built yet).
+  the scope (FR-030; spec 007 User Story 5).
 - The exam is on an earlier topic than the subject's most recent one: the family names the topic,
   since the announcement does not give it (FR-030).
 - The notebook's theory sheet runs longer than the slot allows: it is printed, and the command
@@ -693,10 +693,10 @@ and cannot judge what the notebook writes.
   them (FR-024), and prints each as its own A4 PDF (FR-018) into the topic's `exam/` folder,
   whose name carries no date: `exam/Teoría para el examen · TNN[X] (<D> <mmm>).pdf` and
   `exam/Problemas tipo · TNN[X] (<D> <mmm>).pdf`, with the topic's or subtopic's number and the exam's date
-  (`(sin fecha)` with none, spec 007, not built yet). The prompts are fixed texts of the repository, filled
+  (`(sin fecha)` with none, spec 007). The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level (and, with no announcement, the
-  topic's name and the corrections of its `bloques.md`, spec 007, not built yet). Both reports are asked
+  topic's name and the corrections of its `bloques.md`, spec 007). Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
   option, so the account-wide setting of FR-007 is not touched. That makes the problems sheet an
   exception to FR-005, which puts practice in the subject's language: it is the sheet the parent
@@ -709,8 +709,7 @@ and cannot judge what the notebook writes.
   announcement's order, and it says what of the topic the announcement leaves out. When the exam has
   no captured announcement, including an exam spec 001 detected in a material or an assignment, the
   command MUST refuse and ask the notebook for nothing, unless the family names the topics: then both
-  sheets cover the whole of them and say no announcement backs them (spec 007 FR-025 to FR-029, not
-  built yet).
+  sheets cover the whole of them and say no announcement backs them (spec 007 FR-025 to FR-029).
 - **FR-031**: The theory-sheet prompt MUST ask the notebook to follow the class notes, completed by
   Classroom and then the textbook (FR-002), and to fit the study slot (measured 2026-10-28: four
   A4 pages for 90 minutes). The sheet opens with a plan that divides the slot by section, with
@@ -868,7 +867,7 @@ and cannot judge what the notebook writes.
     word, and only that subtopic's.
 
   No piece covers more than one subtopic, an exam's included (FR-045).
-- **FR-045** (spec 007, not built yet: with no announcement, `--topic` may name several topics of any kind): Preparing an exam that covers several subtopics MUST mean preparing each of their
+- **FR-045** (spec 007: with no announcement, `--topic` may name several topics of any kind): Preparing an exam that covers several subtopics MUST mean preparing each of their
   notebooks (the operator, 2026-10-30: «que preparar un examen sea preparar todos los cuadernos»):
   `exam build` takes one `--topic` per subtopic the exam covers and, for each, asks that subtopic's
   own notebook for its two sheets, from its own sources, as FR-029 to FR-037 describe for a topic.
@@ -917,7 +916,7 @@ and cannot judge what the notebook writes.
     `bloques.md` lists it as a question, and the family is asked; their answer, recorded there,
     decides, and the pieces it touches are made again. An answer that decides against the notes moves the
     line to «Correcciones a los apuntes», with the answer, so what reads that section alone (`exam build`
-    with no announcement, spec 007, not built yet) has it.
+    with no announcement, spec 007) has it.
   - New pages that reach a topic later are checked the same way, and the report names each
     correction and each question (spec 005 FR-020).
 
@@ -1006,7 +1005,7 @@ and cannot judge what the notebook writes.
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
   or added as sources); a photocopy that is not cannot be mapped.
 - An exam announced only in class, or detected in a material or an assignment, has no announcement
-  text, so the command refuses it unless the family names its topics (spec 007, not built yet).
+  text, so the command refuses it unless the family names its topics (spec 007).
 - The quota cost of `exam build` (two reports, three when the guide is regenerated) has not been
   measured; SC-006 measured a whole pack.
 
