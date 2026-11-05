@@ -11,6 +11,9 @@ dependencies = [
     # Spec 005: draws the living files' pages (photo, transcription, cover); the standard library draws
     # no PDF. Pulls Pillow (binary wheels) and charset-normalizer.
     "reportlab==5.1.0",
+    # The Science Bits skill: render.py walks each captured screen's HTML as a tree to keep bold, sub and
+    # sup; the standard library's html.parser only gives events. Pulls soupsieve and typing-extensions.
+    "beautifulsoup4==4.15.0",
 ]
 
 [dependency-groups]

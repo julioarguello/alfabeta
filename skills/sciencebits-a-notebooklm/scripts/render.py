@@ -15,7 +15,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import registerFontFamily
 
-FONT_DIR = '/usr/share/fonts/truetype/dejavu'
+# DejaVu travels with this file: the Mac has none, and Arial and reportlab's Vera lack the sub and
+# superscript digits chemistry needs (measured 2026-11-05). See fonts/LICENSE.
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
 pdfmetrics.registerFont(TTFont('DV', os.path.join(FONT_DIR, 'DejaVuSans.ttf')))
 pdfmetrics.registerFont(TTFont('DV-B', os.path.join(FONT_DIR, 'DejaVuSans-Bold.ttf')))
 pdfmetrics.registerFont(TTFont('DV-I', os.path.join(FONT_DIR, 'DejaVuSans-Oblique.ttf')))
