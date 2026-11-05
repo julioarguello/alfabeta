@@ -39,5 +39,4 @@
   answer added User Story 5.
 - SC-003 and SC-007 name a control or a planted marker because this project proves a test can fail;
   neither depends on how it is built.
-- Not done at this stage: `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`, and
-  the changes the spec lists under «Changes elsewhere once this spec is approved».
+- `/speckit-plan` and `/speckit-tasks` have run. An independent `/speckit-analyze` decides the merge.

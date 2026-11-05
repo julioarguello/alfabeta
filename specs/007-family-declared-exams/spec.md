@@ -356,9 +356,9 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   «Retirado ·», per spec 003 research R7; a date correction on it brings it back.
 - **FR-021**: The writer MUST NOT change, adopt or delete an event it does not own, and
   `calendar delete-legacy` keeps selecting only what spec 003 research R7 says, which excludes timed
-  events. On each applied run, the writer MUST count the events with no alfabeta mark and «examen» in
-  their title that fall on the day of a declared exam it placed, print only the count, and keep their
-  date and title in the run's report in the data folder. The family deletes those by hand (Q5).
+  events. When it first creates a declared exam's event, the writer MUST count the events with no
+  alfabeta mark and «examen» in their title on that day, print only the count, and keep their date and
+  title in the run's report in the data folder. The family deletes those by hand (Q5).
 
 **Privacy and running**
 
@@ -467,16 +467,18 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
 
 ## Changes elsewhere once this spec is approved
 
-None is applied in this draft. They land in the pull request that approves this spec, with its plan,
-as spec 003's own did.
+The specs and the sentences on the calendar's policy change in this pull request, as spec 003's own did.
+What a person or an agent would act on today lands with the slice that builds it, so `main` never
+instructs a command that refuses (research R12).
 
 | Where | Change |
 |---|---|
-| Spec 003: Plan clarifications («"Exams come from the family" means…»), FR-014's last sentence, Key Entities' Exam, last Assumption | A family can declare an exam (this spec); a hand-written event stays out of alfabeta's reach |
-| Spec 003: research R8; data model `posted` and the ownership table; `contracts/events.md` (the «Classroom: <link>» line is no longer "always"; add «Declarado por la familia»); `contracts/cli.md` and research R7 (FR-021's count); tasks T029 and T030; julioarguello/alfabeta#136 | The writer's design for a declared exam |
-| Spec 002 FR-025, its Clarification on the calendar, its Edge Case and Assumption on exams announced only in class; `skills/study-pack/SKILL.md`; `README.md`; `docs/roadmap.md`; `docs/explanation/study-material.md`; spec 001 research's mention | "Facts from Classroom" gains "and exams the family declares, labelled as such". The ban on study blocks stays whole |
-| Spec 001 FR-020b, FR-020c's table; data model (Decision, Agenda entry, language of names); `contracts/cli.md` (`exam create`, `decision update-exam`'s origin); `contracts/agenda.schema.json` when it is built, whose `classroom_link` may then be empty and whose new key marks the source (spec 003 T004 takes version 2; whichever lands second takes the next) | The declared exam as a decision and an entry; `agenda.md`'s line prints the Classroom link only when there is one |
-| Spec 002: FR-030, the requirement that names the sheets' files, Clarifications on the exam's scope and on the `exam/` folder, User Story 7's scenario 2, the Edge Case and Assumption on exams announced only in class, `contracts/cli.md` (`exam_date` may be empty); `skills/study-pack/SKILL.md` | An exam with no announcement or date is prepared when the family names its topics (FR-025 to FR-029) |
-| Constitution, Technical constraints › Storage («the date goes in each file's name») | A patch: the date when it is known, else «sin fecha». Made by the amendment process, with its Sync Impact Report |
-| `skills/classroom-sync/SKILL.md` | How the family's request becomes the command, and the notices relayed in the summary |
+| Applied here. Spec 003: Plan clarifications («"Exams come from the family" means…»), FR-014's last sentence, Key Entities' Exam, last Assumption | A family can declare an exam (this spec); a hand-written event stays out of alfabeta's reach |
+| Applied here. Spec 003: research R8; data model `posted` and the ownership table; `contracts/events.md` (the «Classroom: <link>» line is no longer "always"; add «Declarado por la familia»); `contracts/cli.md` (FR-021's count) | The writer's design for a declared exam; its building is this spec's slice 3 |
+| Applied here. Spec 002 FR-025 and its Clarification on the calendar; the line of `skills/study-pack/SKILL.md` that repeats it; `README.md`; `docs/roadmap.md`; `docs/explanation/study-material.md` | "Facts from Classroom" gains "and exams the family declares, labelled as such". The ban on study blocks stays whole |
+| Applied here. Spec 001 FR-020b, FR-020c's table; data model (Decision, Agenda entry, language of names); `contracts/cli.md` (`decision update-exam`'s origin, and a pointer to this spec's contract) | The declared exam as a decision and an entry, marked as designed and not built |
+| With slice 2. `contracts/agenda.schema.json` and its copy, whose `classroom_link` may be empty and whose new key marks the source (spec 003 T004 takes version 2; whichever lands second takes the next); `skills/classroom-sync/SKILL.md` | `agenda.md`'s line prints the Classroom link only when there is one; how the family's request becomes the command, and the notices relayed in the summary |
+| Applied here. Spec 002: FR-030, the requirement that names the sheets' files, Clarifications on the exam's scope and on the `exam/` folder, User Story 7's scenario 2, the Edge Case and Assumption on exams announced only in class, `contracts/cli.md` | An exam with no announcement or date is prepared when the family names its topics (FR-025 to FR-029), marked as designed and not built |
+| With slice 1. `skills/study-pack/prompts.md`, the section of `skills/study-pack/SKILL.md` on the day before an exam | The new prompts, and how to run the command with no announcement |
+| Applied here. Constitution, Technical constraints › Storage («the date goes in each file's name») | 2.6.0 → 2.6.1, PATCH: the exam's date when it is known, else «sin fecha» |
 | Outside the repository | The calendar policy line of the student's private configuration, and the operator's standing instruction, as spec 003 already records for its own change |

@@ -181,7 +181,9 @@ at 23:59 is 23:59–24:00).
   the family declare an exam that Classroom does not show (Observed facts), and the calendar's
   standing rule is that it holds only facts from Classroom. An exam announced only orally therefore
   reaches the calendar only if the family adds it by hand, as an event alfabeta does not own and
-  never touches. Recorded in the spec's Clarifications (Plan, 2026-10-28).
+  never touches. Recorded in the spec's Clarifications (Plan, 2026-10-28). Revised by
+  [spec 007](../007-family-declared-exams/research.md#r11--the-writer-slice-3-written-into-spec-003-now),
+  not built yet: a declared exam is an entry like any other, and hand-written events stay out of reach.
 - **A detected exam says so**: its description carries «Detectado en un aviso de Classroom», and
   «Corregido por la familia» when corrected, as `agenda.md` marks it «detectado». A detected entry
   owns an `exam` event only when its category is `exam`; corrected into another category it owns

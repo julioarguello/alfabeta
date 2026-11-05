@@ -12,7 +12,7 @@ whitespace collapsed.
 | Posting | `Publicado · <Asignatura> · <título>` |
 | Due date, not handed in | `Entrega · <Asignatura> · <título>` |
 | Due date, handed in («Entregado», «Calificado», «Entregado con retraso») | `Entregado · <Asignatura> · <título>` |
-| Exam | `Examen · <Asignatura> · <título>` |
+| Exam | `Examen · <Asignatura> · <título>`; a declared exam with no title, `Examen · <Asignatura>` |
 | Any of the above whose fact left Classroom | `Retirado · ` + the title it had |
 
 A reminder shows only the title and the time (FR-003), so the title alone says what and for which
@@ -32,8 +32,9 @@ One line per fact that applies, in this order:
 | `Hora de la clase, no la de publicación` | A posting (FR-018) |
 | `Hora según horario` · `Hora no conocida` · `Hora según Classroom` | An exam (FR-014, research R3) |
 | `Detectado en un aviso de Classroom` · `Corregido por la familia` | A detected exam; the second when the family corrected it (research R8) |
+| `Declarado por la familia` | An exam the family declared (spec 007, not built yet) |
 | `Ya no figura en la agenda` | A «Retirado» event: the agenda no longer holds its fact, for whatever reason (research R7) |
-| `Classroom: <link>` | Always; it opens with the school account (spec 001) |
+| `Classroom: <link>` | When the entry has one, which is always but for a declared exam no teacher post matches (spec 007); it opens with the school account (spec 001) |
 | `Carpeta: <path relative to the base folder>` | When the item has a folder; the same path as in the Drive (research R11) |
 
 ## Reminders

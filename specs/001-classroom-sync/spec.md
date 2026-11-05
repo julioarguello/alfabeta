@@ -792,7 +792,9 @@ Example of the resulting structure (invented names):
   own (an item announcing several exams gives one entry per exam): the source item keeps its own
   entry and its category. Dismissing it is a correction by the family. If it cannot resolve
   the date, it appears without a date. The family MAY correct a detected exam (date, category or
-  dismissing it), and the correction MUST be kept in the following syncs.
+  dismissing it), and the correction MUST be kept in the following syncs. An exam the family declares
+  and Classroom does not show is designed in [spec 007](../007-family-declared-exams/spec.md), not built
+  yet: an entry of its own, marked «declarado por la familia», joined with the teacher's post on the same day.
 - **FR-020c**: The status of pending items MUST be the one Classroom shows in each sync, so
   that what was posted before the first sync and already turned in appears as done. The
   readable agenda MUST open with a «Pendiente» checklist, sorted by date nearest
@@ -809,6 +811,8 @@ Example of the resulting structure (invented names):
   | detected exam without a date, until the family corrects or dismisses it | Pendiente |
   | detected exam with a capture of its class later than its date | Hecho |
   | detected exam the family dismisses | none |
+  | exam the family declares (spec 007, not built yet), while no capture of any class is later than its date; once one is | Pendiente; Hecho |
+  | exam the family declares and then cancels (spec 007, not built yet) | none |
   | exam that is a Classroom assignment or question, in `pending`, `overdue` or without `status`, with a capture of its class later than its date (wins over the rows above; `missing_per_teacher` stays in Pendiente) | Hecho |
   | `material`, `announcement` | Publicado (informational section by posting date, from most recent to oldest, after «Hecho») |
 

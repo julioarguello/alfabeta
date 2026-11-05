@@ -105,7 +105,7 @@ normalized `items()`. Implementations: `ClassroomSource` (the extractor's captur
 
 | Field | Type | Rule |
 |---|---|---|
-| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) · `subtopic` (one subtopic of a split textbook topic, spec 002 FR-043; origin `<subject folder>/Tema NNX`, target `title` and `lessons`, the textbook's lesson numbers comma-separated; no lesson in two subtopics of one topic; a confirmed one never changes) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
+| `type` | `class_link` · `topic_match` · `item_match` · `detected_exam` (Claude's proposal) · `dismissed_candidate` (Claude judges that an exam candidate announces none; origin = the item) · `exam_correction` (from the family) · `declared_exam` and `exam_match` (spec 007, not built yet; only the family and the agenda's rebuild write them) · `subtopic` (one subtopic of a split textbook topic, spec 002 FR-043; origin `<subject folder>/Tema NNX`, target `title` and `lessons`, the textbook's lesson numbers comma-separated; no lesson in two subtopics of one topic; a confirmed one never changes) | Claude proposes `item_match` for each item of a teacher's topic that spans several book topics, and it prevails over its topic's decision |
 | `origin` | Classroom id (class, topic or item); for `detected_exam` and `exam_correction`, `<item>#exam-<k>`, where Claude assigns `k` = 1, 2… when proposing (the classifier gives a single candidate per item) | Unique key per `(type, origin)` among the non-superseded ones; a repeated proposal does not write |
 | `target` | subject, topic folder, exam (`date`, `reason`), correction (`date`, `category`, `discarded`) | |
 | `reason` | text | What led to the proposal or to the correction |
@@ -213,6 +213,7 @@ Contract: [agenda.schema.json](contracts/agenda.schema.json).
 | `detected` | boolean | `true` if the exam comes from a text |
 | `origin` | id of the item it was deduced from | Only if `detected` |
 | `corrected` | boolean | `true` if the family corrected it |
+| `declared` (spec 007, not built yet) | boolean | `true` if the family declared the exam; its `item` is `declared-<n>`, and its `classroom_link` and `folder` are empty until the teacher's post matches it ([data model](../007-family-declared-exams/data-model.md)) |
 | `classroom_link` | URL | Without `/u/<n>` (the index is not stable); the readable agenda says to open it with the school account. An announcement, and an exam detected from one, links to its class's stream: no page of a single post was measured |
 | `folder` | relative path or empty | The folder all the item's replicas share (what the student turned in counts from its assignment's folder); a detected exam takes its origin's. Empty if the item has no replica |
 
