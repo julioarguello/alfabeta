@@ -40,6 +40,7 @@ EXIT_OK, EXIT_INVALID, EXIT_PARTIAL, EXIT_NLM = 0, 1, 3, 5
 EXAM_FOLDER = "exam"
 BLOCKS_FILE = ("notebook", "bloques.md")  # written by the study-pack skill
 CORRECTIONS_HEADING = "Correcciones a los apuntes"  # spec 002 FR-046
+QUESTIONS_HEADING = "Preguntas sobre los apuntes"  # spec 002 FR-046: never reaches a piece
 START_TITLE = "Empieza aquí"  # after the moment: piece 0 is the pack's plan (FR-015)
 SOLUTIONS = "Soluciones"
 PACK_RECORD = "study-pack.json"
@@ -166,6 +167,12 @@ def _announcement(state: dict[str, Any], base: Path, entry: dict[str, Any]) -> t
     return (text, dt.datetime.strptime(named.group(1), "%Y%m%d").date()) if text else None
 
 
+def _announcement_lost(state: dict[str, Any], entry: dict[str, Any]) -> bool:
+    """Whether state records an announcement for the exam, so finding no note means it was lost, not that none exists."""
+    replicas = cast("dict[str, dict[str, Any]]", state.get("replicas", {}))
+    return f"{CLASSROOM}|{entry.get('origin')}|#announcement" in replicas
+
+
 def _records(path: Path, reason: str) -> dict[str, Any]:
     """A JSON record of spec 001, or a refusal that names it when it cannot be read."""
     try:
@@ -213,6 +220,12 @@ def find_exam(
             announced = _announcement(records, base, entry)
             if announced is not None:
                 return Exam(on, *announced)
+        if topics_named and any(_announcement_lost(records, entry) for entry in found):
+            raise Refusal(
+                "no_announcement",
+                "the exam's captured announcement cannot be read, and it would set the scope; nothing was asked."
+                " Run the sync again, or give --undated if this is another exam",
+            )
     if topics_named:
         return Exam(on)
     if not found:
@@ -231,9 +244,10 @@ def find_exam(
 def notes_corrections(topic: Path) -> list[str]:
     """The lines under «Correcciones a los apuntes» in the topic's `bloques.md` (spec 007 FR-027).
 
-    The section is the heading holding those words, at any level, up to the next heading of the same or
-    a higher level. A section with no lines, or those words outside a heading, warns: a checked
-    correction must not silently miss the sheet. No line is printed, only that it happened.
+    A section is a heading holding those words, at any level, up to the next heading of the same or a
+    higher level, or one holding «Preguntas sobre los apuntes», which never reach a piece (spec 002
+    FR-046); a file may hold one per block. No line read, with those words in the file, warns: a checked
+    correction must not silently miss the sheet. The warning names the folder, never a line.
     """
     path = topic.joinpath(*BLOCKS_FILE)
     try:
@@ -241,23 +255,23 @@ def notes_corrections(topic: Path) -> list[str]:
     except FileNotFoundError:
         return []
     except (OSError, UnicodeError):
-        _say(f"{BLOCKS_FILE[-1]} could not be read: its «{CORRECTIONS_HEADING}» do not reach the sheets")
+        _say(f"{topic.name}: {BLOCKS_FILE[-1]} could not be read, so its «{CORRECTIONS_HEADING}» miss the sheets")
         return []
     lines: list[str] = []
-    level = 0
-    found = False
+    level = 0  # the open section's heading level; 0 with none open
     for line in text.splitlines():
         heading = _HEADING.match(line)
-        if found and heading and len(heading.group(1)) <= level:
-            break
-        if not found and heading and CORRECTIONS_HEADING in line:
-            found, level = True, len(heading.group(1))
-        elif found and line.strip() and not heading:
-            lines.append(line.strip())
-    if not lines and CORRECTIONS_HEADING in text:
-        _say(
-            f"{BLOCKS_FILE[-1]} names «{CORRECTIONS_HEADING}» but no line was read under a heading; none reach the sheets"
-        )
+        if not heading:
+            if level and line.strip():
+                lines.append(line.strip())
+            continue
+        words = line.casefold()
+        if CORRECTIONS_HEADING.casefold() in words:
+            level = len(heading.group(1))
+        elif level and (len(heading.group(1)) <= level or QUESTIONS_HEADING.casefold() in words):
+            level = 0
+    if not lines and CORRECTIONS_HEADING.casefold() in text.casefold():
+        _say(f"{topic.name}: {BLOCKS_FILE[-1]} names «{CORRECTIONS_HEADING}» but no line was read under such a heading")
     return lines
 
 

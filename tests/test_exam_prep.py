@@ -1254,10 +1254,16 @@ def test_undated_ignores_the_agenda_and_its_announcement(world: World, capsys: p
 
 def test_undated_needs_a_topic_and_excludes_a_date(world: World, capsys: pytest.CaptureFixture[str]):
     assert "--topic" in refused(world, capsys, 1, "no_topic", "--undated")
-    with pytest.raises(SystemExit):
+    assert (
+        cli_main.build_parser()
+        .parse_args(["exam", "build", "--student", STUDENT, "--subject", "FyQ", "--undated"])
+        .undated
+    )
+    with pytest.raises(SystemExit) as exit_info:
         cli_main.build_parser().parse_args(
             ["exam", "build", "--student", STUDENT, "--subject", "FyQ", "--undated", "--exam", EXAM_DAY]
         )
+    assert exit_info.value.code == 2
 
 
 def test_with_no_announcement_two_whole_topics_share_the_slot(world: World, capsys: pytest.CaptureFixture[str]):
@@ -1313,3 +1319,51 @@ def test_an_announced_exam_does_not_read_bloques(world: World, capsys: pytest.Ca
     assert world.run() == 0
     for prompt in theory_and_problems(world):
         assert "Pág. 2" not in prompt
+
+
+def test_an_announcement_captured_but_unreadable_is_refused_even_with_a_topic(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    (world.base / NOTE_PATH).unlink()
+    assert "--undated" in refused(world, capsys, 1, "no_announcement", "--topic", WHOLE)  # FR-029
+
+
+def test_with_no_announcement_subtopics_keep_their_order(world: World, capsys: pytest.CaptureFixture[str]):
+    first, second = split(world)
+    write_agenda(world, [])
+    assert world.run("--topic", second.name, "--topic", first.name) == 0
+    assert [a[3] for a in world.nlm.asked("report", "create")] == ["nb-1", "nb-1", "nb-2", "nb-2"]
+
+
+def test_every_section_of_corrections_is_read_in_any_case_and_a_nested_question_is_not(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    write_agenda(world, [])
+    (world.topic / "notebook").mkdir(parents=True)
+    (world.topic / "notebook" / "bloques.md").write_text(
+        "## Bloque 1\n### Correcciones a los Apuntes\n- Uno\n"
+        "## Bloque 2\n## Correcciones a los apuntes\n- Dos\n### Preguntas sobre los apuntes\n- Pregunta\n"
+    )
+    assert world.run("--topic", WHOLE) == 0
+    for prompt in theory_and_problems(world):
+        assert "- Uno - Dos" in prompt and "Pregunta" not in prompt
+
+
+def test_a_bloques_with_no_section_says_nothing_and_an_unreadable_one_warns_without_stopping(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    write_agenda(world, [])
+    (world.topic / "notebook").mkdir(parents=True)
+    blocks = world.topic / "notebook" / "bloques.md"
+    blocks.write_text("# Bloques\n\n- Pág. 2: nada que corregir\n")
+    assert world.run("--topic", WHOLE) == 0
+    assert "bloques.md" not in output(capsys)[1]
+    for prompt in theory_and_problems(world):
+        assert "Correcciones ya comprobadas" not in prompt and "Pág. 2" not in prompt
+    world.nlm.calls.clear()
+    blocks.write_bytes(b"\xff\xfe no es texto")
+    assert world.run("--topic", WHOLE) == 0
+    err = output(capsys)[1]
+    assert f"{WHOLE}: bloques.md could not be read" in err
+    for prompt in theory_and_problems(world):
+        assert "Correcciones ya comprobadas" not in prompt
