@@ -37,7 +37,7 @@ GROUPS = {
     "decision": "Claude's proposals and the family's decisions",
     "download": "a file in the browser's downloads folder",
     "drive": "the student's Drive: alfabeta's own connection, and the mirrors of the master folder",
-    "exam": "the sheets for the day before an exam",
+    "exam": "an exam the family declares, and the sheets for the day before one",
     "google": "alfabeta's own Google connection",
     "guardrail": "the personal-data guardrail",
     "lock": "a run's lock",
@@ -123,6 +123,7 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("classroom", "status"): "spec 006 FR-024",
     ("classroom", "agent", "install"): "spec 006 FR-015, plan",
     ("classroom", "agent", "uninstall"): "spec 006 FR-015, plan",
+    ("exam", "create"): "spec 007 FR-001",
 }
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {

@@ -7,9 +7,9 @@ exam's start note from the title `exam build` gives the theory sheet. Replace ev
 sending; a prompt that still holds a `{` is a bug.
 
 > [!IMPORTANT]
-> `exam build` finds its three texts by their exact headings: «Theory sheet — for an exam»,
-> «Problems sheet — for an exam» and «Start note — for an exam». Renaming one makes the command
-> refuse (`invalid_prompt`) and ask the notebook for nothing.
+> `exam build` finds its texts by their exact headings: «Theory sheet — for an exam», «Problems sheet
+> — for an exam» and «Start note — for an exam», and the same three with « with no announcement» after
+> them. Renaming one makes the command refuse (`invalid_prompt`) and ask the notebook for nothing.
 
 | Placeholder | Source |
 |---|---|
@@ -26,13 +26,14 @@ sending; a prompt that still holds a `{` is a bug.
 | `{exam_day}` | the exam's date in words, `martes 12 de mayo` |
 | `{scope}` | the text of the teacher's announcement of the exam, verbatim, as spec 001 captured it |
 | `{scope_date}` | that announcement's date, `8 de mayo` |
+| `{exam_name}` | with no announcement, `Examen del martes 12 de mayo`, or `Examen sin fecha` with no date |
 | `{slot}` | the study slot, `17:00–18:30`, or `90 minutos` when none is given |
 | `{pages}` | the theory sheet's pages: four per 90 minutes of slot, rounded up |
 | `{topic}` | the topic folder's name after its date, `Tema 02 - La nutrición humana` |
-| `{notes_corrections}` | empty, or one sentence per line of «Correcciones a los apuntes» in `bloques.md` for this prompt's blocks (spec 002 FR-046) — never a line of «Preguntas sobre los apuntes» — each ending in a space: the source's fact and «No digas que <the notes' version>.»; in the summary also «En la parte N, añade una línea "Corrige en tus apuntes: <the source's fact>."». Appended at the end of every other prompt of that block; the tutor chat gets every block's, without the summary's sentence |
+| `{notes_corrections}` | empty, or one sentence per line of «Correcciones a los apuntes» in `bloques.md` for this prompt's blocks (spec 002 FR-046) — never a line of «Preguntas sobre los apuntes» — each ending in a space: the source's fact and «No digas que <the notes' version>.»; in the summary also «En la parte N, añade una línea "Corrige en tus apuntes: <the source's fact>."». Appended at the end of every other prompt of that block; the tutor chat gets every block's, without the summary's sentence. An exam with no announcement fills it itself, with no Claude: empty when the topic's `notebook/bloques.md` is missing or has no lines under «Correcciones a los apuntes», a heading at any level, one per block if need be, up to the next heading of the same or a higher level or any line holding «Preguntas sobre los apuntes»; otherwise «Correcciones ya comprobadas en estos apuntes, que prevalecen sobre lo anterior aunque los apuntes insistan o las fuentes callen; en estos puntos no enseñes su versión y añade en esa sección o junto al problema «Corrige en tus apuntes: …»: », the section's lines verbatim and a space |
 | `{scheme}` | empty when `bloques.md` names no scheme for this prompt's blocks. Otherwise the scheme and branch it names (constitution X, spec 002 FR-038), as sentences each ending in a space. For one block: «Esto es la rama «<branch>» del esquema «<scheme>» de sus apuntes (pág. N): síguela con sus subramas, en su orden y con sus palabras, y nómbrala al empezar. Lo que la rama no tiene va al final, diciendo de qué fuente sale, sin llamarlo opcional. ». For several blocks: «Sigue el esquema «<scheme>» de sus apuntes (pág. N): sus ramas, en este orden y con estas palabras: <branch>; <branch>; … Nombra la rama de cada parte. Lo que el esquema no tiene va después de su rama más cercana o aparte, diciendo de qué fuente sale, sin llamarlo opcional. » |
 | `{plan}` | the study plan the agent writes for guide 0 (its section below) |
-| `{part}` | empty for an exam over one topic; over several subtopics (spec 002 FR-045), «, pero este examen abarca varios subtemas y este cuaderno solo tiene el subtema «<topic>» (parte N de M): haz sección solo de los puntos que tratan tus fuentes y nombra los demás en una línea «En otro subtema o sin material:», sin desarrollarlos», with no final full stop |
+| `{part}` | empty for an exam over one topic; over several subtopics (spec 002 FR-045), «, pero este examen abarca varios subtemas y este cuaderno solo tiene el subtema «<topic>» (parte N de M): haz sección solo de los puntos que tratan tus fuentes y nombra los demás en una línea «En otro subtema o sin material:», sin desarrollarlos», with no final full stop. With no announcement, over several topics of any kind: «; este examen abarca varios temas y este cuaderno solo tiene «<topic>» (parte N de M): cubre solo ese tema» |
 | `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
 
 ## Video — one per block, plus one per point of the announcement no block covers
@@ -188,6 +189,33 @@ no material; it points at the theory sheet, whose sections name the branches.
 
 ```text
 Hoy, para el examen del {exam_day}: «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
+```
+
+## Theory sheet — for an exam with no announcement
+
+`exam build` sends it the same way when the exam has no captured announcement and the family named the
+topics (spec 007 FR-025 to FR-029). Not measured: the family reads the first real run (spec 007 SC-010).
+It holds constitution X's last bullet itself, because this run has no Claude to check the facts.
+
+```text
+Hoja de teoría para estudiar un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Teoría y plan de estudio». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». No inventes ni cites ningún anuncio, y no dejes fuera ninguna parte del tema{part}. Si los apuntes del alumno tienen un esquema del tema, las secciones de la hoja son sus ramas, en su orden y con sus palabras, y nombras la rama; lo que el esquema no tiene va después de su rama más cercana o aparte, diciendo de qué fuente sale, sin llamarlo opcional. Si no tienen esquema, las secciones siguen el orden de los apuntes, y luego el de las fotocopias de Classroom y el del libro. Los apuntes de clase del alumno mandan en la estructura y las palabras, no en los hechos; las fotocopias de Classroom y el libro completan lo que falta en ellos. Si una fotocopia o el libro contradicen un hecho de los apuntes y no se contradicen entre sí, enseña lo que dicen y añade en esa sección «Corrige en tus apuntes: …». No lo hagas si los apuntes insisten en ese hecho (repetido en otra página, en un recuadro, subrayado, marcado como importante o escrito como palabras del profesor), ni si las fotocopias y el libro no coinciden entre sí: deja lo que dicen los apuntes, sin decir nada en contra en la sección, y ponlo en una última parte de la hoja titulada «Para la familia», con las dos versiones. Donde las fotocopias y el libro callan, se queda lo que dicen los apuntes. Una rama que ninguna fuente explica se nombra sin desarrollarla y va también a «Para la familia». Cada término va primero en {language}, tal como lo escribe el material de clase, y después en castellano; si los apuntes, las fotocopias y el libro llaman de forma distinta a una misma cosa, o usan una palabra para dos cosas, muestra cada forma y cómo distinguirlas. Después de esa frase, un plan ({slot}) en una tabla Hora | Qué | Cómo: una fila por sección, un descanso de cinco minutos y una última fila de unos quince minutos de hoja en blanco, para escribir de memoria y en {language} lo que el examen pide reproducir, corregir con esta hoja y rodear lo que falle. Cada sección acaba con una prueba para hacer sin mirar, con sus respuestas. Señala las trampas típicas. Los problemas no van aquí, sino en la hoja «Problemas tipo». Como mucho {pages} páginas A4. Comprueba dos veces cada número. {notes_corrections}
+```
+
+## Problems sheet — for an exam with no announcement
+
+The text of «Problems sheet — for an exam», with its own opening and `{notes_corrections}` at its end.
+Not measured either.
+
+```text
+Hoja de problemas para un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Problemas tipo». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». Si las fuentes no tienen fotocopias con problemas, dilo en una frase y no inventes ninguno. Usa solo los problemas de las fotocopias que el profesor ha puesto en Classroom, ejemplos resueltos incluidos. 1) Nombra cada fotocopia con su fecha. 2) Reparte todos los problemas en el menor número de patrones posible: una fórmula es un patrón, y usarla al derecho o al revés, despejando otra incógnita, es el mismo patrón; un patrón también puede ser una cadena de fórmulas o una clasificación sin fórmula. Pon una tabla Patrón | Problemas | El más difícil en la que cada problema esté en un solo patrón; señala los problemas que se repiten en dos fotocopias y marca con ★ los que el profesor mandó hacer. 3) Di en qué orden repasarlos, unos diez minutos por patrón. 4) Para cada patrón, el problema más difícil, uno de los mandados si lo hay: su enunciado copiado tal cual en su idioma, su traducción al castellano y por qué es el más difícil; puedes añadir otro del mismo patrón para si sobra tiempo. 5) Después, bajo el título «Soluciones», cada uno de esos problemas resuelto con su planteamiento. 6) Al final, bajo el título «Soluciones impresas que no cuadran», recalcula cada resultado que imprimen las fotocopias, compáralo con la precisión con que está impreso y pon en una tabla Problema | Impreso | Calculado | Qué pasa cada uno que no coincida, y cada enunciado al que le falte un dato con el resultado de cada lectura. Si la diferencia solo viene de redondear antes del final, dilo junto a su solución y no lo pongas en la tabla. No culpes ni nombres a nadie. Cada término, primero en {language} y después en castellano. Comprueba dos veces cada número. {notes_corrections}
+```
+
+## Start note — for an exam with no announcement
+
+With or without a date: the note above says «Hoy», which is false for a preparation days ahead.
+
+```text
+Para este examen ({exam_name}): «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
 ```
 
 ## Tutor chat

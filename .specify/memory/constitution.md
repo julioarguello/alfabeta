@@ -249,8 +249,8 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   where its content comes from: `notes` (the student's class notes and their living file),
   `classroom` (the teacher's material and its living file), the textbook's provider (`sciencebits`)
   and `notebook` (everything else the topic's notebook generates); `exam` is named for its purpose
-  and holds the sheets for the day before an exam. `exam` carries no date: the date goes in each
-  file's name. What VII brings back from Drive keeps the place it had there. Every Classroom item
+  and holds the sheets for the day before an exam. `exam` carries no date: the exam's date goes in each
+  file's name when it is known, and «sin fecha» when it is not. What VII brings back from Drive keeps the place it had there. Every Classroom item
   starts with its posting date, `YYYYMMDD - <title>`, and what the student turned in for an
   assignment goes in its `submission` folder.
 - **Notebooks**: one per topic, a subtopic included, named `<grade level>. <Subject>. Tema NN[X] -
@@ -317,4 +317,4 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.6.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-02
+**Version**: 2.7.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-05

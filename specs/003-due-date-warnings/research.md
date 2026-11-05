@@ -153,8 +153,8 @@ at 23:59 is 23:59–24:00).
   Classroom no longer shows**, and **an exam the family discarded**: the owned event stays, loses its
   reminders, and its title starts «Retirado ·». The description says only «Ya no figura en la agenda»: the agenda drops withdrawn items, discarded
   exams and detected exams waiting for the family's re-confirmation alike, without saying why, so
-  naming a reason would state a fact alfabeta does not have. A detected exam that comes back gets its
-  event and reminders back. The run counts
+  naming a reason would state a fact alfabeta does not have. An entry that comes back, a detected exam or an exam a match with a declared exam had taken in (spec 007), gets
+  its event and reminders back. The run counts
   them. Nothing is deleted (V).
 - **A moved due date** moves the same event (same id) and recomputes its reminders (FR-011).
 - **Legacy events**: the events the chat connector wrote before spec 004. `calendar delete-legacy` selects
@@ -163,7 +163,7 @@ at 23:59 is 23:59–24:00).
   (`first_apply_at`). A timed event, or one created later, is never selected, so an event the
   family adds by hand after that run is out of reach. A selected event matches when one owned event
   holds the same fact: the same date in `Europe/Madrid` and the item's Classroom title contained in
-  its title. Dates and titles go only to `data/calendar/legacy-<run>.json`; the command prints counts.
+  its title; a declared exam with no Classroom link (spec 007) matches none, having no such title. Dates and titles go only to `data/calendar/legacy-<run>.json`; the command prints counts.
 - **The family reviews before anything goes.** `--apply` takes the report the family read
   (`--report legacy-<run>.json`) and deletes only the events it lists as `matched` and that still
   match; it re-reads each one first. Unmatched ones are never touched. No run calls it.
@@ -181,14 +181,16 @@ at 23:59 is 23:59–24:00).
   the family declare an exam that Classroom does not show (Observed facts), and the calendar's
   standing rule is that it holds only facts from Classroom. An exam announced only orally therefore
   reaches the calendar only if the family adds it by hand, as an event alfabeta does not own and
-  never touches. Recorded in the spec's Clarifications (Plan, 2026-10-28).
+  never touches. Recorded in the spec's Clarifications (Plan, 2026-10-28). Revised by
+  [spec 007](../007-family-declared-exams/research.md#r11--the-writer-slice-3-written-into-spec-003-now),
+  not built yet: a declared exam is an entry like any other, and hand-written events stay out of reach.
 - **A detected exam says so**: its description carries «Detectado en un aviso de Classroom», and
   «Corregido por la familia» when corrected, as `agenda.md` marks it «detectado». A detected entry
   owns an `exam` event only when its category is `exam`; corrected into another category it owns
   none, because its origin item already owns its own events.
 - **Its warnings** (FR-015): 7 days before and the evening before, at the home slot, with R4's bound,
   basis and catch-up. The start date for dropping a step is the posting date of the item that
-  announced it.
+  announced it, or the day a declared exam was declared (spec 007, not built yet).
 
 ## R9 — Reading "for Thursday" (FR-016)
 

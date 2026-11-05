@@ -65,7 +65,7 @@ measured in S9. Sign-in from the phone in under 2 minutes, median (SC-002).
 - nothing personal in an email, log line or URL; the sign-in window's address compared in memory
   only (constitution III, FR-010, FR-014);
 - idempotent: a second apply with nothing changed writes nothing (constitution V);
-- no prompt mid-run: every macOS permission (keychain, window activation) granted once at set-up.
+- no prompt mid-run: every macOS permission granted once at set-up (S7 found the keychain and window activation needed none from a shell of the Claude app; launchd is S10's).
 
 **Scale/Scope**: one student, twelve classes, about a hundred items; one read a school day, plus the
 family's launches.

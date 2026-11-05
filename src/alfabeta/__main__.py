@@ -791,12 +791,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     exam_prep = exam.add_parser("build", help="the topic's notebook writes a theory and a problems sheet; both print")
     exam_prep.add_argument("--subject", required=True, help="the subject's [[subjects]] folder")
-    exam_prep.add_argument("--exam", type=dt.date.fromisoformat, help="the exam's date (default: the next one)")
+    which = exam_prep.add_mutually_exclusive_group()
+    which.add_argument("--exam", type=dt.date.fromisoformat, help="the exam's date (default: the next one)")
+    which.add_argument(
+        "--undated", action="store_true", help="an exam with no known date, whatever the agenda holds; needs --topic"
+    )
     exam_prep.add_argument("--slot", help="the study slot, HH:MM-HH:MM (default: 90 minutes)")
     exam_prep.add_argument(
         "--topic",
         action="append",
-        help="the exam's topic folder, once per subtopic it covers (default: the subject's most recent)",
+        help="the exam's topic folder, once per subtopic it covers, or per topic with no announcement"
+        " (default: the subject's most recent; with no announcement, required)",
     )
     claude = groups.add_parser("claude", help="this place's Claude API key").add_subparsers(dest="verb", required=True)
     claude_set = claude.add_parser(

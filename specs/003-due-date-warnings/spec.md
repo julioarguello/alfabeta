@@ -100,9 +100,10 @@ Decisions the plan took where the spec was silent or the data did not reach; eac
 - FR-016 reads a weekday in the title only: the agenda, this spec's input, carries no description,
   and the one measured case is a weekday in a title (research R1, R9).
 - "Exams come from the family" means the family's correction of an exam detected in Classroom (spec
-  001 FR-020b). No path lets the family declare an exam Classroom does not show, and the calendar
-  holds only Classroom's facts; an exam announced only orally is added by the family by hand, as a
-  timed event alfabeta does not own and never changes (FR-014, research R8).
+  001 FR-020b). Revised by [spec 007](../007-family-declared-exams/spec.md), not built yet: the family
+  declares an exam Classroom does not show, and it is an exam of the agenda like any other. Until then an
+  exam announced only orally is added by the family by hand, as a timed event alfabeta does not own and
+  never changes (FR-014, research R8).
 - An exam whose date carries a time starts at that time, labelled «hora según Classroom», and ends
   with the session that holds it, else 30 minutes later; no event runs past its day (FR-014,
   FR-023, research R3).
@@ -399,7 +400,8 @@ tick the teacher also sees.
 - **FR-014**: An exam MUST sit in its subject's session that day, labelled «hora según horario»;
   when the subject has no session that day, at break time, labelled «hora no conocida»; when its date
   carries a time, at that time, labelled «hora según Classroom». Exams come from Classroom: items and
-  stream announcements, with the family's corrections (spec 001 FR-020b).
+  stream announcements, with the family's corrections (spec 001 FR-020b); and from the family's
+  declarations (spec 007, not built yet).
 - **FR-015**: A known exam MUST get a warning 7 days before and one at the home slot of the day
   before.
 
@@ -469,8 +471,8 @@ tick the teacher also sees.
   named words).
 - **Warning**: a reminder on an item's due-date or exam event — step (28, 14 or 7 days before, half
   the window, the evening before), the instant it rings (a home slot), set as the student.
-- **Exam**: subject, date, source (a Classroom item, a stream post, the family's correction), placed
-  session if any.
+- **Exam**: subject, date, source (a Classroom item, a stream post, the family's correction, the family's
+  declaration of spec 007), placed session if any.
 - **Home slot**: one time of day for every day (16:00).
 - **Reader**: an account that reads the calendar. Only the student's Gmail has reminders, and the
   date its delivery was seen is recorded.
@@ -526,7 +528,8 @@ tick the teacher also sees.
 - Classroom may already send the student its own "due within 24 hours" notification (Classroom Help
   6141557); whether it is on for his account has not been measured. Its existence does not change
   what this spec writes.
-- Exams announced only orally reach the calendar only when the family declares them.
+- Exams announced only orally reach the calendar only when the family declares them, by hand until
+  spec 007 is built.
 
 ## Dependencies
 

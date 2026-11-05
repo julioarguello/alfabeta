@@ -19,6 +19,17 @@ PROMPTS = Path(__file__).resolve().parents[3] / "skills" / "study-pack" / "promp
 THEORY = "Theory sheet — for an exam"
 PROBLEMS = "Problems sheet — for an exam"
 START_NOTE = "Start note — for an exam"
+# With no captured announcement, when the family named the topics (spec 007 FR-025 to FR-029).
+THEORY_OPEN = "Theory sheet — for an exam with no announcement"
+PROBLEMS_OPEN = "Problems sheet — for an exam with no announcement"
+START_NOTE_OPEN = "Start note — for an exam with no announcement"
+NO_DATE = "sin fecha"  # where the exam's date would go (spec 007 FR-028a)
+# `{notes_corrections}` of an exam with no announcement, before the lines of `bloques.md` (spec 007 FR-027).
+CORRECTIONS = (
+    "Correcciones ya comprobadas en estos apuntes, que prevalecen sobre lo anterior aunque los apuntes insistan o las"
+    " fuentes callen; en estos puntos no enseñes su versión y añade en esa sección o junto al problema «Corrige en tus"
+    " apuntes: …»: "
+)
 
 # `{language}` in words, as the prompts were measured with it (prompts.md).
 LANGUAGES = {
@@ -91,6 +102,16 @@ def day_month(day: dt.date) -> str:
 def exam_day(day: dt.date) -> str:
     """`martes 12 de mayo`."""
     return f"{weekday(day)} {day_month(day)}"
+
+
+def exam_name(day: dt.date | None) -> str:
+    """`Examen del martes 12 de mayo`, or `Examen sin fecha`."""
+    return f"Examen del {exam_day(day)}" if day else f"Examen {NO_DATE}"
+
+
+def notes_corrections(lines: list[str]) -> str:
+    """`{notes_corrections}` of an exam with no announcement: empty, or the lines verbatim after their sentence."""
+    return f"{CORRECTIONS}{' '.join(lines)} " if lines else ""
 
 
 def short_day(day: dt.date) -> str:

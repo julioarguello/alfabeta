@@ -10,6 +10,10 @@
 browser (User Story 7, julioarguello/alfabeta#2): a token route (primary) or a scripted web sign-in
 (fallback), using a vault; constitution 2.0.0 (principle III redefined).
 
+**Amended**: 2026-11-05 — what completes or corrects Classroom's material, its `patches/` subfolder and a
+task lacking its statement are spec 008 (julioarguello/alfabeta#184). Classroom's replicas stay as this spec
+says. FR-039 to FR-044, briefly used for the same, are free.
+
 **Input**: User description (translated from Spanish): "alfabeta epic 1: classroom-sync + folder structure + per-student configuration. Problem: a secondary-school student's study material is spread between Google Classroom (materials, assignment attachments, links, announcements and assignments with dates, organised by each teacher into topics inside «Trabajo de clase» (Classwork)) and the digital textbook (Science Bits). Nothing is where the student studies, and the family cannot see at a glance what is pending. (1) Per-student configuration: template in the repo → private configuration outside the repo → data and secrets in a local data folder and the keychain; a second student only needs another configuration; a guardrail that prevents pushing real data. (2) Access path: the desktop app's built-in browser, read-only, with the student's session; the API is ruled out. (3) Rules: read-only on Classroom, the minor's data kept to the minimum, no tool types credentials." Operator's change of approach (2026-10-25): "We do not sync Classroom, we sync the subject's content: first level the school year, then the subject and then topic or month; inside, `classroom` or `sciencebits`, and the Classroom file name includes the date. The scraper walks Classroom; what I care about most is reminders of what is pending, and that the problems and exercises they keep assigning get downloaded and placed in the right spot of the Drive. I want a replica of the document the teacher posts in our Drive, to combine it with the books we download (Science Bits for now) and have it all go to the notebook together. We do it with the family Drive; the student has a personal Gmail account."
 
 ## Context and scope
@@ -792,7 +796,9 @@ Example of the resulting structure (invented names):
   own (an item announcing several exams gives one entry per exam): the source item keeps its own
   entry and its category. Dismissing it is a correction by the family. If it cannot resolve
   the date, it appears without a date. The family MAY correct a detected exam (date, category or
-  dismissing it), and the correction MUST be kept in the following syncs.
+  dismissing it), and the correction MUST be kept in the following syncs. An exam the family declares
+  and Classroom does not show is designed in [spec 007](../007-family-declared-exams/spec.md), not built
+  yet: an entry of its own, marked «declarado por la familia», joined with the teacher's post on the same day.
 - **FR-020c**: The status of pending items MUST be the one Classroom shows in each sync, so
   that what was posted before the first sync and already turned in appears as done. The
   readable agenda MUST open with a «Pendiente» checklist, sorted by date nearest
@@ -809,6 +815,8 @@ Example of the resulting structure (invented names):
   | detected exam without a date, until the family corrects or dismisses it | Pendiente |
   | detected exam with a capture of its class later than its date | Hecho |
   | detected exam the family dismisses | none |
+  | exam the family declares (spec 007, not built yet), while no capture of any class is later than its date; once one is | Pendiente; Hecho |
+  | exam the family declares and then cancels (spec 007, not built yet) | none |
   | exam that is a Classroom assignment or question, in `pending`, `overdue` or without `status`, with a capture of its class later than its date (wins over the rows above; `missing_per_teacher` stays in Pendiente) | Hecho |
   | `material`, `announcement` | Publicado (informational section by posting date, from most recent to oldest, after «Hecho») |
 
