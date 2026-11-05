@@ -12,7 +12,7 @@ the repository except the template keys. Times are `Europe/Madrid`.
 
 | Field | Used for |
 |---|---|
-| `posted` (new) | `YYYY-MM-DD`, the item's posting date; a detected exam takes its origin's. FR-007's start date, the posting event's day |
+| `posted` (new) | `YYYY-MM-DD`, the item's posting date; a detected exam takes its origin's, and a declared exam (spec 007) the day it was declared. FR-007's start date, the posting event's day |
 | `item`, `category`, `subject`, `title` | Identity, kind of events, timetable subject, event title |
 | `date`, `date_only` | The due date or exam date; a posting date for a material |
 | `status`, `list` | FR-010 (handed in) and an exam that took place |
@@ -103,7 +103,7 @@ Which entries own which events:
 | `assignment`, `quiz` with no date | yes | — | — |
 | `material` | yes | — | — |
 | `announcement` | — | — | — |
-| `exam` with a date | — | — | yes |
+| `exam` with a date, a declared one (spec 007) included, matched or not | — | — | yes |
 | `exam` with no date | — | — | — |
 | a detected entry (`detected: true`) of any category but `exam` | — | — | — |
 
