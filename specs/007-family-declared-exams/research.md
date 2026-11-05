@@ -54,7 +54,8 @@ left to the plan, read against the code on `main` at the plan's date.
   `{notes_corrections}`, which holds what the notebook could not know: corrections from an external reference. A
   deterministic read passes that section's lines verbatim, because no Claude is in this run. What the notes insist
   on or the sources disagree on goes to a last part, «Para la familia», since the printed sheet is the one channel
-  this command has. And `{part}` gets its own variant, because the announced one refers to points of an
+  this command has; a branch no source explains goes there too. A family's ruling reaches the sheet because
+  FR-046 now moves the answered line to «Correcciones a los apuntes». And `{part}` gets its own variant, because the announced one refers to points of an
   announcement that does not exist here.
 - **Not measured**: how the notebook does on them. Gate 1 of the plan is that measurement.
 - **Alternatives**: filling `{scope}` with a sentence saying there is none: the prompt would then order

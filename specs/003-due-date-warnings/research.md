@@ -153,8 +153,8 @@ at 23:59 is 23:59–24:00).
   Classroom no longer shows**, and **an exam the family discarded**: the owned event stays, loses its
   reminders, and its title starts «Retirado ·». The description says only «Ya no figura en la agenda»: the agenda drops withdrawn items, discarded
   exams and detected exams waiting for the family's re-confirmation alike, without saying why, so
-  naming a reason would state a fact alfabeta does not have. A detected exam that comes back gets its
-  event and reminders back. The run counts
+  naming a reason would state a fact alfabeta does not have. An entry that comes back, a detected exam or an exam a match with a declared exam had taken in (spec 007), gets
+  its event and reminders back. The run counts
   them. Nothing is deleted (V).
 - **A moved due date** moves the same event (same id) and recomputes its reminders (FR-011).
 - **Legacy events**: the events the chat connector wrote before spec 004. `calendar delete-legacy` selects

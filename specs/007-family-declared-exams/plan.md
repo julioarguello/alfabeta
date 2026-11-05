@@ -82,7 +82,7 @@ day's events the first time a declared exam is placed (research R11).
 | VII. Outputs degrade on their own | The agenda slice does not need the calendar. A missing base folder keeps the decision and says the agenda was not rewritten (FR-006) | Pass |
 | VIII. `Europe/Madrid` | «The same day» is compared in `Europe/Madrid` from zone-aware values, with `dates.MADRID` | Pass |
 | IX. Simplicity | No dependency, no configuration: one command, one option, two decision types, one agenda key, and three prompts | Pass |
-| X. Schemes lead | With no announcement the theory sheet's sections are the scheme's branches, or the sources' order where no scheme exists. A fact the sources contradict is taught as they state it, and the sheet says so, unless the notes insist or the sources disagree, which go to «Para la familia» (FR-027). The corrections in `bloques.md`, external references' included, reach the prompt: slice 1 makes `exam build` read that section. The problems sheet stays out of X, as today | Pass |
+| X. Schemes lead | With no announcement the theory sheet's sections are the scheme's branches, or the sources' order where no scheme exists; a branch no source explains is named and goes to «Para la familia». A fact the sources contradict is taught as they state it, and the sheet says so, unless the notes insist or the sources disagree, which go to «Para la familia» (FR-027). The corrections in `bloques.md`, external references' included, reach the prompt: slice 1 makes `exam build` read that section. The problems sheet stays out of X, as today | Pass |
 | Technical constraints › Storage | «the date goes in each file's name» cannot hold with no date. Amended to 2.7.0 (MINOR) in this pull request | Pass, with the amendment |
 | Development workflow | The spec is approved in this documentation-only pull request; each slice gets its issue and pull request | Pass |
 
@@ -139,9 +139,8 @@ that hold the lock.
 | 2 | US1, US2, US3 | nothing | Paper exams in the agenda, corrected and cancelled, and never twice |
 | 3 | US4 | slice 2 and julioarguello/alfabeta#136 | The event, its warnings, the count of hand-written events |
 
-Slice 1 comes first because it is independent and it is what the next exam needs. Slice 2 changes the
-`agenda.json` that `exam build` reads; slice 1's rules do not read the new key, so either order would
-work.
+Slice 1 comes first because it is independent and it is what the next exam needs. Slice 2 follows it,
+because T021 tests a matched exam against slice 1's refusals.
 
 ## Complexity Tracking
 

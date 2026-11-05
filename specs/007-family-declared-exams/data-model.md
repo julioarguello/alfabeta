@@ -13,7 +13,7 @@ Everything here extends spec 001's [data model](../001-classroom-sync/data-model
 | `target.date` | `YYYY-MM-DD`, inside the school year |
 | `target.title` | The family's text, or empty |
 | `state` | `confirmed` from the first line; `superseded` only if a later format needs it. Cancelling is a correction, not a state |
-| `date` | The day it was declared. It is the entry's `posted` once spec 003's key exists |
+| `date` | The day it was declared. It is the entry's `posted` (research R9) |
 | `reason`, `confidence` | `declared by the family`, none |
 
 Not in `PROPOSABLE`, so Claude cannot propose it and `decision confirm` does not take it.
@@ -54,7 +54,7 @@ The same run's second pass, and the next run with no change, write nothing (FR-0
 
 ## Agenda entry
 
-One new key, in `agenda.schema.json`:
+One new key beside spec 003's `posted`, in `agenda.schema.json`:
 
 | Field | Rule |
 |---|---|

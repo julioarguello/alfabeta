@@ -915,7 +915,9 @@ and cannot judge what the notebook writes.
   - **Unless the notes insist**: the claim repeated on another page, boxed or underlined, marked as important («ojo», «importante»), or written as the teacher's own words. Then it may be what the
     teacher asks for in the exam: the pieces keep the notes' version and say nothing against it,
     `bloques.md` lists it as a question, and the family is asked; their answer, recorded there,
-    decides, and the pieces it touches are made again.
+    decides, and the pieces it touches are made again. An answer that decides against the notes moves the
+    line to «Correcciones a los apuntes», with the answer, so what reads that section alone (`exam build`
+    with no announcement, spec 007, not built yet) has it.
   - New pages that reach a topic later are checked the same way, and the report names each
     correction and each question (spec 005 FR-020).
 

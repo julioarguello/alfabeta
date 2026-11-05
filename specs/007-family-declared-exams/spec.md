@@ -156,7 +156,7 @@ entries of that subject.
 4. **Given** a declared exam, **When** a run finds an exam of that subject with no date, or up to 14
    days away, **Then** both entries stay and a notice at the top of `agenda.md` says they differ.
 5. **Given** that notice, **When** the family gives the Classroom exam the declared date, **Then**
-   the two become one entry and the notice goes.
+   the next rebuild of the agenda makes the two one entry, and the notice goes.
 6. **Given** an exam of that subject already in the agenda on that day, **When** the family declares
    it, **Then** nothing is created and the answer names the entry that already holds it.
 
@@ -424,8 +424,9 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   contradict is taught as the source states it, and the sheet says his page says otherwise, unless the
   notes insist on it, or the sources disagree with each other: then the notes' version stays, the section says
   nothing against it, and a last part titled «Para la familia» gives both versions (constitution X, spec 002
-  FR-046). The corrections `notebook/bloques.md` already holds, external references' included, MUST reach the
-  prompts, which `exam build` reads itself. Both
+  FR-046). A branch no source explains is named, not developed, and goes there too (constitution X). The
+  corrections `notebook/bloques.md` already holds, external references' and the family's rulings included, MUST
+  reach the prompts, which `exam build` reads itself, and the sheet tells the student about each. Both
   sheets MUST say on their first page, in Spanish, that no announcement backs them and the scope is not
   confirmed; no announcement is invented or quoted.
 - **FR-028**: Preparing an exam MUST NOT declare it: it writes no decision and no agenda entry and owns
@@ -448,7 +449,7 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
 - **Agenda entry** (spec 001): gains the mark that its source is the family. Its `classroom_link` is
   empty until matched; its `detected` and `origin` stay as they are, true and set only once matched
   with a detected exam, so spec 001's rule that an entry has an origin exactly when it is detected
-  holds. Once spec 003's `posted` key exists, a declared exam's is its declaration date.
+  holds. A declared exam's `posted` (research R9) is its declaration date.
 - **Notice** (spec 001 and spec 005): the line at the top of `agenda.md` saying a declared exam and a
   Classroom exam of the subject differ. Not an entry.
 
@@ -482,8 +483,8 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   receives no request at all (a test counts them with the stand-in).
 - **SC-010**: On the first real run with no announcement, on a topic with a correction in `bloques.md`, the sheet
   teaches the source's fact, each top-level branch of the topic's scheme has
-  a section on the theory sheet, the first page of both sheets says no announcement backs them, and the
-  problems sheet holds only problems from the sources, or says it has none. The family reads this on the
+  a section on the theory sheet, the first page of both sheets says no announcement backs them, any branch no source explains is in
+  «Para la familia», and the problems sheet holds only problems from the sources, or says it has none. The family reads this on the
   printed sheets; nothing measures it before that run.
 
 ## Assumptions
@@ -526,7 +527,7 @@ instructs a command that refuses (research R12).
 | Applied here. Spec 002 FR-025 and its Clarification on the calendar; the line of `skills/study-pack/SKILL.md` that repeats it; `README.md`; `docs/roadmap.md`; `docs/explanation/study-material.md` | "Facts from Classroom" gains "and exams the family declares, labelled as such". The ban on study blocks stays whole |
 | Applied here. Spec 001 FR-020b, FR-020c's table; data model (Decision, Agenda entry, language of names); `contracts/cli.md` (`decision update-exam`'s origin, and a pointer to this spec's contract) | The declared exam as a decision and an entry, marked as designed and not built |
 | With slice 2. `contracts/agenda.schema.json` and its copy, whose `classroom_link` may be empty and whose new key marks the source (research R9: version 2 always carries `posted`); `skills/classroom-sync/SKILL.md` | `agenda.md`'s line prints the Classroom link only when there is one; how the family's request becomes the command, and the notices relayed in the summary |
-| Applied here. Spec 002: FR-030, the requirement that names the sheets' files, Clarifications on the exam's scope and on the `exam/` folder, User Story 7's scenario 2, the Edge Case and Assumption on exams announced only in class, `contracts/cli.md` | An exam with no announcement or date is prepared when the family names its topics (FR-025 to FR-029), marked as designed and not built |
-| With slice 1. `skills/study-pack/prompts.md`, the section of `skills/study-pack/SKILL.md` on the day before an exam | The new prompts, and how to run the command with no announcement |
+| Applied here. Spec 002: FR-030, FR-046 (a family's answer against the notes moves the line to «Correcciones a los apuntes»), the requirement that names the sheets' files, Clarifications on the exam's scope and on the `exam/` folder, User Story 7's scenario 2, the Edge Case and Assumption on exams announced only in class, `contracts/cli.md` | An exam with no announcement or date is prepared when the family names its topics (FR-025 to FR-029), marked as designed and not built |
+| With slice 1. `skills/study-pack/prompts.md`, the section of `skills/study-pack/SKILL.md` on the day before an exam and its lines on `bloques.md` | The new prompts, how to run the command with no announcement, and the format of «Correcciones a los apuntes» |
 | Applied here. Constitution, Technical constraints › Storage («the date goes in each file's name») | 2.6.0 → 2.7.0, MINOR, because it allows what the sentence forbade: the exam's date when it is known, else «sin fecha» |
 | Outside the repository | The calendar policy line of the student's private configuration, and the operator's standing instruction, as spec 003 already records for its own change |
