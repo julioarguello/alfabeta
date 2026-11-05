@@ -11,8 +11,8 @@ left to the plan, read against the code on `main` at the plan's date.
   command needs the lock and the agenda rewrite that live in `__main__.py`, not `exam/cli.py`'s
   notebook dependencies.
 - **Alternatives**: a leaf `create-exam` under `decision`: with `update-exam` it would give one noun two
-  suffixed verbs, which `cli-naming.md` forbids. `exam update` and `exam delete`: a second way to do what
-  `decision update-exam` does, and `delete` promises a removal that does not happen (constitution V).
+  suffixed verbs, which `cli-naming.md` forbids. update and delete leaves under `exam`: a second way to do what
+  `decision update-exam` does, and a delete promises a removal that does not happen (constitution V).
 
 ## R2 — How `exam build` decides
 
