@@ -8,7 +8,7 @@ date, a title, an address or an absolute path. The names follow `.claude/rules/c
 
 | Subcommand | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|
-| `exam create --student <id> --subject <folder> --date YYYY-MM-DD [--title <text>]` | Declares an exam, unless the agenda already holds it, and rewrites the agenda. Needs the run's lock, as `decision update-exam` does: run with no lease it exits 1 `lock_not_held`. Claude takes the lock when the family asks in the chat | `data/decisions.json`; `agenda.json` and `agenda.md` if their bytes change | JSON below | 0 · 1 `no_subject`, `invalid_date` (malformed or outside the school year; the value is not echoed), a lock error |
+| `exam create --student <id> --subject <folder> --date YYYY-MM-DD [--title <text>] [--dry-run]` | Declares an exam, unless the agenda already holds it, and rewrites the agenda. Needs the run's lock, as `decision update-exam` does: run with no lease it exits 1 `lock_not_held`. Claude takes the lock when the family asks in the chat | `data/decisions.json`; `agenda.json` and `agenda.md` if their bytes change | JSON below | 0 · 1 `no_subject`, `invalid_date` (malformed or outside the school year; the value is not echoed), a lock error |
 
 ```json
 {"ok": true, "created": true, "item": "declared-1", "subject": "<folder>", "date": "YYYY-MM-DD",
@@ -17,6 +17,7 @@ date, a title, an address or an absolute path. The names follow `.claude/rules/c
 
 - `created: false` with `item` the id that holds it: an active declared exam, or a Classroom entry's id.
 - `agenda_written: false` with a line on stderr when the base folder is missing; the decision is kept.
+- `--dry-run`: the same answer, writing nothing, with `agenda_written: false` and no lock needed. `created` says what a real run would do.
 - `weekend` and `past` do not refuse. `past` compares with today in `Europe/Madrid` and reaches only this answer.
 
 ## `decision update-exam` (built, wider in slice 2)
@@ -35,8 +36,8 @@ malformed value exits 1 `invalid_decision` instead of 2, and is not echoed.
 
 ## `exam build` (built, wider in slice 1)
 
-`exam build --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...`.
-No new option. Which exam and which scope:
+`exam build --student <id> --subject <folder> [--exam YYYY-MM-DD | --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...`.
+Which exam and which scope:
 
 | An announcement on the exam's day | `--topic` | Result |
 |---|---|---|
@@ -44,8 +45,9 @@ No new option. Which exam and which scope:
 | No, an agenda exam that day | None | Exit 1 `no_announcement`; the message says to name the topics |
 | No, no agenda exam that day | None | Exit 1 `no_exam`; the message says to name the topics |
 | No | Given | Proceeds with the prompts of [prompts.md](prompts.md) over the topics named |
+| Not looked at | Given, with `--undated` | Proceeds undated with those prompts, whatever the agenda holds. `--undated` with no `--topic`, or with `--exam`, exits 1 `no_topic` or is refused by the parser |
 
-The exam's day is `--exam`, else the subject's next exam in the agenda, else there is none.
+The exam's day is `--exam`, else none with `--undated`, else the subject's next exam in the agenda, else none.
 
 With no announcement `--topic` may be given several times, for topics of any kind; each gets its notebook, its sheets
 and an equal part of the slot.

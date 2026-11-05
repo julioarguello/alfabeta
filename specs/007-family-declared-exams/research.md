@@ -25,6 +25,7 @@ left to the plan, read against the code on `main` at the plan's date.
   | no, and an agenda exam on that day | no | Refuses `no_announcement` |
   | no, and no agenda exam on that day | no | Refuses `no_exam` |
   | no | yes | Proceeds with no announcement, for `--exam`, else the next exam in the agenda, else undated |
+  | not looked at | `--undated` with it | Proceeds undated, whatever the agenda holds |
 
   `topic_folders` learns whether an announcement exists: without one, `--topic` may name several topics of any
   kind, each with its notebook and an equal part of the slot. A paper exam can span whole topics, and the
@@ -33,8 +34,10 @@ left to the plan, read against the code on `main` at the plan's date.
 
 - **Rationale**: naming a topic is a new statement by the family. The default "most recent topic" stays
   behind an announcement, so a command typed with no thought never prints a whole-topic sheet by chance.
-  No new option is needed, so `tests/test_cli_naming.py` needs no `PLANNED_OPTIONS` entry.
-- **Alternatives**: a flag such as `--no-announcement`: one more word for what `--topic` already says.
+  `--undated` exists because with a dated exam of the subject to come, Q8's preparation would be unreachable, and
+  that exam's announcement would override the topics named. It is in `tests/test_cli_naming.py`'s `PLANNED_OPTIONS`.
+- **Alternatives**: a flag such as `--no-announcement`: one more word for what `--topic` already says when the
+  exam has none.
 - **Checked against the tests**: the `no_exam` and `no_announcement` refusals of `tests/test_exam_prep.py`
   pass no `--topic`, so they keep holding. `no_topic` and `subtopics_unnamed` do not change.
 
@@ -47,8 +50,12 @@ left to the plan, read against the code on `main` at the plan's date.
   announcement's order, what does not enter). It also says «mañana», which a preparation days ahead or
   undated makes false. The rest of the new text follows it, with two differences. Constitution X's last
   bullet is written in: «Mandan los apuntes» alone would teach a wrong fact on a whole-topic sheet, since
-  `exam build` reads no `bloques.md` and `{notes_corrections}` never arrives. And `{part}` gets its own
-  variant, because the announced one refers to points of an announcement that does not exist here.
+  `exam build` read no `bloques.md`. So the new prompts tell the notebook the rule of FR-046, and take
+  `{notes_corrections}`, which holds what the notebook could not know: corrections from an external reference. A
+  deterministic read passes that section's lines verbatim, because no Claude is in this run. What the notes insist
+  on or the sources disagree on goes to a last part, «Para la familia», since the printed sheet is the one channel
+  this command has. And `{part}` gets its own variant, because the announced one refers to points of an
+  announcement that does not exist here.
 - **Not measured**: how the notebook does on them. Gate 1 of the plan is that measurement.
 - **Alternatives**: filling `{scope}` with a sentence saying there is none: the prompt would then order
   sections by an announcement's points, and copy a false «anuncio».
@@ -122,9 +129,9 @@ left to the plan, read against the code on `main` at the plan's date.
 
 - **Decision**: a required boolean `declared`, and `classroom_link` documented as possibly empty. `agenda.md`'s
   line prints the link and the folder only when there are any, and drops an empty title.
-- **Version and `posted`**: the schema's `const` rises by one in whichever of this slice and spec 003's T004
-  lands first, and the other takes the next. The second to land also makes the two keys agree: a declared
-  entry's `posted` is the day it was declared. Spec 003 T004 says so too. `tests/test_contracts.py` keeps the two copies identical.
+- **Version and `posted`**: version 2 always carries `posted`, so spec 003's T016 gate stays right in either order.
+  If this slice lands first, it also does spec 003's T003 and T004 and marks them, and `declared` goes in version 2.
+  If T004 landed first, `declared` takes version 3. Either way a declared entry's `posted` is the day it was declared. `tests/test_contracts.py` keeps the two copies identical.
 - **Consumers read**: `exam/prep.py` reads `category`, `subject`, `date` and `origin`, so a new key is harmless.
 
 ## R10 — When a declared exam is done
@@ -133,7 +140,9 @@ left to the plan, read against the code on `main` at the plan's date.
 - **Rationale**: spec 001's rule uses the item's class because the item lives there. A declared exam has no
   class, and may belong to a subject with none linked. Any capture proves the same thing, and no rule uses
   the day the agenda is generated.
-- **Matched entries**: their list is the Classroom entry's (FR-011).
+- **Matched entries**: spec 001 FR-020c applied to the first match's status and the entry's own date, with the same
+  any capture (FR-011). Taking the list from the Classroom entry would show a family's later date in «Hecho» once
+  Classroom's old date passed, and keep a first match with no date in «Pendiente» for ever.
 
 ## R11 — The writer (slice 3, written into spec 003 now)
 

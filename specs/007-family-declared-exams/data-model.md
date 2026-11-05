@@ -39,7 +39,7 @@ in force but not active: it holds no date, is not matched and takes part in no n
 | `date` | The day it was recorded |
 
 One in force per Classroom entry; several may point to one declared exam. The first in file order gives the
-merged entry its title, link, folder, status and list. Not in `PROPOSABLE`.
+merged entry its title, link, folder and status. Not in `PROPOSABLE`.
 
 **Recording** (`declared.py`, called under the lock by every command that rebuilds the agenda: `agenda build`,
 `classroom apply`, `exam create`, `decision update-exam`):
@@ -60,6 +60,8 @@ One new key, in `agenda.schema.json`:
 |---|---|
 | `declared` | `true` when the family declared the exam |
 
+Its version: research R9.
+
 For a declared entry:
 
 | Field | Unmatched | Matched |
@@ -71,7 +73,7 @@ For a declared entry:
 | `date` | The family's, with its corrections | A correction later in the file than the match, else the first match's, else, when that has no date, the family's |
 | `date_only` | `true` | The date's own |
 | `status` | Empty | The first match's |
-| `list` | R10: `pending` until any capture is later than the date, then `done` | The first match's |
+| `list` | R10: `pending` until any capture is later than the date, then `done` | Spec 001 FR-020c on the first match's status and this entry's `date`, with any capture (R10): handed in is `done`, `missing_per_teacher` stays `pending` |
 | `detected`, `origin` | `false`, empty | `true` and the source item when a detected exam is among the matches, preferring one whose item has an `#announcement` replica; otherwise `false`, empty |
 | `corrected` | `true` after a date correction | `true` after a date correction, or if a match carries one |
 | `classroom_link`, `folder` | Empty | The first match's |

@@ -7,8 +7,7 @@ below belongs in an issue or a pull request except counts: no title, no date of 
 
 - The slice under test is merged, and `make setup-python` has run.
 - `H=$(mktemp -d)`, then `uv run python -m alfabeta --home "$H" sandbox prepare`.
-- A run's lock for steps 2 and 3: `RUN=$(uv run python -m alfabeta --home "$H" lock take --student <id> --mode interactive)`,
-  passed as `ALFABETA_RUN=$RUN`. Release it with `lock release` at the end.
+- A run's lock for steps 2 and 3: `export ALFABETA_RUN=$(uv run python -m alfabeta --home "$H" lock take --student <id> --mode interactive | python3 -c 'import json,sys;print(json.load(sys.stdin)["run"])')`. Release it with `lock release` at the end.
 
 ## 1. Preparing with nothing declared (slice 1)
 

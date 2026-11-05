@@ -6,7 +6,7 @@
 
 ## Summary
 
-Three slices, shipped in this order. Slices 1 and 2 stand alone; the `posted` key is shared with spec 003 T004, and whichever lands second sets it for what the other added (research R9):
+Three slices, each able to ship alone in this order:
 
 1. **Prepare with nothing declared** (User Story 5). `exam build` stops needing an announcement, an
    agenda entry or a date when the family names the topics. New prompts for that case; the prompts of
@@ -40,6 +40,7 @@ built by this pull request.
 - `<storage.base>/<school_year>/agenda.json` and `agenda.md`: one new key, `declared`, and an empty
   `classroom_link` for an exam no teacher post backs;
 - no configuration key is added or read anew (FR-023);
+- `notebook/bloques.md`: read by `exam build` with no announcement, its «Correcciones a los apuntes» only;
 - `data/study-pack.json` (the pack record): `exam` may be empty.
 
 **Testing**: `pytest` with invented subjects, dates and titles, the stand-in for `nlm` of
@@ -80,8 +81,8 @@ day's events the first time a declared exam is placed (research R11).
 | VI. One isolated, tested provider | No new source. The family's declaration is a decision, not a provider. Tests use invented data | Pass |
 | VII. Outputs degrade on their own | The agenda slice does not need the calendar. A missing base folder keeps the decision and says the agenda was not rewritten (FR-006) | Pass |
 | VIII. `Europe/Madrid` | «The same day» is compared in `Europe/Madrid` from zone-aware values, with `dates.MADRID` | Pass |
-| IX. Simplicity | No dependency, no configuration, no new surface: one command, two decision types, one agenda key, and three prompts | Pass |
-| X. Schemes lead | With no announcement the theory sheet's sections are the scheme's branches, or the sources' order where no scheme exists. A fact the sources contradict is taught as they state it, and the sheet says so, unless the notes insist (FR-027); the new prompt asks for this itself, since `exam build` reads no `bloques.md`. The problems sheet stays out of X, as today | Pass |
+| IX. Simplicity | No dependency, no configuration: one command, one option, two decision types, one agenda key, and three prompts | Pass |
+| X. Schemes lead | With no announcement the theory sheet's sections are the scheme's branches, or the sources' order where no scheme exists. A fact the sources contradict is taught as they state it, and the sheet says so, unless the notes insist or the sources disagree, which go to «Para la familia» (FR-027). The corrections in `bloques.md`, external references' included, reach the prompt: slice 1 makes `exam build` read that section. The problems sheet stays out of X, as today | Pass |
 | Technical constraints › Storage | «the date goes in each file's name» cannot hold with no date. Amended to 2.7.0 (MINOR) in this pull request | Pass, with the amendment |
 | Development workflow | The spec is approved in this documentation-only pull request; each slice gets its issue and pull request | Pass |
 

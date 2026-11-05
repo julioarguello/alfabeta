@@ -14,7 +14,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 - `--subject`: the subject's `[[subjects]] folder`.
 - `--exam`: the exam's date. Without it, the subject's next exam in the agenda, today included.
-  Spec 007, not built yet, lets it prepare with no announcement or date when `--topic` is given
+  Spec 007, not built yet, lets it prepare with no announcement or date when `--topic` is given, and adds `--undated`
   ([contract](../../007-family-declared-exams/contracts/cli.md)).
 - `--slot`: the study slot. Its length sets the theory sheet's pages, four per 90 minutes rounded
   up (measured once, 2026-10-28), and its clock times go into the plan. Without it, 90 minutes and
