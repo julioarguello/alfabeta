@@ -10,6 +10,10 @@
 browser (User Story 7, julioarguello/alfabeta#2): a token route (primary) or a scripted web sign-in
 (fallback), using a vault; constitution 2.0.0 (principle III redefined).
 
+**Amended**: 2026-11-05 — what completes or corrects Classroom's material, its `patches/` subfolder and a
+task lacking its statement are spec 008 (julioarguello/alfabeta#184). Classroom's replicas stay as this spec
+says. FR-039 to FR-044, briefly used for the same, are free.
+
 **Input**: User description (translated from Spanish): "alfabeta epic 1: classroom-sync + folder structure + per-student configuration. Problem: a secondary-school student's study material is spread between Google Classroom (materials, assignment attachments, links, announcements and assignments with dates, organised by each teacher into topics inside «Trabajo de clase» (Classwork)) and the digital textbook (Science Bits). Nothing is where the student studies, and the family cannot see at a glance what is pending. (1) Per-student configuration: template in the repo → private configuration outside the repo → data and secrets in a local data folder and the keychain; a second student only needs another configuration; a guardrail that prevents pushing real data. (2) Access path: the desktop app's built-in browser, read-only, with the student's session; the API is ruled out. (3) Rules: read-only on Classroom, the minor's data kept to the minimum, no tool types credentials." Operator's change of approach (2026-10-25): "We do not sync Classroom, we sync the subject's content: first level the school year, then the subject and then topic or month; inside, `classroom` or `sciencebits`, and the Classroom file name includes the date. The scraper walks Classroom; what I care about most is reminders of what is pending, and that the problems and exercises they keep assigning get downloaded and placed in the right spot of the Drive. I want a replica of the document the teacher posts in our Drive, to combine it with the books we download (Science Bits for now) and have it all go to the notebook together. We do it with the family Drive; the student has a personal Gmail account."
 
 ## Context and scope
