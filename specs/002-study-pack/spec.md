@@ -696,7 +696,7 @@ and cannot judge what the notebook writes.
   (`(sin fecha)` with none, spec 007, not built yet). The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level (and, with no announcement, the
-  topic's name, spec 007, not built yet). Both reports are asked
+  topic's name and the corrections of its `bloques.md`, spec 007, not built yet). Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
   option, so the account-wide setting of FR-007 is not touched. That makes the problems sheet an
   exception to FR-005, which puts practice in the subject's language: it is the sheet the parent
@@ -868,7 +868,7 @@ and cannot judge what the notebook writes.
     word, and only that subtopic's.
 
   No piece covers more than one subtopic, an exam's included (FR-045).
-- **FR-045**: Preparing an exam that covers several subtopics MUST mean preparing each of their
+- **FR-045** (spec 007, not built yet: with no announcement, `--topic` may name several topics of any kind): Preparing an exam that covers several subtopics MUST mean preparing each of their
   notebooks (the operator, 2026-10-30: «que preparar un examen sea preparar todos los cuadernos»):
   `exam build` takes one `--topic` per subtopic the exam covers and, for each, asks that subtopic's
   own notebook for its two sheets, from its own sources, as FR-029 to FR-037 describe for a topic.

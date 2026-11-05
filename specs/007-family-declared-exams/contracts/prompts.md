@@ -8,7 +8,7 @@ not change. Not measured: the family reads the first real run (plan, gate 1; spe
 | Placeholder | Source |
 |---|---|
 | `{exam_name}` | `Examen del martes 12 de mayo` with a date, `Examen sin fecha` with none |
-| `{notes_corrections}` | Empty when the topic's `notebook/bloques.md` is missing or has no «Correcciones a los apuntes». Otherwise «Correcciones ya comprobadas en estos apuntes; en estos puntos no enseñes su versión y añade en esa sección «Corrige en tus apuntes: …»: » and that section's lines verbatim, then a space. The section is the heading holding those words, at any level, up to the next heading. `exam build` reads the file itself, with no Claude in the run |
+| `{notes_corrections}` | Empty when the topic's `notebook/bloques.md` is missing or has no «Correcciones a los apuntes». Otherwise «Correcciones ya comprobadas en estos apuntes, que prevalecen sobre lo anterior aunque los apuntes insistan o las fuentes callen; en estos puntos no enseñes su versión y añade en esa sección o junto al problema «Corrige en tus apuntes: …»: » and that section's lines verbatim, then a space. The section is the heading holding those words, at any level, up to the next heading of the same or a higher level; a heading with no lines under it gives a warning on stderr. `exam build` reads the file itself, with no Claude in the run |
 | `{part}` | Empty for one topic. Over several, with no announcement: «; este examen abarca varios temas y este cuaderno solo tiene «<topic>» (parte N de M): cubre solo ese tema», with no final full stop. It replaces the announced variant, which refers to points of an announcement |
 
 ## Theory sheet — for an exam with no announcement

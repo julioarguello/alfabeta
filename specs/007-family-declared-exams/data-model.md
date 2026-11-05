@@ -72,6 +72,7 @@ For a declared entry:
 | `title` | The family's, or empty | The first match's |
 | `date` | The family's, with its corrections | A correction later in the file than the match, else the first match's, else, when that has no date, the family's |
 | `date_only` | `true` | The date's own |
+| `posted` | The day it was declared | The day it was declared |
 | `status` | Empty | The first match's |
 | `list` | R10: `pending` until any capture is later than the date, then `done` | Spec 001 FR-020c on the first match's status and this entry's `date`, with any capture (R10): handed in is `done`, `missing_per_teacher` stays `pending` |
 | `detected`, `origin` | `false`, empty | `true` and the source item when a detected exam is among the matches, preferring one whose item has an `#announcement` replica; otherwise `false`, empty |
