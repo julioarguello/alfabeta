@@ -8,18 +8,20 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
+| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, announced, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
 - `--subject`: the subject's `[[subjects]] folder`.
 - `--exam`: the exam's date. Without it, the subject's next exam in the agenda, today included.
-  Spec 007, not built yet, lets it prepare with no announcement or date when `--topic` is given, and adds `--undated`
-  ([contract](../../007-family-declared-exams/contracts/cli.md)).
+- `--undated`: an exam with no known date, whatever the agenda holds. It needs `--topic` and excludes `--exam`
+  (spec 007 FR-025). With no announcement and a `--topic`, the command also proceeds with no agenda entry or
+  date ([its contract](../../007-family-declared-exams/contracts/cli.md)); `exam_date` is then `null`, and `announced` says
+  whether an announcement backed the sheets.
 - `--slot`: the study slot. Its length sets the theory sheet's pages, four per 90 minutes rounded
   up (measured once, 2026-10-28), and its clock times go into the plan. Without it, 90 minutes and
   a plan in minutes from the start.
-- `--topic`: the exam's topic folder, or once per subtopic when the exam covers several subtopics
+- `--topic`: the exam's topic folder, or once per topic of any kind when no announcement backs the exam (spec 007), or once per subtopic when the exam covers several subtopics
   of a textbook topic (FR-045): each gets its own two sheets from its own notebook, an equal part of
   the slot, and the announcement's points its blocks cover. Without it, the subject's most recent
   topic folder (FR-023), named on stderr; when that folder is a subtopic, the command refuses with
@@ -42,7 +44,7 @@ that fails does not stop the other.
    `data/state.json` records for the item the exam was detected in (the entry's `origin`). An exam
    with no announcement, including one
    spec 001 detected in a material or an assignment (its FR-020b), is `no_announcement`. Both are
-   code 1.
+   code 1, and both give way when the family names the topics with `--topic` (spec 007 FR-025).
 4. Finds each topic (every `--topic`, or the most recent one, `subtopics_unnamed` when that is a
    subtopic) and its notebook, by
    `notebook.title_pattern`. No notebook is `no_notebook`, code 1.

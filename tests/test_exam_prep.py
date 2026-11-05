@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import re
 import subprocess
@@ -135,10 +136,11 @@ class FakeLiving:
     folder: str = f"20260915 - {TOPIC}"
     reason: str = "drive_failed"
     asked: list[str] = field(default_factory=lambda: [])
+    also: tuple[str, ...] = ()  # another whole topic of the exam
 
     def living_notes(self, subject: str, folder: str) -> LivingNotes | None:
         self.asked.append(folder)
-        assert subject == "FyQ" and folder in (self.folder, *SUBTOPICS)
+        assert subject == "FyQ" and folder in (self.folder, *SUBTOPICS, *self.also)
         if self.fails:
             raise LivingNotesError(self.reason)
         return self.found
@@ -203,6 +205,7 @@ class World:
         parser.add_argument("--student")
         parser.add_argument("--subject")
         parser.add_argument("--exam", type=dt.date.fromisoformat)
+        parser.add_argument("--undated", action="store_true")
         parser.add_argument("--slot")
         parser.add_argument("--topic", action="append")
         args = parser.parse_args(["--student", STUDENT, "--subject", "FyQ", *extra])
@@ -347,6 +350,7 @@ def test_both_sheets_are_asked_titled_and_printed_into_exam(world: World, capsys
     assert result == {
         "ok": True,
         "exam_date": EXAM_DAY,
+        "announced": True,
         "topics": [
             {
                 "topic": 0,
@@ -1094,3 +1098,218 @@ def test_topics_that_are_not_distinct_subtopics_of_one_topic_are_refused(
 def test_a_topic_in_another_case_is_not_a_folder_of_the_subject(world: World, capsys: pytest.CaptureFixture[str]):
     assert world.run("--topic", f"20260915 - {TOPIC}".upper()) == 1
     assert output(capsys)[0] == {"ok": False, "reason": "no_topic"}
+
+
+# --- an exam with no announcement, no agenda entry or no date (spec 007 US5, FR-025 to FR-029) -------
+
+
+WHOLE = f"20260915 - {TOPIC}"
+UNANNOUNCED = "Sin anuncio del profesor"
+BLOQUES = """# Bloques
+
+## Bloque 1
+
+Texto.
+
+### Correcciones a los apuntes
+
+- Pág. 2: los apuntes dicen X; el libro dice Y.
+  Lección 3, línea 4.
+
+#### Un apartado dentro
+
+- Pág. 5: los apuntes dicen Z; el libro dice W.
+
+### Preguntas sobre los apuntes
+
+- Pág. 7: no coinciden Q y R.
+"""
+
+
+def theory_and_problems(world: World) -> tuple[str, str]:
+    asked = world.nlm.asked("report", "create")
+    assert len(asked) == 2
+    theory, problems = (argv[argv.index("--prompt") + 1] for argv in asked)
+    return theory, problems
+
+
+def printed(world: World) -> list[str]:
+    return sorted(p.name for p in (world.topic / "exam").iterdir())
+
+
+def test_the_announced_texts_are_as_they_were():
+    # SC-008. Changing an announced text on purpose changes its hash here, in that change.
+    hashes = {
+        prompts.THEORY: "3ebce803a9299b5e8b78c75ac6d9b2aecbf7f6ec14bf56a4d0fb4cfda95021f6",
+        prompts.PROBLEMS: "54a6e96733d1a98bad491981558c7324b6a0b0dd34ce66b79461b7b468336ac1",
+        prompts.START_NOTE: "c42279fab6ff05e773fd0bfe185c2a7cdbf398c0dde6aa704626fceb3659cd65",
+    }
+    for heading, expected in hashes.items():
+        assert hashlib.sha256(prompts.template(heading).encode()).hexdigest() == expected, heading
+
+
+def test_the_texts_with_no_announcement_are_in_prompts_md_and_quote_none():
+    for heading in (prompts.THEORY_OPEN, prompts.PROBLEMS_OPEN, prompts.START_NOTE_OPEN):
+        names = set(re.findall(r"\{(\w+)\}", prompts.template(heading)))
+        assert not names & {"scope", "scope_date", "exam_day"}, heading
+        assert "exam_name" in names, heading
+    assert "mañana" not in prompts.template(prompts.THEORY_OPEN)
+    assert "mañana" not in prompts.template(prompts.PROBLEMS_OPEN)
+    assert "Hoy" not in prompts.template(prompts.START_NOTE_OPEN)
+
+
+def test_the_problems_text_with_no_announcement_ends_as_the_announced_one():
+    tail = prompts.template(prompts.PROBLEMS)[prompts.template(prompts.PROBLEMS).index("Usa solo los problemas") :]
+    assert prompts.template(prompts.PROBLEMS_OPEN).endswith(f"{tail} {{notes_corrections}}")
+
+
+def test_no_agenda_exam_a_date_and_a_topic_print_under_that_date(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [])
+    agenda = (world.base / "2026-2027" / "agenda.json").read_bytes()
+    assert world.run("--exam", "2026-11-06", "--topic", WHOLE) == 0
+    result, err = output(capsys)
+    assert result["ok"] is True and result["exam_date"] == "2026-11-06" and result["announced"] is False
+    assert printed(world) == ["Problemas tipo · T01 (6 nov).pdf", "Teoría para el examen · T01 (6 nov).pdf"]
+    theory, problems = theory_and_problems(world)
+    for prompt in (theory, problems):
+        assert not re.search(r"\{\w+\}", prompt)
+        assert f"{UNANNOUNCED}: esta hoja cubre todo «{TOPIC}» y el alcance no está confirmado." in prompt
+        assert "Examen del viernes 6 de noviembre" in prompt
+        assert "Correcciones ya comprobadas" not in prompt
+    assert "no dejes fuera ninguna parte del tema." in theory
+    assert "no announcement backs" in err
+    assert (world.base / "2026-2027" / "agenda.json").read_bytes() == agenda  # SC-009
+
+
+def test_no_date_and_a_topic_print_sin_fecha(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [])
+    assert world.run("--topic", WHOLE) == 0
+    result, _ = output(capsys)
+    assert result["exam_date"] is None and result["announced"] is False
+    assert printed(world) == ["Problemas tipo · T01 (sin fecha).pdf", "Teoría para el examen · T01 (sin fecha).pdf"]
+    for prompt in theory_and_problems(world):
+        assert "Examen sin fecha" in prompt
+    renames = [c[3:5] for c in world.nlm.asked("studio", "rename")]
+    assert renames == [
+        ["art-2", f"EXAMEN sin fecha 2 · Problemas tipo · {TOPIC}"],
+        ["art-1", f"EXAMEN sin fecha 1 · Teoría para el examen · {TOPIC}"],
+    ]
+    assert world.nlm.notes[0]["title"] == "EXAMEN sin fecha · Empieza aquí"
+    note = world.nlm.asked("note", "create")[0]
+    assert "Para este examen (Examen sin fecha):" in note[note.index("--content") + 1]
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    pieces = pack["topics"][f"2026-2027/FyQ/{WHOLE}"]["pieces"]
+    assert {p["moment"] for p in pieces} == {"EXAMEN sin fecha"} and {p["exam"] for p in pieces} == {None}
+
+
+def test_a_second_undated_run_replaces_the_files_and_numbers_after_the_first(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    write_agenda(world, [])
+    assert world.run("--topic", WHOLE) == 0
+    capsys.readouterr()
+    assert world.run("--topic", WHOLE) == 0
+    assert len(printed(world)) == 2
+    titles = [c[4] for c in world.nlm.asked("studio", "rename")]
+    assert titles[-1].startswith("EXAMEN sin fecha 3 · Teoría") and titles[-2].startswith(
+        "EXAMEN sin fecha 4 · Problemas"
+    )
+
+
+def test_a_named_topic_takes_the_date_of_an_agenda_exam_with_no_announcement(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    write_agenda(world, [entry("declared-1", "exam", EXAM_DAY, classroom_link="", declared=True)])
+    assert world.run("--topic", WHOLE) == 0
+    result, _ = output(capsys)
+    assert result["exam_date"] == EXAM_DAY and result["announced"] is False
+    assert printed(world) == ["Problemas tipo · T01 (5 nov).pdf", "Teoría para el examen · T01 (5 nov).pdf"]
+
+
+def test_a_captured_announcement_sets_the_scope_also_with_a_topic(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run("--topic", WHOLE) == 0
+    result, _ = output(capsys)
+    assert result["announced"] is True
+    theory, _ = theory_and_problems(world)
+    assert SCOPE in theory and UNANNOUNCED not in theory
+
+
+def test_with_no_topic_the_refusals_say_to_name_it_and_ask_nothing(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [entry("declared-1", "exam", EXAM_DAY)])
+    assert "--topic" in refused(world, capsys, 1, "no_announcement")
+    write_agenda(world, [])
+    assert "--topic" in refused(world, capsys, 1, "no_exam")
+    assert "--topic" in refused(world, capsys, 1, "no_exam", "--exam", "2026-11-06")
+    assert world.nlm.asked("report", "create") == []
+
+
+def test_undated_ignores_the_agenda_and_its_announcement(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run("--undated", "--topic", WHOLE) == 0
+    result, _ = output(capsys)
+    assert result["exam_date"] is None and result["announced"] is False
+    assert printed(world) == ["Problemas tipo · T01 (sin fecha).pdf", "Teoría para el examen · T01 (sin fecha).pdf"]
+    theory, _ = theory_and_problems(world)
+    assert SCOPE not in theory and UNANNOUNCED in theory
+
+
+def test_undated_needs_a_topic_and_excludes_a_date(world: World, capsys: pytest.CaptureFixture[str]):
+    assert "--topic" in refused(world, capsys, 1, "no_topic", "--undated")
+    with pytest.raises(SystemExit):
+        cli_main.build_parser().parse_args(
+            ["exam", "build", "--student", STUDENT, "--subject", "FyQ", "--undated", "--exam", EXAM_DAY]
+        )
+
+
+def test_with_no_announcement_two_whole_topics_share_the_slot(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [])
+    other = "20261101 - Tema 02 - Otra materia"
+    (world.topic.parent / other).mkdir()
+    world.living.also = (other,)
+    world.nlm.notebooks.append({"id": "nb-2", "title": "3º ESO. FyQ. Tema 02 - Otra materia"})
+    assert world.run("--slot", "17:00-18:30", "--topic", WHOLE, "--topic", other) == 0
+    result, _ = output(capsys)
+    assert [t["slot_minutes"] for t in result["topics"]] == [45, 45]
+    asked = world.nlm.asked("report", "create")
+    assert [a[3] for a in asked] == ["nb-1", "nb-1", "nb-2", "nb-2"]
+    first, second = (asked[i][asked[i].index("--prompt") + 1] for i in (0, 2))
+    assert f"este cuaderno solo tiene «{TOPIC}» (parte 1 de 2): cubre solo ese tema" in first
+    assert "(parte 2 de 2)" in second and "En otro subtema" not in second
+    assert sorted(p.name for p in (world.topic.parent / other / "exam").iterdir()) == [
+        "Problemas tipo · T02 (sin fecha).pdf",
+        "Teoría para el examen · T02 (sin fecha).pdf",
+    ]
+
+
+def test_the_corrections_of_bloques_reach_both_prompts(world: World, capsys: pytest.CaptureFixture[str]):
+    write_agenda(world, [])
+    (world.topic / "notebook").mkdir(parents=True)
+    (world.topic / "notebook" / "bloques.md").write_text(BLOQUES)
+    assert world.run("--topic", WHOLE) == 0
+    for prompt in theory_and_problems(world):
+        assert "que prevalecen sobre lo anterior" in prompt
+        # A deeper heading and an entry's second line stay in the section; the next section does not.
+        assert "Pág. 2: los apuntes dicen X; el libro dice Y." in prompt and "Lección 3, línea 4." in prompt
+        assert "Pág. 5: los apuntes dicen Z" in prompt
+        assert "Pág. 7" not in prompt and "Preguntas sobre" not in prompt
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["# Bloques\n\n### Correcciones a los apuntes\n\n## Otro\n", "**Correcciones a los apuntes**\n\n- Pág. 2: algo\n"],
+)
+def test_corrections_that_cannot_be_read_warn_and_stay_out(world: World, capsys: pytest.CaptureFixture[str], text: str):
+    write_agenda(world, [])
+    (world.topic / "notebook").mkdir(parents=True)
+    (world.topic / "notebook" / "bloques.md").write_text(text)
+    assert world.run("--topic", WHOLE) == 0
+    assert "Correcciones a los apuntes" in output(capsys)[1]
+    for prompt in theory_and_problems(world):
+        assert "Correcciones ya comprobadas" not in prompt
+
+
+def test_an_announced_exam_does_not_read_bloques(world: World, capsys: pytest.CaptureFixture[str]):
+    (world.topic / "notebook").mkdir(parents=True)
+    (world.topic / "notebook" / "bloques.md").write_text(BLOQUES)
+    assert world.run() == 0
+    for prompt in theory_and_problems(world):
+        assert "Pág. 2" not in prompt

@@ -7,7 +7,7 @@ sheet that fails does not stop the other.
 
 The agenda is spec 001's `agenda.json`, read by its schema. An exam's announcement is the note spec
 001 wrote for the item the exam was detected in, found through that item's `announcement` replica in
-`data/state.json`; any other exam has none. The pack record (FR-024) is `study-pack.json` in the
+`data/state.json`; any other exam has none, and the family then names its topics (spec 007 FR-025). The pack record (FR-024) is `study-pack.json` in the
 student's data folder, keyed by the topic's path under the base folder; the refresh record is spec
 005's `notebook-refresh.json` beside it.
 """
@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.exam.nlm import NlmError
-from alfabeta.exam.prompts import short_day, weekday
+from alfabeta.exam.prompts import NO_DATE, short_day, weekday
 from alfabeta.notes.refresh import LocalRefreshStore
 from alfabeta.notes.run import topic_name
 from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC, book_topic_number, subtopic_letter
@@ -38,6 +38,8 @@ if TYPE_CHECKING:
 
 EXIT_OK, EXIT_INVALID, EXIT_PARTIAL, EXIT_NLM = 0, 1, 3, 5
 EXAM_FOLDER = "exam"
+BLOCKS_FILE = ("notebook", "bloques.md")  # written by the study-pack skill
+CORRECTIONS_HEADING = "Correcciones a los apuntes"  # spec 002 FR-046
 START_TITLE = "Empieza aquí"  # after the moment: piece 0 is the pack's plan (FR-015)
 SOLUTIONS = "Soluciones"
 PACK_RECORD = "study-pack.json"
@@ -49,6 +51,7 @@ POLL_SECONDS = 30
 WAIT_SECONDS = 30 * 60
 COMPLETED, FAILED = "completed", "failed"
 
+_HEADING = re.compile(r"^(#{1,6})\s")
 _DATED = re.compile(r"^(\d{8}) - (.+)$")
 _SLOT = re.compile(r"^(\d{2}):(\d{2})-(\d{2}):(\d{2})$")
 _TOPIC_NUMBER = re.compile(r"\bTema (\d{2}[A-Z]?)\b")
@@ -102,7 +105,7 @@ class Slot:
             return [self]
         if self.minutes < MIN_PART_MINUTES * parts:
             raise Refusal(
-                "invalid_slot", f"the slot gives each subtopic less than {MIN_PART_MINUTES} minutes; give a longer one"
+                "invalid_slot", f"the slot gives each topic less than {MIN_PART_MINUTES} minutes; give a longer one"
             )
         size = self.minutes // parts
         lengths = [size] * (parts - 1) + [self.minutes - size * (parts - 1)]
@@ -130,11 +133,11 @@ class Slot:
 
 @dataclass(frozen=True)
 class Exam:
-    """The exam and its announcement: the scope of both sheets (FR-030)."""
+    """The exam and its announcement, the scope of both sheets (FR-030); spec 007 FR-025 allows neither."""
 
-    day: dt.date
-    announcement: str
-    announced: dt.date
+    day: dt.date | None
+    announcement: str | None = None
+    announced: dt.date | None = None
 
 
 def _day(value: object) -> dt.date | None:
@@ -174,8 +177,26 @@ def _records(path: Path, reason: str) -> dict[str, Any]:
     return cast("dict[str, Any]", read)
 
 
-def find_exam(agenda: Path, state: Path, base: Path, subject: str, wanted: dt.date | None, today: dt.date) -> Exam:
-    """The subject's exam on `wanted`, or its next one from today on, with its announcement (step 3)."""
+def find_exam(
+    agenda: Path,
+    state: Path,
+    base: Path,
+    subject: str,
+    wanted: dt.date | None,
+    today: dt.date,
+    *,
+    topics_named: bool = False,
+    undated: bool = False,
+) -> Exam:
+    """The subject's exam on `wanted`, or its next one from today on, with its announcement (step 3).
+
+    With no announcement the family's naming the topics is the scope (spec 007 FR-025), and the exam may
+    have no agenda entry and no day. `undated` looks at nothing: the agenda's exams are another exam.
+    """
+    if undated:
+        if not topics_named:
+            raise Refusal("no_topic", "--undated needs the exam's topics: name each with --topic")
+        return Exam(None)
     listed: object = _records(agenda, "unreadable_agenda").get("entries", [])
     rows = cast("list[object]", listed) if isinstance(listed, list) else []
     entries = [cast("dict[str, Any]", e) for e in rows if isinstance(e, dict)]
@@ -186,25 +207,66 @@ def find_exam(agenda: Path, state: Path, base: Path, subject: str, wanted: dt.da
     ]
     on = wanted or min((day for day, _ in exams if day >= today), default=None)
     found = [e for day, e in exams if day == on]
-    if on is None or not found:
-        raise Refusal("no_exam", "the agenda holds no exam of the subject on that day, or none to come")
-    records = _records(state, "unreadable_state")
-    for entry in found:
-        announced = _announcement(records, base, entry)
-        if announced is not None:
-            return Exam(on, *announced)
+    if found:
+        records = _records(state, "unreadable_state")
+        for entry in found:
+            announced = _announcement(records, base, entry)
+            if announced is not None:
+                return Exam(on, *announced)
+    if topics_named:
+        return Exam(on)
+    if not found:
+        raise Refusal(
+            "no_exam",
+            "the agenda holds no exam of the subject on that day, or none to come; nothing was asked."
+            " To prepare it anyway, name its topics with --topic",
+        )
     raise Refusal(
         "no_announcement",
         "the exam has no captured announcement (one announced in class, or detected in a material or an"
-        " assignment, has none); nothing was asked",
+        " assignment, has none); nothing was asked. To prepare it anyway, name its topics with --topic",
     )
 
 
-def topic_folders(subject_dir: Path, wanted: list[str] | None) -> list[Path]:
+def notes_corrections(topic: Path) -> list[str]:
+    """The lines under «Correcciones a los apuntes» in the topic's `bloques.md` (spec 007 FR-027).
+
+    The section is the heading holding those words, at any level, up to the next heading of the same or
+    a higher level. A section with no lines, or those words outside a heading, warns: a checked
+    correction must not silently miss the sheet. No line is printed, only that it happened.
+    """
+    path = topic.joinpath(*BLOCKS_FILE)
+    try:
+        text = path.read_text()
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeError):
+        _say(f"{BLOCKS_FILE[-1]} could not be read: its «{CORRECTIONS_HEADING}» do not reach the sheets")
+        return []
+    lines: list[str] = []
+    level = 0
+    found = False
+    for line in text.splitlines():
+        heading = _HEADING.match(line)
+        if found and heading and len(heading.group(1)) <= level:
+            break
+        if not found and heading and CORRECTIONS_HEADING in line:
+            found, level = True, len(heading.group(1))
+        elif found and line.strip() and not heading:
+            lines.append(line.strip())
+    if not lines and CORRECTIONS_HEADING in text:
+        _say(
+            f"{BLOCKS_FILE[-1]} names «{CORRECTIONS_HEADING}» but no line was read under a heading; none reach the sheets"
+        )
+    return lines
+
+
+def topic_folders(subject_dir: Path, wanted: list[str] | None, *, any_kind: bool = False) -> list[Path]:
     """Every `--topic` in its order, or the subject's most recent topic when that is not a subtopic (step 4).
 
     An exam over several subtopics names each with its own `--topic` (FR-045): the announcement does
     not say which subtopics it covers, so the most recent one alone is never assumed to be all of it.
+    With no announcement (`any_kind`), several topics of any kind may be named (spec 007 FR-025).
     """
     if not wanted:
         folder = topic_folder(subject_dir, None)
@@ -220,10 +282,12 @@ def topic_folders(subject_dir: Path, wanted: list[str] | None) -> list[Path]:
     if len(folders) > 1:
         names = [topic_name(f.name) for f in folders]
         numbers = {book_topic_number(n) for n in names}
-        if not all(subtopic_letter(n) for n in names) or len(numbers) != 1:
+        subtopics = all(subtopic_letter(n) for n in names) and len(numbers) == 1
+        if not subtopics and not any_kind:
             raise Refusal("no_topic", "several --topic must be subtopics of one textbook topic (Tema NNA, Tema NNB…)")
-        # In the subtopics' order, whatever order --topic gave them in (FR-045).
-        folders.sort(key=lambda f: subtopic_letter(topic_name(f.name)))
+        if subtopics:
+            # In the subtopics' order, whatever order --topic gave them in (FR-045).
+            folders.sort(key=lambda f: subtopic_letter(topic_name(f.name)))
     return folders
 
 
@@ -468,7 +532,7 @@ class ExamPrep:
 
     def _title(self, done: dict[str, str], pack: dict[str, Any]) -> dict[str, str]:
         """Step 7: titles from the last piece to the first, the start note last, the pack record."""
-        moment = f"EXAMEN {weekday(self.exam.day)}"
+        moment = f"EXAMEN {weekday(self.exam.day) if self.exam.day else NO_DATE}"
         try:
             first = self._number(self.deps.notebook.artifacts(self.notebook), moment, set(done.values()))
         except NlmError:
@@ -503,7 +567,7 @@ class ExamPrep:
                 "title": titles[s.kind],
                 "language": "es",
                 "verification": "pages_only",  # FR-009: nothing else of an exam sheet is checked
-                "exam": self.exam.day.isoformat(),
+                "exam": self.exam.day.isoformat() if self.exam.day else None,
                 "made": self.deps.now().date().isoformat(),
             }
             for s in self.sheets
@@ -518,7 +582,7 @@ class ExamPrep:
             return pages
         exam_dir = self.folder / EXAM_FOLDER
         exam_dir.mkdir(exist_ok=True)
-        day = f" ({short_day(self.exam.day)}).pdf"
+        day = f" ({short_day(self.exam.day) if self.exam.day else NO_DATE}).pdf"
         for sheet in self.sheets:
             if sheet.kind not in done:
                 continue
@@ -556,7 +620,7 @@ class ExamPrep:
         if (pages.get(theory) or 0) > self.slot.pages:
             _say(f"the theory sheet has {pages[theory]} pages; the slot allows {self.slot.pages}. It was printed.")
         return {
-            "exam_date": self.exam.day.isoformat(),
+            "exam_date": self.exam.day.isoformat() if self.exam.day else None,
             "guide_regenerated": regenerated,
             "slot_minutes": self.slot.minutes,
             "pages_allowed": self.slot.pages,

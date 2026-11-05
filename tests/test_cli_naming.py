@@ -128,7 +128,6 @@ PLANNED: dict[tuple[str, ...], str] = {
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {
     ("google", "account", "link"): {"--client-file", "--print-token", "--scopes"},  # spec 005 T025
-    ("exam", "build"): {"--undated"},  # spec 007 FR-025
 }
 SECRET_FLAG = re.compile(r"^--(token|password|secret|api-key|client-secret|key|refresh-token)$")
 KEBAB = re.compile(r"^[a-z]+(-[a-z]+)*$")

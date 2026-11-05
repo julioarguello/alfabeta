@@ -202,7 +202,7 @@ Spec 002, User Story 7 (FR-029 to FR-037), and its [command contract](../../spec
 From julioarguello/alfabeta#106 on, alfabeta makes both sheets by itself, with no Claude:
 
 ```bash
-uv run --project <tools.repository> python -m alfabeta exam build --student <student> --subject <folder> [--exam YYYY-MM-DD] [--slot HH:MM-HH:MM] [--topic <folder>]...
+uv run --project <tools.repository> python -m alfabeta exam build --student <student> --subject <folder> [--exam YYYY-MM-DD | --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...
 ```
 
 An exam over several subtopics of a textbook topic (`Tema NNA`, `Tema NNB`…) takes one `--topic`
@@ -219,8 +219,18 @@ and `… <n+1> · Problemas tipo · …`, numbered after the pieces the moment a
 its start note `EXAMEN <weekday> · Empieza aquí` last, and prints them into the topic's `exam/` folder (no date in its name) as
 `exam/Teoría para el examen · TNN[X] (<D> <mmm>).pdf` and
 `exam/Problemas tipo · TNN[X] (<D> <mmm>).pdf`. It refuses, saying why, when notebooks are off
-(`notebook.enabled = false`), `nlm` is signed out or failing, or the exam, its announcement or the
-notebook is missing. The notebook computes every number on both sheets: an accepted risk, and the
+(`notebook.enabled = false`), `nlm` is signed out or failing, or the
+notebook is missing; or, when no `--topic` was named, the exam or its announcement is.
+
+An exam the teacher never announced (spec 007 User Story 5): ask the family which topics it covers and
+name each with `--topic`, adding `--exam` if they know the date and it is not in the agenda. With no date
+known and another exam of the subject to come, `--undated` says it is not that one. Each named topic gets its
+two sheets and an equal part of the slot, with the prompts «… for an exam with no announcement». The sheets cover
+the whole of those topics and say no announcement backs them; with no date, the files and the sheets say
+`sin fecha`. It takes a topic's corrections from «Correcciones a los apuntes» in `notebook/bloques.md`
+by itself, so keep one entry per line under that heading, and when the family decides a question against the
+notes, move its line there, with the answer (spec 002 FR-046). Tell the family to read the sheet's last part,
+«Para la familia». The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036).
 
 To remake one sheet without the command, the family can ask for the same report by hand, with
