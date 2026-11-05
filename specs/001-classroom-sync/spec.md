@@ -10,8 +10,9 @@
 browser (User Story 7, julioarguello/alfabeta#2): a token route (primary) or a scripted web sign-in
 (fallback), using a vault; constitution 2.0.0 (principle III redefined).
 
-**Amended**: 2026-11-05 — what the family adds to a task: the statement it lacks and its solutions
-(User Story 8, julioarguello/alfabeta#184).
+**Amended**: 2026-11-05 — what completes or corrects Classroom's material, its `patches/` subfolder and a
+task lacking its statement are spec 008 (julioarguello/alfabeta#184). Classroom's replicas stay as this spec
+says. FR-039 to FR-044, briefly used for the same, are free.
 
 **Input**: User description (translated from Spanish): "alfabeta epic 1: classroom-sync + folder structure + per-student configuration. Problem: a secondary-school student's study material is spread between Google Classroom (materials, assignment attachments, links, announcements and assignments with dates, organised by each teacher into topics inside «Trabajo de clase» (Classwork)) and the digital textbook (Science Bits). Nothing is where the student studies, and the family cannot see at a glance what is pending. (1) Per-student configuration: template in the repo → private configuration outside the repo → data and secrets in a local data folder and the keychain; a second student only needs another configuration; a guardrail that prevents pushing real data. (2) Access path: the desktop app's built-in browser, read-only, with the student's session; the API is ruled out. (3) Rules: read-only on Classroom, the minor's data kept to the minimum, no tool types credentials." Operator's change of approach (2026-10-25): "We do not sync Classroom, we sync the subject's content: first level the school year, then the subject and then topic or month; inside, `classroom` or `sciencebits`, and the Classroom file name includes the date. The scraper walks Classroom; what I care about most is reminders of what is pending, and that the problems and exercises they keep assigning get downloaded and placed in the right spot of the Drive. I want a replica of the document the teacher posts in our Drive, to combine it with the books we download (Science Bits for now) and have it all go to the notebook together. We do it with the family Drive; the student has a personal Gmail account."
 
@@ -34,15 +35,6 @@ providers other than Science Bits. Reading Classroom with nobody present is in (
 replaces the local MCP design of julioarguello/alfabeta#2.
 
 ## Clarifications
-
-### Session 2026-11-05
-
-- Q: How is a statement Classroom does not carry recognised? → A: By the family's own test: the task
-  sends the student to a book («do 21 to 24 of page 61») and attaches no image of those exercises.
-- Q: May what the family hands over sit with the teacher's material? → A: Beside it, in the same
-  task, and always told apart. The teacher's replicas stay exactly as Classroom gives them.
-- Q: Statement and solutions arrive in different files. What does the student get? → A: One document
-  per task, each exercise followed by its solution, each part saying where it came from.
 
 ### Session 2026-10-25
 
@@ -499,48 +491,6 @@ test.
    operator's Mac or Chrome, Claude runs no sign-in and types no credential, and the vault holds
    only the minimum for the route in force (a token, or the password and its second-factor seed).
 
-### User Story 8 - What the family adds to a task: the statement it lacks and its solutions (Priority: P2)
-
-A task may send the student to the book and attach nothing, and the solutions may reach the family
-in another file, or not at all. The family holds what is missing: photos of the book's pages, a PDF
-of solutions. alfabeta says which tasks lack their statement, keeps what the family hands over beside
-the task it completes, and joins statement and solution in one document, so the student sits down
-with everything for that task in one place.
-
-**Why this priority**: a student who has to read a statement cannot study from a task that only
-names a page. It waits behind the replica itself (User Story 1), which it completes.
-
-**Independent Test**: with an invented task that cites a book page and has no attachment, and another
-with a sheet of statements, sync and check that the first is reported as lacking its statement and
-the second is not. Hand over an invented photo for the first and an invented solutions file for the
-second, and check that each lands beside its task, that the teacher's replicas did not change, that
-one document per task holds each exercise with its solution and the source of each, and that a second
-`classroom apply` changes nothing.
-
-**Acceptance Scenarios**:
-
-1. **Given** a task whose text cites book exercises and which has no attachment showing them, **When**
-   it is synced, **Then** the report lists it with its link and the exercises it cites, as lacking its
-   statement.
-2. **Given** a task citing the book and attaching the page, or one with no book reference, **When** it
-   is synced, **Then** it is not listed.
-3. **Given** the family hands over a photo of the cited page, **When** it is matched to the task,
-   **Then** it sits in that task's `family/` subfolder, the task stops being listed, and the
-   teacher's replicas are unchanged.
-4. **Given** statements and solutions in different files, **When** the task's document is built,
-   **Then** each exercise appears followed by its solution, each part naming its source: teacher,
-   family, or calculated.
-5. **Given** a solution that does not match its recalculation, **When** the document is built, **Then**
-   it shows both and says so; it never corrects one silently.
-6. **Given** an exercise the family's file does not cover, **When** the document is built, **Then** it
-   appears with «sin solución» or a calculated solution marked as such, and is never left out in
-   silence.
-7. **Given** the teacher later attaches the statement or changes the task, **When** it is synced,
-   **Then** the replica is placed as usual, the family's files stay, and the report says the task's
-   document should be built again.
-
----
-
 ### Edge Cases
 
 - A Classroom class that matches no configured subject: it is not synced, and the
@@ -594,16 +544,6 @@ one document per task holds each exercise with its solution and the source of ea
   reads it as is; a section header or a «Ver todo» it cannot find by its label is `unexpected_ui`.
 - A run whose job platform kills it at its time limit: the next run finds the lease idle and
   writes the dead run's `stopped` line, as on the Mac (FR-030).
-
-- A family's photo that also shows people, or anything other than the exercises: only its exercises
-  reach the task's document, and the original stays private to the family's folders (FR-043).
-- A photo whose page number cannot be read, or where digits are unsure: it is matched by its
-  exercises' content when that is possible, and an unsure reading is marked `[?]`, never guessed
-  (FR-041).
-- A file that solves several tasks: each exercise goes to the task that sets it; exercises no task
-  sets stay available for practice and are told apart from what was set (FR-041).
-- A book reference in a sentence that sets no work («the book explains this on page 40»): judging it
-  is Claude's, as with an exam candidate; a wrong listing costs the family one look (FR-039).
 
 ## Requirements *(mandatory)*
 
@@ -1122,29 +1062,6 @@ Example of the resulting structure (invented names):
   no such guard: read-only is the scope
   it requests (FR-032a).
 
-**What the family adds to a task (User Story 8)**
-
-- **FR-039**: A task whose text cites book exercises and which has no attachment showing them MUST be
-  reported as lacking its statement, with its link and the exercises it cites. A reference inside an
-  attachment's text is out of this test. The report stops listing the task once the family's file or
-  the teacher's attachment covers those exercises.
-- **FR-040**: What the family hands over for a task MUST be kept in a `family/` subfolder of that
-  task's folder, beside `submission/`. `classroom apply` MUST NOT move, overwrite, quarantine or count
-  those files, and each mirror (FR-011a) MUST carry them.
-- **FR-041**: Matching a family's file to a task is proposed and recorded like any other decision;
-  each exercise goes to the task that sets it, and what no task sets is kept as practice, told apart
-  from what was set. An unsure reading of a photo MUST be marked `[?]`.
-- **FR-042**: Each task with family material MUST get one document joining, per exercise, its statement
-  and its solution, with the teacher's words for what was set. Each part names its source: teacher,
-  family, or calculated. A solution MUST be recomputed where it is a calculation; a difference MUST
-  show both values, and an exercise with no solution MUST say so.
-- **FR-043**: A family's files are the student's personal data: they MUST stay out of the repository,
-  logs and issues (FR-031). The document MUST carry only the exercises, never whatever else a photo
-  shows.
-- **FR-044**: Family material MUST NOT change what alfabeta reports as Classroom's: no date, status or
-  exam in the agenda or the calendar comes from it, the teacher's replicas keep their sources, and
-  nothing is written to Classroom (FR-007).
-
 ### Key Entities *(include if feature involves data)*
 
 - **Student**: a *tenant*. Their private configuration (display name, school year, master folder in
@@ -1179,10 +1096,6 @@ Example of the resulting structure (invented names):
 - **Data home**: where a student's state, decisions, log, captures and lease live; one per student,
   on the Mac (`~/.alfabeta/<student>/data/`) or, with the runner enabled, in a state folder inside
   the alfabeta folder of the student's Drive (FR-035).
-
-- **Family material**: a file the family hands over to complete a task (a statement, solutions, or
-  both), kept in the task's `family/` subfolder, with the decision that matched it. Not a replica:
-  Classroom is never its source.
 
 ## Success Criteria *(mandatory)*
 
@@ -1239,13 +1152,6 @@ Example of the resulting structure (invented names):
   minimum for the route in force (a token, or the stored session with the password and its
   second-factor seed) plus the Drive-write token (FR-033a), checked in the tests and in a review of
   what the runner stores.
-
-- **SC-016**: Every task in a fixture that cites book exercises with no attachment showing them is
-  listed, and no task that shows them is; a real run's listing is checked against the family's own
-  count of such tasks.
-- **SC-017**: In a task's document, every exercise set has its statement or says it lacks one, every
-  calculated solution has been recomputed, and a second `classroom apply` reports 0 added and 0
-  changed with the family's files in place.
 
 ## Assumptions
 
