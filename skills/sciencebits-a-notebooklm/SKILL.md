@@ -48,7 +48,8 @@ Renew it with `alfabeta lock renew` on every poll of the capture, between the bu
 someone to sign in, and before each source `nlm` uploads: after `sync.lock_idle_minutes` without a renewal it is
 released and the run stops as `idle`. Release it with `alfabeta lock release` at the end. A run that stops before
 placing a unit (the session expired and nobody signs in again, a challenge page, an interface the steps do not
-describe, a timeout) stops the collector, closes the run's tab, keeps what earlier units placed, and ends with
+describe, a timeout) stops the collector, restores the window's size and closes the run's tab (step 10), keeps what
+earlier units placed, and ends with
 `alfabeta log write-stop --reason session_expired|challenge|unexpected_ui|timeout`, which also releases the lock.
 
 ## Tools (in `$H`, copied from `scripts/`)
@@ -117,7 +118,8 @@ nothing, and the collector would then go on copying the next unit's zips.
    `raw/` and `out/`, both empty: move what an earlier attempt left to `$WORK/previous-<YYYYMMDDHHMMSS>/`, never delete
    it, because `book place` copies every file in `out/`. Then, on the classes page of a language that shows the unit,
    run in a single `javascript_tool` call `window.__UNIT={name:'<the unit's title on this page>',langs:[<the languages step 3 found showing it>]};` +
-   the contents of `discover_lessons.js`. It answers per language `lessons`, `hidden`, `assessments` and `unread`,
+   the contents of `discover_lessons.js` (measured 2026-11-05: reading three units in one call took about 15 s; if the
+   call times out, repeat it once, then stop as `unexpected_ui`). It answers per language `lessons`, `hidden`, `assessments` and `unread`,
    and leaves the queue in `window.__SB`, which only that tab holds: from here until the capture ends, do not navigate
    it. A language with no `lessons` is skipped and reported, never forced; `queued: 0` means the unit is left out. Two
    answers mean the page was not read, not that the teacher hid anything, and stop the run as `unexpected_ui`: any
@@ -131,8 +133,9 @@ nothing, and the collector would then go on copying the next unit's zips.
    `caffeinate -i python3 -u $H/watch.py $WORK/raw <downloads.folder> > $WORK/watch.log 2>&1`. If it dies, start it
    again and relaunch the lessons missing from `raw/`: it ignores what was downloaded before it started.
    Bring Chrome to the front again (step 2; `nlm login` in an earlier unit may have opened another window) and keep
-   this tab in front until the capture ends. `resize_window` the tab to width 1280, height 800, and run the contents of
-   `orchestrator.js` with `javascript_tool`.
+   this tab in front until the capture ends. `resize_window` changes the whole window and has no reset, so on the first
+   unit read `[outerWidth, outerHeight]` with `javascript_tool` and keep it for step 10. Then `resize_window` the tab to
+   width 1280, height 800, and run the contents of `orchestrator.js` with `javascript_tool`.
    **Poll back to back**, one `javascript_tool` call at a time, each waiting in the page, with `alfabeta lock renew` in
    a Bash call in the same message and nothing long in between:
    `await new Promise(r=>setTimeout(r,30000)); ({cur:window.__orch.current,done:window.__orch.done,stopped:window.__orch.stopped,n:document.getElementById('__fr')?.contentWindow.__job?.n,res:window.__orch.results.map(r=>r.tag+':'+r.n+(r.err?'!'+r.err:''))})`
@@ -163,8 +166,8 @@ nothing, and the collector would then go on copying the next unit's zips.
    version, brings the mirrors up to date and writes its line in the run log; what it does and refuses is its row in
    the repository's `specs/001-classroom-sync/contracts/cli.md`. From its JSON keep the `topic_folder` (relative to
    `storage.base`; `folder` is the `sciencebits/` inside it), the files it `placed` (step 9 needs them) and `mirrors`
-   (`up_to_date`, `failed`: a mirror that is not mounted or fails is caught up by the next run). If it exits 1, close
-   the run's tab and say what happened; then end with `alfabeta log write-stop --reason drive_not_mounted` (or
+   (`up_to_date`, `failed`: a mirror that is not mounted or fails is caught up by the next run). If it exits 1, restore
+   the window's size, close the run's tab and say what happened; then end with `alfabeta log write-stop --reason drive_not_mounted` (or
    `lock_not_held`) for those two reasons, and with `alfabeta lock release` for the others: `ambiguous_topic` (two
    folders of the subject are topic `Tema NN`: the family merges them, never you), `no_book` (no `[[subjects]]` entry
    with that folder, or it has no book), `invalid_topic`, `no_origin`, `nothing_to_place`, `name_clash` (two files
@@ -216,8 +219,8 @@ nothing, and the collector would then go on copying the next unit's zips.
      with the counts reached so far, and tell the family the topic is in its folder but the notebook step failed.
      What step 8 placed stays as it is.
 10. **Close.** Move every `sb_*.zip` from `downloads.folder` to
-    `<downloads.folder>/alfabeta_work/collected-<YYYYMMDDHHMMSS>/`, never delete them; close the run's tab, `alfabeta lock
-    release`, and summarise per unit: folder, mirrors up to date and failed (by count), notebook link, accounts it is
+    `<downloads.folder>/alfabeta_work/collected-<YYYYMMDDHHMMSS>/`, never delete them; `resize_window` back to the size step 5 kept, close
+    the run's tab, `alfabeta lock release`, and summarise per unit: folder, mirrors up to date and failed (by count), notebook link, accounts it is
     shared with (by count) and any failed invite, whether the link page was left in `notebook/`, screens per language
     and what was left out: per language, the hidden lessons, and the languages and units the teacher does not show.
 
