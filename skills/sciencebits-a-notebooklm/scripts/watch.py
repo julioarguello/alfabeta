@@ -34,7 +34,7 @@ def collect(raw, downloads, since, seen):
             with zipfile.ZipFile(path) as capture:
                 meta = json.loads(capture.read('meta.json'))
             seen[path] = stat.st_size
-            if 'menu' not in meta or not meta.get('items'):
+            if not isinstance(meta, dict) or 'menu' not in meta or not meta.get('items'):
                 continue
             shutil.copyfile(path, os.path.join(raw, 'sb_%s.zip' % meta['tag']))
             collected.append((meta['tag'], len(meta['items'])))

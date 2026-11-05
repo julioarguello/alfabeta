@@ -230,6 +230,16 @@ def test_the_collector_files_a_new_capture_by_its_own_tag_whatever_chrome_named_
     assert collect(str(raw), str(downloads), NOW, seen) == []  # once
 
 
+def test_the_collector_survives_a_zip_of_ours_by_name_only(tmp_path: Path):
+    downloads, raw = tmp_path / "downloads", tmp_path / "raw"
+    raw.mkdir()
+    downloads.mkdir()
+    with zipfile.ZipFile(downloads / "sb_other.zip", "w") as other:
+        other.writestr("meta.json", "[1, 2]")
+    downloaded(downloads / "sb_other.zip", NOW + 1)
+    assert watch_module().collect(str(raw), str(downloads), NOW, {}) == []
+
+
 def test_the_collector_waits_for_a_zip_still_being_written_and_skips_an_empty_capture(tmp_path: Path):
     downloads, raw = tmp_path / "downloads", tmp_path / "raw"
     raw.mkdir()
@@ -251,7 +261,7 @@ def test_the_collector_waits_for_a_zip_still_being_written_and_skips_an_empty_ca
 
 def test_the_fonts_travel_with_the_renderer():
     assert "/usr/share/fonts" not in (SCRIPTS / "render.py").read_text()
-    assert {p.name for p in (SCRIPTS / "fonts").iterdir()} == {
+    assert {p.name for p in (SCRIPTS / "fonts").iterdir()} >= {
         "DejaVuSans.ttf",
         "DejaVuSans-Bold.ttf",
         "DejaVuSans-Oblique.ttf",

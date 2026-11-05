@@ -56,7 +56,7 @@ window.__orch = {done: false, results: [], current: null, stopped: null};
     f.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:800px;z-index:999999;border:0;background:#fff';
     f.src = '/intranet/' + q.lang + '/mylesson/index?sem=' + q.sem + '&code=' + q.code;
     document.body.appendChild(f);
-    for (let i = 0; i < 60; i++) { await sleep(500); try { const h = f.contentWindow.location.href; if (h.includes('/login')) return {tag, err: 'SESSION_EXPIRED'}; if (HIDDEN.test(f.contentDocument.body?.innerText || '')) return {tag, err: 'HIDDEN'}; if (h.includes('refreshed=true') && f.contentDocument.readyState == 'complete' && f.contentDocument.getElementById('root')) break; } catch (e) {} }
+    for (let i = 0; i < 60; i++) { await sleep(500); try { const h = f.contentWindow.location.href; if (h.includes('/login')) return {tag, err: 'SESSION_EXPIRED'}; if (h.includes('refreshed=true') && f.contentDocument.readyState == 'complete' && f.contentDocument.getElementById('root')) break; if (HIDDEN.test(f.contentDocument.body?.innerText || '')) return {tag, err: 'HIDDEN'}; } catch (e) {} }
     await sleep(3000);
     f.contentWindow.__CFG = {tag}; f.contentWindow.eval('(' + jobFn.toString() + ')()');
     let j; for (let i = 0; i < 1200; i++) { await sleep(1000); try { if (f.contentWindow.location.href.includes('/login')) return {tag, err: 'SESSION_EXPIRED'}; } catch (e) {} j = f.contentWindow.__job; if (j && j.done) break; }

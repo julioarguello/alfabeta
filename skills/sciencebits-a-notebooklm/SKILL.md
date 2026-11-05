@@ -36,7 +36,8 @@ someone has to sign in (Science Bits or Google).
 ## alfabeta commands
 Run every `python -m alfabeta` command with the Bash tool, as
 `uv run --project <tools.repository> python -m alfabeta <command> --student <student> …`. Below, `alfabeta <command>`
-is short for that.
+is short for that. The skill needs a Bash tool that runs on the Mac: in a session whose Bash runs in a virtual machine,
+which only sees `downloads.folder`, say so and stop.
 
 **The run's lock.** Before opening Science Bits, `alfabeta lock take --student <student> --mode interactive` (`--mode
 scheduled` when a scheduled task launches this skill); it answers `{"ok": true, "run": "<run>"}`. Every later
@@ -46,8 +47,8 @@ the browser and the downloads folder. If `lock take` answers `lock_busy`, say an
 Renew it with `alfabeta lock renew` on every poll of the capture, between the build steps, while waiting for
 someone to sign in, and before each source `nlm` uploads: after `sync.lock_idle_minutes` without a renewal it is
 released and the run stops as `idle`. Release it with `alfabeta lock release` at the end. A run that stops before
-placing anything (the session expired and nobody signs in again, a challenge page, an interface the steps do not
-describe, a timeout) stops the collector, closes the run's tab, and ends with
+placing a unit (the session expired and nobody signs in again, a challenge page, an interface the steps do not
+describe, a timeout) stops the collector, closes the run's tab, keeps what earlier units placed, and ends with
 `alfabeta log write-stop --reason session_expired|challenge|unexpected_ui|timeout`, which also releases the lock.
 
 ## Tools (in `$H`, copied from `scripts/`)
@@ -85,16 +86,20 @@ the environment.
 ## Steps
 
 Steps 1–3 and 10 run once. Steps 4–9 run once per unit, one unit at a time, each with its own work folder and its
-own collector: `render.py` numbers a unit's lessons from `raw/`, so two units in one `raw/` would be one topic.
+own collector: every unit's lessons are numbered from `L1`, so in one `raw/` a later unit would overwrite an earlier
+one's lessons.
+
+Each tool call is a new shell and the configured paths start with `~`, which double quotes do not expand: write `$H`,
+`$WORK` and every configured path as absolute paths in each command. `pkill -f` with a `~` in its pattern matches
+nothing, and the collector would then go on copying the next unit's zips.
 
 1. **Prepare.** Take the lock (alfabeta commands). `cp -R <tools.repository>/skills/sciencebits-a-notebooklm/scripts/.
    $H/`, so `$H` holds this version of the scripts and their fonts.
 2. **Open Science Bits.** In a new tab of Claude in Chrome, `navigate` to `sciencebits.url`, and bring Chrome to the
-   front with `osascript -e 'tell application "Google Chrome" to activate'`; keep that tab in front until the capture
-   ends. If the login page or "Your session has expired" shows up: ask the family to sign in on that tab, ticking
+   front with `osascript -e 'tell application "Google Chrome" to activate'`. If the login page or "Your session has expired" shows up: ask the family to sign in on that tab, ticking
    "Remember me on this device", with `osascript -e 'display notification "<what is needed>" with title "alfabeta"'`
-   and in the conversation, and wait for their "ready", with `alfabeta lock renew --wait 100` in a loop in the
-   background. Never type credentials.
+   and in the conversation, and wait for their "ready", with `alfabeta lock renew --wait 100` in a background loop of
+   at most an hour (`for i in {1..36}`), stopped once they answer. Never type credentials.
    The family sets three things in that Chrome profile, never you: for learning-bits.com, «Automatic downloads →
    Allow» (measured 2026-10-29: without it only the first lesson zip arrived and the rest waited for it) and
    «Pop-ups and redirects → Allow» (so the student can open lessons himself; the capture does not depend on it, since
@@ -108,20 +113,24 @@ own collector: `render.py` numbers a unit's lessons from `raw/`, so two units in
    A hidden unit is listed too, with its title and a tooltip such as «Oculta por el docente», «Irakasleak ezkutatua»
    or «Hidden by the teacher». A unit hidden in every language is left out and reported; never force it. Note each
    unit's title per language, and which language shows it.
-4. **Discover the lessons.** `WORK=<downloads.folder>/alfabeta_work/<Subject>_TemaNN` with `raw/` and `out/`, both
-   empty: move what an earlier attempt left to `$WORK/previous-<YYYYMMDDHHMMSS>/`, never delete it, because `book
-   place` copies every file in `out/`. Then, on the classes page of a language that shows the unit, run in a single
-   `javascript_tool` call `window.__UNIT={name:'<the unit's title on this page>',langs:[<sciencebits.languages>]};` +
-   the contents of `discover_lessons.js`. It answers per language `lessons`, `hidden` and `assessments`, and leaves the
-   queue in `window.__SB`, which only that tab holds: from here until the capture ends, do not navigate it. A language
-   with no `lessons` is skipped and reported, never forced; `queued: 0` means the unit is left out. `error`:
+4. **Discover the lessons.** First, once per unit, `WORK=<downloads.folder>/alfabeta_work/<Subject>_TemaNN` with
+   `raw/` and `out/`, both empty: move what an earlier attempt left to `$WORK/previous-<YYYYMMDDHHMMSS>/`, never delete
+   it, because `book place` copies every file in `out/`. Then, on the classes page of a language that shows the unit,
+   run in a single `javascript_tool` call `window.__UNIT={name:'<the unit's title on this page>',langs:[<sciencebits.languages>]};` +
+   the contents of `discover_lessons.js`. It answers per language `lessons`, `hidden`, `assessments` and `unread`,
+   and leaves the queue in `window.__SB`, which only that tab holds: from here until the capture ends, do not navigate
+   it. A language with no `lessons` is skipped and reported, never forced; `queued: 0` means the unit is left out. Two
+   answers mean the page was not read, not that the teacher hid anything, and stop the run as `unexpected_ui`: any
+   `unread` row, and all four lists empty in a language step 3 found showing the unit. `error`:
    `unit_not_shown_on_this_page` (go to a language that shows it), `ambiguous_unit` (a longer `name`),
-   `SESSION_EXPIRED` (step 2, then run this again), `no_load` (once more, then stop as `unexpected_ui`).
+   `SESSION_EXPIRED` (step 2, then this call again), `no_load` (once more, then stop as `unexpected_ui`).
    **Assessments**: never opened, started or clicked; `discover_lessons.js` lists them and leaves them out.
 5. **Capture.** Start the collector with the Bash tool in the background, before the capture and only once:
    `caffeinate -i python3 -u $H/watch.py $WORK/raw <downloads.folder> > $WORK/watch.log 2>&1`. If it dies, start it
    again and relaunch the lessons missing from `raw/`: it ignores what was downloaded before it started.
-   `resize_window` the tab to width 1280, height 800, and run the contents of `orchestrator.js` with `javascript_tool`.
+   Bring Chrome to the front again (step 2; `nlm login` in an earlier unit may have opened another window) and keep
+   this tab in front until the capture ends. `resize_window` the tab to width 1280, height 800, and run the contents of
+   `orchestrator.js` with `javascript_tool`.
    **Poll back to back**, one `javascript_tool` call at a time, each waiting in the page, with `alfabeta lock renew` in
    a Bash call in the same message and nothing long in between:
    `await new Promise(r=>setTimeout(r,30000)); ({cur:window.__orch.current,done:window.__orch.done,stopped:window.__orch.stopped,n:document.getElementById('__fr')?.contentWindow.__job?.n,res:window.__orch.results.map(r=>r.tag+':'+r.n+(r.err?'!'+r.err:''))})`
@@ -130,10 +139,12 @@ own collector: `render.py` numbers a unit's lessons from `raw/`, so two units in
    out, so never batch them. Tell the family how long it will take and that nobody should open Science Bits on another
    device. After the first two lessons, check `$WORK/watch.log` and `raw/`: if their zips are not there, the browser is
    holding the downloads (step 2).
-   - `SESSION_EXPIRED` in `stopped` → step 2, then step 4 (signing in reloads the tab), keep only what is missing with
+   - `SESSION_EXPIRED` in `stopped` → step 2, then step 4's call again and not its folders, since `raw/` keeps what was
+     collected and the collector keeps running (signing in reloads the tab), keep only what is missing with
      `window.__SB.queue=window.__SB.queue.filter(q=>[<missing tags>].includes(q.lang+'_'+q.id))`, and run
      `orchestrator.js` again.
-   - `HIDDEN` → the teacher hid that lesson after step 4; the others go on. Report it; never force it.
+   - `HIDDEN` → the lesson's page says it is not available, most likely because the teacher hid it after step 4 (such a
+     page is not yet measured); the others go on. Report it; never force it.
    - Other `n:0`/errors → relaunch them the same way at the end. Check one zip with `items` per lesson and language.
    When `done` is true and every zip is in `raw/`, stop the collector: `pkill -f "watch.py $WORK/raw"`.
 6. **Build.** `$WORK/unit.json`:
@@ -168,7 +179,8 @@ own collector: `render.py` numbers a unit's lessons from `raw/`, so two units in
      `--json`).
    - **Sources, each once.** `nlm source list <id> --json` gives each source's `id` and `title`. For each file of
      `$WORK/out`, skip it if a source has its file name as title and step 8 did not list it in `placed`; else
-     `alfabeta lock renew`, then `nlm source add <id> --file "<file>" --wait --wait-timeout 300`, without `--title`.
+     `alfabeta lock renew`, then `nlm source add <id> --file "<file>" --wait --wait-timeout 300`, without `--title`, which
+     would rename the source and break this comparison.
      A file step 8 placed again had changed: once its new source is added, remove the old one, the source with that
      title listed before the add, with `nlm source delete <source id> --confirm`, so the notebook answers from the
      new version and holds it once. If a run stopped between step 8 and that replacement, the next run's step 8
@@ -201,8 +213,8 @@ own collector: `render.py` numbers a unit's lessons from `raw/`, so two units in
      failed --reason "<what failed, in a few words, with no id or address>" --shares <invited>,<already>,<failed>`
      with the counts reached so far, and tell the family the topic is in its folder but the notebook step failed.
      What step 8 placed stays as it is.
-10. **Close.** Move the zips this run downloaded from `downloads.folder` to
-    `<downloads.folder>/alfabeta_work/collected-<YYYYMMDD>/`, never delete them; close the run's tab, `alfabeta lock
+10. **Close.** Move every `sb_*.zip` from `downloads.folder` to
+    `<downloads.folder>/alfabeta_work/collected-<YYYYMMDDHHMMSS>/`, never delete them; close the run's tab, `alfabeta lock
     release`, and summarise per unit: folder, mirrors up to date and failed (by count), notebook link, accounts it is
     shared with (by count) and any failed invite, whether the link page was left in `notebook/`, screens per language
     and what was left out: per language, the hidden lessons, and the languages and units the teacher does not show.

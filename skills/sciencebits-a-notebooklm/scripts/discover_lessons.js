@@ -15,6 +15,7 @@
   const SETTLE_MS = 1500;
   const CLICK_MS = 600;
 
+  delete window.__SB;   // a failed discovery must not leave another unit's queue for orchestrator.js
   const {name, langs} = window.__UNIT;
   const links = [...document.querySelectorAll('a.btn-acceder:not(.desactivado)')]
     .filter(a => text(a.closest('.box-center-unidad') || a).includes(name));
@@ -32,7 +33,7 @@
     await sleep(SETTLE_MS);
     const win = frame.contentWindow, doc = frame.contentDocument;
     if (win.location.href.includes('/login')) return {error: 'SESSION_EXPIRED'};
-    const found = {lessons: [], hidden: [], assessments: []};
+    const found = {lessons: [], hidden: [], assessments: [], unread: []};
     const opened = [];
     const original = win.open;
     // Science Bits alerts «Tu navegador tiene bloqueadas las ventanas emergentes.» when window.open returns nothing,
@@ -43,11 +44,11 @@
       if (row.classList.contains('leccion-bloqueada')) { found.hidden.push(title); continue; }
       if (ASSESSMENT.test(title)) { found.assessments.push(title); continue; }
       const button = row.parentElement.querySelector('[onclick^="verleccion1"]');
-      if (!button) { found.hidden.push(title); continue; }
+      if (!button) { found.unread.push(title); continue; }
       const before = opened.length;
       button.click();
       await sleep(CLICK_MS);
-      if (opened.length === before) { found.hidden.push(title); continue; }
+      if (opened.length === before) { found.unread.push(title); continue; }
       const url = new URL(opened[before], location.origin);
       found.lessons.push({title, sem: url.searchParams.get('sem'), code: url.searchParams.get('code')});
     }
@@ -68,6 +69,7 @@
       lessons: found.lessons.map(lesson => lesson.title),
       hidden: found.hidden,
       assessments: found.assessments,
+      unread: found.unread,
     };
   }
   frame.remove();

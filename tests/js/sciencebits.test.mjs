@@ -76,6 +76,7 @@ test("only the lessons the teacher shows are queued, and only they are clicked",
   assert.deepEqual(report.langs.es.lessons, ["Primera lección Materia Explicamos 1", "Segunda lección Materia Explicamos 2"]);
   assert.deepEqual(report.langs.es.hidden, ["Lección oculta Materia Empezamos"]);
   assert.deepEqual(report.langs.es.assessments, ["Evaluación: unidad inventada Materia Evaluamos"]);
+  assert.deepEqual(report.langs.es.unread, ["Lección sin botón Materia Elaboramos"]);
   assert.deepEqual(
     plain(window.__SB.queue.map((q) => [q.lang, q.id, q.sem, q.code])),
     [
@@ -87,7 +88,7 @@ test("only the lessons the teacher shows are queued, and only they are clicked",
 
 test("a language that shows no lessons queues nothing and the others go on", async () => {
   const { report, window } = await discover({ es: UNIT_PAGE });
-  assert.deepEqual(report.langs.en, { lessons: [], hidden: [], assessments: [] });
+  assert.deepEqual(report.langs.en, { lessons: [], hidden: [], assessments: [], unread: [] });
   assert.equal(report.queued, 2);
   assert.ok(window.__SB.queue.every((q) => q.lang === "es"));
 });
@@ -111,14 +112,23 @@ test("the unit is looked up among the ones shown: hidden or ambiguous stops befo
   assert.equal((await both.window.eval(DISCOVER)).error, "ambiguous_unit");
 });
 
+test("a failed discovery leaves no earlier unit's queue behind", async () => {
+  const { window } = classesPage({});
+  window.__SB = { queue: [{ lang: "es", id: "L1" }] };
+  window.__UNIT = { name: "Unidad que no está", langs: ["es"] };
+  await window.eval(DISCOVER);
+  assert.equal(window.__SB, undefined);
+});
+
 test("an expired session stops the discovery and queues nothing", async () => {
   const { report, window } = await discover({ es: "login" });
   assert.deepEqual(report, { error: "SESSION_EXPIRED", lang: "es" });
   assert.equal(window.__SB, undefined);
 });
 
-// The capture: each lesson's iframe either says it is hidden or finishes its job at once.
-function capturePage(hiddenCodes) {
+// The capture: each lesson's iframe either says it is hidden, with no lesson viewer, or finishes its job at once. A
+// lesson whose own text has the same words is still a lesson: the viewer is looked for first.
+function capturePage(hiddenCodes, wordy = []) {
   const dom = new JSDOM("<body></body>", { url: `${ORIGIN}/intranet/es/myclasses/index`, runScripts: "outside-only" });
   const { window } = dom;
   fast(window);
@@ -138,8 +148,8 @@ function capturePage(hiddenCodes) {
         };
         frame.contentDocument = {
           readyState: "complete",
-          body: { innerText: hidden ? "Oculta por el docente" : "lección" },
-          getElementById: () => ({}),
+          body: { innerText: hidden || wordy.includes(code) ? "Oculta por el docente" : "lección" },
+          getElementById: () => (hidden ? null : {}),
         };
       },
     });
@@ -166,4 +176,12 @@ test("one lesson hidden since discovery is skipped and the rest of its language 
   );
   assert.equal(loaded.length, 3); // a hidden lesson is not retried
   assert.match(loaded[1], /^\/intranet\/es\/mylesson\/index\?sem=s&code=c2$/);
+});
+
+test("a shown lesson whose text says it is not available is still captured", async () => {
+  const { window } = capturePage([], ["c1"]);
+  window.__SB = { queue: [{ lang: "es", id: "L1", sem: "s", code: "c1", title: "c1" }] };
+  window.eval(ORCHESTRATOR);
+  while (!window.__orch.done) await new Promise((r) => setImmediate(r));
+  assert.deepEqual(plain(window.__orch.results.map((r) => [r.tag, r.n ?? null, r.err ?? null])), [["es_L1", 3, null]]);
 });
