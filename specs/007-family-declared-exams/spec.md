@@ -222,10 +222,10 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
    announcement backs it and it covers the whole of the topics named, its sections follow the student's
    scheme, and it leaves out nothing.
 6. **Given** a captured announcement, **When** the command runs, **Then** it behaves as today.
-8. **Given** no announcement and two whole topics, **When** the family names both with `--topic`, **Then**
-   each topic's notebook gets its two sheets and an equal part of the slot.
 7. **Given** no exam of the subject in the agenda, **When** the command runs with no `--topic`, **Then**
    it refuses with `no_exam`, says to name the topics, and asks the notebook for nothing.
+8. **Given** no announcement and two whole topics, **When** the family names both with `--topic`, **Then**
+   each topic's notebook gets its two sheets and an equal part of the slot.
 
 ### Edge Cases
 

@@ -15,7 +15,7 @@ date, a title, an address or an absolute path. The names follow `.claude/rules/c
  "weekday": "<día>", "weekend": false, "past": false, "agenda_written": true}
 ```
 
-- `created: false` with `item` the id that holds it: a declared exam in force, or a Classroom entry's id.
+- `created: false` with `item` the id that holds it: an active declared exam, or a Classroom entry's id.
 - `agenda_written: false` with a line on stderr when the base folder is missing; the decision is kept.
 - `weekend` and `past` do not refuse. `past` compares with today in `Europe/Madrid` and reaches only this answer.
 
