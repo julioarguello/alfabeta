@@ -35,8 +35,8 @@
   spec names it, its options and the existing commands it extends (`.claude/rules/cli-naming.md`). It
   also names agenda fields and spec 003's event rules, because they are this spec's contract with a
   writer that is not built. How they are stored and coded is left to the plan.
-- No marker is used. The operator answered Q1 to Q7 on 2026-11-05 (spec's «Clarifications»), and Q6's
-  answer added User Story 5. Q8 stays open, with a proposed answer the spec is written on.
+- No marker is used. The operator answered Q1 to Q8 on 2026-11-05 (spec's «Clarifications»), and Q6's
+  answer added User Story 5.
 - SC-003 and SC-007 name a control or a planted marker because this project proves a test can fail;
   neither depends on how it is built.
 - Not done at this stage: `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`, and
