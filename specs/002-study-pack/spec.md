@@ -696,7 +696,8 @@ and cannot judge what the notebook writes.
   (`(sin fecha)` with none, spec 007). The prompts are fixed texts of the repository, filled
   only with the exam's date, its announcement and that announcement's date, the study slot and the
   pages it allows, the subject's folder and language, and the grade level (and, with no announcement, the
-  topic's name and the corrections of its `bloques.md`, spec 007). Both reports are asked
+  topic's name and the corrections of its `bloques.md`, spec 007). After filling, each prompt gains the student's and the
+  subject's standing rules that speak to it, if any (spec 009 FR-003). Both reports are asked
   for in Spanish, terms and statements aside (FR-032, FR-035), with the report's own language
   option, so the account-wide setting of FR-007 is not touched. That makes the problems sheet an
   exception to FR-005, which puts practice in the subject's language: it is the sheet the parent
@@ -731,7 +732,7 @@ and cannot judge what the notebook writes.
   the guide's; a report whose title starts with `0 ·` is never a guide (#141).
 - **FR-034**: The problems-sheet prompt MUST ask the notebook to put every exercise of the
   teacher's Classroom photocopies, worked examples included, into a pattern, using as few patterns
-  as possible: one formula is about one pattern, and solving the same formula for another unknown
+  as possible, the default a subject's standing rule may change (spec 009 FR-006): one formula is about one pattern, and solving the same formula for another unknown
   (direct or inverse) is the same pattern; a chain of formulas, or a classification with none, can
   also be one. The sheet names the photocopies with their dates, maps each pattern to its
   exercises, names the exercises printed on two photocopies and marks those the teacher assigned.

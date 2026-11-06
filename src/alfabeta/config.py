@@ -123,6 +123,29 @@ def _names(data: Mapping[str, Any], path: str, *names: str) -> tuple[str, ...]:
     return tuple(sorted(cast("dict[str, Any]", value)))
 
 
+@dataclass(frozen=True, repr=False)
+class Rules:
+    """The standing rules for one subject (spec 009): the family's words, never printed, so no `repr`."""
+
+    student_both: str = ""
+    student_problems: str = ""
+    student_theory: str = ""
+    subject_both: str = ""
+    subject_problems: str = ""
+    subject_theory: str = ""
+
+    def parts(self, kind: str) -> list[tuple[str, str]]:
+        """`(level.kind, text)` of what speaks to a piece of `kind`, `problems` or `theory`, in order."""
+        problems = kind == "problems"
+        chosen = (
+            ("student.both", self.student_both),
+            (f"student.{kind}", self.student_problems if problems else self.student_theory),
+            ("subject.both", self.subject_both),
+            (f"subject.{kind}", self.subject_problems if problems else self.subject_theory),
+        )
+        return [(name, text) for name, text in chosen if text]
+
+
 @dataclass(frozen=True)
 class StudentConfig:
     """The validated tables of one student's configuration, read through the readers."""
@@ -194,6 +217,20 @@ class StudentConfig:
             )
             for i in range(_count(self.data, "subjects"))
         )
+
+    def rules(self, folder: str) -> Rules:
+        """The standing rules of the student and of the subject in `folder`, stripped (spec 009)."""
+        for i in range(_count(self.data, "subjects")):
+            if _str(self.data, "subjects.*.folder", str(i)) == folder:
+                return Rules(
+                    student_both=_str(self.data, "student.rules_both", allow_empty=True).strip(),
+                    student_problems=_str(self.data, "student.rules_problems", allow_empty=True).strip(),
+                    student_theory=_str(self.data, "student.rules_theory", allow_empty=True).strip(),
+                    subject_both=_str(self.data, "subjects.*.rules_both", str(i), allow_empty=True).strip(),
+                    subject_problems=_str(self.data, "subjects.*.rules_problems", str(i), allow_empty=True).strip(),
+                    subject_theory=_str(self.data, "subjects.*.rules_theory", str(i), allow_empty=True).strip(),
+                )
+        raise ConfigError("no subject has that folder")
 
     @property
     def downloads_folder(self) -> str:

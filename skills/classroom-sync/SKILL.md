@@ -12,7 +12,8 @@ What each piece does and why is in [the spec](../../specs/001-classroom-sync/spe
 
 ## Configuration
 
-`~/.alfabeta/<student>/config.toml` (template: the repo's `config/template.toml`):
+`~/.alfabeta/<student>/config.toml` (template: the repo's `config/template.toml`). Ignore its `rules_*` keys: they
+are for the study material, and no rule shapes a classification, a date or an agenda (spec 009 FR-013):
 
 | Key | Used for |
 |---|---|

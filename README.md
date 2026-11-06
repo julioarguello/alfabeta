@@ -193,6 +193,9 @@ Classroom what is not here yet"), and it runs the commands it needs.
 - **Gemini Notebook has no public API.** `nlm` uses internal endpoints and your account's session; it
   may break, and its use may not fit Google's terms. Use it at your own risk, or turn notebooks off
   with `notebook.enabled = false` and add the files by hand.
+- **What the family says once stays said.** Standing rules for the student and for each subject are parameters of the
+  student's configuration, heuristic beside the deterministic ones, added to the prompts of the study material
+  ([spec 009](specs/009-standing-rules/spec.md)). The template holds invented examples; a real rule stays out of the repository.
 - **Generated material is checked, not trusted.** The study pack recomputes every numeric answer
   before it reaches the student — a teacher's answer key has been wrong before
   ([example](docs/explanation/study-material.md#three-sources-one-order-of-trust)). The exam sheets

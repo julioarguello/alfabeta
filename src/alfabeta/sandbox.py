@@ -45,6 +45,9 @@ display_name = "Alumna de prueba"
 school_year = "{SCHOOL_YEAR}"
 grade_level = "3º ESO"
 languages = ["es", "en"]
+rules_both = ""
+rules_problems = ""
+rules_theory = ""
 
 [classroom]
 account = "alumna@colegio.example"
@@ -115,6 +118,9 @@ classroom_class = "Física y Química sintética 3ºA"
 book = "sciencebits"
 book_class = "Física inventada"
 language = "es"
+rules_both = ""
+rules_problems = ""
+rules_theory = ""
 
 [[subjects]]
 folder = "Ingles"
@@ -122,6 +128,9 @@ classroom_class = "English Synthetic 3A"
 book = ""
 book_class = ""
 language = "en"
+rules_both = ""
+rules_problems = ""
+rules_theory = ""
 """
 
 

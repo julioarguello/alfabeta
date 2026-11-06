@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, announced, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
+| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, announced, rules:[{sheet, used, fingerprint}], topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook`, `rules_too_long` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -67,7 +67,8 @@ that fails does not stop the other.
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and
    «Problems sheet — for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), every
-   placeholder filled. It waits as the pack does (`nlm studio status`). A report that never
+   placeholder filled, and the standing rules that speak to each added after it (spec 009; a line on stderr and the result's `rules` name them,
+   and the pieces' `rules` record them). It waits as the pack does (`nlm studio status`). A report that never
    completes is code 3; the other one is still printed.
 7. Titles them as pieces of the moment `EXAMEN <weekday>` (FR-014), numbered after the pieces that
    moment already holds: `EXAMEN <weekday> <n> · Teoría para el examen · <topic>` and
@@ -99,7 +100,7 @@ never in Drive or the repository:
 - the pack record (FR-024), `study-pack.json`: under `topics`, keyed by the topic folder's path
   under `storage.base`, `guide` (`id`, `made`: the live study guide and the day it was made) and
   `pieces` (`id`; `kind`, `exam_theory` or `exam_problems`; `moment`; `title`; `language`;
-  `verification`, `pages_only` for an exam sheet; `exam`, the exam's date; `made`);
+  `verification`, `pages_only` for an exam sheet; `exam`, the exam's date; `made`; `rules`, spec 009's `{used, fingerprint}` or null);
 - spec 005's refresh record, `notebook-refresh.json`: under `sources`, per source id, `read_md5`,
   `reads` and `read_at` (spec 005 data-model, RefreshRecord).
 
@@ -110,7 +111,8 @@ its own code 2, as in spec 001. Code 1 also covers `invalid_config`, `no_subject
 `no_topic`, `subtopics_unnamed`, `unreadable_agenda` and `unreadable_state` (spec 001's `agenda.json` or
 `data/state.json` is not readable JSON), `unknown_language` (a subject `language` code with no
 Spanish name in `src/alfabeta/exam/prompts.py`) and `invalid_prompt` (a heading of `prompts.md`
-the command reads is missing or renamed); code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
+the command reads is missing or renamed) and `rules_too_long` (spec 009, a sheet's rules are over the limit, nothing
+asked of a notebook); code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
 `nlm_not_default`.
 
 **Not in this command**:

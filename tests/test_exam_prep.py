@@ -32,6 +32,7 @@ from alfabeta.exam.prep import (
     LivingNotes,
     LivingNotesError,
     Refusal,
+    Sheet,
     Slot,
     topic_number,
 )
@@ -351,6 +352,7 @@ def test_both_sheets_are_asked_titled_and_printed_into_exam(world: World, capsys
         "ok": True,
         "exam_date": EXAM_DAY,
         "announced": True,
+        "rules": [],
         "topics": [
             {
                 "topic": 0,
@@ -1407,3 +1409,237 @@ def test_the_warning_of_an_empty_section_names_the_topic_whatever_the_case(
     (world.topic / "notebook" / "bloques.md").write_text("## CORRECCIONES A LOS APUNTES\n## Otro\n")
     assert world.run("--topic", WHOLE) == 0
     assert f"{WHOLE}: bloques.md names" in output(capsys)[1]
+
+
+# --- standing rules (spec 009) -------------------------------------------------------------------------
+
+
+PLANTED = "PALABRAPLANTADA"
+ADDED = "Reglas fijas de la familia"
+
+
+def set_rules(
+    world: World,
+    *,
+    student: dict[str, str] | None = None,
+    subject: dict[str, str] | None = None,
+    other: dict[str, str] | None = None,
+) -> None:
+    """The sandbox's empty rule keys given values: the student, FyQ (the exam's subject) and Ingles (another)."""
+    config = world.home / STUDENT / "config.toml"
+    parts = config.read_text().split("[[subjects]]")
+    for index, rules in enumerate((student, subject, other)):
+        for key, value in (rules or {}).items():
+            parts[index] = re.sub(
+                rf"(?m)^rules_{key} = .*$", lambda _m, v=value, k=key: f"rules_{k} = '''{v}'''", parts[index]
+            )
+    config.write_text("[[subjects]]".join(parts))
+
+
+def from_template(heading: str, prompt: str) -> bool:
+    """Whether `prompt` is the text under `heading` with each placeholder filled, right-stripped, and no more."""
+    pieces = re.split(r"\{\w+\}", prompts.template(heading))
+    literal = [re.escape(p) for p in pieces]
+    if not pieces[-1]:  # a last placeholder left empty takes the space before it with it
+        literal[-2] = re.escape(pieces[-2].rstrip()) + r"\s*"
+    return prompt == prompt.rstrip() and re.fullmatch("(.*?)".join(literal), prompt, re.DOTALL) is not None
+
+
+def sent(world: World) -> list[str]:
+    """The prompt of each sheet asked for, in order; the built-in guide takes none."""
+    return [a[a.index("--prompt") + 1] for a in world.nlm.asked("report", "create") if "--prompt" in a]
+
+
+@pytest.mark.parametrize("no_announcement", [False, True])
+def test_a_prompt_only_gains_the_added_text_and_with_no_rules_stays_as_it_was(
+    world: World, capsys: pytest.CaptureFixture[str], no_announcement: bool
+):
+    extra = ("--undated", "--topic", world.topic.name) if no_announcement else ()
+    assert world.run(*extra) == 0
+    before = sent(world)
+    # SC-001: exactly the template, filled, with nothing after it.
+    texts = (prompts.THEORY_OPEN, prompts.PROBLEMS_OPEN) if no_announcement else (prompts.THEORY, prompts.PROBLEMS)
+    assert [from_template(h, p) for h, p in zip(texts, before, strict=True)] == [True, True]
+    assert not any(ADDED in p for p in before)
+    set_rules(world, student={"both": "del alumno"}, subject={"problems": "de la asignatura"})
+    assert world.run(*extra) == 0
+    theory, problems = sent(world)[2:]
+    assert theory.startswith(f"{before[0]} {ADDED}") and theory.endswith("Del alumno: del alumno")
+    assert problems.startswith(f"{before[1]} {ADDED}")
+    assert problems.endswith("Del alumno: del alumno De la asignatura: de la asignatura")
+    capsys.readouterr()
+
+
+def test_each_kind_of_rule_reaches_its_sheet_in_order_and_no_other_subject_does(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    set_rules(
+        world,
+        student={"both": "alumno ambas", "problems": "alumno problemas", "theory": "alumno teoría"},
+        subject={"both": "asignatura ambas", "problems": "asignatura problemas", "theory": "asignatura teoría"},
+        other={"both": "OTRA", "problems": "OTRA", "theory": "OTRA"},
+    )
+    assert world.run() == 0
+    theory, problems = sent(world)
+    assert theory.endswith(
+        "Del alumno: alumno ambas alumno teoría De la asignatura: asignatura ambas asignatura teoría"
+    )
+    assert problems.endswith(
+        "Del alumno: alumno ambas alumno problemas De la asignatura: asignatura ambas asignatura problemas"
+    )
+    assert "problemas De la" not in theory and "teoría De la" not in problems  # SC-002
+    assert not any("OTRA" in p for p in sent(world))
+    [note] = world.nlm.asked("note", "create")
+    assert ADDED not in note[note.index("--content") + 1] and "alumno" not in note[note.index("--content") + 1]
+    capsys.readouterr()
+
+
+def test_a_rule_holding_braces_quotes_and_backslashes_reaches_the_prompt_as_written(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    rule = 'Di "raíz" y \\frac{a}{b}, nunca {grade}'
+    set_rules(world, subject={"problems": rule})
+    assert world.run() == 0
+    assert sent(world)[1].endswith(f"De la asignatura: {rule}")
+    capsys.readouterr()
+
+
+def test_over_several_topics_each_sheet_carries_the_same_rules(world: World, capsys: pytest.CaptureFixture[str]):
+    first, second = split(world)
+    set_rules(world, subject={"theory": "de teoría", "problems": "de problemas"})
+    assert world.run("--topic", first.name, "--topic", second.name) == 0
+    asked = sent(world)
+    assert len(asked) == 4
+    assert [p.rsplit("De la asignatura: ", 1)[1] for p in asked] == ["de teoría", "de problemas"] * 2
+    capsys.readouterr()
+
+
+def test_the_added_text_says_what_no_rule_overrides():
+    text = prompts.template(prompts.RULES)
+    assert "sin citarlas ni mencionarlas" in text
+    for limit in (
+        "qué entra en el examen",
+        "correcciones ya comprobadas",
+        "esquemas de los apuntes",
+        "comprobar cada número",
+        "de qué fuente sale cada dato",
+        "los problemas que se pide usar",
+        "no culpar ni nombrar a nadie",
+        "frases y títulos que se piden entre comillas",
+    ):
+        assert limit in text, limit
+    # Changing the text on purpose changes this hash, in that change, as with the other texts.
+    assert (
+        hashlib.sha256(text.encode()).hexdigest() == "0a5e8937163d3b403bfbf8dbd1dbc007cea1dd87cc64807fa3d4494133f83b7b"
+    )
+
+
+def test_a_renamed_section_refuses_with_no_rules_too(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(prompts, "RULES", "Otro título")
+    refused(world, capsys, 1, "invalid_prompt")
+    assert world.nlm.asked("report", "create") == []
+
+
+@pytest.mark.parametrize("kind", ["theory", "problems"])
+@pytest.mark.parametrize(("size", "code"), [(2000, 0), (2001, 1)])
+def test_rules_over_the_limit_refuse_and_ask_nothing(
+    world: World, capsys: pytest.CaptureFixture[str], size: int, code: int, kind: str
+):
+    label = "De la asignatura: "
+    set_rules(world, subject={kind: PLANTED + "x" * (size - len(label) - len(PLANTED))})
+    assert world.run() == code
+    result, err = output(capsys)
+    assert PLANTED not in err
+    if code:
+        assert result == {"ok": False, "reason": "rules_too_long"}
+        assert f"{kind} sheet" in err and "1 character" in err
+        assert world.nlm.asked("report", "create") == []
+
+
+def test_a_run_names_the_rules_it_used_with_a_fingerprint_and_never_their_words(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    every = {"both": f"{PLANTED} uno", "problems": f"{PLANTED} dos", "theory": f"{PLANTED} tres"}
+    set_rules(world, student=every | {"theory": "", "problems": ""}, subject=every | {"both": "", "theory": ""})
+    assert world.run() == 0
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    theory, problems = result["rules"]
+    assert (theory["sheet"], theory["used"]) == ("theory", ["student.both"])
+    assert (problems["sheet"], problems["used"]) == ("problems", ["student.both", "subject.problems"])
+    for entry, prompt in zip(result["rules"], sent(world), strict=True):
+        text = prompt[prompt.index(ADDED) :]
+        assert entry["fingerprint"] == hashlib.sha256(text.encode()).hexdigest()[:8]
+    assert theory["fingerprint"] != problems["fingerprint"]
+    assert (
+        f"alfabeta: standing rules: theory student.both {theory['fingerprint']};"
+        f" problems student.both subject.problems {problems['fingerprint']}"
+    ) in captured.err
+    pack_text = (world.data / "study-pack.json").read_text()
+    pieces = json.loads(pack_text)["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["pieces"]
+    assert [p["rules"] for p in pieces] == [
+        {"used": ["student.both"], "fingerprint": theory["fingerprint"]},
+        {"used": ["student.both", "subject.problems"], "fingerprint": problems["fingerprint"]},
+    ]
+    assert PLANTED not in captured.out and PLANTED not in captured.err and PLANTED not in pack_text  # SC-003
+
+
+def test_no_word_of_any_rule_comes_out_when_a_sheet_fails(world: World, capsys: pytest.CaptureFixture[str]):
+    every = {k: f"{PLANTED} {k}" for k in ("both", "problems", "theory")}
+    set_rules(world, student=every, subject=every, other=every)
+    world.nlm.never = {"problems"}
+    assert world.run() == 3
+    captured = capsys.readouterr()
+    assert PLANTED not in captured.out and PLANTED not in captured.err
+    assert PLANTED not in (world.data / "study-pack.json").read_text()
+
+
+def test_the_line_naming_the_rules_comes_before_the_notebook_is_asked(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    class Stop(Exception):
+        pass
+
+    def stop(_self: object) -> dict[str, Any]:
+        assert "no standing rules for this subject" in capsys.readouterr().err
+        raise Stop
+
+    monkeypatch.setattr("alfabeta.exam.cli.ExamPrep.run", stop)
+    with pytest.raises(Stop):
+        world.run()
+
+
+def test_a_sheets_repr_holds_no_rule():
+    assert PLANTED not in repr(Sheet("theory", "Teoría", f"pide {PLANTED}"))
+
+
+def test_a_run_with_no_rules_says_so(world: World, capsys: pytest.CaptureFixture[str]):
+    assert world.run() == 0
+    result, err = output(capsys)
+    assert result["rules"] == [] and "alfabeta: no standing rules for this subject" in err
+    pack = json.loads((world.data / "study-pack.json").read_text())
+    assert [p["rules"] for p in pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["pieces"]] == [None, None]
+
+
+def test_a_changed_rule_changes_the_fingerprint_and_leaves_the_earlier_record(
+    world: World, capsys: pytest.CaptureFixture[str]
+):
+    set_rules(world, subject={"theory": "una versión"})
+    assert world.run() == 0
+    first = output(capsys)[0]["rules"][0]["fingerprint"]
+    path = world.data / "study-pack.json"
+    earlier = json.loads(path.read_text())["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["pieces"]
+    set_rules(world, subject={"theory": "otra versión"})
+    assert world.run() == 0
+    second = output(capsys)[0]["rules"][0]["fingerprint"]
+    pieces = json.loads(path.read_text())["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["pieces"]
+    assert first != second and pieces[: len(earlier)] == earlier  # FR-012
+    assert world.nlm.asked("studio", "delete") == []
+
+
+def test_the_skill_names_the_rule_keys_and_the_section():
+    skill = (Path(prompts.PROMPTS).parent / "SKILL.md").read_text()
+    for name in ("rules_both", "rules_problems", "rules_theory", prompts.RULES):
+        assert name in skill, name
