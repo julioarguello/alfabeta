@@ -24,7 +24,7 @@ calculation are asked for in the same words.
 |---|---|---|---|
 | **Tool** | What is true of every student | Recognising a task that lacks its statement (spec 008) | The repository's prompts and code |
 | **Student** | What is true across this student's subjects | "Classify the statements as well as the problems" | The student's configuration |
-| **Subject** | What changes between subjects | "Split the types of problem finely, even at the cost of extra exercises" | The student's configuration |
+| **Subject** | What changes between subjects | "Split the types of problem finely, even if the sheet grows" | The student's configuration |
 
 A rule is a parameter of the student, like a class's title or a calendar's id: the difference is only that it is
 heuristic rather than deterministic. So it follows the configuration's layers (constitution II): the repository's
@@ -65,10 +65,11 @@ spec, an exam in a subject of calculation:
 
 | Where | What changes |
 |---|---|
-| Spec 002 | The exam sheets' prompts carry the rules (FR-003 here). FR-034's "as few patterns as possible" becomes the default a subject rule may change. |
+| Spec 002 | FR-029's closed list of what fills a prompt gains the text added after filling (FR-003 here). FR-034's "as few patterns as possible" becomes the default a subject rule may change. |
 | `skills/study-pack/SKILL.md` | Reads the rules before its prompts and its judgement steps, and may write them on the family's word (FR-004, FR-011). |
+| `skills/classroom-sync/SKILL.md`, `skills/sciencebits-a-notebooklm/SKILL.md` | They read the same configuration, and say they ignore the rule keys (FR-013). |
 | `config/template.toml` and its contract copy | The new keys, with generic example rules (constitution II). |
-| Spec 008, Out of this spec | Its "per-subject prompts" points here. |
+| The guardrail | The rule keys count as identifying, so a real rule cannot be committed (FR-009). |
 
 ## Clarifications
 
@@ -81,8 +82,8 @@ spec, an exam in a subject of calculation:
   FR-006. The measured wording stays.
 - Q: Who writes a rule? → A: The family says it in the chat and the agent writes it after they confirm, or the family
   edits the configuration by hand.
-- Q: Which pieces do rules reach? → A: Every study piece, not only the exam sheets: the practice sheet is where new
-  problems come from.
+- Q: Which pieces do rules reach? → A: Every study piece whose prompt can take them, not only the exam sheets: the practice
+  sheet is where new problems come from. FR-004 lists them, and which pieces take none.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -149,7 +150,8 @@ carries them and that the report names them.
 2. **Given** a rule for theory, **When** the skill proposes blocks or asks for a guide, **Then** it follows the rule, and
    the student's scheme still leads the structure (constitution X).
 3. **Given** a subject rule that states a standing fact, **When** the skill would otherwise ask the family about it,
-   **Then** it does not ask again, and it says which level and kind it relied on.
+   **Then** it does not ask again, and it says which level and kind it relied on. What only the family can settle for this
+   topic stays a question: which subtopics an exam covers, and a question on the notes.
 
 ---
 
@@ -179,6 +181,13 @@ that nothing of it reached the repository, and that a later run uses it.
 - Rules too long for the prompt: the run refuses, says which sheet and by how much, and sends nothing. They are never cut in
   silence.
 - A rule of spaces only: the same as an empty one.
+- A rule holding quotes or backslashes, as formulas do: only a literal string keeps it as written. A basic string either stops
+  every command reading the file or silently changes the text (`\frac` becomes a form feed), so the template's examples and the
+  agent's writes use literal strings, and a write is checked on a copy before it replaces the file (FR-011).
+- A guide 0: its prompt says to copy a block word for word, so added text would be printed to every viewer. It takes none, and
+  the rules shape the plan the agent writes.
+- The notebook keeps a piece's prompt with the piece, and it may be readable by the accounts the notebook is shared with: see
+  FR-009.
 - The study guide `exam build` may regenerate: a built-in format that takes no prompt, so it carries no rules (spec 002
   FR-033). The run does not claim otherwise.
 - A rule the notebook does not obey: alfabeta cannot tell from the prompt, so the first real run is checked by eye (SC-005).
@@ -207,17 +216,21 @@ that nothing of it reached the repository, and that a later run uses it.
   subject's after, each time it runs. The problems sheet takes **both** and **problems**, the theory sheet **both** and
   **theory**, and start notes none. With every key empty, the prompt sent MUST stay byte-identical to today's.
 - **FR-004**: The study-pack skill MUST read the same keys before its prompts and its judgement steps, adding **both** and
-  **problems** to the practice sheet and the quiz, and **both** and **theory** to the guide, the summary and the blocks it
-  proposes. A video's focus takes only what fits, as a judgement of the agent, reported as such.
+  **problems** to the practice sheet, the quiz and the parent guide, **both** and **theory** to the summary and to the blocks
+  and plan it works out itself, and **both** alone to the flashcards, the glossary and the tutor chat. A video's focus takes only
+  what fits, as a judgement of the agent, reported as such. Guide 0 and the built-in study guide take no added text. A rule MUST
+  NOT be copied into `bloques.md` or any file of the topic's folder.
 - **FR-005**: Each run reads the keys as they stand. Nothing MUST copy a rule to another place to go stale.
 
 **What a rule may change**
 
 - **FR-006**: The added text MUST say that a rule prevails where it contradicts the fixed prompt, and a subject's rule over
-  a student's. It MUST NOT prevail on: what is in the exam (the announcement, the exclusions that need a source, the family's
-  named topics), the corrections already checked (spec 002 FR-046), checking every number, showing where a fact comes from,
-  the titles the fixed prompt asks for word for word (printing breaks the page on one), or anything the constitution
-  requires. The skill applies the same limits to its judgement steps.
+  a student's, and it MUST itself name each exception, since the notebook reads nothing else: what is in the exam and following
+  its points (the announcement, the exclusions that need a source, the family's named topics), the corrections already checked
+  (spec 002 FR-046), the student's schemes leading the structure and the wording (constitution X), checking every number, showing
+  where a fact comes from, using only the problems a prompt says to use, blaming or naming no one, and the sentences and titles a
+  prompt asks for in quotation marks (printing breaks the page on «Soluciones»). The skill applies the same limits to its
+  judgement steps.
 - **FR-007**: The added text MUST tell the notebook to apply the rules without quoting or mentioning them, so that no sheet
   reads "this student has trouble with…" to the student.
 
@@ -225,21 +238,27 @@ that nothing of it reached the repository, and that a later run uses it.
 
 - **FR-008**: The result of `exam build` and the pack's record of each sheet MUST name the levels and kinds used, with a short
   fingerprint of the added text, or say that none were used. The skill's report MUST name the levels and kinds it used.
-  None of them MUST hold a word of the rules.
-- **FR-009**: A rule's text MUST NOT reach a log, a message, an issue, a pull request or a commit. It MAY go to the services
-  the family uses for the study material: the notebook owner's account and Claude (constitution III).
-- **FR-010**: Rules too long for the prompt MUST stop the run before anything is asked of the notebook, saying which sheet
-  and by how much.
+  None of them MUST hold a word of the rules, and the skill MUST NOT quote a piece's status output, which can hold its prompt.
+- **FR-009**: A rule's text MUST NOT reach a log, a message, an issue, a pull request or a commit, and the guardrail MUST catch a
+  configured rule in the repository, line by line. It MAY go to the services the family uses for the study material: the notebook
+  owner's account and Claude (constitution III). The notebook keeps the prompt with the piece, so the accounts the notebook is
+  shared with may be able to read it: the template warns of this, and no rule describing a difficulty is written until the first
+  real run has checked what a viewer sees (SC-005).
+- **FR-010**: Rules too long for a prompt MUST stop `exam build` before anything is asked of the notebook, saying which sheet
+  and by how much. The skill applies the same limit, and tells the family instead of cutting.
 
 **Who writes them**
 
 - **FR-011**: The family MAY edit a rule key by hand. An agent MAY write one only after showing the family its text, level
-  and kind and hearing their confirmation, and only that key: the rest of the configuration stays as it was.
+  and kind and hearing their confirmation, and only that key, as a literal string: it writes a copy, checks that the copy parses,
+  that every other value is unchanged and that the configuration check passes, and only then replaces the file. On any failure the
+  original stays. The one other write is bringing the empty keys to an existing configuration, once, by the same route.
 
 **What rules never do**
 
 - **FR-012**: A change of rules MUST NOT regenerate, retitle or delete any piece.
-- **FR-013**: Sync, the agenda and the calendar MUST NOT read the rules.
+- **FR-013**: No command but `exam build` MUST read the rules. A skill that holds the configuration for other work (sync, the
+  book's capture) MUST ignore them: no rule shapes a classification, a date or an agenda.
 
 ### Key Entities
 
@@ -259,8 +278,9 @@ that nothing of it reached the repository, and that a later run uses it.
 - **SC-003**: The template's examples are invented, and in a fixture no word of a rule reaches any run's output, record or log.
 - **SC-004**: A family that has stated a rule does not need to repeat it: over two runs of a subject, the second needs no
   instruction from the chat to carry it.
-- **SC-005**: On the first real run with rules, reading the printed sheets shows each rule applied and none quoted. Until that
-  run the added text is unmeasured, like the prompts around it, and what it found is recorded with no personal data.
+- **SC-005**: On the first real run with rules, reading the printed sheets shows each rule applied and none quoted, and a viewer
+  account's view of the notebook is checked for the prompt. Until that run the added text is unmeasured, like the prompts around
+  it, and what it found is recorded with no personal data.
 
 ## Assumptions
 

@@ -4,8 +4,10 @@
 
 - **Decision**: flat string keys, `rules_problems`, `rules_theory` and `rules_both`, in `[student]` and in each `[[subjects]]`.
 - **Rationale**: the operator's framing, a rule is one more parameter of the student. The configuration check already reports a
-  missing, extra, mistyped or unset key by name and never by value, so a mistyped subject stops being a failure of its own. TOML
-  holds multi-line strings.
+  missing, extra, mistyped or unset key by name and never by value, so a mistyped subject stops being a failure of its own.
+- **Cost, probed with `tomllib`**: in a basic string an inner quote or `\sqrt` is a decode error, and `\frac` silently becomes a form
+  feed plus `rac`. A file that does not parse stops every command that reads it, so one bad rule could stop the sync. `'''...'''` holds
+  them all, so the template's examples and the agent's writes use it, and a write goes through a checked copy (FR-011).
 - **Alternatives**: a folder of Markdown files, one per subject: it needed its own validation, a companion template and a way to
   catch a file named after no subject. A nested `[student.rules]` table: reads the same, and adds a level to `[[subjects]]`.
 
@@ -21,8 +23,10 @@
 - **Decision**: rules add, and prevail where they contradict the fixed text, except on the limits of FR-006.
 - **Rationale**: the problems sheet says "as few patterns as possible", and the first real rule says the opposite. Adding without
   precedence leaves the notebook to choose.
-- **Limits checked against the prompts**: corrections are appended at the end of the prompts with no announcement, so a rule after
-  them could undo them, and they are listed. The print step breaks the page on «Soluciones», so word-for-word titles are listed.
+- **Limits checked against the prompts**: the notebook reads only what the added text says, so "whatever the constitution requires"
+  has to be spelled out. Corrections sit at the end of the prompts with no announcement, so a rule after them could undo them. The
+  scheme clause holds constitution X. «Usa solo los problemas de las fotocopias» keeps out new numbers nothing recomputes. The print
+  step breaks the page on «Soluciones», and spec 007 asks for an opening sentence word for word: both are in quotation marks.
 - **Alternatives**: a whole prompt per subject: loses the measured wording and multiplies the texts to maintain.
 
 ## R4. Kinds of piece
@@ -34,10 +38,11 @@
 
 ## R5. Length limit
 
-- **Decision**: 2,000 characters of added text per prompt, a constant in `src/alfabeta/exam/prompts.py`. Above it the run refuses
-  with `rules_too_long`.
-- **Rationale**: the longest exam prompt is about 2,000 characters before an announcement, and no limit of the notebook's report
-  prompt is measured in this repository. Doubling a prompt is a cautious bound, and refusing is better than a rule cut in silence.
+- **Decision**: 2,000 characters of `{rules}` per prompt, a constant in `src/alfabeta/exam/prompts.py`. Above it the run refuses with
+  `rules_too_long`. The skill applies the same figure and tells the family.
+- **Rationale**: the exam prompts measure between about 1,600 and 2,500 characters unfilled, before an announcement or corrections,
+  and no limit of the notebook's report prompt is measured in this repository. About doubling a prompt is a cautious bound, and
+  refusing is better than a rule cut in silence.
 - **Unmeasured**: the first real run (gate 2) tests it. A notebook refusing a shorter prompt shows up as a failed report step, as
   today.
 
@@ -62,7 +67,11 @@
 
 ## R9. Bringing the keys to a real configuration
 
-- **Decision**: empty keys are added to the student's real configuration in the step that updates the family's checkout.
-- **Rationale**: old code refuses them as extra, new code refuses their absence, and the scheduled sync runs from that checkout. The
-  agent does it as this feature's migration, on the operator's approval of 2026-11-06, adding only those keys.
+- **Decision**: one sequence, run by the agent outside any scheduled time: copy the configuration with user-only permissions;
+  remove the refresh agent; add the empty keys through a checked copy; update the checkout with a fast-forward pull; run the
+  configuration check; on failure restore the copy and the previous commit; install the refresh agent again.
+- **Rationale**: old code refuses the keys as extra, new code refuses their absence. The scheduled sync stops at its configuration
+  check, before it takes the lock, so a lock protects nothing. `notebook refresh` also validates `student`, every `refresh_minutes`
+  and at load, and fails before it can notify, so a half-done step would silently stop notes reaching the notebook. Any pull in that
+  checkout between the merge and this step would do the same, so none happens. The operator accepted this cost on 2026-11-06.
 - **Alternatives**: an optional key with a silent default: forbidden by constitution II.
