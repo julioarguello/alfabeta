@@ -217,8 +217,9 @@ that nothing of it reached the repository, and that a later run uses it.
   **theory**, and start notes none. With every key empty, the prompt sent MUST stay byte-identical to today's.
 - **FR-004**: The study-pack skill MUST read the same keys before its prompts and its judgement steps, adding **both** and
   **problems** to the practice sheet, the quiz and the parent guide, **both** and **theory** to the summary and to the blocks
-  and plan it works out itself, and **both** alone to the flashcards, the glossary and the tutor chat. A video's focus takes only
-  what fits, as a judgement of the agent, reported as such. Guide 0 and the built-in study guide take no added text. A rule MUST
+  and plan it works out itself, and **both** alone to the flashcards and the glossary. A video's focus takes only what fits, as a
+  judgement of the agent, reported as such. Guide 0, the built-in study guide and the tutor chat take no added text: the chat talks
+  with the student, and a question could draw a rule out of it. A rule MUST
   NOT be copied into `bloques.md` or any file of the topic's folder.
 - **FR-005**: Each run reads the keys as they stand. Nothing MUST copy a rule to another place to go stale.
 
@@ -243,7 +244,7 @@ that nothing of it reached the repository, and that a later run uses it.
   configured rule in the repository, line by line. It MAY go to the services the family uses for the study material: the notebook
   owner's account and Claude (constitution III). The notebook keeps the prompt with the piece, so the accounts the notebook is
   shared with may be able to read it: the template warns of this, and no rule describing a difficulty is written until the first
-  real run has checked what a viewer sees (SC-005).
+  real run has checked what a viewer sees, on a report and on a quiz (SC-005).
 - **FR-010**: Rules too long for a prompt MUST stop `exam build` before anything is asked of the notebook, saying which sheet
   and by how much. The skill applies the same limit, and tells the family instead of cutting.
 
@@ -252,12 +253,14 @@ that nothing of it reached the repository, and that a later run uses it.
 - **FR-011**: The family MAY edit a rule key by hand. An agent MAY write one only after showing the family its text, level
   and kind and hearing their confirmation, and only that key, as a literal string: it writes a copy, checks that the copy parses,
   that every other value is unchanged and that the configuration check passes, and only then replaces the file. On any failure the
-  original stays. The one other write is bringing the empty keys to an existing configuration, once, by the same route.
+  original stays. The one other write is bringing the empty keys to an existing configuration, once, by the same route except that
+  the configuration check runs after the code arrives, since older code refuses the new keys (research R9).
 
 **What rules never do**
 
 - **FR-012**: A change of rules MUST NOT regenerate, retitle or delete any piece.
-- **FR-013**: No command but `exam build` MUST read the rules. A skill that holds the configuration for other work (sync, the
+- **FR-013**: No command but `exam build` MUST use the rules; `config check` validates them and the guardrail compares them, and
+  neither prints them. A skill that holds the configuration for other work (sync, the
   book's capture) MUST ignore them: no rule shapes a classification, a date or an agenda.
 
 ### Key Entities
@@ -279,7 +282,7 @@ that nothing of it reached the repository, and that a later run uses it.
 - **SC-004**: A family that has stated a rule does not need to repeat it: over two runs of a subject, the second needs no
   instruction from the chat to carry it.
 - **SC-005**: On the first real run with rules, reading the printed sheets shows each rule applied and none quoted, and a viewer
-  account's view of the notebook is checked for the prompt. Until that run the added text is unmeasured, like the prompts around
+  account's view of the notebook is checked for the prompt, on a sheet and on a quiz made with an invented rule. Until that run the added text is unmeasured, like the prompts around
   it, and what it found is recorded with no personal data.
 
 ## Assumptions

@@ -67,11 +67,12 @@
 
 ## R9. Bringing the keys to a real configuration
 
-- **Decision**: one sequence, run by the agent outside any scheduled time: copy the configuration with user-only permissions;
-  remove the refresh agent; add the empty keys through a checked copy; update the checkout with a fast-forward pull; run the
-  configuration check; on failure restore the copy and the previous commit; install the refresh agent again.
-- **Rationale**: old code refuses the keys as extra, new code refuses their absence. The scheduled sync stops at its configuration
-  check, before it takes the lock, so a lock protects nothing. `notebook refresh` also validates `student`, every `refresh_minutes`
+- **Decision**: one sequence, run by the agent outside any scheduled time: take the student's lock, stopping if a run holds it; copy
+  the configuration with user-only permissions; remove the refresh agent; add the empty keys through a checked copy; update the
+  checkout with a fast-forward pull; run the configuration check; on failure restore the copy and the previous commit; install the
+  refresh agent again if it was there; release the lock.
+- **Rationale**: old code refuses the keys as extra, new code refuses their absence. A scheduled sync about to start stops at its configuration
+  check, before it takes the lock, so the lock guards only a run already going, which can wait for a sign-in past its scheduled time. `notebook refresh` also validates `student`, every `refresh_minutes`
   and at load, and fails before it can notify, so a half-done step would silently stop notes reaching the notebook. Any pull in that
   checkout between the merge and this step would do the same, so none happens. The operator accepted this cost on 2026-11-06.
 - **Alternatives**: an optional key with a silent default: forbidden by constitution II.
