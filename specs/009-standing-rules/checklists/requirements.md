@@ -31,8 +31,7 @@
 
 ## Notes
 
-- Three defaults await the operator's word, listed first under Assumptions: rules add and prevail within FR-006, who writes
-  them, and how many pieces they reach. Each has a default that can be built, so none is a clarification marker.
+- The operator ruled on the four open points on 2026-11-06; they are under Clarifications.
 - The spec names the repository's own commands and the skill, as specs 002, 007 and 008 do: they are the feature's subject,
   not a choice of implementation.
-- Where the rule text sits inside the student's configuration folder, and how long it may be, are for the plan.
+- The keys' names and the length limit are for the plan.
