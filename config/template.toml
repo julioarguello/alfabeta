@@ -1,5 +1,5 @@
 # alfabeta's configuration template (spec 001 FR-001; spec 004 adds [storage], [calendar] id and [google];
-# spec 005 adds [notes] and four [notebook] keys; spec 002 adds language to [[subjects]]).
+# spec 005 adds [notes] and four [notebook] keys; spec 002 adds language to [[subjects]]; spec 009 adds the rules_ keys).
 # Each student copies this file to ~/.alfabeta/<student>/config.toml and changes the changeme values.
 # A key that is missing, extra, changes type or contains changeme stops alfabeta (FR-003);
 # `alfabeta --home <dir> config check --student <id>` lists every such key, never its value.
@@ -13,6 +13,18 @@ school_year = "changeme"            # e.g. "2026-2027"
 grade_level = "changeme"            # e.g. "1º ESO"
 # Languages that titles and announcements may come in.
 languages = ["changeme"]            # e.g. ["es", "en"]
+# Standing rules (spec 009): what the family says once about this student, added to the prompts of the
+# study material of every subject. rules_both reaches every piece that takes rules, rules_problems the
+# problems and practice sheets, the quiz and the parent guide, rules_theory the theory sheet and the
+# summary. "" means no rule; a subject's rule prevails over the student's.
+# Write them as literal strings, '''like this''': in "quotes" a backslash or a quote can stop every command
+# reading this file, or silently change the text. Use your own words: a line copied from these examples
+# would make the guardrail report the example.
+# The notebook keeps a piece's prompt, and may show it to the accounts it is shared with: no rule that
+# describes a difficulty until that has been checked (spec 009 FR-009).
+rules_both = "changeme"             # e.g. '''Da cada término clave también en el idioma de la asignatura.'''
+rules_problems = "changeme"         # e.g. '''Clasifica también las formas del enunciado y di cómo leer cada una.'''
+rules_theory = "changeme"           # e.g. '''Cierra cada sección con una definición de una línea.'''
 
 [classroom]
 # Email address of the school account. Compared locally with the account button; never goes in a URL.
@@ -140,3 +152,10 @@ book_class = "changeme"             # e.g. "Matemáticas - 1º ESO"
 # Language the subject is taught and examined in, a code as in [student] languages (spec 002 FR-005):
 # the study pack writes the practice sheet, the quiz and the flashcards in it.
 language = "changeme"               # e.g. "en"
+# Standing rules of this subject (spec 009; see [student]). Examples for a subject of calculation, then
+# one of languages:
+#   rules_problems = '''Separa los tipos de problema con detalle, aunque la hoja crezca.'''
+#   rules_theory = '''Cada regla va con un ejemplo corto, primero en el idioma de clase.'''
+rules_both = "changeme"
+rules_problems = "changeme"
+rules_theory = "changeme"

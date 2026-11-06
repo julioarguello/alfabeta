@@ -67,7 +67,8 @@ that fails does not stop the other.
 6. Asks for the two reports, `nlm report create <nb> --format "Create Your Own" --language es
    --prompt <prompt> --profile <profile> -y`, with the prompts «Theory sheet — for an exam» and
    «Problems sheet — for an exam» of [`prompts.md`](../../../skills/study-pack/prompts.md), every
-   placeholder filled. It waits as the pack does (`nlm studio status`). A report that never
+   placeholder filled, and the standing rules that speak to each added after it (spec 009; a line on stderr and the result's `rules` name them,
+   and the pieces' `rules` record them). It waits as the pack does (`nlm studio status`). A report that never
    completes is code 3; the other one is still printed.
 7. Titles them as pieces of the moment `EXAMEN <weekday>` (FR-014), numbered after the pieces that
    moment already holds: `EXAMEN <weekday> <n> · Teoría para el examen · <topic>` and
@@ -110,7 +111,8 @@ its own code 2, as in spec 001. Code 1 also covers `invalid_config`, `no_subject
 `no_topic`, `subtopics_unnamed`, `unreadable_agenda` and `unreadable_state` (spec 001's `agenda.json` or
 `data/state.json` is not readable JSON), `unknown_language` (a subject `language` code with no
 Spanish name in `src/alfabeta/exam/prompts.py`) and `invalid_prompt` (a heading of `prompts.md`
-the command reads is missing or renamed); code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
+the command reads is missing or renamed) and `rules_too_long` (spec 009, a sheet's rules are over the limit, nothing
+asked of a notebook); code 5 is `no_nlm`, `nlm_signed_out`, `nlm_failed` or
 `nlm_not_default`.
 
 **Not in this command**:

@@ -20,6 +20,9 @@ display_name = "Alumna Inventada"
 school_year = "2026-2027"
 grade_level = "3º ESO"
 languages = ["es", "en"]
+rules_both = ""
+rules_problems = ""
+rules_theory = ""
 
 [classroom]
 account = "alumna@colegio.example"
@@ -90,6 +93,9 @@ classroom_class = "Matemáticas 3º"
 book = ""
 book_class = ""
 language = "es"
+rules_both = ""
+rules_problems = ""
+rules_theory = ""
 """
 
 
@@ -290,3 +296,90 @@ def test_the_sign_in_wait_takes_a_whole_number_of_minutes_from_zero(tmp_path: Pa
     else:
         with pytest.raises(config.ConfigError, match="schedule.wait_minutes"):
             _ = config.load(tmp_path, "sample", ("schedule",)).schedule_wait_minutes
+
+
+# --- standing rules (spec 009) -------------------------------------------------------------------------
+
+
+RULE_KEYS = ("rules_both", "rules_problems", "rules_theory")
+
+
+def _with_rules(base: str, *, student: dict[str, str] | None = None, subject: dict[str, str] | None = None) -> str:
+    """`base` with its empty rule keys given literal strings, as the template says to write them."""
+    head, tail = base.split("[[subjects]]")
+    for key, value in (student or {}).items():
+        head = head.replace(f'{key} = ""', f"{key} = '''{value}'''")
+    for key, value in (subject or {}).items():
+        tail = tail.replace(f'{key} = ""', f"{key} = '''{value}'''")
+    return f"{head}[[subjects]]{tail}"
+
+
+def test_empty_rule_keys_are_valid_and_mean_no_rule(home: Path):
+    rules = config.load_all(home, "s9").rules("Mates")
+    assert rules.parts("problems") == [] and rules.parts("theory") == []
+
+
+@pytest.mark.parametrize("key", RULE_KEYS)
+@pytest.mark.parametrize("table", ["student", "subjects[0]"])
+def test_a_missing_rule_key_is_named(home: Path, key: str, table: str):
+    head, tail = text(home).split("[[subjects]]")
+    line = f'{key} = ""\n'
+    write(
+        home,
+        f"{head.replace(line, '')}[[subjects]]{tail}"
+        if table == "student"
+        else f"{head}[[subjects]]{tail.replace(line, '')}",
+    )
+    assert (f"{table}.{key}", "missing") in keys(config.check(home, "s9")[0])
+
+
+def test_an_unset_or_mistyped_rule_key_is_named_and_never_shown(home: Path):
+    secret = "PALABRAPLANTADA"
+    written = _with_rules(text(home), student={"rules_both": f"changeme {secret}"})
+    write(home, written.replace('rules_theory = ""', "rules_teoria = ''", 1))
+    problems = config.check(home, "s9")[0]
+    assert ("student.rules_both", "unset") in keys(problems)
+    assert ("student.rules_teoria", "extra") in keys(problems)
+    assert secret not in str(problems)
+
+
+def test_a_rule_key_that_is_not_text_is_named(home: Path):
+    write(home, text(home).replace('rules_both = ""', "rules_both = 5", 1))
+    assert ("student.rules_both", "type") in keys(config.check(home, "s9")[0])
+
+
+def test_rules_come_stripped_from_the_student_and_that_subject_alone(home: Path):
+    head, first = _with_rules(text(home), student={"rules_both": "  del alumno \n", "rules_theory": "   "}).split(
+        "[[subjects]]"
+    )
+    other = first.replace('folder = "Mates"', 'folder = "Otra"').replace(
+        'rules_problems = ""', "rules_problems = 'de la otra'"
+    )
+    mates = first.replace('rules_problems = ""', "rules_problems = 'de mates'")
+    write(home, f"{head}[[subjects]]{mates}[[subjects]]{other}")
+    rules = config.load_all(home, "s9").rules("Mates")
+    assert rules.parts("problems") == [("student.both", "del alumno"), ("subject.problems", "de mates")]
+    assert rules.parts("theory") == [("student.both", "del alumno")]  # spaces only count as empty
+
+
+def test_a_literal_string_keeps_quotes_backslashes_and_line_breaks(home: Path):
+    rule = 'Di "raíz" y usa \\frac{a}{b}\ny \\sqrt{x}'
+    write(home, _with_rules(text(home), subject={"rules_both": rule}))
+    assert config.load_all(home, "s9").rules("Mates").parts("theory") == [("subject.both", rule)]
+
+
+def test_a_subject_that_is_not_configured_has_no_rules_to_read(home: Path):
+    with pytest.raises(config.ConfigError):
+        config.load_all(home, "s9").rules("Otra")
+
+
+def test_the_repr_of_the_rules_holds_no_rule(home: Path):
+    write(home, _with_rules(text(home), student={"rules_both": "PALABRAPLANTADA"}))
+    assert "PALABRAPLANTADA" not in repr(config.load_all(home, "s9").rules("Mates"))
+
+
+def test_only_exam_build_reads_the_rules():
+    # FR-013: `config check` validates them and the guardrail compares them; nothing else uses them.
+    src = Path(config.__file__).parent
+    readers = {str(p.relative_to(src)) for p in src.rglob("*.py") if ".rules(" in p.read_text()}
+    assert readers == {"exam/cli.py"}

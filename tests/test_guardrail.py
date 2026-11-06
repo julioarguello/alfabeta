@@ -147,3 +147,28 @@ def test_lock_files_and_allow_file_are_skipped(tmp_path: Path):
 def test_blind_detector_exits_3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setitem(guardrail.GENERIC, "drive-id", lambda line: False)
     assert guardrail.run(_repo(tmp_path), tmp_path, "all", _discard) == guardrail.EXIT_BLIND
+
+
+# --- standing rules (spec 009 FR-009) ------------------------------------------------------------------
+
+
+def _home_with_rule(tmp_path: Path, rule: str) -> Path:
+    home = tmp_path / "home"
+    (home / "estudiante").mkdir(parents=True)
+    (home / "estudiante" / "config.toml").write_text(
+        f"[student]\nrules_both = '''{rule}'''\n[[subjects]]\nfolder = 'Xy'\nrules_problems = ''\nrules_theory = 'changeme'\n"
+    )
+    return home
+
+
+def test_a_multi_line_rule_is_caught_line_by_line(tmp_path: Path):
+    first, second = "Clasifica los enunciados inventados", "y después separa cada tipo inventado"
+    named = guardrail.named_values(_home_with_rule(tmp_path, f"{first}\n{second}"))
+    assert first in named and second in named
+    found = guardrail.scan_lines("docs/x.md", [(1, f"nota: {second.upper()}")], named)
+    assert [f.detector for f in found] == ["configured-value"]
+
+
+def test_a_short_line_of_a_rule_or_an_unset_one_names_nothing(tmp_path: Path):
+    named = guardrail.named_values(_home_with_rule(tmp_path, "Corto\n\nOtra línea breve"))
+    assert "Corto" not in named and "Otra línea breve" not in named and "changeme" not in named

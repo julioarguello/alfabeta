@@ -7,13 +7,17 @@ and a value is never read again for placeholders: an announcement may hold brace
 
 from __future__ import annotations
 
+import hashlib
 import re
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import datetime as dt
     from collections.abc import Mapping
+
+    from alfabeta.config import Rules
 
 PROMPTS = Path(__file__).resolve().parents[3] / "skills" / "study-pack" / "prompts.md"
 THEORY = "Theory sheet — for an exam"
@@ -23,6 +27,9 @@ START_NOTE = "Start note — for an exam"
 THEORY_OPEN = "Theory sheet — for an exam with no announcement"
 PROBLEMS_OPEN = "Problems sheet — for an exam with no announcement"
 START_NOTE_OPEN = "Start note — for an exam with no announcement"
+# The text a prompt gains when the student or the subject has standing rules (spec 009).
+RULES = "Standing rules — added to a prompt"
+RULES_LIMIT = 2000  # characters of `{rules}`; unmeasured (spec 009 research R5)
 NO_DATE = "sin fecha"  # where the exam's date would go (spec 007 FR-028a)
 # `{notes_corrections}` of an exam with no announcement, before the lines of `bloques.md` (spec 007 FR-027).
 CORRECTIONS = (
@@ -79,6 +86,49 @@ def fill(text: str, values: Mapping[str, str]) -> str:
     if missing:
         raise PromptError(f"no value for {', '.join(missing)}")
     return _PLACEHOLDER.sub(lambda m: values[m.group(1)], text)
+
+
+class RulesTooLong(Exception):
+    """A sheet's rules are over the limit: nothing is cut in silence (spec 009 FR-010)."""
+
+    def __init__(self, kind: str, over: int) -> None:
+        super().__init__(
+            f"the standing rules of the {kind} sheet are {over} character{'s'[: over != 1]} over the limit"
+        )
+
+
+@dataclass(frozen=True)
+class RulesUsed:
+    """What a prompt gained, named and fingerprinted; it holds no word of the rules (spec 009 FR-008)."""
+
+    used: tuple[str, ...]
+    fingerprint: str
+
+    def as_json(self) -> dict[str, Any]:
+        """The shape of the command's result and of the pack's record."""
+        return {"used": list(self.used), "fingerprint": self.fingerprint}
+
+
+def with_rules(prompt: str, rules: Rules, kind: str) -> tuple[str, RulesUsed | None]:
+    """`prompt`, filled, with the rules that speak to `kind` after it, and what it gained (spec 009 FR-003).
+
+    The section is read even with no rules, so a renamed heading never goes unnoticed; `fill` makes one pass,
+    so a rule's braces are never read as placeholders.
+    """
+    added = template(RULES)
+    parts = rules.parts(kind)
+    if not parts:
+        return prompt, None
+    levels = (
+        (label, " ".join(text for name, text in parts if name.startswith(level)))
+        for label, level in (("Del alumno", "student."), ("De la asignatura", "subject."))
+    )
+    words = " ".join(f"{label}: {text}" for label, text in levels if text)
+    if len(words) > RULES_LIMIT:
+        raise RulesTooLong(kind, len(words) - RULES_LIMIT)
+    text = fill(added, {"rules": words})
+    fingerprint = hashlib.sha256(text.encode()).hexdigest()[:8]
+    return f"{prompt} {text}", RulesUsed(tuple(name for name, _ in parts), fingerprint)
 
 
 def language_words(code: str) -> str:

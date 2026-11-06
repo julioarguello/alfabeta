@@ -4,12 +4,14 @@ The prompts are in Spanish because they were measured in Spanish (2026-10-26); a
 untested prompt. `{placeholders}` come from the configuration, from the topic's confirmed blocks
 (`notebook/bloques.md`) or, for the exam sheets, from the exam and its announcement, and for the
 exam's start note from the title `exam build` gives the theory sheet. Replace every one before
-sending; a prompt that still holds a `{` is a bug.
+sending; a prompt that still holds one of these placeholders is a bug. A brace that comes with a value, an
+announcement's or a rule's, stays as written.
 
 > [!IMPORTANT]
 > `exam build` finds its texts by their exact headings: «Theory sheet — for an exam», «Problems sheet
 > — for an exam» and «Start note — for an exam», and the same three with « with no announcement» after
-> them. Renaming one makes the command refuse (`invalid_prompt`) and ask the notebook for nothing.
+> them, and «Standing rules — added to a prompt». Renaming one makes the command refuse (`invalid_prompt`) and
+> ask the notebook for nothing.
 
 | Placeholder | Source |
 |---|---|
@@ -34,6 +36,7 @@ sending; a prompt that still holds a `{` is a bug.
 | `{scheme}` | empty when `bloques.md` names no scheme for this prompt's blocks. Otherwise the scheme and branch it names (constitution X, spec 002 FR-038), as sentences each ending in a space. For one block: «Esto es la rama «<branch>» del esquema «<scheme>» de sus apuntes (pág. N): síguela con sus subramas, en su orden y con sus palabras, y nómbrala al empezar. Lo que la rama no tiene va al final, diciendo de qué fuente sale, sin llamarlo opcional. ». For several blocks: «Sigue el esquema «<scheme>» de sus apuntes (pág. N): sus ramas, en este orden y con estas palabras: <branch>; <branch>; … Nombra la rama de cada parte. Lo que el esquema no tiene va después de su rama más cercana o aparte, diciendo de qué fuente sale, sin llamarlo opcional. » |
 | `{plan}` | the study plan the agent writes for guide 0 (its section below) |
 | `{part}` | empty for an exam over one topic; over several subtopics (spec 002 FR-045), «, pero este examen abarca varios subtemas y este cuaderno solo tiene el subtema «<topic>» (parte N de M): haz sección solo de los puntos que tratan tus fuentes y nombra los demás en una línea «En otro subtema o sin material:», sin desarrollarlos», with no final full stop. With no announcement, over several topics of any kind: «; este examen abarca varios temas y este cuaderno solo tiene «<topic>» (parte N de M): cubre solo ese tema» |
+| `{rules}` | «Del alumno: <text>» and «De la asignatura: <text>», separated by a space, each only when that level has text; within a level `both` before the piece's kind, separated by a space (spec 009, `specs/009-standing-rules/contracts/prompts.md`) |
 | `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
 
 ## Video — one per block, plus one per point of the announcement no block covers
@@ -216,6 +219,16 @@ With or without a date: the note above says «Hoy», which is false for a prepar
 
 ```text
 Para este examen ({exam_name}): «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
+```
+
+## Standing rules — added to a prompt
+
+Spec 009: what a filled prompt gains when the student or the subject has standing rules, after the
+prompt and one space. With none it gains nothing. `exam build` adds it to its two sheets; the skill
+adds it as `SKILL.md` says. Not measured.
+
+```text
+Reglas fijas de la familia para este alumno y esta asignatura: aplícalas en todo el resultado sin citarlas ni mencionarlas. Donde contradigan lo anterior mandan ellas, y las de la asignatura sobre las del alumno, salvo en qué entra en el examen y en seguir sus puntos, en las correcciones ya comprobadas, en seguir los esquemas de los apuntes, que mandan en la estructura y en las palabras, en comprobar cada número, en decir de qué fuente sale cada dato, en usar solo los problemas que se pide usar, en no culpar ni nombrar a nadie y en las frases y títulos que se piden entre comillas. {rules}
 ```
 
 ## Tutor chat

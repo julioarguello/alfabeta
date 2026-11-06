@@ -24,6 +24,7 @@ fails, say which keys and stop. Never create the configuration or write to it.
 | `drive.mirrors` | the folders refreshed after the videos are copied (step 9); never shown, only counted |
 | `tools.repository` | the clone every command and script runs from |
 | `[[subjects]]` `folder`, `language` | the subject's folder, and the language it is taught and examined in (`es`, `en`…) |
+| `rules_both`, `rules_problems`, `rules_theory`, in `[student]` and in the subject's `[[subjects]]` | the family's standing rules (below); never shown |
 | `notebook.title_pattern`, `notebook.nlm_profile` | the topic's notebook; the `nlm` profile of the account that owns it |
 
 Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN[X] - <title>/` (`X` a
@@ -36,6 +37,37 @@ notebook is the one whose title matches
 (`nlm config get auth.default_profile`; measured 2026-10-28 with nlm 0.15.8): when it is not
 `<profile>`, say so and stop before any download, as `print_pack.py` does. Never write a name, an
 email or an id into the repository.
+
+## Standing rules
+
+The family's standing rules (spec 009) are the `rules_*` keys of the table above: what they said once about
+the student and about the subject, so that nobody repeats it. `""` means none. Read them each run, before
+the prompts and the judgement steps, and copy them nowhere: not into `bloques.md`, not into any file of the
+topic's folder, which mirrors to other Drives.
+
+| Piece | Takes |
+|---|---|
+| Practice sheet, quiz, parent guide | `rules_both`, `rules_problems` |
+| Summary of the notes | `rules_both`, `rules_theory` |
+| Flashcards, glossary | `rules_both` |
+| Video's focus | what fits, your judgement, and you say so in the report |
+| Guide 0, the built-in study guide, the tutor chat, start notes | nothing. Guide 0's prompt copies a block word for word, so the rules shape the `{plan}` you write. The chat talks with the student, and a question could draw a rule out of it |
+| The blocks and the plan you work out yourself | follow `rules_both` and `rules_theory`, within the limits below |
+
+To add them, fill the prompt, then append one space and the text of «Standing rules — added to a prompt» in
+[`prompts.md`](prompts.md): the student's rules first, then the subject's. `{rules}` over 2,000 characters
+is too long: tell the family which piece and by how much, and never cut it. `exam build` adds them to its
+two sheets by itself.
+
+A rule prevails over a prompt's fixed text where they contradict, never over what the added text lists:
+what is in the exam and following its points, corrections already checked, the student's schemes leading the
+structure and the wording (constitution X), checking every number, naming a fact's source, using only the
+problems a prompt says to use, blaming or naming no one, and sentences and titles asked for in quotation
+marks. The same limits bind your judgement steps. A standing fact in a rule is not asked again; which
+subtopics an exam covers and a question on the notes still are, because only the family can settle them.
+
+The report names the levels and kinds used (`student.both`, `subject.problems`), never a word of the text,
+and never quotes a piece's status output, which can hold its prompt.
 
 ## When to run
 

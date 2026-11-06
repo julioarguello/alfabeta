@@ -67,6 +67,10 @@ _IDENTIFYING_KEYS = frozenset(
     }
 )
 _MIN_NAMED_LENGTH = 4
+# A standing rule is free text, often several lines, and the scan matches per line (spec 009 FR-009); a short
+# line would be ordinary words.
+_RULE_KEYS = frozenset({"rules_both", "rules_problems", "rules_theory"})
+_MIN_RULE_LINE = 20
 
 
 @dataclass(frozen=True)
@@ -177,6 +181,8 @@ def named_values(home: Path) -> list[str]:
         if len(config.parent.name) >= _MIN_NAMED_LENGTH:
             values.add(config.parent.name)
         for key, value in _walk_values(data):
+            if key in _RULE_KEYS and "changeme" not in value:
+                values.update(s for line in value.splitlines() if len(s := line.strip()) >= _MIN_RULE_LINE)
             if key in _IDENTIFYING_KEYS and len(value) >= _MIN_NAMED_LENGTH and "changeme" not in value:
                 values.add(value)
     return sorted(values, key=len, reverse=True)

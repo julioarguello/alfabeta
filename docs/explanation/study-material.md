@@ -146,6 +146,7 @@ Each rule names what supports it. **Hypothesis** means nothing measured or publi
 | Few pieces for the student, each named by what it is, what about and how long (`Vídeo 4 min · Kontzentrazioa`) | Choice overload ([Chernev et al. 2015](https://www.kellogg.northwestern.edu/faculty/research/detail/2015/when-product-assortment-leads-to-choice-overload-a-conceptual)); the count is a **hypothesis** |
 | The parent's material (topic map, recomputed answer key, translated exercises, a questioning guide with the Basque term) lives in the topic's `notebook/` folder in Drive, with the rest of what the notebook generates, and leaves the notebook's Studio | A viewer sees everything in Studio (sharing help) |
 | Numeric answers are recomputed before any material reaches the student, except the exam sheets of `exam build`, whose numbers the notebook computes (an accepted risk, spec 002 FR-036) | The answer-key errors above |
+| The family's standing rules, kept in the student's configuration, shape the material's prompts, but never what is in an exam, the student's schemes or the checks ([spec 009](../../specs/009-standing-rules/spec.md)) | The operator: each subject has facts every run rediscovered |
 | The tutor gives hints before answers and never attributes authorship | Bastani et al.; the invented attribution measured above |
 | The calendar holds only objective facts, from Classroom — assignments, exams, posted material — or exams the family declares, labelled as such; never study blocks | A family decision: study time is planned by hand |
 

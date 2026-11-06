@@ -4,7 +4,7 @@ JSON on stdout, messages for people on stderr; no message names an address, a Dr
 id or an absolute path. Exit codes: 0 ok · 1 usage or validation, and the refusals `notebook_disabled`,
 `no_exam` and `no_announcement` (when no `--topic` names the scope, or a captured announcement cannot be read,
 spec 007), `no_notebook`,
-`subtopics_unnamed` · 3 a step from 5 on failed · 5 `nlm` is not usable.
+`subtopics_unnamed`, `rules_too_long` (spec 009) · 3 a step from 5 on failed · 5 `nlm` is not usable.
 Steps 1 to 4 refuse before the notebook is asked for anything, and then nothing is printed.
 """
 
@@ -104,6 +104,7 @@ def _sheets(
     folder: Path,
     index: int,
     count: int,
+    rules: config.Rules,
 ) -> tuple[Sheet, Sheet]:
     topic = topic_name(folder.name)
     values = {
@@ -129,10 +130,22 @@ def _sheets(
             "part": _open_part(topic, index, count),
             "notes_corrections": prompts.notes_corrections(notes_corrections(folder)),
         }
-    return (
-        Sheet("theory", "Teoría para el examen", prompts.fill(prompts.template(theory), values).rstrip()),
-        Sheet("problems", "Problemas tipo", prompts.fill(prompts.template(problems), values).rstrip(), SOLUTIONS),
+    theory_prompt, theory_rules = prompts.with_rules(
+        prompts.fill(prompts.template(theory), values).rstrip(), rules, "theory"
     )
+    problems_prompt, problems_rules = prompts.with_rules(
+        prompts.fill(prompts.template(problems), values).rstrip(), rules, "problems"
+    )
+    return (
+        Sheet("theory", "Teoría para el examen", theory_prompt, rules=theory_rules),
+        Sheet("problems", "Problemas tipo", problems_prompt, SOLUTIONS, problems_rules),
+    )
+
+
+def _rules_line(sheets: tuple[Sheet, Sheet]) -> str:
+    """The one line naming what the prompts gained; never a word of it (spec 009 FR-008)."""
+    named = [f"{s.kind} {' '.join(s.rules.used)} {s.rules.fingerprint}" for s in sheets if s.rules]
+    return f"standing rules: {'; '.join(named)}" if named else "no standing rules for this subject"
 
 
 def cmd_exam_prep(
@@ -223,14 +236,19 @@ def cmd_exam_prep(
         day = {"exam_day": prompts.exam_day(exam.day)} if announced and exam.day else {}
         # The slot is shared in equal parts among the topics, in their order (FR-045, spec 007 FR-025).
         shared = slot.share(len(folders))
+        rules = cfg.rules(subject.folder)
         parts = [
-            (part, _sheets(cfg, subject.folder, language, exam, part, f, i, len(folders)))
+            (part, _sheets(cfg, subject.folder, language, exam, part, f, i, len(folders), rules))
             for i, (f, part) in enumerate(zip(folders, shared, strict=True), start=1)
         ]
     except prompts.PromptError as err:
         return _fail("invalid_prompt", EXIT_INVALID, f"prompts.md: {err}")
+    except prompts.RulesTooLong as err:
+        return _fail("rules_too_long", EXIT_INVALID, f"{err}; nothing was asked or printed")
     except Refusal as refusal:
         return _fail(refusal.reason, EXIT_INVALID, str(refusal))
+    first_sheets = parts[0][1]
+    print(f"alfabeta: {_rules_line(first_sheets)}", file=sys.stderr)
 
     listed = sorted(p.name for p in folders[0].parent.iterdir() if p.is_dir())
     topics: list[dict[str, Any]] = []
@@ -257,5 +275,6 @@ def cmd_exam_prep(
         topics.append({"topic": listed.index(folder.name), **outcome})
         partial = partial or prep.partial
     exam_date = exam.day.isoformat() if exam.day else None
-    _emit({"ok": not partial, "exam_date": exam_date, "announced": announced, "topics": topics})
+    used = [{"sheet": s.kind, **s.rules.as_json()} for s in first_sheets if s.rules]
+    _emit({"ok": not partial, "exam_date": exam_date, "announced": announced, "rules": used, "topics": topics})
     return EXIT_PARTIAL if partial else EXIT_OK

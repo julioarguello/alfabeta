@@ -9,7 +9,7 @@ Part of the [alfabeta](https://github.com/julioarguello/alfabeta) project.
 
 ## Configuration
 Receive the student's id, or ask for it; never guess it. Read `~/.alfabeta/<student>/config.toml` (template: the
-repo's `config/template.toml`), then check it with
+repo's `config/template.toml`; ignore its `rules_*` keys, spec 009 FR-013), then check it with
 `uv run --project <tools.repository> python -m alfabeta config check --student <student>`. If it fails, say which
 keys and stop. Never create the configuration or write to it. It provides:
 `student.display_name`, `student.grade_level`, `student.school_year`, `storage.base` (the master folder),

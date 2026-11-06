@@ -26,6 +26,9 @@ display_name = "Alumna Inventada"
 school_year = "2026-2027"
 grade_level = "3º ESO"
 languages = ["es", "en"]
+rules_both = ""
+rules_problems = ""
+rules_theory = ""
 
 [drive]
 root = "alfabeta"

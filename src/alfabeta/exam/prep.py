@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from alfabeta.exam.nlm import Artifact, Notebook
+    from alfabeta.exam.prompts import RulesUsed
 
 EXIT_OK, EXIT_INVALID, EXIT_PARTIAL, EXIT_NLM = 0, 1, 3, 5
 EXAM_FOLDER = "exam"
@@ -387,8 +388,9 @@ class Sheet:
 
     kind: str  # `theory` or `problems`, as the output names it
     name: str  # in its title and its file name
-    prompt: str
+    prompt: str = field(repr=False)  # may hold the student's standing rules (spec 009 FR-009)
     break_before: str = ""
+    rules: RulesUsed | None = None
 
 
 def _cut(text: str, limit: int) -> str:
@@ -586,6 +588,7 @@ class ExamPrep:
                 "verification": "pages_only",  # FR-009: nothing else of an exam sheet is checked
                 "exam": self.exam.day.isoformat() if self.exam.day else None,
                 "made": self.deps.now().date().isoformat(),
+                "rules": s.rules.as_json() if s.rules else None,
             }
             for s in self.sheets
             if s.kind in done
