@@ -48,6 +48,9 @@ if TYPE_CHECKING:
     from alfabeta.google.keychain import TokenStore
 
 MADRID = ZoneInfo("Europe/Madrid")
+# Accepted by the operator until spec 004's migration takes the base folder out of Drive (#176), as the sync
+# already goes on past it. No other problem is excused.
+ACCEPTED_PROBLEM = config.Problem("storage.base", "inside_drive_mount")
 NLM_MESSAGES = {
     "no_nlm": "nlm cannot be run here: install it, then sign in with `nlm login --profile <profile>`",
     "nlm_signed_out": "nlm is not signed in for notebook.nlm_profile: run `nlm login --profile <profile>`",
@@ -161,8 +164,9 @@ def cmd_exam_prep(
     for warning in warnings:
         print(f"alfabeta: warning: {warning.key}: {warning.reason}", file=sys.stderr)
     for problem in problems:
-        print(f"alfabeta: {problem.key}: {problem.reason}", file=sys.stderr)
-    if problems:
+        label = "warning: " if problem == ACCEPTED_PROBLEM else ""
+        print(f"alfabeta: {label}{problem.key}: {problem.reason}", file=sys.stderr)
+    if any(problem != ACCEPTED_PROBLEM for problem in problems):
         return _fail("invalid_config", EXIT_INVALID, "the configuration is not valid; nothing was asked or printed")
     cfg = config.load_all(home, args.student)
     if not cfg.notebook_enabled:
