@@ -1143,7 +1143,7 @@ def test_the_announced_texts_are_as_they_were():
     # SC-008. Changing an announced text on purpose changes its hash here, in that change.
     hashes = {
         prompts.THEORY: "3ebce803a9299b5e8b78c75ac6d9b2aecbf7f6ec14bf56a4d0fb4cfda95021f6",
-        prompts.PROBLEMS: "54a6e96733d1a98bad491981558c7324b6a0b0dd34ce66b79461b7b468336ac1",
+        prompts.PROBLEMS: "f4ed0c1288af1076d641667b470a703b93037034ae1b8c6934574de32786139b",
         prompts.START_NOTE: "c42279fab6ff05e773fd0bfe185c2a7cdbf398c0dde6aa704626fceb3659cd65",
     }
     for heading, expected in hashes.items():
@@ -1158,6 +1158,23 @@ def test_the_texts_with_no_announcement_are_in_prompts_md_and_quote_none():
     assert "mañana" not in prompts.template(prompts.THEORY_OPEN)
     assert "mañana" not in prompts.template(prompts.PROBLEMS_OPEN)
     assert "Hoy" not in prompts.template(prompts.START_NOTE_OPEN)
+
+
+@pytest.mark.parametrize("heading", [prompts.PROBLEMS, prompts.PROBLEMS_OPEN])
+def test_the_problems_texts_do_not_ask_the_notebook_to_judge_the_printed_answers(heading: str):
+    text = prompts.template(heading)
+    assert "Soluciones impresas" not in text
+    assert "Impreso | Calculado" not in text
+    assert "recalcula" not in text
+    assert "No compares tus resultados con las soluciones que imprimen las fotocopias" in text
+    assert "ni digas que una de ellas está mal" in text
+
+
+@pytest.mark.parametrize("heading", [prompts.PROBLEMS, prompts.PROBLEMS_OPEN])
+def test_a_statement_missing_a_datum_is_still_answered_under_each_reading(heading: str):
+    assert "Si a un enunciado le falta un dato, dilo junto a su solución, con el resultado de cada lectura." in (
+        prompts.template(heading)
+    )
 
 
 def test_the_problems_text_with_no_announcement_ends_as_the_announced_one():

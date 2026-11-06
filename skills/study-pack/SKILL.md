@@ -265,7 +265,8 @@ the whole of those topics and say no announcement backs them; with no date, the 
 by itself, so keep one entry per line under that markdown heading (`##`, `###`…), and when the family decides a question against the
 notes, move its line there, with the answer (spec 002 FR-046). Tell the family to read the sheet's last part,
 «Para la familia». The notebook computes every number on both sheets: an accepted risk, and the
-one place where nothing recomputes them (spec 002 FR-036).
+one place where nothing recomputes them (spec 002 FR-036). It does not judge the printed answers: when
+you recompute one and find it wrong, and the family wants it on the sheet, it goes in as a standing rule.
 
 To remake one sheet without the command, the family can ask for the same report by hand, with
 no agent: `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>"
@@ -283,7 +284,7 @@ alfabeta makes them through the notebook. What that run measured:
 |---|---|
 | A 90-minute slot took four A4 pages of theory | `{pages}`: four per 90 minutes |
 | Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
-| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; whether the notebook finds them by itself is unmeasured), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | the table «Soluciones impresas que no cuadran», and the rounding rule in the prompt |
+| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; whether the notebook finds them by itself is unmeasured), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | a table of printed answers in the prompt, withdrawn 2026-11-06: in three runs through the notebook it was false every time (spec 002 FR-036) |
 | The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide made before the notes |
 | Nothing measured how the notebook does on these two prompts | the first run of `exam build` is that measurement |
 
@@ -313,9 +314,9 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
 
 - Put study blocks or reminders in the calendar: it holds only facts from Classroom, exams the family
   declares (spec 007) and the warnings that restate them, which `calendar sync` writes (spec 003).
-- Show the student a wrong value from a teacher's key anywhere but the exam's problems sheet (its
-  table of printed answers that do not match, and the solution of that same exercise), or name the
-  teacher as wrong.
+- Show the student a wrong value from a teacher's key anywhere but the exam's problems sheet, and
+  there only when a standing rule of the family gives it (spec 002 FR-036), or name the teacher as
+  wrong.
 - Write an exam sheet by hand: `exam build` asks the notebook for it.
 - Make a second notebook for the topic, or share the parent's material with the student.
 - Type a password. The family signs in.
