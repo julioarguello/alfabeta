@@ -55,7 +55,7 @@ solution, and one PDF per task was printed. The numbers here describe that one r
 - Writing anything to Classroom (constitution IV).
 - Exam dates the family declares: that is spec 007, julioarguello/alfabeta#183.
 - Standing rules per subject or per student, such as how finely to classify a subject's problems: those
-  belong to the per-subject prompts, not to this mechanism.
+  belong to spec 009, julioarguello/alfabeta#187, not to this mechanism.
 - Bringing attachments Drive holds back: julioarguello/alfabeta#182.
 
 ### Changes elsewhere
