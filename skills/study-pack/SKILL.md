@@ -57,7 +57,8 @@ topic's folder, which mirrors to other Drives.
 To add them, fill the prompt, then append one space and the text of «Standing rules — added to a prompt» in
 [`prompts.md`](prompts.md): the student's rules first, then the subject's. `{rules}` over 2,000 characters
 is too long: tell the family which piece and by how much, and never cut it. `exam build` adds them to its
-two sheets by itself.
+two sheets by itself. A rule can hold quotes, `$` or backticks, as formulas do: put the filled prompt in a
+variable from a quoted heredoc (`<<'EOF'`) and pass the variable, so the shell changes nothing.
 
 A rule prevails over a prompt's fixed text where they contradict, never over what the added text lists:
 what is in the exam and following its points, corrections already checked, the student's schemes leading the

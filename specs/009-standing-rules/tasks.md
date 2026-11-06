@@ -62,7 +62,7 @@ No setup: no dependency, folder or command is added.
 
 - [x] T017 [P] Update `specs/002-study-pack/spec.md` (FR-029: the text added after filling; FR-034: "as few patterns as possible" is the default a subject rule may change) and `specs/002-study-pack/contracts/cli.md` (`rules`, `rules_too_long`)
 - [x] T018 [P] Add one line each to `README.md` and `docs/explanation/study-material.md`: what a rule is and where it lives
-- [ ] T019 Run `make ci`, read its result, and confirm that no real rule is in the diff
+- [x] T019 Run `make ci`, read its result, and confirm that no real rule is in the diff
 - [ ] T020 After the merge, outside any time in the student's `[schedule]`, and with no pull in the family's checkout between the merge and this step, run the sequence of research R9 on that checkout (`tools.repository`): `lock take`, stopping on `lock_busy`; copy `config.toml` with user-only permissions; `notebook agent uninstall`; add the empty keys through a copy that parses and keeps every other value; `git pull --ff-only`; `config check`; on failure restore the copy and the previous commit; `notebook agent install` only if the uninstall reported `removed`; `lock release`; report the outcome by key, never by value (plan gate 1)
 - [ ] T021 With the family's confirmation, write the real rules, as literal strings through a checked copy, none describing a difficulty yet; run the first real `exam build` with rules; read the printed sheets; make a quiz with an invented rule; look for the prompt on the sheet and on the quiz as a viewer of the notebook; and record the finding with no personal data (SC-005, plan gate 2)
 

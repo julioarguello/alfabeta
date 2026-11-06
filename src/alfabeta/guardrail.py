@@ -67,8 +67,8 @@ _IDENTIFYING_KEYS = frozenset(
     }
 )
 _MIN_NAMED_LENGTH = 4
-# A standing rule is free text, often several lines, and the scan matches per line (spec 009 FR-009); a short
-# line would be ordinary words.
+# A standing rule is free text, often several lines, and the scan matches per line (spec 009 FR-009): a whole
+# rule counts like any named value, and one line of several only when it is long enough not to be ordinary words.
 _RULE_KEYS = frozenset({"rules_both", "rules_problems", "rules_theory"})
 _MIN_RULE_LINE = 20
 
@@ -183,9 +183,22 @@ def named_values(home: Path) -> list[str]:
         for key, value in _walk_values(data):
             if key in _RULE_KEYS and "changeme" not in value:
                 values.update(s for line in value.splitlines() if len(s := line.strip()) >= _MIN_RULE_LINE)
+                if len(whole := value.strip()) >= _MIN_NAMED_LENGTH:
+                    values.add(whole)
             if key in _IDENTIFYING_KEYS and len(value) >= _MIN_NAMED_LENGTH and "changeme" not in value:
                 values.add(value)
     return sorted(values, key=len, reverse=True)
+
+
+def unreadable_configs(home: Path) -> int:
+    """How many configurations under `home` cannot be parsed, whose values `named_values` cannot see."""
+    count = 0
+    for config in sorted(home.glob("*/config.toml")) if home.is_dir() else ():
+        try:
+            tomllib.loads(config.read_text())
+        except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+            count += 1
+    return count
 
 
 def load_allowed(repo: Path) -> frozenset[str]:
@@ -256,6 +269,12 @@ def run(repo: Path, home: Path, mode: str, out: Callable[[str], None] = print) -
     blind = self_test()
     if blind:
         print(f"alfabeta: guardrail detectors are blind: {', '.join(blind)}", file=sys.stderr)
+        return EXIT_BLIND
+    if unreadable_configs(home):
+        # A free-text rule makes this easy to reach (spec 009), and every named value would go unseen.
+        print(
+            "alfabeta: a config.toml cannot be parsed, so the guardrail is blind: run `config check`", file=sys.stderr
+        )
         return EXIT_BLIND
     named = named_values(home)
     allowed = load_allowed(repo)

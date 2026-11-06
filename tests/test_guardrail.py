@@ -154,7 +154,7 @@ def test_blind_detector_exits_3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 def _home_with_rule(tmp_path: Path, rule: str) -> Path:
     home = tmp_path / "home"
-    (home / "estudiante").mkdir(parents=True)
+    (home / "estudiante").mkdir(parents=True, exist_ok=True)
     (home / "estudiante" / "config.toml").write_text(
         f"[student]\nrules_both = '''{rule}'''\n[[subjects]]\nfolder = 'Xy'\nrules_problems = ''\nrules_theory = 'changeme'\n"
     )
@@ -169,6 +169,25 @@ def test_a_multi_line_rule_is_caught_line_by_line(tmp_path: Path):
     assert [f.detector for f in found] == ["configured-value"]
 
 
-def test_a_short_line_of_a_rule_or_an_unset_one_names_nothing(tmp_path: Path):
+def test_a_short_line_of_several_names_nothing_but_a_short_rule_does(tmp_path: Path):
     named = guardrail.named_values(_home_with_rule(tmp_path, "Corto\n\nOtra línea breve"))
-    assert "Corto" not in named and "Otra línea breve" not in named and "changeme" not in named
+    assert "Corto" not in named and "Otra línea breve" not in named
+    short = guardrail.named_values(_home_with_rule(tmp_path, "Regla inventada."))
+    found = guardrail.scan_lines("docs/x.md", [(1, "nota: regla inventada.")], short)
+    assert [f.detector for f in found] == ["configured-value"]
+
+
+def test_an_unset_rule_names_nothing(tmp_path: Path):
+    named = guardrail.named_values(_home_with_rule(tmp_path, "changeme con bastantes palabras inventadas"))
+    assert not any("changeme" in value for value in named)
+
+
+def test_a_configuration_that_cannot_be_parsed_makes_the_guardrail_blind(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    home = tmp_path / "home"
+    (home / "estudiante").mkdir(parents=True)
+    (home / "estudiante" / "config.toml").write_text('[student]\nrules_both = "con "comillas" inventadas"\n')
+    assert guardrail.run(_repo(tmp_path), home, "all", _discard) == guardrail.EXIT_BLIND
+    err = capsys.readouterr().err
+    assert "config check" in err and "estudiante" not in err and "comillas" not in err

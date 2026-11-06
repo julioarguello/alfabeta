@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, announced, topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
+| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, announced, rules:[{sheet, used, fingerprint}], topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook`, `rules_too_long` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -100,7 +100,7 @@ never in Drive or the repository:
 - the pack record (FR-024), `study-pack.json`: under `topics`, keyed by the topic folder's path
   under `storage.base`, `guide` (`id`, `made`: the live study guide and the day it was made) and
   `pieces` (`id`; `kind`, `exam_theory` or `exam_problems`; `moment`; `title`; `language`;
-  `verification`, `pages_only` for an exam sheet; `exam`, the exam's date; `made`);
+  `verification`, `pages_only` for an exam sheet; `exam`, the exam's date; `made`; `rules`, spec 009's `{used, fingerprint}` or null);
 - spec 005's refresh record, `notebook-refresh.json`: under `sources`, per source id, `read_md5`,
   `reads` and `read_at` (spec 005 data-model, RefreshRecord).
 

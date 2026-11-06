@@ -383,3 +383,7 @@ def test_only_exam_build_reads_the_rules():
     src = Path(config.__file__).parent
     readers = {str(p.relative_to(src)) for p in src.rglob("*.py") if ".rules(" in p.read_text()}
     assert readers == {"exam/cli.py"}
+    named = {str(p.relative_to(src)) for p in src.rglob("*.py") if "rules_both" in p.read_text()}
+    assert named == {"config.py", "guardrail.py", "sandbox.py"}
+    scripts = Path(config.TEMPLATE).parents[1] / "skills"
+    assert not [p for p in scripts.rglob("*.py") if "rules_both" in p.read_text()]
