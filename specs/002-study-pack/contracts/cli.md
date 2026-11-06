@@ -34,7 +34,9 @@ nothing. From step 5 on, a failure is code 3 and stops nothing after it: a refre
 fails still lets both sheets be asked for, and the output says the guide may be stale; a report
 that fails does not stop the other.
 
-1. Checks the configuration as `config check` does. With `notebook.enabled = false` it stops:
+1. Checks the configuration as `config check` does. `storage.base: inside_drive_mount` alone is a warning, not a refusal, until
+   spec 004's migration takes the base folder out of Drive (julioarguello/alfabeta#176); any other problem is
+   `invalid_config`. With `notebook.enabled = false` it stops:
    `notebook_disabled`, code 1.
 2. Checks that `nlm` is signed in for `notebook.nlm_profile`, and that this is `nlm`'s default
    profile, which `nlm download` reads; otherwise code 5, saying which.

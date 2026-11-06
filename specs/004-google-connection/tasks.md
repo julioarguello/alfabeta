@@ -137,7 +137,7 @@ each file.
 - [x] T025 [US3] (done in julioarguello/alfabeta#78) Implement `src/alfabeta/google/drive.py`, the `ScopedDrive` of research R6. It resolves the root from `[drive] root`, caches `root_id` in `data/google/drive.json`, and lists, uploads and updates, always inside the allowlist.
 - [ ] T026 [P] [US3] Write `tests/test_google_migrate.py`. Match by relative path; same size and md5 → `adopted`; missing → `to_upload`; different → `differs`; no checksum → `native`; Drive-only → `only_in_drive`. `--apply` refuses while `differs` is non-empty, and nothing is ever deleted.
 - [ ] T027 [US3] Implement `src/alfabeta/google/migrate.py` and `drive migrate [--apply]`. Write `data/google/migration-<run>.json` with names, and print counts only.
-- [ ] T028 [US3] (partial: `config check` reports a base inside the mount (`inside_drive_mount`); no `drive push`) Implement `drive push` and the mount check of FR-011:
+- [ ] T028 [US3] (partial: `config check` reports a base inside the mount (`inside_drive_mount`), which `exam build` accepts with a warning, and the scheduled sync's prompt goes on past, until the migration; no `drive push`) Implement `drive push` and the mount check of FR-011:
   - refuse a `[storage] base` under `~/Library/CloudStorage/GoogleDrive-*`;
   - append to `data/google/uploads.jsonl`;
   - exit 3 on a partial failure, after finishing the other files.

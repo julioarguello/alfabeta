@@ -1643,3 +1643,51 @@ def test_the_skill_names_the_rule_keys_and_the_section():
     skill = (Path(prompts.PROMPTS).parent / "SKILL.md").read_text()
     for name in ("rules_both", "rules_problems", "rules_theory", prompts.RULES):
         assert name in skill, name
+
+
+# --- the base folder still inside Drive, accepted until spec 004's migration (#176) ---------------------
+
+
+def inside_the_mount(world: World, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """The configured base is a path under a Drive mount; the sandbox's real folder stands behind it."""
+    fake_home = world.home / "fake-home"
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+    mounted = fake_home / "Library" / "CloudStorage" / "GoogleDrive-inventado" / "Mi unidad" / "alfabeta"
+    mounted.parent.mkdir(parents=True)
+    mounted.symlink_to(world.base)
+    config = world.home / STUDENT / "config.toml"
+    config.write_text(config.read_text().replace(str(world.base), str(mounted)))
+    return mounted
+
+
+def test_a_base_inside_drive_alone_is_a_warning_and_the_sheets_are_made(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    inside_the_mount(world, monkeypatch)
+    assert world.run() == 0
+    result, err = output(capsys)
+    assert result["ok"] is True and len(sent(world)) == 2
+    assert "alfabeta: warning: storage.base: inside_drive_mount" in err
+    assert "GoogleDrive-inventado" not in err
+
+
+def test_a_base_inside_drive_does_not_excuse_any_other_problem(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    inside_the_mount(world, monkeypatch)
+    set_rules(world, student={"both": "changeme"})
+    err = refused(world, capsys, 1, "invalid_config")
+    assert "alfabeta: student.rules_both: unset" in err
+    assert world.nlm.calls == []
+
+
+def test_a_base_inside_drive_is_a_warning_beside_a_place_that_is_a_problem(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    # Both come from the same check of the folders, so the warning shows and the refusal stands.
+    mounted = inside_the_mount(world, monkeypatch)
+    config = world.home / STUDENT / "config.toml"
+    config.write_text(re.sub(r"(?m)(\[tools\]\n(?:#.*\n)*folder = ).*$", rf'\1"{mounted}/tools"', config.read_text()))
+    err = refused(world, capsys, 1, "invalid_config")
+    assert "alfabeta: warning: storage.base: inside_drive_mount" in err and "invalid_config" not in err
+    assert world.nlm.calls == []
