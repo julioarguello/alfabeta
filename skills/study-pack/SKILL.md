@@ -197,7 +197,8 @@ and never quotes a piece's status output, which can hold its prompt.
    - Download it to a scratch folder, never the topic folder
      (`nlm download report|quiz|flashcards|video <nb> --id <id> -o <scratch>/<file>`).
    - Language: the whole text, not the title.
-   - Recompute every number in the practice sheet, the quiz and the parent guide.
+   - Recompute every number in the practice sheet, the quiz and the parent guide, and in any problem
+     added to an exam sheet on the family's word (spec 002 FR-049).
    - Compare the practice sheet's problems with the teacher's sheets: **no problem may reuse their
      data.** The model reuses them even when told not to (measured 2026-10-26: 7 of 11 practice
      problems were the teacher's, with the same numbers). Regenerate if it does.
