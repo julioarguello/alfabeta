@@ -625,6 +625,14 @@ def test_a_line_whose_anchor_is_gone_goes_at_the_end_of_the_page():
     assert statements.strip_statements(written) == PAGE
 
 
+def test_an_anchor_prefers_the_whole_line_to_a_line_that_merely_holds_it():
+    page = "## Tema 3\n\n3\nx  =  1\n"
+    problem: dict[str, Any] = {"number": "3", "anchor": "3", "status": statements.MISSING, "candidates": []}
+    assert statements.with_statements(page, [problem]).splitlines()[3].startswith("[enunciado")
+    spaced: dict[str, Any] = {"number": "4", "anchor": "x = 1", "status": statements.MISSING, "candidates": []}
+    assert statements.with_statements(page, [spaced]).splitlines()[4].startswith("[enunciado")
+
+
 def test_writing_the_lines_twice_is_writing_them_once():
     problem: dict[str, Any] = {**PROBLEM, "status": statements.MISSING, "candidates": []}
     once = statements.with_statements(PAGE, [problem])

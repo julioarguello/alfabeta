@@ -12,7 +12,7 @@ import pytest
 
 from alfabeta.google.transport import Response, TransportError
 from alfabeta.notes.model import MAX_PHOTO_BYTES, PhotoState, Usage
-from alfabeta.notes.transcribe import API_VERSION, ClaudeTranscriber, claude_key_name
+from alfabeta.notes.transcribe import ANSWER_TOKENS, API_VERSION, ClaudeTranscriber, claude_key_name
 from tests.conftest import FakeTransport, MemoryStore
 
 FIXTURES = Path(__file__).parent / "fixtures" / "notes"
@@ -118,3 +118,11 @@ def test_the_key_is_in_no_log_line_and_comes_from_the_places_store(caplog: pytes
         tr.transcribe(PHOTO, "image/png")
     assert "control" in caplog.text and KEY not in caplog.text
     assert "#" in claude_key_name("s9")  # never an account alias, which unlink could reach
+
+
+def test_a_text_question_asks_for_the_answers_size_its_caller_names():
+    tr, t = transcriber(answer("claude-answer.json"), answer("claude-answer.json"))
+    tr.answer("una pregunta")
+    tr.answer("otra pregunta", 8000)
+    sizes = [json.loads(body or b"{}")["max_tokens"] for _, _, _, body in t.calls]
+    assert sizes == [ANSWER_TOKENS, 8000]

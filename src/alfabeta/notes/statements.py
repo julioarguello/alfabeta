@@ -238,6 +238,20 @@ def _where(candidate: dict[str, str]) -> str:
     return f"«{candidate['source']}», {candidate['exercise']}"
 
 
+def _why(candidates: list[dict[str, str]]) -> str:
+    """What decided each candidate, each reason once."""
+    return "; ".join(dict.fromkeys(c["why"] for c in candidates if c["why"]))
+
+
+def _anchored(lines: list[str], anchor: str | None) -> int | None:
+    """The line a problem starts on: the whole line, else one holding it, whatever the spacing."""
+    if not anchor:
+        return None
+    spaced = [" ".join(line.split()) for line in lines]
+    exact = next((i for i, line in enumerate(spaced) if line == anchor), None)
+    return exact if exact is not None else next((i for i, line in enumerate(spaced) if anchor in line), None)
+
+
 def _line(problem: dict[str, Any]) -> str | None:
     """The problem's line in the transcription; none until it has been searched."""
     status, named = problem.get("status"), _named(problem)
@@ -247,7 +261,7 @@ def _line(problem: dict[str, Any]) -> str | None:
         return f"[enunciado del {named}: {_where(c)}: «{c['quote']}…»; {c['why']}]"
     if status == DOUBTFUL:
         said = " o ".join(f"{_where(c)}: «{c['quote']}…»" for c in candidates)
-        return f"[enunciado dudoso del {named}: {said}; {candidates[0]['why']}]"
+        return f"[enunciado dudoso del {named}: {said}; {_why(candidates)}]"
     if status == MISSING:
         return f"[enunciado del {named}: no está en el libro ni en Classroom]"
     return None
@@ -268,7 +282,7 @@ def with_statements(markdown: str, problems: list[dict[str, Any]]) -> str:
         if line is None:
             continue
         anchor = cast("str | None", problem.get("anchor"))
-        at = next((i for i, text in enumerate(lines) if anchor and anchor in text), None)
+        at = _anchored(lines, anchor)
         if at is None:
             last.append(line)
         else:
@@ -290,7 +304,7 @@ def report_line(page: str, problem: dict[str, Any], searched: dict[str, dict[str
         return f"{head}: su enunciado está en {_where(candidates[0])}; {candidates[0]['why']}."
     if status == DOUBTFUL:
         said = " y ".join(_where(c) for c in candidates)
-        return f"{head}: dudoso, encaja igual en {said}; {candidates[0]['why']}."
+        return f"{head}: dudoso, encaja igual en {said}; {_why(candidates)}."
     solved = "; ".join(f"{k}: {problem[f]}" for k, f in (("datos", "data"), ("resultado", "result")) if problem.get(f))
     read = [s["label"] for s in searched.values() if not s.get("unread") or s["unread"] == CUT]
     where = f"Se ha buscado en: {', '.join(read)}." if read else NO_SOURCES
