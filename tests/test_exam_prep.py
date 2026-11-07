@@ -1167,6 +1167,16 @@ def printed(world: World) -> list[str]:
     return sorted(p.name for p in (world.topic / "exam").iterdir())
 
 
+def test_the_practice_sheet_prompt_asks_for_the_mark_and_the_exam_prompts_use_only_the_class_problems():
+    # Spec 002 FR-049, on the real prompts.md.
+    practice = prompts.template("Practice sheet — in the subject's language")
+    assert "que diga que estos problemas son de práctica y no son del profesor" in practice
+    assert "repítela encima de las soluciones" in practice
+    for heading in (prompts.PROBLEMS, prompts.PROBLEMS_OPEN):
+        assert "Usa solo los problemas de las fotocopias" in prompts.template(heading)
+    assert "· No es del profesor`, a quiz always ending so" in prompts.PROMPTS.with_name("SKILL.md").read_text()
+
+
 def test_the_announced_texts_are_as_they_were():
     # SC-008. Changing an announced text on purpose changes its hash here, in that change.
     hashes = {

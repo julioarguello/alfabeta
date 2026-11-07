@@ -333,6 +333,13 @@ the final implementation.
   this was seen. The piece was written from the key and printed with the skill's renderer (FR-048).
   Whether a key held as a source would fare better was not measured. The regular parent guide
   (FR-012), which recomputes from its sources, was not part of this measurement.
+- Q: How does a student tell a problem of the class from one nobody in the class set? → A: The
+  sheet says so, on every such problem (FR-049). The operator asked for practice problems in a real
+  problems sheet, for two laws with none in any source, asked to have them marked, and then asked
+  for the mark to be general. A problem the tool, the notebook or the family wrote says nothing about what enters
+  the exam or how the teacher asks. Those problems were added by hand to that one sheet, on the
+  operator's word: the notebook is still told to use only the class's problems, adding them is no step of
+  `exam build`, and generating the sheet again would drop them.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -375,6 +382,10 @@ and a subject with a known `language`, run the pack and check each piece against
 7. **Given** a proposed video whose exclusion names a textbook lesson, a notes page or a Classroom
    item with no source saying it is out of the exam, **When** the blocks are shown to the family,
    **Then** that item is shown as a question, not written into the exclusion.
+8. **Given** a generated practice sheet with no line saying its problems are not the teacher's,
+   **When** it is verified, **Then** it is regenerated, and the family is never pointed at it.
+9. **Given** a quiz in the notebook, **When** the student reads the list of pieces, **Then** its title
+   says its questions are not the teacher's.
 
 ---
 
@@ -567,6 +578,9 @@ and cannot judge what the notebook writes.
 9. **Given** a problem solved in the notes, **When** the problems sheet is read, **Then** it appears
    in a pattern with its statement if the sources hold it, and otherwise says «Enunciado no disponible»
    and gives the notes' data, with no statement written for it.
+10. **Given** a problems sheet the family asked to extend with practice problems, **When** it is read,
+    **Then** each of them says it is not the teacher's, beside its statement and its solution, and
+    none is in the table of patterns.
 
 ---
 
@@ -641,7 +655,7 @@ and cannot judge what the notebook writes.
 
 - **FR-009**: Before the family is told the pack is ready, alfabeta MUST check the language of
   every piece's whole text (for a video, its on-screen text), recompute every numeric answer, and,
-  for the practice sheet, compare its data with the teacher's sheets. The exam sheets of
+  for the practice sheet, compare its data with the teacher's sheets and check its mark (FR-049). The exam sheets of
   `exam build` are the one exception: nothing checks them before they print but their page count,
   neither their language nor their numbers, which the notebook computes (FR-036).
 - **FR-010**: A piece that fails verification MUST NOT be in the notebook when the run ends; it is
@@ -974,6 +988,18 @@ and cannot judge what the notebook writes.
   report says so. A key written by the run MUST be compared with the answers of an agent that has not
   seen it, each difference settled or marked doubtful. This folder MUST NOT count as the subject's
   most recent topic (FR-023, FR-030): only `--topic` reaches it.
+- **FR-049**: A problem to solve that comes from no class source (Classroom, the textbook, the
+  student's notes, a statement of the teacher's the family supplied), whoever wrote it, MUST say that
+  it is not the teacher's, in the language of the sheet, beside its statement and beside its solution.
+  It is numbered apart from the class's problems, stays out of the FR-034 table, and its numbers are
+  recomputed before it reaches the student: FR-036's exception does not cover it. A piece made only of
+  such problems says it instead at its head and at the head of its solutions, as the practice sheet
+  does; a quiz, «HOY» and «REPASO SEMANA» included, has no head of its own and says it in its title.
+  The mark says nothing about what the teacher would ask. Questions on the theory or the vocabulary
+  are no problems to solve and are outside this requirement: the flashcards, the tests of FR-031, the
+  parent guide's questions for home, a video's questions. Nothing catches a problem the notebook
+  invents in an exam sheet against its prompt, since nothing reads those sheets before they print
+  (FR-036).
 
 ### Key Entities
 
@@ -1024,6 +1050,9 @@ and cannot judge what the notebook writes.
   or `nlm` is not usable when the command starts.
 - **SC-012**: A theory sheet fits the pages of its slot (measured once, 2026-10-28: four A4 pages
   for a 90-minute slot), and its sections follow the announcement's points one to one.
+- **SC-013**: Each problem from outside the class sources added to a sheet says so beside its
+  statement and its solution, every practice sheet says so at its head and over its solutions, and
+  every quiz says so in its title.
 
 ## Assumptions
 

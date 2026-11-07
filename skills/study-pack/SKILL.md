@@ -199,10 +199,13 @@ and never quotes a piece's status output, which can hold its prompt.
    - Download it to a scratch folder, never the topic folder
      (`nlm download report|quiz|flashcards|video <nb> --id <id> -o <scratch>/<file>`).
    - Language: the whole text, not the title.
-   - Recompute every number in the practice sheet, the quiz and the parent guide.
+   - Recompute every number in the practice sheet, the quiz and the parent guide, and in any problem
+     added to an exam sheet on the family's word (spec 002 FR-049).
    - Compare the practice sheet's problems with the teacher's sheets: **no problem may reuse their
      data.** The model reuses them even when told not to (measured 2026-10-26: 7 of 11 practice
      problems were the teacher's, with the same numbers). Regenerate if it does.
+   - The practice sheet says, at its head and over its solutions, that its problems are not the
+     teacher's (spec 002 FR-049). Regenerate if it does not.
    - Videos: duration (`ffprobe`) and a few frames (`ffmpeg -ss <s> -frames:v 1`). The audio
      language cannot be checked this way; say so.
 6. **Print the parent's material** with
@@ -221,7 +224,7 @@ and never quotes a piece's status output, which can hold its prompt.
    about and how long, in Spanish — the constitution asks it of everything the family reads, and the
    parent reads the printed index — with no date and no recipient; a piece in the subject's language
    says so: `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 preguntas en euskera ·
-   Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
+   Materia y disoluciones · No es del profesor`, a quiz always ending so (spec 002 FR-049). Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
@@ -344,5 +347,7 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
   there only when a standing rule of the family gives it (spec 002 FR-036), or name the teacher as
   wrong.
 - Write an exam sheet by hand: `exam build` asks the notebook for it.
+- Add a problem from no class source without saying, beside its statement and its solution, that it
+  is not the teacher's (spec 002 FR-049).
 - Make a second notebook for the topic, or share the parent's material with the student.
 - Type a password. The family signs in.
