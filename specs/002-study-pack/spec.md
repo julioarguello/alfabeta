@@ -336,7 +336,7 @@ the final implementation.
 - Q: How does a student tell a problem of the class from one nobody in the class set? → A: The
   sheet says so, on every such problem (FR-049). The operator asked for practice problems in a real
   problems sheet, for two laws with none in any source, asked to have them marked, and then asked
-  for the mark to be general. A problem the tool or the family wrote says nothing about what enters
+  for the mark to be general. A problem the tool, the notebook or the family wrote says nothing about what enters
   the exam or how the teacher asks. Those problems were added by hand to that one sheet, on the
   operator's word: the notebook is still told to use only the class's problems, adding them is no step of
   `exam build`, and generating the sheet again would drop them.
@@ -384,6 +384,8 @@ and a subject with a known `language`, run the pack and check each piece against
    **Then** that item is shown as a question, not written into the exclusion.
 8. **Given** a generated practice sheet with no line saying its problems are not the teacher's,
    **When** it is verified, **Then** it is regenerated, and the family is never pointed at it.
+9. **Given** a quiz in the notebook, **When** the student reads the list of pieces, **Then** its title
+   says its questions are not the teacher's.
 
 ---
 
@@ -984,12 +986,17 @@ and cannot judge what the notebook writes.
   Studio did not copy faithfully (measured 2026-11-07) is written by the run from the key, and the
   report says so.
 - **FR-049**: A problem to solve that comes from no class source (Classroom, the textbook, the
-  student's notes), whoever wrote it, MUST say that it is not the teacher's, in the language of the
-  sheet, beside its statement and beside its solution. It is numbered apart from the class's problems
-  and stays out of the FR-034 table. A piece made only of such problems, as the practice sheet is,
-  says it instead at its head and at the head of its solutions. The mark says nothing about what the
-  teacher would ask. The quiz and the flashcards, which ask about the topic and are no problems of
-  a class, are outside this requirement.
+  student's notes, a statement of the teacher's the family supplied), whoever wrote it, MUST say that
+  it is not the teacher's, in the language of the sheet, beside its statement and beside its solution.
+  It is numbered apart from the class's problems, stays out of the FR-034 table, and its numbers are
+  recomputed before it reaches the student: FR-036's exception does not cover it. A piece made only of
+  such problems says it instead at its head and at the head of its solutions, as the practice sheet
+  does; a quiz, «HOY» and «REPASO SEMANA» included, has no head of its own and says it in its title.
+  The mark says nothing about what the teacher would ask. Questions on the theory or the vocabulary
+  are no problems to solve and are outside this requirement: the flashcards, the tests of FR-031, the
+  parent guide's questions for home, a video's questions. Nothing catches a problem the notebook
+  invents in an exam sheet against its prompt, since nothing reads those sheets before they print
+  (FR-036).
 
 ### Key Entities
 
@@ -1040,9 +1047,9 @@ and cannot judge what the notebook writes.
   or `nlm` is not usable when the command starts.
 - **SC-012**: A theory sheet fits the pages of its slot (measured once, 2026-10-28: four A4 pages
   for a 90-minute slot), and its sections follow the announcement's points one to one.
-- **SC-013**: No problem from outside the class sources reaches the student unmarked: each one in a
-  sheet says so beside its statement and its solution, and every practice sheet says so at its head
-  and over its solutions.
+- **SC-013**: Each problem from outside the class sources added to a sheet says so beside its
+  statement and its solution, every practice sheet says so at its head and over its solutions, and
+  every quiz says so in its title.
 
 ## Assumptions
 

@@ -221,7 +221,7 @@ and never quotes a piece's status output, which can hold its prompt.
    about and how long, in Spanish — the constitution asks it of everything the family reads, and the
    parent reads the printed index — with no date and no recipient; a piece in the subject's language
    says so: `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 preguntas en euskera ·
-   Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
+   Materia y disoluciones · No es del profesor`, a quiz always ending so (spec 002 FR-049). Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
