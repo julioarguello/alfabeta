@@ -972,8 +972,8 @@ and cannot judge what the notebook writes.
   reach a piece word for word MUST be checked row by row against the key before printing; a key
   Studio did not copy faithfully (measured 2026-11-07) is written by the run from the key, and the
   report says so. A key written by the run MUST be compared with the answers of an agent that has not
-  seen it, each difference settled or marked doubtful. This folder MUST NOT count as the subject's most recent topic (FR-023, FR-030): only
-  `--topic` reaches it.
+  seen it, each difference settled or marked doubtful. This folder MUST NOT count as the subject's
+  most recent topic (FR-023, FR-030): only `--topic` reaches it.
 
 ### Key Entities
 
