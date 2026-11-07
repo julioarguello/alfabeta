@@ -52,7 +52,7 @@ from alfabeta.notes.model import (
 )
 from alfabeta.notes.pdf import RenderedPart
 from alfabeta.notes.report import baseline, write_report
-from alfabeta.placement import NO_TOPIC
+from alfabeta.placement import NO_TOPIC, is_reading_book
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -691,8 +691,8 @@ def _item(deps: NotesDeps, work: Pass, item_id: str, record: dict[str, Any]) -> 
 def _route(deps: NotesDeps, work: Pass, topic: str) -> str | None:
     """The topic whose Classroom file an item of `topic` goes into; None while there is none.
 
-    An item's own topic, or for `No topic` the subject's topic folder with the latest date now (spec 002
-    FR-023).
+    An item's own topic, or for `No topic` the subject's topic folder with the latest date now, never a
+    book read for the subject (spec 002 FR-023, FR-048).
     """
     folder = deps.drive.listed(topic)
     if topic_name(folder.name) != NO_TOPIC:
@@ -702,7 +702,10 @@ def _route(deps: NotesDeps, work: Pass, topic: str) -> str | None:
         for subject in folder.parents
         if deps.drive.contains(subject)
         for sibling in deps.drive.children(subject)
-        if sibling.is_folder and _DATED.match(sibling.name) and topic_name(sibling.name) != NO_TOPIC
+        if sibling.is_folder
+        and _DATED.match(sibling.name)
+        and topic_name(sibling.name) != NO_TOPIC
+        and not is_reading_book(sibling.name)
     ]
     if not dated:
         return None
