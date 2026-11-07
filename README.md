@@ -60,7 +60,9 @@ A topic folder holds only folders, each named in English for where its content c
 `notes/` (the photos of the class notes, their transcriptions and the living file the notebook
 reads), `classroom/` (the teacher's material and its living file), `sciencebits/` (the textbook) and
 `notebook/` (what the notebook generates: videos, study guide, practice sheet, the printed topic,
-the parent's material); `exam/` holds the sheets for the day before an exam.
+the parent's material); `exam/` holds the sheets for the day before an exam. A book read for the
+subject takes `YYYYMMDD - Irakurketa - <title>`: its `notes/` holds the photos of the book, not class
+notes, and its `notebook/` also holds the publisher's guide.
 
 When the three sources disagree about **what will be asked**, the design ranks the student's notes
 over Classroom, and Classroom over the textbook. The textbook still explains best; it is just the

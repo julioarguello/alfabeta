@@ -439,8 +439,8 @@ source and one living Classroom source, and that a second run adds nothing.
   keeps beside an edited one (`<name> (anterior YYYY-MM-DD)`) is never put in either: the current
   version replaces the old pages in place. An announcement note (`aviso`) is not material and is left
   out. A material in `No topic` goes into the living Classroom file of its subject's most recent
-  topic, the topic folder whose date is latest when the material is first seen, and stays there
-  (spec 002 FR-023). An item moved to another topic leaves the first living file and enters the
+  topic, the topic folder whose date is latest when the material is first seen, never a book read for
+  the subject, and stays there (spec 002 FR-023, FR-048). An item moved to another topic leaves the first living file and enters the
   second.
 - **FR-011**: alfabeta MUST NOT delete, rename or move a living file, nor remove a source from a
   notebook, except two: a changed textbook file the book provider places again replaces its old
