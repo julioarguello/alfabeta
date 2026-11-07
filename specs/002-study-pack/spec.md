@@ -306,10 +306,16 @@ the final implementation.
   cannot tell a false row from a true one.
 - Q: What replaces the table? → A: Nothing on the sheet by default: the prompt tells the notebook
   not to compare and not to say that a printed answer is wrong. The student can still see a
-  difference between a solution and the photocopy, and the advice of the pack's start note holds:
-  trust your own working and ask. Comparing is done outside the sheet, by whoever can compute: an answer recomputed
+  difference between a solution and the photocopy, and the sheet says nothing about it. Comparing is done outside the sheet, by whoever can compute: an answer recomputed
   and found wrong, if the family wants it on the sheet, goes in as a standing rule (spec 009), which
   prevails over the prompt. The operator decided this on 2026-11-06.
+
+### Session 2026-11-07
+
+- Q: Which problems does the problems sheet use when the notes hold solved problems? → A: Those too.
+  The operator decided that a problem solved in the notes is matched to its statement (spec 005,
+  FR-016d). The sheet shows the statement when the sources hold it and says it is missing when they do
+  not; it never writes one. A real topic had no photocopy with problems and two solved in the notes.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -748,10 +754,13 @@ and cannot judge what the notebook writes.
   (direct or inverse) is the same pattern; a chain of formulas, or a classification with none, can
   also be one. The sheet names the photocopies with their dates, maps each pattern to its
   exercises, names the exercises printed on two photocopies and marks those the teacher assigned.
+  It MUST also ask for the problems solved in the student's notes, with their statement when the
+  sources hold it (spec 005 FR-016d); one with none says «Enunciado no disponible» and gives only the
+  notes' data, with no statement written for it.
 - **FR-035**: For each pattern the problems sheet MUST work one problem, the hardest, preferring one
   the teacher assigned, and say why it is the hardest; it may name a second one of the same pattern
   for spare time. Each worked problem gives its statement in its original language followed by a
-  Spanish translation. The sheet gives the order and about how long each pattern takes, and every
+  Spanish translation, unless no source holds it (FR-034). The sheet gives the order and about how long each pattern takes, and every
   solution comes after a page break, at the end.
 - **FR-036**: The notebook computes every number of both sheets. This is an accepted risk
   (see Clarifications) and the one exception to FR-009 and SC-001. The
@@ -971,8 +980,9 @@ and cannot judge what the notebook writes.
   and every weekly review day ends with its «REPASO SEMANA»; no «HOY» piece is made twice for the
   same material.
 - **SC-009**: No title and no note in any notebook says «opcional», «extra» or «si quieres».
-- **SC-010**: In every problems sheet, every exercise of every photocopy of the topic appears in
-  exactly one pattern, and every pattern has exactly one worked problem.
+- **SC-010**: In every problems sheet, every exercise of every photocopy of the topic and every
+  problem solved in its notes appears in exactly one pattern, and every pattern with a problem has
+  exactly one worked problem.
 - **SC-011**: On a test topic with no standing rule about its printed answers, no problems sheet
   has a table of printed answers or says that one is wrong; and no exam sheet is printed when notebooks are switched off
   or `nlm` is not usable when the command starts.
@@ -1007,10 +1017,9 @@ and cannot judge what the notebook writes.
   key for it (`[schedule]` holds the sync's times). Four pages for 90 minutes was measured once.
 - When the exam sheets are made, relative to the exam, is the family's call: the one run,
   observed 2026-10-28, made them on the morning of the day before, for that afternoon's slot.
-- Whether the notebook's reports follow the fixed prompts closely enough — every exercise in a
-  pattern, the terms first in the subject's language, the page count — has not been measured: the sheets observed 2026-10-28 were written by an agent, not by
-  the notebook. The first run of `exam build` is that measurement, and the prompts are unmeasured
-  until then.
+- The notebook does not follow the fixed prompts closely enough to print its sheets unread: real runs
+  of `exam build` (Session 2026-11-06) needed correcting by hand. How often that changes with the
+  current prompts has not been measured.
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
   or added as sources); a photocopy that is not cannot be mapped.
 - An exam announced only in class, or detected in a material or an assignment, has no announcement

@@ -139,7 +139,8 @@ failure reported once.
 - [ ] T039 [P] Update `docs/explanation/study-material.md` with the living files and why the notebook follows a Drive file instead of gaining sources.
 - [ ] T040 (partial 2026-10-27: scenario 2 ran (research «Observed facts»); scenario 4 not recorded) Run US5 scenarios 2 and 4 on Tema 01 of 2026-2027: `notebook prepare` adopts its Markdown, builds `Apuntes · <topic>.pdf`, and lists the two plain sources for the family to remove.
 - [ ] T041 [P] Add to `tests/test_guardrail.py` a case that a run report and a run log with invented values pass, and one with a planted address fails (SC-008).
-- [ ] T042 Run quickstart step 8 for two weeks and record SC-001, SC-002, SC-005 and SC-006 in `specs/005-notes-to-notebook/research.md`, as aggregates only.
+- [ ] T048 Build FR-016d in `src/alfabeta/notes/run.py` and `src/alfabeta/notes/report.py`, with tests first and invented data only: list the solved problems of each new notes page with their number, data and result, search the topic's textbook in every language captured and its Classroom material, write each match beside the problem in the transcription, name both exercises of a doubtful match, and report the rest as missing (SC-009). If it calls Claude, update FR-015 and the plan first. Until it is built, the agent does it by hand as `skills/study-pack/SKILL.md` step 1 says.
+- [ ] T042 Run quickstart step 8 for two weeks and record SC-001, SC-002, SC-005, SC-006 and SC-009 in `specs/005-notes-to-notebook/research.md`, as aggregates only.
 
 ---
 

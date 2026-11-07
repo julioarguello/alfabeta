@@ -155,6 +155,19 @@ implementation.
   the respiratory system, blood and the heart) settled «Bronceolak», «Albeolak», «Glabulo zoriak»,
   «Odol odiak» and the heart's labels. One label stayed unsettled, with the sources tried.
 
+### Session 2026-11-07
+
+- Q: A problem solved in the notes often holds only its data and working. Where is its statement? →
+  A: The operator decided it for the notes of any subject: every such problem is matched to its
+  statement, probably in the textbook and otherwise in Classroom, crossing them holistically by
+  date, by topic, by number and by the solution itself. Observed the same day: a page with two
+  numbered problems, data and working only; the numbering skipped one, and a corner of a printed
+  sheet with numbered problems and answers showed in another photo of the same notes, a sheet that
+  neither the textbook nor Classroom holds.
+- Q: And when no source holds the statement? → A: It is reported as missing, with what was searched.
+  The working in the notes shows what was computed, not how the question was worded, and the wording
+  is what the student has to learn to read, so a statement is never rebuilt from the data.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A photo of the notes reaches the notebook with no one at a computer (Priority: P1)
@@ -273,6 +286,12 @@ names that idea and the piece that misses it.
    quota and is the family's decision.
 3. **Given** a failure that repeats on every run (a photo Claude keeps refusing, a spent budget),
    **When** the runs go on, **Then** it is reported once, when it starts, and once when it clears.
+4. **Given** a notes page with a solved problem whose data match an exercise of the textbook, **When**
+   its page reaches the living file, **Then** its transcription names that exercise beside the problem
+   and the report says on what evidence.
+5. **Given** a notes page with a solved problem whose data no source holds, **When** its page reaches
+   the living file, **Then** the report says its statement is missing and which sources were searched,
+   and no statement is written for it.
 
 ---
 
@@ -487,6 +506,14 @@ source and one living Classroom source, and that a second run adds nothing.
   source — the topic's textbook in the subject's language and in Spanish, the notes' other pages,
   Classroom, then an external reference — with that source beside the settled word; a word no
   source settles stays marked with the sources tried. There is no human reviewer.
+- **FR-016d**: Every problem solved in the notes, of any subject, MUST be matched to its statement
+  when its page reaches the living file: first the topic's textbook, in every language captured, then
+  the Classroom material classroom-sync placed in Drive, crossing date, topic, number and the
+  solution's own data and result. The transcription writes the match beside the problem, with its
+  source and the evidence that decided it, as FR-016c does for a word, so the notebook can use it; the
+  report of FR-013 says the same. Two exercises that fit equally are both named, as a doubtful match.
+  A statement no source holds is reported as missing, naming the sources searched, and MUST NOT be
+  rebuilt from the working.
 - **FR-020**: The report of FR-013 MUST name, for each notes page that reached a living file, the
   textbook lesson whose heading covers it, and say so when that lesson belongs to another topic or
   subtopic than the folder the page sits in (spec 002 FR-043), when it belongs to no subtopic yet
@@ -542,6 +569,8 @@ source and one living Classroom source, and that a second run adds nothing.
   was.
 - **SC-008**: A search of the logs, the run log and the repository for the student's name or address
   finds nothing, and every report passes the guardrail's detectors before it is written.
+- **SC-009**: Every solved problem of a notes page either names the source of its statement or appears
+  in the report as missing, with no statement written for it.
 
 ## Assumptions
 
