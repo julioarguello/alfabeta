@@ -23,7 +23,7 @@ The text of «Problems sheet — for an exam», with its opening replaced by thi
 problemas de las fotocopias» on, and with `{notes_corrections}` at its end:
 
 ```text
-Hoja de problemas para un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Problemas tipo». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». Si las fuentes no tienen fotocopias con problemas, dilo en una frase y no inventes ninguno. 
+Hoja de problemas para un examen, para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Título: «{subject} · {exam_name} — Problemas tipo». Empieza con esta frase, tal cual: «Sin anuncio del profesor: esta hoja cubre todo «{topic}» y el alcance no está confirmado.». Si las fuentes no tienen fotocopias con problemas ni problemas resueltos en los apuntes, dilo en una frase y no inventes ninguno. 
 ```
 
 ## Start note — for an exam with no announcement

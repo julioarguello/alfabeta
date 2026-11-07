@@ -115,7 +115,13 @@ and never quotes a piece's status output, which can hold its prompt.
    another source — first the topic's own (the textbook in the subject's language and in Spanish,
    the other pages of the notes, Classroom), then an external reference if none settles it — and the
    transcription writes the source beside the settled word. A word no source settles stays marked,
-   naming the sources tried; a guess is never written as a reading.
+   naming the sources tried; a guess is never written as a reading. **Every problem solved in the
+   notes is matched to its statement** (spec 005 FR-016d), for any subject: list its number, data and
+   result, then search the topic's textbook in every language captured and then Classroom, crossing
+   date, topic, number and solution. Do this before asking the family for more material. Tell the
+   family what matched and on what evidence; a statement no source holds is reported as missing, with
+   what was searched, and is never rebuilt from the working. Write each match beside the problem in
+   its transcription, so the notebook can use it.
    - **An exclusion needs a source.** A video's `{exclude}` holds the other blocks' titles and
      what a source says is out of the exam — the announcement, the teacher — each with that source
      named in `bloques.md`. A textbook lesson, a notes page or a Classroom item is never an entry
@@ -150,8 +156,8 @@ and never quotes a piece's status output, which can hold its prompt.
      true; the «Corrige en tus apuntes» line is not a hit.
 2. **Recompute every answer key** in the teacher's sheets by hand, in Python. Each mismatch becomes a
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
-   anything the student sees, except the exam's problems sheet (see
-   [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper)).
+   anything the student sees, except on the exam's problems sheet when a standing rule of the family
+   gives it (see [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper)).
 3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time:
    - one video per block (`--format explainer --language es-ES`); after an announcement that
      reopened confirmed blocks, only the video of each uncovered point, with the other blocks and
@@ -284,9 +290,9 @@ alfabeta makes them through the notebook. What that run measured:
 |---|---|
 | A 90-minute slot took four A4 pages of theory | `{pages}`: four per 90 minutes |
 | Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
-| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; whether the notebook finds them by itself is unmeasured), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | a table of printed answers in the prompt, withdrawn 2026-11-06: in three runs through the notebook it was false every time (spec 002 FR-036) |
+| The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; the notebook does not find them by itself, spec 002 FR-036), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | a table of printed answers in the prompt, withdrawn 2026-11-06: in three runs through the notebook it was false every time (spec 002 FR-036) |
 | The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide made before the notes |
-| Nothing measured how the notebook does on these two prompts | the first run of `exam build` is that measurement |
+| Nothing had measured how the notebook does on these two prompts | real runs of `exam build`, 2026-11-06, had errors the operator chose to have corrected by hand, that once (spec 002) |
 
 ## Measured behaviour of Gemini Notebook
 

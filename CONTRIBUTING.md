@@ -78,3 +78,10 @@ write the change finds nothing blocking: `/speckit-analyze` for a spec, a review
 (constitution, *Development workflow*). Changes that touch principles I, III or IV, the
 personal-data guardrail, these merge rules or Governance, and pull requests from anyone else, wait
 for the operator's explicit request; the operator can also stop or revert any of them.
+
+A general consideration from the family about how alfabeta should work becomes part of the
+specifications in the same session: an issue, the spec it belongs to with a clarification in its
+terms, and the skill that acts on it, besides solving the case at hand. An agent's memory does not
+count, because the project has to carry its own rules. A rule about one subject or one student is a
+standing rule of its configuration instead (spec 009). Personal data stays out, and the merge rules
+above still apply.

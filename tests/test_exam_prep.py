@@ -1143,7 +1143,7 @@ def test_the_announced_texts_are_as_they_were():
     # SC-008. Changing an announced text on purpose changes its hash here, in that change.
     hashes = {
         prompts.THEORY: "3ebce803a9299b5e8b78c75ac6d9b2aecbf7f6ec14bf56a4d0fb4cfda95021f6",
-        prompts.PROBLEMS: "f4ed0c1288af1076d641667b470a703b93037034ae1b8c6934574de32786139b",
+        prompts.PROBLEMS: "d2fefe880347b7d006ca6197612ba8f10d4e66396ba378f0d0b36a816045d27b",
         prompts.START_NOTE: "c42279fab6ff05e773fd0bfe185c2a7cdbf398c0dde6aa704626fceb3659cd65",
     }
     for heading, expected in hashes.items():
@@ -1174,6 +1174,15 @@ def test_the_problems_texts_do_not_ask_the_notebook_to_judge_the_printed_answers
 def test_a_statement_missing_a_datum_is_still_answered_under_each_reading(heading: str):
     assert "Si a un enunciado le falta un dato, dilo junto a su solución, con el resultado de cada lectura." in (
         prompts.template(heading)
+    )
+
+
+@pytest.mark.parametrize("heading", [prompts.PROBLEMS, prompts.PROBLEMS_OPEN])
+def test_a_problem_solved_in_the_notes_is_used_and_its_statement_is_never_written(heading: str):
+    text = prompts.template(heading)
+    assert "y los resueltos en los apuntes del alumno, junto a su enunciado si está en las fuentes" in text
+    assert (
+        "escribe «Enunciado no disponible» y da los datos de los apuntes en su lugar: no redactes un enunciado" in text
     )
 
 

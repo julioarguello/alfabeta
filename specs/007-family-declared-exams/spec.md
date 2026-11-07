@@ -276,7 +276,8 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   announcement is not used, because nothing says it is this exam (Q4). Giving that exam a date with
   `decision update-exam` makes it the exam the command finds, with its announcement.
 - **No problem photocopies in the notebook** (a subject the teacher does not use Classroom for): the
-  problems sheet says so in a sentence and invents no problem.
+  problems sheet says so in a sentence and invents no problem. Problems solved in the notes still
+  appear, with «Enunciado no disponible» when no source holds their statement (spec 002 FR-034).
 - **The topics named hold more than the slot allows**: the sheet prints and the command reports its page
   count, as spec 002 FR-031 already does; it is not cut to fit, because no source says what is out.
 - **The family stops declaring and keeps writing by hand**: nothing changes; a hand-written event is
