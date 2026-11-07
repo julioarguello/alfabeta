@@ -318,6 +318,7 @@ def _statements_said(page: dict[str, Any]) -> dict[str, Any]:
     block = cast("dict[str, Any]", page["statements"])
     problems = cast("list[dict[str, Any]]", block["problems"])
     return {
+        "version": page.get("photo_version"),
         "state": block["state"],
         "edited": bool(block.get("edited")),
         "problems": [str(p.get("status", "")) for p in problems],
@@ -414,6 +415,8 @@ def _statement_lines(
             continue
         topic, name = str(files[fid]["topic"]), str(files[fid].get("name") or "página sin nombre")
         was = old.get(fid, {})
+        if was.get("version") != said["version"]:
+            was = {}  # a new version of the photo: other problems, whatever their places
         block = cast("dict[str, Any]", pages[fid]["statements"])
         if said["state"] in (statements.PENDING, statements.LISTED):
             waiting[topic] += was.get("state") not in (statements.PENDING, statements.LISTED)

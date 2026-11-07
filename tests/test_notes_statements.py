@@ -277,6 +277,58 @@ def test_a_source_beyond_the_size_a_call_takes_is_named_as_cut():
     assert statements.CUT in section_of(reports(drive)[0])
 
 
+def test_a_source_with_no_room_in_a_call_is_searched_by_the_next_one():
+    drive = page_drive()
+    drive.folder("sb", "sciencebits", TOPIC)
+    big = ("relleno " * 7000).encode()  # 56,000 characters: three fit a call, not the fourth
+    for name in ("Tema01_A.md", "Tema01_B.md"):
+        drive.put(name, name, "text/markdown", big, parent="sb")
+    drive.put("Tema01_C.md", "Tema01_C.md", "text/markdown", big + b"otra", parent="sb")
+    drive.put("Tema01_D.md", "Tema01_D.md", "text/markdown", big + b"mas", parent="sb")
+    answerer = first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    assert "Tema01_D.md" not in answerer.statement_prompts[1]
+    assert block_of(drive)["searched"]["Tema01_D.md"]["unread"] == statements.NO_ROOM
+    assert statements.NO_ROOM in section_of(reports(drive)[0])
+    [search] = later_run(drive, found({"problem": "P1", "candidates": []})).statement_prompts
+    assert "Tema01_D.md" in search and "Tema01_A.md" not in search
+    assert "unread" not in block_of(drive)["searched"]["Tema01_D.md"]
+    assert later_run(drive).statement_prompts == []
+
+
+def test_a_new_version_of_a_photo_reports_its_problems_even_in_the_same_places():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    drive.put(PHOTO, "a.jpg", "image/jpeg", b"a2")
+    other = {**PROBLEM, "number": "8"}
+    answerer = ScriptedAnswerer(statements=[listed(other), found({"problem": "P1", "candidates": []})])
+    run_notes(deps(drive, ScriptedFeed(drive, [[PHOTO]]), transcriber(), answerer=answerer, clock=later()))
+    assert "problema 8" in section_of(reports(drive)[-1])
+
+
+def test_a_write_left_pending_needs_no_key():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
+    drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
+    drive.unreadable.add(PHOTO)
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(quote="Find the force on a body of two")]}))
+    drive.unreadable.clear()
+    run_notes(deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber(), clock=later()))
+    assert "Tema01_EN.md" in drive.bodies[md_id].decode()
+
+
+def test_a_problem_with_nothing_to_show_reads_well_and_a_candidate_without_a_reason_says_so():
+    bare: dict[str, Any] = {"number": "3", "status": statements.MISSING, "candidates": []}
+    assert "problema 3: no se ha encontrado" in statements.report_line("a.jpg", bare, {})
+    drive = page_drive()
+    with_book(drive)
+    silent = {"source": "S1", "exercise": "Ejercicio 3", "quote": QUOTE}
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [silent]}))
+    assert statements.NO_WHY in markdown_of(drive)
+
+
 def test_a_page_of_theory_pays_for_the_listing_and_never_for_the_sources():
     drive = page_drive()
     with_book(drive)
@@ -550,6 +602,28 @@ def test_a_refusal_stops_every_other_call_of_the_pass():
     answerer = ScriptedAnswerer(statements=[Transcription(PhotoState.BUDGET_WAIT)])
     run_notes(deps(drive, ScriptedFeed(drive, [[PHOTO]]), transcriber(), answerer=answerer))
     assert len(answerer.statement_prompts) == 1 and answerer.prompts == []
+
+
+def test_a_refusal_on_one_page_stops_the_listing_of_the_next():
+    drive = page_drive()
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b")
+    answerer = ScriptedAnswerer(statements=[Transcription(PhotoState.BUDGET_WAIT)])
+    run_notes(deps(drive, ScriptedFeed(drive, [[PHOTO, "foto-2"]]), ScriptedTranscriber(), answerer=answerer))
+    assert len(answerer.statement_prompts) == 1
+
+
+def test_a_refused_transcription_stops_the_statements_of_the_pass():
+    drive = page_drive()
+    first_run(drive, listed())
+    drive.put("foto-2", "b.jpg", "image/jpeg", b"b")
+    store = DriveNotesStateStore(drive)
+    loaded = store.load()
+    loaded["pages"][PHOTO]["statements"] = statements.new_block()
+    store.save(loaded)
+    answerer = ScriptedAnswerer()
+    refused = ScriptedTranscriber([Transcription(PhotoState.BUDGET_WAIT)])
+    run_notes(deps(drive, ScriptedFeed(drive, [["foto-2"]]), refused, answerer=answerer, clock=later()))
+    assert answerer.statement_prompts == []
 
 
 def test_every_call_goes_into_the_months_ledger():

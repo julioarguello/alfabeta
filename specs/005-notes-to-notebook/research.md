@@ -376,11 +376,16 @@ own table is the subset the requirements rest on; this one is the full list.
   is left alone, so a mark the feed has not delivered yet is still seen. An edit by the family (a
   checksum that is neither) is never written over.
 - **Searching again**: a page's `searched` records each source's version. A problem still `missing`
-  is searched again only in sources that are new or changed. A listing tells that, with no download,
-  so an idle run neither reads, pays nor writes (SC-004).
+  is searched again only in sources that are new or changed, unless a new page of the topic shares the
+  call and brings every source with it, since that text is paid for anyway. A listing tells that, with
+  no download, so an idle run neither reads, pays nor writes (SC-004).
+- **The date it crosses**: a page's is its photo's `modifiedTime` in Drive, when it was uploaded, which
+  may be later than the class; a Classroom file's is its item's posting date. Claude weighs the date with
+  the topic, the number and the result, and it decides nothing alone.
 - **What a source could not give**: an image, a named-only file, a PDF with no extractable text, or a
   file beyond `MAX_SOURCE_CHARS` (`MAX_SEARCH_CHARS` for a whole call) is recorded as unread with why and
-  named in the report's missing line, so "missing" never claims more than was read. Drive failing to
+  named in the report's missing line, so "missing" never claims more than was read. One beyond
+  `MAX_SEARCH_CHARS` is read by the next run's call, whose first source always fits. Drive failing to
   read a source stops that topic's search for the run: an outage is not "missing". Reading images and
   scanned PDFs with Claude is not built; it would cost a page's image tokens per page of each source.
 - **Cost**: not measured, like FR-015's transcription estimate; quickstart step 8 records it. At

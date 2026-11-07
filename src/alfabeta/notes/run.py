@@ -625,13 +625,11 @@ class _Source:
 
 def _statements(deps: NotesDeps, work: Pass) -> None:
     """Each topic's pages with something to do; a failure of Drive leaves them for the next run."""
-    if deps.answerer is None:
-        return  # no key here: the pages wait, and the report says so
     by_topic: dict[str, list[str]] = {}
     for photo_id, page in sorted(work.pages.items(), key=lambda p: int(p[1]["order"])):
         block = cast("dict[str, Any] | None", page.get("statements"))
         record = work.files.get(photo_id, {})
-        if block is None or not statements.is_active(block) or block.get("refused_on") == work.today:
+        if block is None or not statements.is_active(block):
             continue
         if record.get("state") != PhotoState.GONE and deps.drive.contains(photo_id):
             by_topic.setdefault(str(record["topic"]), []).append(photo_id)
@@ -645,13 +643,27 @@ def _statements(deps: NotesDeps, work: Pass) -> None:
 
 
 def _statements_of(deps: NotesDeps, work: Pass, topic: str, pages: list[str]) -> None:
-    """List the problems of the topic's new pages, search for what is due, and write what was found."""
+    """Write what an earlier run could not, list the problems of new pages, search, and write what was found.
+
+    The questions need a key and the budget; once refused, this pass makes no other call (research R5),
+    and a page refused today waits for tomorrow. Writing lines already found needs neither.
+    """
+    _write_pending(deps, work, topic, pages)
+    if deps.answerer is None:
+        return
     title = str(work.topics[topic]["name"])
-    for photo_id in pages:
+    asking = [p for p in pages if work.pages[p]["statements"].get("refused_on") != work.today]
+    for photo_id in asking:
+        if work.budget_refused:
+            return
         if work.pages[photo_id]["statements"]["state"] == statements.PENDING:
             _list_problems(deps, work, title, photo_id)
-    if not work.budget_refused:  # once refused, this pass makes no other call (research R5)
-        _search(deps, work, topic, title, pages)
+    if not work.budget_refused:
+        _search(deps, work, topic, title, asking)
+    _write_pending(deps, work, topic, pages)
+
+
+def _write_pending(deps: NotesDeps, work: Pass, topic: str, pages: list[str]) -> None:
     for photo_id in pages:
         if work.pages[photo_id]["statements"].get(statements.UNWRITTEN):
             _write_lines(deps, work, topic, photo_id)
@@ -734,8 +746,9 @@ def _ask(deps: NotesDeps, work: Pass, prompt: str, tokens: int, pages: list[str]
 
 
 def _new(block: dict[str, Any], source: _Source) -> bool:
-    """Whether the page has not searched this source as it is now."""
-    return block["searched"].get(source.file.id, {}).get("version") != source.file.version
+    """Whether the page has not searched this source as it is now; one with no room waits for a later call."""
+    seen = block["searched"].get(source.file.id, {})
+    return seen.get("version") != source.file.version or seen.get("unread") == statements.NO_ROOM
 
 
 def _due(block: dict[str, Any], sources: list[_Source]) -> bool:
@@ -795,18 +808,18 @@ def _read_sources(deps: NotesDeps, sources: list[_Source]) -> tuple[list[stateme
     for source in sources:
         record = {"version": source.file.version, "label": source.label}
         searched[source.file.id] = record
-        if room <= 0:
-            record["unread"] = statements.NO_ROOM
-            continue
         text, why = _source_text(deps, source)
         if why:
             record["unread"] = why
             continue
-        if len(text) > min(room, statements.MAX_SOURCE_CHARS):
+        kept = text[: statements.MAX_SOURCE_CHARS]
+        if len(kept) > room:
+            record["unread"] = statements.NO_ROOM  # read whole by a later call: the first always has room
+            continue
+        if len(kept) < len(text):
             record["unread"] = statements.CUT
-        text = text[: min(room, statements.MAX_SOURCE_CHARS)]
-        room -= len(text)
-        read.append(statements.Read(f"S{len(read) + 1}", source.label, source.date, text))
+        room -= len(kept)
+        read.append(statements.Read(f"S{len(read) + 1}", source.label, source.date, kept))
     return read, searched
 
 

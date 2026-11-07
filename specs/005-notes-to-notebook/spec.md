@@ -183,7 +183,8 @@ implementation.
   to the living file and the report, and its Markdown waits for T031.
 - Q: A statement can arrive later: the teacher posts the sheet, or another language is captured. →
   A: A problem reported as missing is searched again, once, whenever a source is new or changed, in
-  that source only. A problem with a match, certain or doubtful, is not searched again unless its page
+  that source only, unless a new page of the topic searches every source in the same call, which then
+  costs nothing more. A problem with a match, certain or doubtful, is not searched again unless its page
   changes. A repeated search that finds nothing writes and reports nothing.
 - Q: And the pages that were there before this was built? → A: They are not searched on their own, to
   spend nothing the family did not ask for. The agent still does them by hand when it prepares a topic

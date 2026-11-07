@@ -76,7 +76,7 @@ page from the Markdown. Either sets `review` back to `automatic`.
 
 | Field | Meaning |
 |---|---|
-| `state` | `pending` (problems not listed yet) → `listed` (listed, not searched yet) → `settled`; or `given_up` (the answer listing its problems was unusable three times; said in the report, retried only if the page changes). A search whose answers are unusable three times leaves its problems `missing`, with its sources recorded as unread and why. A new version of the photo starts again at `pending` |
+| `state` | `pending` (problems not listed yet) → `listed` (listed, not searched yet) → `settled`, directly from `pending` for a page with no problem; or `given_up` (the answer listing its problems was unusable three times; said in the report, retried only if the page changes). A search whose answers are unusable three times leaves its problems `missing`, with its sources recorded as unread and why. A new version of the photo starts again at `pending` |
 | `problems` | One per solved problem, in the page's order: `number`, `data`, `result`, `anchor` (the page's line where it starts), `status` (`matched`, `doubtful` or `missing`, absent until searched), `candidates` |
 | `candidates` | One when `matched`, two or more when `doubtful`, none when `missing`. Each: `source` (its label), `exercise`, `quote` (twenty words at most, found in that source's text), `why` (the date, topic, number or result that decided it). No field holds a statement |
 | `searched` | Per source id: `version`, `label`, and `unread` with the reason when it could not be read. A source whose id and version are here is not searched again |

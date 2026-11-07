@@ -40,6 +40,7 @@ IMAGE = "es una imagen"
 NAMED_ONLY = "es un fichero que no se lee"
 NO_TEXT = "es un PDF sin texto"
 NO_ANSWER = "Claude no dio una respuesta usable"
+NO_WHY = "sin motivo dicho"
 
 _LINE = re.compile(r"^\[enunciado (?:dudoso )?del problema .*\]\s*$")
 
@@ -217,7 +218,7 @@ def candidates_of(entry: object, sources: dict[str, Read]) -> list[dict[str, str
             continue
         seen.add((source.label, exercise))
         found.append(
-            {"source": source.label, "exercise": exercise, "quote": quote, "why": _text(candidate.get("why")) or ""}
+            {"source": source.label, "exercise": exercise, "quote": quote, "why": _text(candidate.get("why")) or NO_WHY}
         )
     return found
 
@@ -310,4 +311,5 @@ def report_line(page: str, problem: dict[str, Any], searched: dict[str, dict[str
     where = f"Se ha buscado en: {', '.join(read)}." if read else NO_SOURCES
     unread = _unread(searched)
     also = f" Sin poder leer del todo: {', '.join(unread)}." if unread else ""
-    return f"{head} ({solved}): no se ha encontrado su enunciado. {where}{also} No se escribe ningún enunciado."
+    head += f" ({solved})" if solved else ""
+    return f"{head}: no se ha encontrado su enunciado. {where}{also} No se escribe ningún enunciado."
