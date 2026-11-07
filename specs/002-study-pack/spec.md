@@ -340,6 +340,13 @@ the final implementation.
   the exam or how the teacher asks. Those problems were added by hand to that one sheet, on the
   operator's word: the notebook is still told to use only the class's problems, adding them is no step of
   `exam build`, and generating the sheet again would drop them.
+- Q: Questions on a book are days away, the student read half of it and the book is not there: does a
+  guide's question stay «Pendiente»? → A: Not if the family says so. The operator asked for as many
+  answers as possible, so a study document answers them all, each marked with how far it can be
+  trusted, and a second agent that has not seen them solves them apart (FR-048). No answer passes as
+  confirmed, and the document leaves the notebook when the photos arrive.
+- Q: Can one document hold a piece's text in Spanish and in the subject's language? → A: No (FR-050).
+  The operator was given one guide with both mixed and asked for two, always: mixed, it is a mess.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -986,8 +993,12 @@ and cannot judge what the notebook writes.
   reach a piece word for word MUST be checked row by row against the key before printing; a key
   Studio did not copy faithfully (measured 2026-11-07) is written by the run from the key, and the
   report says so. A key written by the run MUST be compared with the answers of an agent that has not
-  seen it, each difference settled or marked doubtful. This folder MUST NOT count as the subject's
-  most recent topic (FR-023, FR-030): only `--topic` reaches it.
+  seen it, each difference settled or marked doubtful. On the family's word, when questions on the book
+  are close and the book is not there, a study document MAY answer what this rule leaves pending: every
+  answer MUST then say whether it is sure, probable or a guess, an agent that has not seen them MUST
+  solve the same questions, the lower of the two grades stands, the document MUST say it was made
+  without the book, and it leaves the notebook's sources when the photos arrive. This folder MUST NOT
+  count as the subject's most recent topic (FR-023, FR-030): only `--topic` reaches it.
 - **FR-049**: A problem to solve that comes from no class source (Classroom, the textbook, the
   student's notes, a statement of the teacher's the family supplied), whoever wrote it, MUST say that
   it is not the teacher's, in the language of the sheet, beside its statement and beside its solution.
@@ -1000,6 +1011,10 @@ and cannot judge what the notebook writes.
   parent guide's questions for home, a video's questions. Nothing catches a problem the notebook
   invents in an exam sheet against its prompt, since nothing reads those sheets before they print
   (FR-036).
+- **FR-050**: A document the family or the student reads MUST hold one language; a piece wanted in
+  Spanish and in the subject's language MUST be two documents, never one mixed. A glossary, whose job
+  is the pair of words, is outside this requirement, and so is what a Spanish document must quote to
+  be of use: an exercise's solution in the subject's language stays as it is, with its meaning beside it.
 
 ### Key Entities
 
