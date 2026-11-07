@@ -1181,7 +1181,9 @@ def test_a_statement_missing_a_datum_is_still_answered_under_each_reading(headin
 def test_a_problem_solved_in_the_notes_is_used_and_its_statement_is_never_written(heading: str):
     text = prompts.template(heading)
     assert "y los resueltos en los apuntes del alumno, junto a su enunciado si está en las fuentes" in text
-    assert "escribe «Enunciado no disponible» y da los datos de los apuntes en su lugar: no redactes un enunciado" in text
+    assert (
+        "escribe «Enunciado no disponible» y da los datos de los apuntes en su lugar: no redactes un enunciado" in text
+    )
 
 
 def test_the_problems_text_with_no_announcement_ends_as_the_announced_one():
