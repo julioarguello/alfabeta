@@ -116,12 +116,16 @@ and never quotes a piece's status output, which can hold its prompt.
    the other pages of the notes, Classroom), then an external reference if none settles it — and the
    transcription writes the source beside the settled word. A word no source settles stays marked,
    naming the sources tried; a guess is never written as a reading. **Every problem solved in the
-   notes is matched to its statement** (spec 005 FR-016d), for any subject: list its number, data and
-   result, then search the topic's textbook in every language captured and then Classroom, crossing
-   date, topic, number and solution. Do this before asking the family for more material. Tell the
-   family what matched and on what evidence; a statement no source holds is reported as missing, with
-   what was searched, and is never rebuilt from the working. Write each match beside the problem in
-   its transcription, so the notebook can use it.
+   notes is matched to its statement** (spec 005 FR-016d), for any subject. The notes run does it for
+   each new page: its transcription carries `[enunciado del problema N: …]` beside the problem, and the
+   run's report says what matched, on what evidence, and what is missing with what was searched. Read
+   those lines before asking the family for more material. Do it by hand, the same way, for what the
+   run could not: a page recorded before it was built (no such line), and a problem whose report names
+   a source it could not read (an image, a PDF with no text, a source too long): list its number, data
+   and result, then search the topic's textbook in every language captured and then Classroom,
+   crossing date, topic, number and solution. Write each match beside the problem in its transcription,
+   so the notebook can use it; a statement no source holds is reported as missing, with what was
+   searched, and is never rebuilt from the working.
    - **An exclusion needs a source.** A video's `{exclude}` holds the other blocks' titles and
      what a source says is out of the exam — the announcement, the teacher — each with that source
      named in `bloques.md`. A textbook lesson, a notes page or a Classroom item is never an entry

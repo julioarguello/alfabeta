@@ -81,6 +81,7 @@ page from the Markdown. Either sets `review` back to `automatic`.
 | `candidates` | One when `matched`, two or more when `doubtful`, none when `missing`. Each: `source` (its label), `exercise`, `quote` (twenty words at most, found in that source's text), `why` (the date, topic, number or result that decided it). No field holds a statement |
 | `searched` | Per source id: `version`, `label`, and `unread` with the reason when it could not be read. A source whose id and version are here is not searched again |
 | `tries`, `refused_on` | Unusable answers so far; the day the budget refused a call, which is not repeated that day |
+| `unwritten` | The lines are in the record and not yet in the Markdown and PDF, because Drive failed; the next run writes them and pays for nothing |
 | `edited` | The family edited the page's Markdown, so the lines were not written into it (research R15) |
 
 The lines themselves are part of `markdown`, which every living file and PDF renders, each right after

@@ -5,8 +5,9 @@ arrived, transcribes the pending photos, writes each page's Markdown and PDF nex
 every recorded Classroom item against this run's listing, and rebuilds the living files of every
 topic that changed. It never creates a living file: only `notebook prepare` does (research R6). It
 writes `state.json` only when a record changed, and the run log always. A run that changed
-something leaves the family's report in `reports/` (report.py). It calls no study-pack generation
-(FR-012).
+something leaves the family's report in `reports/` (report.py). Before the living files, it matches
+each new page's solved problems to their statements (FR-016d, statements.py), so the file built in a
+pass holds them. It calls no study-pack generation (FR-012).
 """
 
 from __future__ import annotations
@@ -21,7 +22,8 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.google.drive import DriveError, OutsideFolderError
-from alfabeta.notes.changes import LIVING_FOLDERS, Known
+from alfabeta.notes import statements
+from alfabeta.notes.changes import LIVING_FOLDERS, WRITTEN, Known, own_write
 from alfabeta.notes.model import (
     OFFICE_TYPES,
     Arrival,
@@ -51,7 +53,7 @@ from alfabeta.notes.model import (
     posted_title,
 )
 from alfabeta.notes.pdf import RenderedPart
-from alfabeta.notes.report import baseline, write_report
+from alfabeta.notes.report import answer_json, baseline, book_sources, charge, read_pdf, write_report
 from alfabeta.placement import NO_TOPIC
 
 if TYPE_CHECKING:
@@ -346,6 +348,7 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
             work.write_failed = True
             work.count(work.files[photo_id]["topic"], "failed")
     _items(deps, work)
+    _statements(deps, work)
     for topic in sorted(work.topics):
         for rebuild in (_rebuild, _rebuild_classroom):
             try:
@@ -467,7 +470,8 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
         source = PageSource.CLAUDE
         recovered = deps.drive.made_for(folder, {FOR: photo_id, ROLE: "markdown"})
         if recovered is not None and recovered.prop(VERSION) == record["version"]:
-            markdown = deps.drive.content(recovered.id).decode()  # a crashed pass already paid for it
+            # A crashed pass already paid for it; what it searched is searched again.
+            markdown = statements.strip_statements(deps.drive.content(recovered.id).decode())
         elif deps.transcriber is None:
             work.no_key = True  # nothing downloaded: the photo waits for a key
             return
@@ -481,8 +485,7 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
             done = deps.transcriber.transcribe(deps.drive.content(photo_id), item.mime_type)
             work.claude_answered = work.claude_answered or done.usage is not None
             if done.usage is not None:
-                ledger = spend(work.state).add(work.today[:7], done.usage)
-                work.state["spend"] = {m: {"in": u.tokens_in, "out": u.tokens_out} for m, u in ledger.months.items()}
+                charge(work, done.usage)
             if done.state != PhotoState.TRANSCRIBED:
                 moved = photo.moved_to(done.state)
                 record |= {"state": str(moved.state), "retries": moved.retries}
@@ -524,7 +527,7 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
         "pdf",
     )
     page = replace(page, pdf_id=pdf_file.id, markdown_id=md_file.id, markdown_version=md_file.version)
-    work.pages[photo_id] = page_record(page)
+    work.pages[photo_id] = {**page_record(page), "statements": statements.new_block()}
     work.files[md_file.id] = {
         "kind": str(Kind.NOTES_TEXT),
         "topic": topic,
@@ -564,6 +567,8 @@ def _write(
     """Look up before create (research R4): a crashed or overlapping pass leaves one file, updated."""
     found = deps.drive.made_for(folder, {FOR: made_for, ROLE: role})
     properties = {FOR: made_for, ROLE: role, VERSION: version}
+    if role == "markdown":
+        properties[WRITTEN] = hashlib.md5(content).hexdigest()
     if found is not None:
         return deps.drive.update(found.id, content, mime, properties)
     return deps.drive.upload(folder, name, content, mime, properties)
@@ -603,6 +608,249 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
     living_records[LivingKind.NOTES] = living_record(built)
     if built.over(deps.warn_pages):
         work.count(topic, "over_page_count")
+
+
+# --- the statements of the notes' problems (FR-016d, research R15) -------------------------------------
+
+
+@dataclass(frozen=True)
+class _Source:
+    """A source of a topic as this run's listing shows it: nothing downloaded yet."""
+
+    file: DriveFile
+    label: str
+    date: str | None = None
+    kind: PartKind = PartKind.TEXT
+
+
+def _statements(deps: NotesDeps, work: Pass) -> None:
+    """Each topic's pages with something to do; a failure of Drive leaves them for the next run."""
+    if deps.answerer is None:
+        return  # no key here: the pages wait, and the report says so
+    by_topic: dict[str, list[str]] = {}
+    for photo_id, page in sorted(work.pages.items(), key=lambda p: int(p[1]["order"])):
+        block = cast("dict[str, Any] | None", page.get("statements"))
+        record = work.files.get(photo_id, {})
+        if block is None or not statements.is_active(block) or block.get("refused_on") == work.today:
+            continue
+        if record.get("state") != PhotoState.GONE and deps.drive.contains(photo_id):
+            by_topic.setdefault(str(record["topic"]), []).append(photo_id)
+    for topic, pages in sorted(by_topic.items()):
+        try:
+            _statements_of(deps, work, topic, pages)
+        except OutsideFolderError:
+            continue  # the topic left the alfabeta folder: its pages stay, and nothing is searched
+        except DriveError:
+            work.count(topic, "failed")  # an outage is not a missing statement
+
+
+def _statements_of(deps: NotesDeps, work: Pass, topic: str, pages: list[str]) -> None:
+    """List the problems of the topic's new pages, search for what is due, and write what was found."""
+    title = str(work.topics[topic]["name"])
+    for photo_id in pages:
+        if work.pages[photo_id]["statements"]["state"] == statements.PENDING:
+            _list_problems(deps, work, title, photo_id)
+    if not work.budget_refused:  # once refused, this pass makes no other call (research R5)
+        _search(deps, work, topic, title, pages)
+    for photo_id in pages:
+        if work.pages[photo_id]["statements"].get(statements.UNWRITTEN):
+            _write_lines(deps, work, topic, photo_id)
+
+
+def _list_problems(deps: NotesDeps, work: Pass, title: str, photo_id: str) -> None:
+    """One call with the page and no source: most pages hold no problem, and the sources are what costs."""
+    page = work.pages[photo_id]
+    block = page["statements"]
+    prompt = statements.list_prompt(title, statements.strip_statements(str(page["markdown"])))
+    answer = _ask(deps, work, prompt, statements.LIST_TOKENS, [photo_id])
+    if answer is None:
+        if block["tries"] >= statements.MAX_TRIES:
+            block["state"] = statements.GIVEN_UP
+        return
+    problems = statements.problems_of(answer)
+    block |= {"problems": problems, "tries": 0, "state": statements.LISTED if problems else statements.SETTLED}
+
+
+def _search(deps: NotesDeps, work: Pass, topic: str, title: str, pages: list[str]) -> None:
+    """One call per topic and run: the open problems of the pages due, in the sources one has not seen."""
+    sources = _sources_of(deps, work, topic)
+    due = [p for p in pages if _due(work.pages[p]["statements"], sources)]
+    if not due:
+        return
+    asked, by_ref = _asked(deps, work, due)
+    asking = sorted(set(by_ref.values()))
+    # A source's text once, however many pages have not searched it, and the textbook first.
+    wanted = [s for s in sources if any(_new(work.pages[p]["statements"], s) for p in asking)]
+    read, searched = _read_sources(deps, wanted)
+    answer: dict[str, Any] = {"problems": []}  # with nothing to read, nothing is paid: each is simply missing
+    if read:
+        said = _ask(deps, work, statements.search_prompt(title, asked, read), statements.SEARCH_TOKENS, asking)
+        if said is not None:
+            answer = said
+        elif all(work.pages[p]["statements"]["tries"] >= statements.MAX_TRIES for p in asking):
+            searched = {i: {**s, "unread": statements.NO_ANSWER} for i, s in searched.items()}
+        else:
+            return  # the budget, the key or an answer to ask for again: nothing is settled
+    entries = statements.entries_of(answer)
+    by_label = {r.ref: r for r in read}
+    for one in asked:
+        candidates = statements.candidates_of(entries.get(one.ref), by_label)
+        one.problem.update(status=statements.status_of(candidates), candidates=candidates)
+    for photo_id in asking:
+        page = work.pages[photo_id]
+        block = page["statements"]
+        block |= {"state": statements.SETTLED, "tries": 0}
+        block["searched"].update(searched)
+        markdown = statements.with_statements(str(page["markdown"]), block["problems"])
+        if markdown != page["markdown"]:
+            page["markdown"] = markdown
+            block[statements.UNWRITTEN] = True
+            work.dirty.add(topic)
+
+
+def _ask(deps: NotesDeps, work: Pass, prompt: str, tokens: int, pages: list[str]) -> dict[str, Any] | None:
+    """The JSON of one answer, or None: waiting for the budget, not answered, or unusable (counted when paid)."""
+    assert deps.answerer is not None  # `_statements` asks nothing without a key
+    blocks = [work.pages[p]["statements"] for p in pages]
+    try:
+        done = deps.answerer.answer(prompt, tokens)
+    except ValueError:
+        return None  # an answer that is not the JSON of the Messages API
+    if done.usage is not None:
+        charge(work, done.usage)
+    if done.state == PhotoState.BUDGET_WAIT:
+        work.budget_refused = True
+        for block in blocks:
+            block["refused_on"] = work.today
+        return None
+    work.claude_answered = work.claude_answered or done.usage is not None
+    answer = answer_json(done.markdown) if done.state == PhotoState.TRANSCRIBED else None
+    if answer is not None and isinstance(answer.get("problems"), list):
+        return answer
+    if done.usage is not None:
+        for block in blocks:
+            block["tries"] = int(block.get("tries", 0)) + 1
+    return None
+
+
+def _new(block: dict[str, Any], source: _Source) -> bool:
+    """Whether the page has not searched this source as it is now."""
+    return block["searched"].get(source.file.id, {}).get("version") != source.file.version
+
+
+def _due(block: dict[str, Any], sources: list[_Source]) -> bool:
+    """Listed and not searched yet; or a problem still missing, and a source it has not seen."""
+    if block["state"] == statements.LISTED:
+        return True
+    if block["state"] != statements.SETTLED or not any(statements.is_open(p) for p in block["problems"]):
+        return False
+    return any(_new(block, s) for s in sources)
+
+
+def _asked(deps: NotesDeps, work: Pass, due: list[str]) -> tuple[list[statements.Asked], dict[str, str]]:
+    """The open problems of the due pages, up to what one answer holds, and the page of each ref."""
+    asked: list[statements.Asked] = []
+    by_ref: dict[str, str] = {}
+    for photo_id in due:
+        open_problems = [p for p in work.pages[photo_id]["statements"]["problems"] if statements.is_open(p)]
+        if asked and len(asked) + len(open_problems) > statements.MAX_PROBLEMS:
+            break  # the rest in the next run: an answer cut short would be paid for and lost
+        photo = deps.drive.listed(photo_id)
+        for problem in open_problems:
+            ref = f"P{len(asked) + 1}"
+            asked.append(statements.Asked(ref, photo.name, (photo.modified or "desconocida")[:10], problem))
+            by_ref[ref] = photo_id
+    return asked, by_ref
+
+
+def _sources_of(deps: NotesDeps, work: Pass, topic: str) -> list[_Source]:
+    """The topic's textbook, in every language captured, then its Classroom material (FR-016d).
+
+    From this run's listing, with no download, so an idle run reads nothing. `_kept` never returns the
+    student's work or its grading.
+    """
+    found = [_Source(f, f.name) for f in book_sources(deps.drive, topic)]
+    for item_id in _filed(work.files, topic):
+        item = deps.drive.listed(item_id)
+        named = posted_title(item.name, folder=item.is_folder)
+        if named is None:
+            continue
+        posted, title = named
+        for path, f in _kept(deps.drive, item):
+            if not (item.is_folder and path == _LINKS):
+                label = f"Classroom «{title}» · {path}" if item.is_folder else f"Classroom «{path}»"
+                found.append(_Source(f, label, posted.isoformat(), part_kind(f.name, f.mime_type)))
+    return found
+
+
+def _read_sources(deps: NotesDeps, sources: list[_Source]) -> tuple[list[statements.Read], dict[str, dict[str, str]]]:
+    """Each source's text for the call, and what each page records of it: read, cut, or why not.
+
+    A file Drive cannot read raises: the search waits for the next run, since an outage is not a statement
+    that is missing. One that has no text, or no room in the call, is named, so the report claims nothing.
+    """
+    read: list[statements.Read] = []
+    searched: dict[str, dict[str, str]] = {}
+    room = statements.MAX_SEARCH_CHARS
+    for source in sources:
+        record = {"version": source.file.version, "label": source.label}
+        searched[source.file.id] = record
+        if room <= 0:
+            record["unread"] = statements.NO_ROOM
+            continue
+        text, why = _source_text(deps, source)
+        if why:
+            record["unread"] = why
+            continue
+        if len(text) > min(room, statements.MAX_SOURCE_CHARS):
+            record["unread"] = statements.CUT
+        text = text[: min(room, statements.MAX_SOURCE_CHARS)]
+        room -= len(text)
+        read.append(statements.Read(f"S{len(read) + 1}", source.label, source.date, text))
+    return read, searched
+
+
+def _source_text(deps: NotesDeps, source: _Source) -> tuple[str, str | None]:
+    """A source's text, or why it has none."""
+    if source.kind == PartKind.IMAGE:
+        return "", statements.IMAGE
+    if source.kind == PartKind.NAMED:
+        return "", statements.NAMED_ONLY
+    data = _render(deps, source.file, source.kind)
+    text = data.decode("utf-8", errors="replace") if source.kind == PartKind.TEXT else read_pdf(data)
+    return (text, None) if text.strip() else ("", statements.NO_TEXT)
+
+
+def _write_lines(deps: NotesDeps, work: Pass, topic: str, photo_id: str) -> None:
+    """The record's lines, into the page's Markdown and its PDF.
+
+    `_write` updates by id and renames nothing, and `review` is not touched: a mark says the handwriting
+    was read well, and it was (research R15). The recorded versions become what was written, so the feed
+    reads an echo. The recorded PDF name stays, so a mark not delivered yet is still seen. A Markdown the
+    family edited is not written over: the living file and the report still hold the match.
+    """
+    page = work.pages[photo_id]
+    block = page["statements"]
+    md_id = cast("str | None", page.get("markdown_id"))
+    current = deps.drive.listed(md_id) if md_id and deps.drive.contains(md_id) else None
+    if current is not None and current.version != page.get("markdown_version") and not own_write(current):
+        block["edited"] = True
+        del block[statements.UNWRITTEN]
+        return
+    item = deps.drive.listed(photo_id)
+    image = deps.drive.content(photo_id)  # before the first write: a page half written is never left
+    folder, version = item.parents[0], str(page["photo_version"])
+    markdown = str(page["markdown"]).encode()
+    md_file = _write(deps, folder, f"{item.name} · transcripción.md", markdown, MARKDOWN, photo_id, version, "markdown")
+    page |= {"markdown_id": md_file.id, "markdown_version": md_file.version}
+    work.files.setdefault(md_file.id, {"kind": str(Kind.NOTES_TEXT), "topic": topic, "own": True, "for": photo_id})
+    work.files[md_file.id]["version"] = md_file.version
+    pdf = deps.pdf.page(page_of(photo_id, page), image)
+    pdf_file = _write(deps, folder, f"{item.name} · transcripción.pdf", pdf, PDF, photo_id, version, "pdf")
+    page["pdf_id"] = pdf_file.id
+    named = {"kind": str(Kind.NOTES_TRANSCRIPT), "topic": topic, "own": True, "for": photo_id, "name": pdf_file.name}
+    work.files.setdefault(pdf_file.id, named)["version"] = pdf_file.version
+    del block[statements.UNWRITTEN]
 
 
 # --- Classroom items (research R6; data-model.md, ClassroomEntry) -------------------------------------
