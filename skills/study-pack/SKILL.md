@@ -30,8 +30,10 @@ fails, say which keys and stop. Never create the configuration or write to it.
 Topic folder: `<storage.base>/<school_year>/<subject>/<YYYYMMDD> - Tema NN[X] - <title>/` (`X` a
 subtopic's letter, spec 002 FR-043), found by `*Tema NN - *` or `*Tema NNX - *` whatever its date, holding only folders: `notes/` (the student's class notes),
 `classroom/` (the teacher's material), `sciencebits/` (the textbook), `notebook/` (everything this
-skill generates) and `exam/` (the sheets for the day before an exam). Nothing goes at its root. The
-notebook is the one whose title matches
+skill generates) and `exam/` (the sheets for the day before an exam). Nothing goes at its root. A
+book read for the subject (FR-048) takes `<YYYYMMDD> - Irakurketa - <title>/`; its `notes/` holds
+the photos of the book, which rank as the book and not as class notes, and its `notebook/` also
+holds the publisher's guide. The notebook is the one whose title matches
 `notebook.title_pattern` (`nlm notebook list --profile <profile> --json`), with `<profile>` =
 `notebook.nlm_profile`. `nlm download` takes no profile and reads nlm's default one
 (`nlm config get auth.default_profile`; measured 2026-10-28 with nlm 0.15.8): when it is not
@@ -99,6 +101,23 @@ and never quotes a piece's status output, which can hold its prompt.
 - **The day before an exam**, or when the family asks for the exam's sheets: alfabeta's own
   command, in [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper). It needs none
   of the steps below.
+- **A book read for the subject** (spec 002 FR-048), which is no textbook unit. Propose the folder
+  and wait for the family's word: `<YYYYMMDD> - Irakurketa - <title>/`, no `Tema NN`, dated the day
+  it is made when Classroom posted nothing. Ask whether its exam is the subject's or one of its
+  own. Neither `exam build` nor a material with no topic takes this folder as the subject's most
+  recent topic: only `--topic` reaches it. Its sources are the publisher's guide, in
+  `notebook/`, and photos of the book in `notes/`, transcribed as in step 1; never a copy from a
+  download site. Until the photos arrive the notebook cannot summarise the book: say so, and make
+  no piece that depends on its text (summary, glossary, practice sheet, mind map, quiz, flashcards,
+  video). A guide's question is answered only if the transcribed book says it (chapter and page),
+  if the guide quotes the sentence that settles it, or if it is an unequivocal general fact the
+  book does not contradict. Otherwise it reads «Pendiente — no se puede confirmar sin el libro»,
+  with the pages missing. Discarding an option as absurd is no base: in a satirical book it may be
+  the answer. A question on what the book says is not settled by a fact about the world. A key that
+  must arrive word for word skips steps 3, 6 and 7 for that piece: it is written from the key, checked
+  by script and printed with `print_pack.render`, PDF and Markdown in `notebook/`. A script proves
+  the piece matches the key, not that the key is right: before printing, another agent that has not
+  seen the key answers the same questions, and each difference is settled or marked doubtful.
 
 ## Steps
 
@@ -184,10 +203,13 @@ and never quotes a piece's status output, which can hold its prompt.
    - Download it to a scratch folder, never the topic folder
      (`nlm download report|quiz|flashcards|video <nb> --id <id> -o <scratch>/<file>`).
    - Language: the whole text, not the title.
-   - Recompute every number in the practice sheet, the quiz and the parent guide.
+   - Recompute every number in the practice sheet, the quiz and the parent guide, and in any problem
+     added to an exam sheet on the family's word (spec 002 FR-049).
    - Compare the practice sheet's problems with the teacher's sheets: **no problem may reuse their
      data.** The model reuses them even when told not to (measured 2026-10-26: 7 of 11 practice
      problems were the teacher's, with the same numbers). Regenerate if it does.
+   - The practice sheet says, at its head and over its solutions, that its problems are not the
+     teacher's (spec 002 FR-049). Regenerate if it does not.
    - Videos: duration (`ffprobe`) and a few frames (`ffmpeg -ss <s> -frames:v 1`). The audio
      language cannot be checked this way; say so.
 6. **Print the parent's material** with
@@ -206,7 +228,7 @@ and never quotes a piece's status output, which can hold its prompt.
    about and how long, in Spanish — the constitution asks it of everything the family reads, and the
    parent reads the printed index — with no date and no recipient; a piece in the subject's language
    says so: `1 · Vídeo 5 min · Materia, mezclas y disoluciones`, `5 · Test 12 preguntas en euskera ·
-   Materia y disoluciones`. Studio lists by last modification, so rename from the last piece to the first
+   Materia y disoluciones · No es del profesor`, a quiz always ending so (spec 002 FR-049). Studio lists by last modification, so rename from the last piece to the first
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
@@ -317,6 +339,7 @@ plan (`nlm` reports the tier as `PRO_CONSUMER`).
 | `NOTEBOOKLM_HL=es` made a mind map come out in Spanish; whether it does the same for quiz and flashcards was not measured | try it before the account-wide switch |
 | Measured 2026-10-29: `NOTEBOOKLM_HL=eu` made a quiz come out entirely in Basque with the account's output language untouched; 10 questions where 12 were asked; one invented word and two Spanish-shaped terms when the notebook held no Basque textbook yet | use `NOTEBOOKLM_HL=<subject language>` for quiz and flashcards first; add the textbook in the subject's language as a source before generating them |
 | `nlm download flashcards -f markdown` prints the raw card structure; `-f json` is clean | `print_pack.py` reads JSON |
+| Measured 2026-11-07 on a notebook holding only a 31-page guide: three reports with an answer key in the prompt (105 questions, 143 grammar items; one prompt of 9,600 characters, then two of about 8,000) came back with filler rows, pending questions answered with invented citations, whole questions invented, solutions changed and marks lost | a key that must arrive word for word is not asked of Studio: write the Markdown from the key, check every row against it with a script, and print it with `print_pack.render`. Say in the report that the piece did not come from Studio. A key held as a source was not measured, and neither was the regular parent guide, which recomputes from its sources |
 
 Whether the chat reads notes, and what the student sees as a viewer, were not settled on that date.
 
@@ -328,5 +351,7 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
   there only when a standing rule of the family gives it (spec 002 FR-036), or name the teacher as
   wrong.
 - Write an exam sheet by hand: `exam build` asks the notebook for it.
+- Add a problem from no class source without saying, beside its statement and its solution, that it
+  is not the teacher's (spec 002 FR-049).
 - Make a second notebook for the topic, or share the parent's material with the student.
 - Type a password. The family signs in.

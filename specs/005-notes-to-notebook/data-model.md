@@ -132,8 +132,9 @@ source whose living file is `missing` is not read; FR-011's report covers it. Th
 
 One per Classroom item, keyed by the item: the Drive id of its file, note or folder. A material in
 `No topic` belongs to the living Classroom file of its subject's most recent topic, the topic folder
-with the latest date when the material is first seen, and stays there (spec 002 FR-023); while the
-subject has no other topic it waits, and goes to the first one that appears. An announcement
+with the latest date when the material is first seen, never a book read for the subject, and stays
+there (spec 002 FR-023, FR-048); while the subject has no other topic it waits, and goes to the first
+one that appears. An announcement
 (`aviso`) is not an entry. An item moved to another topic folder moves to that topic's file.
 
 | Field | Meaning |

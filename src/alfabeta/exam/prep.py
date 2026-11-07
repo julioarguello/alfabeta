@@ -26,7 +26,7 @@ from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import NO_DATE, short_day, weekday
 from alfabeta.notes.refresh import LocalRefreshStore
 from alfabeta.notes.run import topic_name
-from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC, book_topic_number, subtopic_letter
+from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC, book_topic_number, is_reading_book, subtopic_letter
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
 
@@ -310,7 +310,10 @@ def topic_folders(subject_dir: Path, wanted: list[str] | None, *, any_kind: bool
 
 
 def topic_folder(subject_dir: Path, wanted: str | None) -> Path:
-    """The named topic folder, or the subject's most recent one, by the date its name starts with (step 4)."""
+    """The named topic folder, or the subject's most recent one, by the date its name starts with (step 4).
+
+    A book read for the subject is reached only by name: it has an exam of its own or none (FR-048).
+    """
     if wanted is not None:
         # Matched against the listing, not `is_dir`: a case-insensitive disk would accept another case.
         listed = {p.name for p in subject_dir.iterdir() if p.is_dir()} if subject_dir.is_dir() else set[str]()
@@ -320,7 +323,7 @@ def topic_folder(subject_dir: Path, wanted: str | None) -> Path:
     dated = [
         (found.group(1), p.name, p)
         for p in (subject_dir.iterdir() if subject_dir.is_dir() else ())
-        if p.is_dir() and (found := _DATED.match(p.name)) and found.group(2) != NO_TOPIC
+        if p.is_dir() and (found := _DATED.match(p.name)) and found.group(2) != NO_TOPIC and not is_reading_book(p.name)
     ]
     if not dated:
         raise Refusal("no_topic", "the subject has no topic folder")

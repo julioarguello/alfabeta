@@ -185,8 +185,9 @@ own table is the subset the requirements rest on; this one is the full list.
   - **Announcements** (`… aviso …` notes in `No topic`) are not material and stay out (spec 002
     FR-023 routes material only).
   - **`No topic`**: its materials go into the living Classroom file of the subject's most recent
-    topic, the topic folder whose date is latest when the material is first seen, and stay there,
-    as spec 002 FR-023 sends them to that topic's notebook. An item moved by classroom-sync to
+    topic, the topic folder whose date is latest when the material is first seen, never a book read
+    for the subject (spec 002 FR-048), and stay there, as spec 002 FR-023 sends them to that topic's
+    notebook. An item moved by classroom-sync to
     another topic leaves the first file and enters the second.
 - **Dependencies**: `reportlab` to draw pages and `pypdf` to copy pages, pinned. `pypdf` is pure
   Python; `reportlab` 5.1.0 pulls Pillow, which ships binary wheels, and charset-normalizer

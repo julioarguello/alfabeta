@@ -24,7 +24,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 - `--topic`: the exam's topic folder, or once per topic of any kind when no announcement backs the exam (spec 007), or once per subtopic when the exam covers several subtopics
   of a textbook topic (FR-045): each gets its own two sheets from its own notebook, an equal part of
   the slot, and the announcement's points its blocks cover. Without it, the subject's most recent
-  topic folder (FR-023), named on stderr; when that folder is a subtopic, the command refuses with
+  topic folder (FR-023), named on stderr, and never a book read for the subject, which only `--topic` reaches (FR-048); when that folder is a subtopic, the command refuses with
   `subtopics_unnamed` (code 1, nothing asked of a notebook) and asks for one `--topic` per subtopic
   the exam covers, since the announcement does not say which. The announcement does not give the topic: spec 001 files every announcement in
   the subject's `<YYYYMMDD> - No topic` folder (its FR-014).
