@@ -2,8 +2,9 @@
 
 Here are the two questions Claude is asked, what makes an answer acceptable, the lines the transcription
 carries, and what the report says. `run.py` reads the sources and writes the files; `report.py` says it.
-The answer has no field for a statement, and a candidate stands only if its quote is in that source's
-own text, so a statement no source holds cannot reach a transcription (SC-009).
+The answer has no field for a statement, and no free text of it reaches a transcription: a candidate's
+quote and exercise must be in that source's own text, and its reason is chosen from a closed list, so a
+statement no source holds cannot be written (SC-009).
 """
 
 from __future__ import annotations
@@ -19,17 +20,31 @@ PENDING, LISTED, SETTLED, GIVEN_UP = "pending", "listed", "settled", "given_up"
 # A problem's `status`.
 MATCHED, DOUBTFUL, MISSING = "matched", "doubtful", "missing"
 UNWRITTEN = "unwritten"  # a page's lines are in its record, and not yet in its Markdown and PDF
+UNBUILT = "unbuilt"  # a page's lines are in its record, and not yet in the topic's living file
 MAX_TRIES = 3  # unusable answers paid for, as a photo's retries (research R5)
 LIST_TOKENS = 4000
 SEARCH_TOKENS = 8000
 MAX_PROBLEMS = 24  # in one search call, so its answer fits SEARCH_TOKENS; the rest wait for the next run
 MAX_SOURCE_CHARS = 60_000
 MAX_SEARCH_CHARS = 150_000
-_MIN_QUOTE_LETTERS = 8
+MAX_QUOTE_WORDS = 20
+_MIN_QUOTE_WORDS = 4  # fewer can be anywhere in a source, and prove nothing
+_MAX_EXERCISE_WORDS = 8
+_MAX_NUMBER_WORDS = 4
+_NEAR = 2000  # letters before a statement's quote where the exercise's name is printed
+# What may decide a match, and how the family reads it. A closed list: no sentence of Claude's is written.
+_EVIDENCE = {
+    "date": "la fecha",
+    "topic": "el tema",
+    "number": "el número",
+    "data": "los datos",
+    "result": "el resultado",
+}
 
 # The report's words, in Spanish.
 HEADING = "### Enunciados de los problemas"
 NO_SOURCES = "El tema no tiene libro ni material de Classroom en Drive: no hay dónde buscar."
+NOTHING_READ = "No se ha podido leer ninguna de sus fuentes."
 WAITING = "esperan la búsqueda de los enunciados de sus problemas"
 GAVE_UP = "Claude no ha sabido listar sus problemas: no se buscan sus enunciados"
 EDITED = "la familia editó su Markdown: la línea del enunciado no se escribe en él"
@@ -43,6 +58,7 @@ NO_ANSWER = "Claude no dio una respuesta usable"
 NO_WHY = "sin motivo dicho"
 
 _LINE = re.compile(r"^\[enunciado (?:dudoso )?del problema .*\]\s*$")
+_TOKEN = re.compile(r"[-\u2212\u2013]?\d+(?:[.,]\d+)*|[^\W\d_]+")
 
 LIST_HEAD = "You list the problems solved on one page of a student's class notes."
 LIST_INSTRUCTIONS = (
@@ -77,9 +93,9 @@ do its data and its result fit that exercise? Prefer the textbook, then Classroo
 and nothing else:
 
 {{"problems": [{{"problem": "<its ref>", "candidates": [{{"source": "<its ref>", \
-"exercise": "<how the source names it: number, page, section>", \
-"quote": "<up to twenty consecutive words of the statement, copied exactly from the source, in its language>", \
-"why": "<in Spanish, twenty words at most: which of date, topic, number and result decided it>"}}]}}]}}
+"exercise": "<its number or heading, copied exactly as the source prints it, eight words at most>", \
+"quote": "<four to twenty consecutive words of the statement, copied exactly from the source, in its language>", \
+"why": ["<what decided it, any of: date, topic, number, data, result>"]}}]}}]}}
 
 One candidate when one exercise fits. Two or more only when they fit equally well. The same exercise in another
 language of the textbook is one exercise: name only the copy in the language of the notes. An empty list when
@@ -177,7 +193,11 @@ def problems_of(answer: dict[str, Any]) -> list[dict[str, Any]]:
     for entry in cast("list[Any]", answer["problems"]):
         if isinstance(entry, dict):
             said = cast("dict[str, Any]", entry)
-            problems.append({k: _text(said.get(k)) for k in ("number", "data", "result", "anchor")})
+            problem = {k: _text(said.get(k)) for k in ("number", "data", "result", "anchor")}
+            number = problem["number"]
+            if number and len(number.split()) > _MAX_NUMBER_WORDS:
+                problem["number"] = None  # it is written in the transcription: a number, not a sentence
+            problems.append(problem)
     return problems
 
 
@@ -190,15 +210,41 @@ def entries_of(answer: dict[str, Any]) -> dict[str, object]:
     return found
 
 
-def _letters(text: str) -> str:
-    """Letters and digits only: what a line break or a hyphen in an extracted PDF cannot change."""
-    return re.sub(r"[\W_]+", "", unicodedata.normalize("NFKC", text).casefold())
+def _normal(text: str) -> str:
+    """What a line break or a hyphen in an extracted PDF cannot change, and a value of a number always does.
+
+    Words lose their spacing and punctuation. Each number stays whole, sign and decimals, between marks, so
+    2,5 is not 25, -3 is not 3 and 3 is not the end of 13.
+    """
+    tokens = _TOKEN.findall(unicodedata.normalize("NFKC", text).casefold())
+    numbers = (t.replace(",", ".").replace("\u2212", "-").replace("\u2013", "-") for t in tokens)
+    return "".join(f"⟨{t}⟩" if t[-1].isdigit() else t for t in numbers)
 
 
 def holds(source: str, quote: str) -> bool:
     """Whether the quote is in the source's own text, long enough to prove it."""
-    wanted = _letters(quote)
-    return len(wanted) >= _MIN_QUOTE_LETTERS and wanted in _letters(source)
+    wanted = _normal(quote)
+    return len(quote.split()) >= _MIN_QUOTE_WORDS and bool(wanted) and wanted in _normal(source)
+
+
+def _names(source: str, exercise: str, quote: str) -> bool:
+    """Whether the source prints the exercise's name right before the quote, or within it."""
+    text, name, wanted = _normal(source), _normal(exercise), _normal(quote)
+    start = text.find(wanted)
+    while name and start != -1:
+        if name in text[max(0, start - _NEAR) : start + len(wanted)]:
+            return True
+        start = text.find(wanted, start + 1)
+    return False
+
+
+def _evidence(value: object) -> str:
+    """What decided a candidate, from the closed list: anything else an answer says is not written."""
+    said = cast("list[object]", value) if isinstance(value, list) else [value]
+    named = [text for key, text in _EVIDENCE.items() if key in said]
+    if not named:
+        return NO_WHY
+    return "por " + (f"{', '.join(named[:-1])} y {named[-1]}" if len(named) > 1 else named[0])
 
 
 def candidates_of(entry: object, sources: dict[str, Read]) -> list[dict[str, str]]:
@@ -212,13 +258,16 @@ def candidates_of(entry: object, sources: dict[str, Read]) -> list[dict[str, str
         candidate = cast("dict[str, Any]", raw)
         source = sources.get(str(candidate.get("source")))
         exercise, quote = _text(candidate.get("exercise")), _text(candidate.get("quote"))
-        if source is None or exercise is None or quote is None or not holds(source.text, quote):
+        if source is None or exercise is None or quote is None or len(exercise.split()) > _MAX_EXERCISE_WORDS:
+            continue
+        if not holds(source.text, quote) or not _names(source.text, exercise, quote):
             continue
         if (source.label, exercise) in seen:
             continue
         seen.add((source.label, exercise))
+        kept = " ".join(quote.split()[:MAX_QUOTE_WORDS])
         found.append(
-            {"source": source.label, "exercise": exercise, "quote": quote, "why": _text(candidate.get("why")) or NO_WHY}
+            {"source": source.label, "exercise": exercise, "quote": kept, "why": _evidence(candidate.get("why"))}
         )
     return found
 
@@ -253,7 +302,7 @@ def _anchored(lines: list[str], anchor: str | None) -> int | None:
     return exact if exact is not None else next((i for i, line in enumerate(spaced) if anchor in line), None)
 
 
-def _line(problem: dict[str, Any]) -> str | None:
+def _line(problem: dict[str, Any], searched: dict[str, dict[str, str]]) -> str | None:
     """The problem's line in the transcription; none until it has been searched."""
     status, named = problem.get("status"), _named(problem)
     candidates = cast("list[dict[str, str]]", problem.get("candidates") or [])
@@ -264,7 +313,7 @@ def _line(problem: dict[str, Any]) -> str | None:
         said = " o ".join(f"{_where(c)}: «{c['quote']}…»" for c in candidates)
         return f"[enunciado dudoso del {named}: {said}; {_why(candidates)}]"
     if status == MISSING:
-        return f"[enunciado del {named}: no está en el libro ni en Classroom]"
+        return f"[enunciado del {named}: no se ha encontrado. {_searched(searched)}]"
     return None
 
 
@@ -273,13 +322,13 @@ def strip_statements(markdown: str) -> str:
     return "".join(line for line in markdown.splitlines(keepends=True) if not _LINE.match(line))
 
 
-def with_statements(markdown: str, problems: list[dict[str, Any]]) -> str:
+def with_statements(markdown: str, problems: list[dict[str, Any]], searched: dict[str, dict[str, str]]) -> str:
     """The page with each problem's line right after its anchor, or at its end when the anchor is gone."""
     lines = strip_statements(markdown).splitlines()
     after: dict[int, list[str]] = {}
     last: list[str] = []
     for problem in problems:
-        line = _line(problem)
+        line = _line(problem, searched)
         if line is None:
             continue
         anchor = cast("str | None", problem.get("anchor"))
@@ -292,8 +341,12 @@ def with_statements(markdown: str, problems: list[dict[str, Any]]) -> str:
     return "\n".join(written) + "\n"
 
 
-def _unread(searched: dict[str, dict[str, str]]) -> list[str]:
-    return [f"{s['label']} ({s['unread']})" for s in searched.values() if s.get("unread")]
+def _searched(searched: dict[str, dict[str, str]]) -> str:
+    """What a missing statement was looked for in, and what could not be read: never more than was read."""
+    read = [s["label"] for s in searched.values() if not s.get("unread") or s["unread"] == CUT]
+    unread = [f"{s['label']} ({s['unread']})" for s in searched.values() if s.get("unread")]
+    where = f"Se ha buscado en: {', '.join(read)}." if read else NOTHING_READ if unread else NO_SOURCES
+    return where + (f" Sin poder leer del todo: {', '.join(unread)}." if unread else "")
 
 
 def report_line(page: str, problem: dict[str, Any], searched: dict[str, dict[str, str]]) -> str:
@@ -307,9 +360,5 @@ def report_line(page: str, problem: dict[str, Any], searched: dict[str, dict[str
         said = " y ".join(_where(c) for c in candidates)
         return f"{head}: dudoso, encaja igual en {said}; {_why(candidates)}."
     solved = "; ".join(f"{k}: {problem[f]}" for k, f in (("datos", "data"), ("resultado", "result")) if problem.get(f))
-    read = [s["label"] for s in searched.values() if not s.get("unread") or s["unread"] == CUT]
-    where = f"Se ha buscado en: {', '.join(read)}." if read else NO_SOURCES
-    unread = _unread(searched)
-    also = f" Sin poder leer del todo: {', '.join(unread)}." if unread else ""
     head += f" ({solved})" if solved else ""
-    return f"{head}: no se ha encontrado su enunciado. {where}{also} No se escribe ningún enunciado."
+    return f"{head}: no se ha encontrado su enunciado. {_searched(searched)} No se escribe ningún enunciado."

@@ -139,6 +139,10 @@ class NotesDrive(Protocol):
         """Whether the item is under the root, as listed this run."""
         ...
 
+    def get(self, file_id: str) -> DriveFile:
+        """The file as Drive holds it now."""
+        ...
+
     def content(self, file_id: str) -> bytes:
         """The file's bytes."""
         ...
@@ -593,7 +597,12 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
         return
     living_records[LivingKind.NOTES] = living_record(living)  # in place again after a move: healthy
     # A page transcribed while the file was missing reaches it on the first pass that finds it again.
-    waiting = any(work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED for p in pages)
+    # So do the statement lines of a page: a page's own write and the file's are not one step.
+    waiting = any(
+        work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED
+        or work.pages[p.photo_id].get("statements", {}).get(statements.UNBUILT)
+        for p in pages
+    )
     if topic not in work.dirty and not waiting:
         return
     data, count = deps.pdf.notes(
@@ -603,6 +612,7 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
     if upload:
         deps.drive.update(living.file_id, data, PDF)
     for p in pages:
+        work.pages[p.photo_id].get("statements", {}).pop(statements.UNBUILT, None)
         if work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED:
             work.files[p.photo_id]["state"] = str(PhotoState.IN_LIVING_FILE)
     living_records[LivingKind.NOTES] = living_record(built)
@@ -624,12 +634,18 @@ class _Source:
 
 
 def _statements(deps: NotesDeps, work: Pass) -> None:
-    """Each topic's pages with something to do; a failure of Drive leaves them for the next run."""
+    """Each topic's pages with something to do; a failure of Drive leaves them for the next run.
+
+    The pages of a book read for the subject are the book, not class notes: no problem is solved in them.
+    """
     by_topic: dict[str, list[str]] = {}
     for photo_id, page in sorted(work.pages.items(), key=lambda p: int(p[1]["order"])):
         block = cast("dict[str, Any] | None", page.get("statements"))
         record = work.files.get(photo_id, {})
         if block is None or not statements.is_active(block):
+            continue
+        if is_reading_book(str(work.topics.get(str(record.get("topic")), {}).get("name", ""))):
+            block["state"] = statements.SETTLED
             continue
         if record.get("state") != PhotoState.GONE and deps.drive.contains(photo_id):
             by_topic.setdefault(str(record["topic"]), []).append(photo_id)
@@ -695,29 +711,32 @@ def _search(deps: NotesDeps, work: Pass, topic: str, title: str, pages: list[str
     wanted = [s for s in sources if any(_new(work.pages[p]["statements"], s) for p in asking)]
     read, searched = _read_sources(deps, wanted)
     answer: dict[str, Any] = {"problems": []}  # with nothing to read, nothing is paid: each is simply missing
+    settling = asking
     if read:
         said = _ask(deps, work, statements.search_prompt(title, asked, read), statements.SEARCH_TOKENS, asking)
         if said is not None:
             answer = said
-        elif all(work.pages[p]["statements"]["tries"] >= statements.MAX_TRIES for p in asking):
-            searched = {i: {**s, "unread": statements.NO_ANSWER} for i, s in searched.items()}
         else:
-            return  # the budget, the key or an answer to ask for again: nothing is settled
+            # Each page's tries are its own: a new page sharing the call does not buy an older one more.
+            settling = [p for p in asking if work.pages[p]["statements"]["tries"] >= statements.MAX_TRIES]
+            if not settling:
+                return  # the budget, the key or an answer to ask for again: nothing is settled
+            searched = {i: {**s, "unread": statements.NO_ANSWER} for i, s in searched.items()}
     entries = statements.entries_of(answer)
     by_label = {r.ref: r for r in read}
     for one in asked:
-        candidates = statements.candidates_of(entries.get(one.ref), by_label)
-        one.problem.update(status=statements.status_of(candidates), candidates=candidates)
-    for photo_id in asking:
+        if by_ref[one.ref] in settling:
+            candidates = statements.candidates_of(entries.get(one.ref), by_label)
+            one.problem.update(status=statements.status_of(candidates), candidates=candidates)
+    for photo_id in settling:
         page = work.pages[photo_id]
         block = page["statements"]
         block |= {"state": statements.SETTLED, "tries": 0}
         block["searched"].update(searched)
-        markdown = statements.with_statements(str(page["markdown"]), block["problems"])
+        markdown = statements.with_statements(str(page["markdown"]), block["problems"], block["searched"])
         if markdown != page["markdown"]:
             page["markdown"] = markdown
-            block[statements.UNWRITTEN] = True
-            work.dirty.add(topic)
+            block |= {statements.UNWRITTEN: True, statements.UNBUILT: True}
 
 
 def _ask(deps: NotesDeps, work: Pass, prompt: str, tokens: int, pages: list[str]) -> dict[str, Any] | None:
@@ -840,12 +859,13 @@ def _write_lines(deps: NotesDeps, work: Pass, topic: str, photo_id: str) -> None
     `_write` updates by id and renames nothing, and `review` is not touched: a mark says the handwriting
     was read well, and it was (research R15). The recorded versions become what was written, so the feed
     reads an echo. The recorded PDF name stays, so a mark not delivered yet is still seen. A Markdown the
-    family edited is not written over: the living file and the report still hold the match.
+    family edited is not written over: the living file and the report still hold the match. Drive is asked
+    now, since this run's listing is older than the calls to Claude this pass made.
     """
     page = work.pages[photo_id]
     block = page["statements"]
     md_id = cast("str | None", page.get("markdown_id"))
-    current = deps.drive.listed(md_id) if md_id and deps.drive.contains(md_id) else None
+    current = deps.drive.get(md_id) if md_id and deps.drive.contains(md_id) else None
     if current is not None and current.version != page.get("markdown_version") and not own_write(current):
         block["edited"] = True
         del block[statements.UNWRITTEN]

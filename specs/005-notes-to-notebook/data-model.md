@@ -78,10 +78,11 @@ page from the Markdown. Either sets `review` back to `automatic`.
 |---|---|
 | `state` | `pending` (problems not listed yet) → `listed` (listed, not searched yet) → `settled`, directly from `pending` for a page with no problem; or `given_up` (the answer listing its problems was unusable three times; said in the report, retried only if the page changes). A search whose answers are unusable three times leaves its problems `missing`, with its sources recorded as unread and why. A new version of the photo starts again at `pending` |
 | `problems` | One per solved problem, in the page's order: `number`, `data`, `result`, `anchor` (the page's line where it starts), `status` (`matched`, `doubtful` or `missing`, absent until searched), `candidates` |
-| `candidates` | One when `matched`, two or more when `doubtful`, none when `missing`. Each: `source` (its label), `exercise`, `quote` (twenty words at most, found in that source's text), `why` (the date, topic, number or result that decided it). No field holds a statement |
-| `searched` | Per source id: `version`, `label`, and `unread` with the reason when it could not be read. A source whose id and version are here is not searched again |
-| `tries`, `refused_on` | Unusable answers so far; the day the budget refused a call, which is not repeated that day |
+| `candidates` | One when `matched`, two or more when `doubtful`, none when `missing`. Each: `source` (its label), `exercise` (eight words at most, as the source prints it, right before the quote), `quote` (four to twenty words, found in that source's text), `why` (what decided it, from date, topic, number, data and result, in Spanish). No field holds a statement, and no sentence of Claude's is kept |
+| `searched` | Per source id: `version`, `label`, and `unread` with the reason when it could not be read. A source whose id and version are here is not searched again, unless it had no room in its call or a new page of the topic shares the call |
+| `tries`, `refused_on` | Unusable answers so far, this page's own; the day the budget refused a call, which is not repeated that day |
 | `unwritten` | The lines are in the record and not yet in the Markdown and PDF, because Drive failed; the next run writes them and pays for nothing |
+| `unbuilt` | The lines are in the record and not yet in the topic's living file, because it was missing or Drive failed; the first pass that finds it rebuilds it |
 | `edited` | The family edited the page's Markdown, so the lines were not written into it (research R15) |
 
 The lines themselves are part of `markdown`, which every living file and PDF renders, each right after

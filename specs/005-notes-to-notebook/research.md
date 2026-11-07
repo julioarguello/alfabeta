@@ -66,7 +66,7 @@ own table is the subset the requirements rest on; this one is the full list.
   logs nothing about it (spec 004 FR-009a, amended). A folder that joins the allowlist is listed
   whole once, so content moved in with it is taken in.
 - **Fields**: the feed asks only for `nextPageToken,newStartPageToken,changes(fileId,removed,
-  file(name,mimeType,parents,md5Checksum,modifiedTime,trashed))`; the name is read only for changes
+  file(name,mimeType,parents,md5Checksum,modifiedTime,trashed,properties))`; the name is read only for changes
   the adapter keeps.
 - **Echoes**: every write the cloud makes (state, run log, transcriptions, living files, reports,
   temporary conversions) comes back through the next feed page. A change to a file id the state
@@ -367,25 +367,34 @@ own table is the subset the requirements rest on; this one is the full list.
   when problems exist. The sources are every Markdown in the topic's book folder, each language one
   source, then each file of each Classroom item the topic's Classroom file holds (never the student's
   work or its grading, `_kept`), its posting date beside it. The answer is checked, not trusted: a
-  candidate needs a known source and a quote of that source, compared letters and digits only so a line
-  break or a hyphen in an extracted PDF does not reject it. Claude's status does not stand alone: no
-  candidate left means `missing`, and two or more mean `doubtful`.
+  candidate needs a known source, a quote of four words or more found in it, and an exercise of eight
+  words at most that the source prints within the quote or in the 2,000 letters before it. The compare
+  ignores spacing and punctuation, so a line break or a hyphen in an extracted PDF does not reject it,
+  and keeps each number whole, so 2,5 is not 25 and -3 is not 3. A quote over twenty words is cut to
+  twenty. No sentence of Claude's is written: what decided a match is chosen from date, topic, number,
+  data and result, and a problem's number of over four words counts as none. Claude's status does not
+  stand alone: no candidate left means `missing`, and two or more mean `doubtful`.
 - **Marks**: the lines go through `_write`, which updates by id and never renames, so a « (revisada)»
   survives in the PDF's name; `review` is not touched; the recorded `version` of the Markdown and
   `markdown_version` become what was written, so the feed reads an echo, not a correction. For a pass
-  that stops before saving, the file's property `alfabeta_written` says the same. A recorded PDF `name`
-  is left alone, so a mark the feed has not delivered yet is still seen. An edit by the family (a
-  checksum that is neither) is never written over.
+  that stops before saving, the file's property `alfabeta_written` says the same, which is why the feed
+  asks Drive for `properties`. A recorded PDF `name` is left alone, so a mark the feed has not delivered
+  yet is still seen. An edit by the family (a checksum that is neither) is never written over; Drive is
+  asked for the file just before writing, since the run's listing is older than its calls to Claude.
+- **Two steps**: a page's lines and the living file are written apart, so `unbuilt` keeps a page's lines
+  owed to the file across runs, as a transcribed page's state does.
 - **Searching again**: a page's `searched` records each source's version. A problem still `missing`
   is searched again only in sources that are new or changed, unless a new page of the topic shares the
   call and brings every source with it, since that text is paid for anyway. A listing tells that, with
-  no download, so an idle run neither reads, pays nor writes (SC-004).
+  no download, so an idle run neither reads, pays nor writes (SC-004). Unusable answers count per page:
+  a new page sharing the call does not buy an older one a fourth try.
 - **The date it crosses**: a page's is its photo's `modifiedTime` in Drive, when it was uploaded, which
   may be later than the class; a Classroom file's is its item's posting date. Claude weighs the date with
   the topic, the number and the result, and it decides nothing alone.
 - **What a source could not give**: an image, a named-only file, a PDF with no extractable text, or a
   file beyond `MAX_SOURCE_CHARS` (`MAX_SEARCH_CHARS` for a whole call) is recorded as unread with why and
-  named in the report's missing line, so "missing" never claims more than was read. One beyond
+  named in the report's missing line and the transcription's, so "missing" never claims more than was
+  read. One beyond
   `MAX_SEARCH_CHARS` is read by the next run's call, whose first source always fits. Drive failing to
   read a source stops that topic's search for the run: an outage is not "missing". Reading images and
   scanned PDFs with Claude is not built; it would cost a page's image tokens per page of each source.

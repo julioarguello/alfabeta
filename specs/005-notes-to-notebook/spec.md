@@ -172,10 +172,12 @@ implementation.
   search for a string. One call lists a page's problems, without any source, so a page of theory costs
   a page's tokens and no more; a second call, one per topic and run, searches only for the problems
   that exist. Both are paid and stopped like the other calls (FR-015).
-- Q: Could the model write a statement of its own? → A: Its answer has no field for one. It names the
-  source, the exercise, a quote of twenty words at most and why it decided. A quote the run does not
-  find in that source's own text drops the candidate, so a statement a source does not hold cannot
-  reach the transcription.
+- Q: Could the model write a statement of its own? → A: Its answer has no field for one, and no free
+  text of it is written. It names the source, the exercise as the source prints it, and a quote of four
+  to twenty words; what decided it is chosen from date, topic, number, data and result. An exercise or a
+  quote the run does not find in that source's own text, with the exercise printed right before the
+  quote and every number of the quote the same, drops the candidate, so a statement a source does not
+  hold cannot reach the transcription.
 - Q: Writing a match changes the transcription. Does that undo the student's « (revisada)»? → A: No.
   The mark says the handwriting was read well, and that reading has not changed. Writing a match keeps
   the page's mark and its PDF's name, and the run records the version it wrote, so its write is never
@@ -185,7 +187,10 @@ implementation.
   A: A problem reported as missing is searched again, once, whenever a source is new or changed, in
   that source only, unless a new page of the topic searches every source in the same call, which then
   costs nothing more. A problem with a match, certain or doubtful, is not searched again unless its page
-  changes. A repeated search that finds nothing writes and reports nothing.
+  changes. A repeated search that finds nothing reports nothing; the problem's line in the transcription
+  names the source it added, since that line claims only what was read.
+- Q: Are the photos of a book read for the subject notes with problems? → A: No. They rank as the book
+  (spec 002 FR-048), so nothing is listed or searched for them and nothing is paid.
 - Q: And the pages that were there before this was built? → A: They are not searched on their own, to
   spend nothing the family did not ask for. The agent still does them by hand when it prepares a topic
   (`skills/study-pack/SKILL.md`, step 1).
@@ -538,7 +543,9 @@ source and one living Classroom source, and that a second run adds nothing.
   report of FR-013 says the same. Two exercises that fit equally are both named, as a doubtful match.
   A statement no source holds is reported as missing, naming the sources searched and those it could
   not read (an image, a PDF with no text, a source beyond the size a call takes), and MUST NOT be
-  rebuilt from the working. A topic with no source says so instead of searching. How it is written,
+  rebuilt from the working. A topic with no source says so instead of searching, and the line in the
+  transcription says the same as the report: what was read, what could not be, or that there was
+  nothing to read. A page of a book read for the subject (spec 002 FR-048) is not searched. How it is written,
   searched again and paid for is in the Clarifications (session 2026-11-07) and research R15.
 - **FR-020**: The report of FR-013 MUST name, for each notes page that reached a living file, the
   textbook lesson whose heading covers it, and say so when that lesson belongs to another topic or

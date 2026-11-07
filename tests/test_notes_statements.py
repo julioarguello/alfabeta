@@ -5,7 +5,8 @@ from __future__ import annotations
 import datetime as dt
 import itertools
 import json
-from typing import Any
+from dataclasses import replace
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -22,6 +23,7 @@ from tests.notes_fakes import (
     MADRID,
     NOTES,
     TOPIC,
+    CountingPdf,
     FixedClock,
     MemoryDrive,
     ScriptedAnswerer,
@@ -32,14 +34,21 @@ from tests.notes_fakes import (
 from tests.test_notes_report import reports
 from tests.test_notes_run import set_up, state_of
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from alfabeta.notes.model import NotesPage, Topic
+
 PHOTO = "foto-1"
 PAGE = "## Ejercicios\n\n3) m = 2 kg, a = 5 m/s²\nF = m·a = 10 N\n\nFin de la clase\n"
 ANCHOR = "3) m = 2 kg, a = 5 m/s²"
 STATEMENT = "Calcula la fuerza que actúa sobre un cuerpo de dos kilos que acelera a cinco metros"
-BOOK_ES = f"# Tema 1\n\n## Lección 1: Fuerzas\n\nEjercicio 3. {STATEMENT} por segundo.\n"
+OTHER = "Determina la fuerza neta sobre otro cuerpo parecido"
+BOOK_ES = f"# Tema 1\n\n## Lección 1: Fuerzas\n\nEjercicio 3. {STATEMENT} por segundo.\n\nEjercicio 9. {OTHER}.\n"
 BOOK_EU = "# 1. gaia\n\n## Ikasgaia 1: Indarrak\n\n3. ariketa. Kalkulatu bi kiloko gorputz baten indarra.\n"
 PROBLEM = {"number": "3", "data": "m = 2 kg, a = 5 m/s²", "result": "10 N", "anchor": ANCHOR}
 QUOTE = "Calcula la fuerza que actúa sobre un cuerpo"
+ENGLISH = "Find the force on a body of two"
 EARLY = dt.datetime(2026, 10, 27, 9, 0, tzinfo=MADRID)
 _MINUTES = itertools.count(1)  # each later run writes its own report, the same day
 
@@ -59,8 +68,8 @@ def found(*entries: dict[str, Any]) -> Transcription:
     return Transcription(PhotoState.TRANSCRIBED, f"```json\n{body}\n```", Usage(40000, 300))
 
 
-def candidate(source: str = "S1", exercise: str = "Ejercicio 3", quote: str = QUOTE) -> dict[str, str]:
-    return {"source": source, "exercise": exercise, "quote": quote, "why": "el número y el resultado coinciden"}
+def candidate(source: str = "S1", exercise: str = "Ejercicio 3", quote: str = QUOTE) -> dict[str, Any]:
+    return {"source": source, "exercise": exercise, "quote": quote, "why": ["number", "result"]}
 
 
 def with_book(drive: MemoryDrive, *, languages: bool = True) -> None:
@@ -118,7 +127,7 @@ def test_a_match_is_written_beside_its_problem_with_its_source_and_evidence():
     lines = markdown_of(drive).splitlines()
     beside = lines[lines.index(ANCHOR) + 1]
     assert beside.startswith("[enunciado del problema 3: «Tema01_ES.md», Ejercicio 3")
-    assert QUOTE in beside and "el número y el resultado coinciden" in beside
+    assert QUOTE in beside and "por el número y el resultado" in beside
     # The transcription's own text is all still there, in its order.
     assert statements.strip_statements(markdown_of(drive)) == PAGE
     block = block_of(drive)
@@ -145,7 +154,7 @@ def test_the_report_says_what_matched_and_on_what_evidence():
     [text] = reports(drive)
     said = section_of(text)
     assert "«a.jpg», problema 3" in said and "«Tema01_ES.md», Ejercicio 3" in said
-    assert "el número y el resultado coinciden" in said
+    assert "por el número y el resultado" in said
     assert guardrail.scan_lines("Informe.md", report.scan_text(text), []) == []
 
 
@@ -178,7 +187,7 @@ def test_every_language_captured_and_the_classroom_material_are_searched_but_nev
 def test_two_exercises_that_fit_equally_are_both_named_as_doubtful():
     drive = page_drive()
     with_book(drive)
-    other = candidate("S1", "Ejercicio 9", "Ejercicio 3")
+    other = candidate("S1", "Ejercicio 9", OTHER)
     first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [candidate(), other]}))
     line = next(x for x in markdown_of(drive).splitlines() if x.startswith("[enunciado"))
     assert line.startswith("[enunciado dudoso del problema 3:")
@@ -313,7 +322,7 @@ def test_a_write_left_pending_needs_no_key():
     md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
     drive.unreadable.add(PHOTO)
-    later_run(drive, found({"problem": "P1", "candidates": [candidate(quote="Find the force on a body of two")]}))
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
     drive.unreadable.clear()
     run_notes(deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber(), clock=later()))
     assert "Tema01_EN.md" in drive.bodies[md_id].decode()
@@ -364,7 +373,7 @@ def test_a_statement_that_arrives_later_is_searched_for_once_in_that_source_only
         "hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two kilos.", parent="sb"
     )
     answerer = later_run(
-        drive, found({"problem": "P1", "candidates": [candidate(quote="Find the force on a body of two")]})
+        drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]})
     )
     [search] = answerer.statement_prompts
     assert "Tema01_EN.md" in search and "Tema01_ES.md" not in search  # what was searched is not paid twice
@@ -377,17 +386,15 @@ def test_a_statement_that_arrives_later_is_searched_for_once_in_that_source_only
     assert later_run(drive).statement_prompts == []
 
 
-def test_a_repeated_search_that_finds_nothing_writes_nothing_and_reports_nothing():
+def test_a_repeated_search_that_finds_nothing_says_where_it_looked_and_reports_nothing_new():
     drive = page_drive()
     with_book(drive)
     first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
-    written = drive.revisions[state_of(drive)["pages"][PHOTO]["markdown_id"]]
-    count = len(reports(drive))
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Nothing to see.", parent="sb")
     answerer = later_run(drive, found({"problem": "P1", "candidates": []}))
     assert len(answerer.statement_prompts) == 1
-    assert drive.revisions[state_of(drive)["pages"][PHOTO]["markdown_id"]] == written
-    assert len(reports(drive)) == count
+    assert "Tema01_EN.md" in markdown_of(drive)  # the line claims what was read, and it has grown
+    assert not any("Tema01_EN.md" in section_of(r) for r in reports(drive))
     assert "hoja" in block_of(drive)["searched"]
     assert later_run(drive).statement_prompts == []  # recorded: not paid for again
 
@@ -404,7 +411,7 @@ def test_a_changed_source_is_searched_again():
 def test_a_doubtful_match_is_not_searched_again():
     drive = page_drive()
     with_book(drive)
-    both = [candidate(), candidate("S1", "Ejercicio 9", "Ejercicio 3")]
+    both = [candidate(), candidate("S1", "Ejercicio 9", OTHER)]
     first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": both}))
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3.", parent="sb")
     assert later_run(drive).statement_prompts == []
@@ -481,7 +488,7 @@ def test_writing_a_match_keeps_the_students_mark_and_its_pdfs_name():
     drive = page_drive()
     pdf_id = checked_page(drive)
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
-    later_run(drive, found({"problem": "P1", "candidates": [candidate(quote="Find the force on a body of two")]}))
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
     record = state_of(drive)["pages"][PHOTO]
     assert "[enunciado del problema 3" in record["markdown"]
     assert record["review"] == "checked"
@@ -524,7 +531,7 @@ def test_a_write_drive_refused_is_done_by_the_next_run_and_paid_for_once():
     md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
     drive.unreadable.add(PHOTO)  # the PDF cannot be drawn: neither file is written
-    later_run(drive, found({"problem": "P1", "candidates": [candidate(quote="Find the force on a body of two")]}))
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
     assert "Tema01_EN.md" not in drive.bodies[md_id].decode()
     assert block_of(drive)[statements.UNWRITTEN] is True
     drive.unreadable.clear()
@@ -559,7 +566,7 @@ def test_the_familys_edit_of_the_markdown_is_never_written_over():
         md_id, drive.files[md_id].name, "text/markdown", (NOTES,), md5=drive.files[md_id].md5, properties=properties
     )
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
-    later_run(drive, found({"problem": "P1", "candidates": [candidate(quote="Find the force on a body of two")]}))
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
     assert drive.bodies[md_id].decode() == edited
     assert "[enunciado del problema 3" in state_of(drive)["pages"][PHOTO]["markdown"]  # the living file holds it
     assert block_of(drive)["edited"] is True
@@ -693,7 +700,7 @@ def test_the_reports_other_calls_read_the_notes_without_the_lines():
 
 def test_a_line_whose_anchor_is_gone_goes_at_the_end_of_the_page():
     missing: dict[str, Any] = {"number": "7", "anchor": "no está", "status": statements.MISSING, "candidates": []}
-    written = statements.with_statements(PAGE, [missing])
+    written = statements.with_statements(PAGE, [missing], {})
     assert written.startswith(PAGE)
     assert written.splitlines()[-1].startswith("[enunciado del problema 7")
     assert statements.strip_statements(written) == PAGE
@@ -702,19 +709,19 @@ def test_a_line_whose_anchor_is_gone_goes_at_the_end_of_the_page():
 def test_an_anchor_prefers_the_whole_line_to_a_line_that_merely_holds_it():
     page = "## Tema 3\n\n3\nx  =  1\n"
     problem: dict[str, Any] = {"number": "3", "anchor": "3", "status": statements.MISSING, "candidates": []}
-    assert statements.with_statements(page, [problem]).splitlines()[3].startswith("[enunciado")
+    assert statements.with_statements(page, [problem], {}).splitlines()[3].startswith("[enunciado")
     spaced: dict[str, Any] = {"number": "4", "anchor": "x = 1", "status": statements.MISSING, "candidates": []}
-    assert statements.with_statements(page, [spaced]).splitlines()[4].startswith("[enunciado")
+    assert statements.with_statements(page, [spaced], {}).splitlines()[4].startswith("[enunciado")
 
 
 def test_writing_the_lines_twice_is_writing_them_once():
     problem: dict[str, Any] = {**PROBLEM, "status": statements.MISSING, "candidates": []}
-    once = statements.with_statements(PAGE, [problem])
-    assert statements.with_statements(once, [problem]) == once
+    once = statements.with_statements(PAGE, [problem], {})
+    assert statements.with_statements(once, [problem], {}) == once
 
 
 def test_a_problem_not_searched_yet_writes_no_line():
-    assert statements.with_statements(PAGE, [PROBLEM]) == PAGE
+    assert statements.with_statements(PAGE, [PROBLEM], {}) == PAGE
 
 
 def test_a_problem_without_a_number_is_said_by_its_data():
@@ -725,4 +732,229 @@ def test_a_problem_without_a_number_is_said_by_its_data():
         "status": statements.MISSING,
         "candidates": [],
     }
-    assert "problema sin número" in statements.with_statements(PAGE, [problem])
+    assert "problema sin número" in statements.with_statements(PAGE, [problem], {})
+
+
+# --- nothing of Claude's own reaches a transcription (SC-009) ---------------------------------------------
+
+REBUILT = "Un tren de 300 t frena desde 20 m/s hasta pararse en 40 s"
+
+
+def written_with(*answer: dict[str, Any]) -> str:
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": list(answer)}))
+    return markdown_of(drive)
+
+
+def test_a_reason_in_words_is_not_written():
+    written = written_with({**candidate(), "why": REBUILT})
+    assert "tren" not in written and statements.NO_WHY in written
+
+
+def test_a_reason_is_only_what_the_closed_list_holds():
+    written = written_with({**candidate(), "why": ["number", REBUILT, "result", 7, {"x": 1}]})
+    assert "tren" not in written and "por el número y el resultado" in written
+    assert "por el número]" in written_with({**candidate(), "why": "number"})
+
+
+@pytest.mark.parametrize(
+    "exercise",
+    [
+        f"Ejercicio 99: {REBUILT}",  # a statement in the exercise's name
+        "Ejercicio 99",  # a name the source does not print
+        f"Ejercicio 3 {QUOTE}",  # printed right there, and too long to be a name
+    ],
+)
+def test_an_exercise_the_source_does_not_name_drops_the_candidate(exercise: str):
+    written = written_with(candidate(exercise=exercise))
+    assert "tren" not in written and "no se ha encontrado" in written
+
+
+def test_an_exercise_printed_far_from_the_quote_is_not_that_quotes_exercise():
+    drive = page_drive()
+    drive.folder("sb", "sciencebits", TOPIC)
+    far = f"Ejercicio 1. Otra cosa.\n\n{'palabra ' * 400}\n\nEjercicio 2. {QUOTE}.\n"
+    drive.put("libro", "Tema01_ES.md", "text/markdown", far.encode(), parent="sb")
+    wrong, right = candidate(exercise="Ejercicio 1"), candidate(exercise="Ejercicio 2")
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [wrong, right]}))
+    assert block_of(drive)["problems"][0]["status"] == statements.MATCHED
+    assert "Ejercicio 2" in markdown_of(drive) and "Ejercicio 1" not in markdown_of(drive)
+
+
+@pytest.mark.parametrize(
+    ("source", "quote"),
+    [
+        ("Una masa de 25 kg sobre la mesa", "Una masa de 2,5 kg sobre"),
+        ("Una masa de 2,5 kg sobre la mesa", "Una masa de 25 kg sobre"),
+        ("La temperatura baja a -3 grados hoy", "temperatura baja a 3 grados"),
+        ("Una masa de 13 kg sobre la mesa", "3 kg sobre la mesa"),
+        ("Calcula", "Calcula"),  # one word proves nothing, however long
+        ("uno dos tres cuatro", "uno dos tres"),
+        ("---", "- - - -"),  # no word at all
+    ],
+)
+def test_a_quote_that_changes_a_number_or_proves_nothing_is_not_held(source: str, quote: str):
+    assert not statements.holds(source, quote)
+
+
+def test_a_number_copied_with_another_decimal_mark_is_the_same_number():
+    assert statements.holds("Una masa de 2,5 kg sobre la mesa", "masa de 2.5 kg sobre")
+
+
+def test_a_quote_longer_than_the_limit_is_kept_to_the_limit():
+    words = " ".join(f"palabra{'abcdefghijklmnopqrstuvwxyz1234'[i]}" for i in range(30))
+    drive = page_drive()
+    drive.folder("sb", "sciencebits", TOPIC)
+    drive.put("libro", "Tema01_ES.md", "text/markdown", f"Ejercicio 3. {words}\n".encode(), parent="sb")
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [candidate(quote=words)]}))
+    kept = block_of(drive)["problems"][0]["candidates"][0]["quote"]
+    assert len(kept.split()) == statements.MAX_QUOTE_WORDS and words.startswith(kept)
+
+
+def test_a_number_that_is_a_sentence_is_not_written():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed({**PROBLEM, "number": REBUILT}), found({"problem": "P1", "candidates": []}))
+    assert "tren" not in markdown_of(drive) and "problema sin número" in markdown_of(drive)
+
+
+# --- a missing line claims only what was read -------------------------------------------------------------
+
+
+def test_a_missing_line_with_no_source_does_not_say_the_book_was_searched():
+    drive = page_drive()
+    first_run(drive, listed(PROBLEM))
+    line = next(x for x in markdown_of(drive).splitlines() if x.startswith("[enunciado"))
+    assert statements.NO_SOURCES in line and "Se ha buscado" not in line
+
+
+def test_a_missing_line_names_what_it_read_and_what_it_could_not():
+    drive = page_drive()
+    with_book(drive, languages=False)
+    drive.put("vacio", "Tema01_EU.md", "text/markdown", b"  ", parent="sb")
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    line = next(x for x in markdown_of(drive).splitlines() if x.startswith("[enunciado"))
+    assert "Se ha buscado en: Tema01_ES.md" in line
+    assert f"Tema01_EU.md ({statements.NO_TEXT})" in line
+    assert statements.strip_statements(markdown_of(drive)) == PAGE
+
+
+def test_only_unreadable_sources_are_not_called_no_sources():
+    drive = page_drive()
+    drive.folder("sb", "sciencebits", TOPIC)
+    drive.put("vacio", "Tema01_ES.md", "text/markdown", b"  ", parent="sb")
+    first_run(drive, listed(PROBLEM))
+    said = section_of(reports(drive)[0])
+    line = next(x for x in markdown_of(drive).splitlines() if x.startswith("[enunciado"))
+    for text in (said, line):
+        assert statements.NOTHING_READ in text and statements.NO_SOURCES not in text
+        assert f"Tema01_ES.md ({statements.NO_TEXT})" in text
+
+
+# --- each page's tries are its own -----------------------------------------------------------------------
+
+
+def test_a_new_page_in_each_run_does_not_keep_an_older_one_searching():
+    """The cap is per page: new pages sharing the call must not buy an older one a fourth try."""
+    drive = page_drive()
+    with_book(drive)
+    useless = Transcription(PhotoState.TRANSCRIBED, "no es JSON", Usage(100, 10))
+    first_run(drive, listed(PROBLEM), useless)
+    for n in range(2, 5):
+        fid = f"foto-{n}"
+        drive.put(fid, f"{n}.jpg", "image/jpeg", fid.encode())
+        answerer = ScriptedAnswerer(statements=[listed(PROBLEM), useless])
+        script = ScriptedTranscriber([Transcription(PhotoState.TRANSCRIBED, PAGE, Usage(3000, 800))])
+        run_notes(deps(drive, ScriptedFeed(drive, [[fid]]), script, answerer=answerer, clock=later()))
+    pages = state_of(drive)["pages"]
+    oldest, newest = pages[PHOTO]["statements"], pages["foto-4"]["statements"]
+    assert oldest["state"] == statements.SETTLED
+    assert oldest["problems"][0]["status"] == statements.MISSING
+    assert oldest["searched"]["libro-es"]["unread"] == statements.NO_ANSWER
+    assert newest["state"] == statements.LISTED and "status" not in newest["problems"][0]
+
+
+# --- a write and the living file are two steps -----------------------------------------------------------
+
+
+class MarkdownPdf(CountingPdf):
+    """A living file whose bytes hold each page's text, as the real one does."""
+
+    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
+        return "".join(p.markdown for p, _ in pages).encode(), 1 + 2 * len(pages)
+
+
+def test_a_living_file_that_could_not_be_rebuilt_gets_the_lines_on_the_next_run():
+    def run(*script: Transcription) -> None:
+        answerer = ScriptedAnswerer(statements=list(script))
+        made = deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber(), answerer=answerer, clock=later())
+        run_notes(replace(made, pdf=MarkdownPdf()))
+
+    drive = page_drive()
+    with_book(drive)
+    living = next(iter(state_of(drive)["topics"][TOPIC]["living"].values()))["file_id"]
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))  # the page is in the file
+    assert state_of(drive)["files"][PHOTO]["state"] == PhotoState.IN_LIVING_FILE
+    drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
+    drive.refuses_updates.add(living)
+    run(found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
+    assert block_of(drive)[statements.UNBUILT] is True
+    assert ENGLISH.encode() not in drive.bodies[living]
+    drive.refuses_updates.clear()
+    run()
+    assert ENGLISH.encode() in drive.bodies[living]
+    assert statements.UNBUILT not in block_of(drive)
+    written = drive.revisions[living]
+    run()
+    assert drive.revisions[living] == written  # once: an idle run writes nothing
+
+
+# --- what the family edits while the pass thinks ---------------------------------------------------------
+
+
+def test_an_edit_made_during_the_pass_is_not_written_over():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
+    as_listed = drive.files[md_id]
+    edited = "Texto corregido por la familia\n"
+    drive.bodies[md_id] = edited.encode()
+    drive.files[md_id] = DriveFile(
+        md_id, as_listed.name, as_listed.mime_type, as_listed.parents, md5="otra", properties=as_listed.properties
+    )
+    drive.stale[md_id] = as_listed  # this run's listing is older than the edit
+    drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
+    assert drive.bodies[md_id].decode() == edited
+    assert block_of(drive)["edited"] is True
+
+
+# --- what is not class notes, and what left the folder ---------------------------------------------------
+
+
+def test_the_pages_of_a_book_read_for_the_subject_pay_for_nothing():
+    drive = page_drive()
+    store = DriveNotesStateStore(drive)
+    state = store.load()
+    state["topics"][TOPIC]["name"] = "Irakurketa - Liburu asmatua"
+    store.save(state)
+    answerer = first_run(drive)
+    assert answerer.statement_prompts == []
+    assert block_of(drive)["state"] == statements.SETTLED
+    assert statements.HEADING not in reports(drive)[0]
+    assert "[enunciado" not in markdown_of(drive)
+
+
+def test_a_topic_that_left_the_folder_is_skipped_and_its_pages_stay():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), Transcription(PhotoState.TRANSCRIBED, "no es JSON", Usage(100, 10)))
+    assert block_of(drive)["state"] == statements.LISTED
+    moved = drive.files.pop(TOPIC)
+    answerer = ScriptedAnswerer()
+    run_notes(deps(drive, ScriptedFeed(drive, [[]]), ScriptedTranscriber(), answerer=answerer, clock=later()))
+    drive.files[TOPIC] = moved
+    assert answerer.statement_prompts == []
+    assert block_of(drive)["state"] == statements.LISTED

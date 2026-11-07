@@ -235,6 +235,26 @@ def test_the_feed_keeps_inside_and_recorded_changes_only(tmp_path: Path, caplog:
     assert "fields=nextPageToken" in t.calls[-1][1] and "restrictToMyDrive=true" in t.calls[-1][1]
 
 
+def test_the_feed_asks_for_a_files_properties_and_keeps_them(tmp_path: Path):
+    """A change alfabeta wrote is told from the family's by a property: a change without it reads as theirs."""
+    drive, t = opened(tmp_path)
+    changed = {
+        "name": "a.md",
+        "mimeType": "text/markdown",
+        "parents": ["raiz"],
+        "md5Checksum": "m",
+        "trashed": False,
+        "properties": {"alfabeta_written": "m"},
+    }
+    t.responses.append(
+        json_response(200, {"changes": [{"fileId": "a", "removed": False, "file": changed}], "newStartPageToken": "9"})
+    )
+    drive.changes("8", frozenset())
+    asked = urllib.parse.parse_qs(urllib.parse.urlsplit(t.calls[-1][1]).query)["fields"][0]
+    assert "properties" in asked.split("file(", 1)[1]
+    assert drive.listed("a").prop("alfabeta_written") == "m"
+
+
 def test_a_folder_that_joins_is_listed_whole_once(tmp_path: Path):
     drive, t = opened(tmp_path)
     moved_in = {"name": "Tema 02", "mimeType": FOLDER, "parents": ["raiz"], "trashed": False}

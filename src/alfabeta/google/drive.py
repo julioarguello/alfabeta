@@ -32,7 +32,8 @@ FOLDER = "application/vnd.google-apps.folder"
 MULTIPART_LIMIT = 5 * 1024 * 1024
 FIELDS = "id,name,mimeType,parents,size,md5Checksum,modifiedTime,trashed,properties"
 # Spec 005 research R2: only what the feed needs; a name is read only for a change the adapter keeps.
-CHANGE_FIELDS = "nextPageToken,newStartPageToken,changes(fileId,removed,file(name,mimeType,parents,md5Checksum,modifiedTime,trashed))"
+# `properties` tells a change alfabeta wrote from one the family made (research R15).
+CHANGE_FIELDS = "nextPageToken,newStartPageToken,changes(fileId,removed,file(name,mimeType,parents,md5Checksum,modifiedTime,trashed,properties))"
 _BOUNDARY = "alfabeta-part"
 
 
