@@ -357,3 +357,38 @@ own table is the subset the requirements rest on; this one is the full list.
   (step 3b)? How often does the owner's session need `nlm auth refresh`, and how often does FR-019
   fire (step 8)? With two students sharing one owner profile, their agents could renew it at the
   same moment; `nlm` keeps a `locks/` folder of its own, not read for this plan.
+
+## R15 — Matching a solved problem to its statement
+
+- **Decision**: a step of the pass, after the Classroom items and before the living files, so the file
+  built in that pass holds the match. Two Claude calls through the report's `Answerer`: one per new
+  page, with the page and no source, lists its problems; one per topic and run, with the sources, only
+  when problems exist. The sources are every Markdown in the topic's book folder, each language one
+  source, then each file of each Classroom item the topic's Classroom file holds (never the student's
+  work or its grading, `_kept`), its posting date beside it. The answer is checked, not trusted: a
+  candidate needs a known source and a quote of that source, compared letters and digits only so a line
+  break or a hyphen in an extracted PDF does not reject it. Claude's status does not stand alone: no
+  candidate left means `missing`, and two or more mean `doubtful`.
+- **Marks**: the lines go through `_write`, which updates by id and never renames, so a « (revisada)»
+  survives in the PDF's name; `review` is not touched; the recorded `version` of the Markdown and
+  `markdown_version` become what was written, so the feed reads an echo, not a correction. For a pass
+  that stops before saving, the file's property `alfabeta_written` says the same. A recorded PDF `name`
+  is left alone, so a mark the feed has not delivered yet is still seen. An edit by the family (a
+  checksum that is neither) is never written over.
+- **Searching again**: a page's `searched` records each source's version. A problem still `missing`
+  is searched again only in sources that are new or changed. A listing tells that, with no download,
+  so an idle run neither reads, pays nor writes (SC-004).
+- **What a source could not give**: an image, a named-only file, a PDF with no extractable text, or a
+  file beyond `MAX_SOURCE_CHARS` (`MAX_SEARCH_CHARS` for a whole call) is recorded as unread with why and
+  named in the report's missing line, so "missing" never claims more than was read. Drive failing to
+  read a source stops that topic's search for the run: an outage is not "missing". Reading images and
+  scanned PDFs with Claude is not built; it would cost a page's image tokens per page of each source.
+- **Cost**: not measured, like FR-015's transcription estimate; quickstart step 8 records it. At
+  the caps a search takes about 45,000 input tokens. One page of theory takes about 2,000.
+- **Rationale**: FR-016d's cross of date, topic, number and solution needs reading, as FR-020's lessons
+  do. Two calls because most pages hold no problem, and the sources are what costs.
+- **Alternatives**: one call per page with the sources: a page of theory would pay for the whole book,
+  and two pages for it twice. Only a deterministic search for the data's numbers: misses a change of
+  units or a problem known only by its number. A field with the statement's text, checked afterwards:
+  rejected, because a checked copy of a statement adds nothing the source does not hold, and the
+  notebook already has the textbook.
