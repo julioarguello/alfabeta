@@ -136,7 +136,7 @@ done that day; the last three, what the operator decided once it was done (User 
   beside the exercise, so the sheet lists the printed answers that do not match, with both values,
   after the solutions and under a neutral heading that names no one. Every other piece keeps the
   earlier rule; the practice sheet never reuses the teacher's data (FR-006), so it never shows a
-  teacher's key.
+  teacher's key. (The table was withdrawn in Session 2026-11-06.)
 - Q: Who prepares the two sheets after that day? → A: alfabeta, by itself, through the topic's
   notebook. The operator does not want to prepare an exam in front of Claude, but to have their own
   tool do it unattended, and chose that alfabeta's command `exam build` asks the notebook for the two
@@ -154,7 +154,7 @@ done that day; the last three, what the operator decided once it was done (User 
   it because the parent's guide checked 2026-10-26 got right the three answers the teacher's sheet
   printed wrong. That guide's prompt carried those corrections, recomputed beforehand (the
   `{corrections}` of the parent-guide prompt), so whether the notebook finds a wrong printed
-  answer by itself has not been measured: the first run of `exam build` measures it. A check by a
+  answer by itself had not been measured (Session 2026-11-06 measured it: it does not). A check by a
   model that executes code may later be added for that step alone (FR-036).
 - Q: What if notebooks are switched off, or `nlm` does not work? → A: The command refuses before it
   asks the notebook for anything, with a message that says why, and prints nothing: the notebook is
@@ -295,6 +295,21 @@ the final implementation.
   rejection of the word was for the folder, where it would read as his own notes.
   The operator decided that the link goes where the student already looks: the topic's
   `notebook/` folder and the printed topic.
+
+### Session 2026-11-06
+
+- Q: Does the notebook find the printed answers that are wrong? → A: No. Three problems sheets of
+  one real topic, generated through the notebook, carried the table, and it was false in all three:
+  the notebook reads formulas printed as images badly and reports a correct printed answer as wrong,
+  or turns other material into errors of the teacher. Recomputing by hand showed every printed
+  answer of those photocopies right. Tightening standing rules did not converge, and a family reader
+  cannot tell a false row from a true one.
+- Q: What replaces the table? → A: Nothing on the sheet by default: the prompt tells the notebook
+  not to compare and not to say that a printed answer is wrong. The student can still see a
+  difference between a solution and the photocopy, and the advice of the pack's start note holds:
+  trust your own working and ask. Comparing is done outside the sheet, by whoever can compute: an answer recomputed
+  and found wrong, if the family wants it on the sheet, goes in as a standing rule (spec 009), which
+  prevails over the prompt. The operator decided this on 2026-11-06.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -524,8 +539,8 @@ and cannot judge what the notebook writes.
    statement is in its original language followed by a Spanish translation, and the solutions come
    only after a page break.
 8. **Given** a photocopy with a known wrong printed answer, **When** the problems sheet is read,
-   **Then** a table after the solutions lists it with the printed and the right value, and names
-   no one.
+   **Then** nothing on the sheet says that a printed answer is wrong or names anyone, unless a
+   standing rule of the family gives that answer.
 
 ---
 
@@ -550,12 +565,9 @@ and cannot judge what the notebook writes.
   since the announcement does not give it (FR-030).
 - The notebook's theory sheet runs longer than the slot allows: it is printed, and the command
   reports its page count; it is not regenerated (FR-031).
-- A printed answer differs from the computed one only because its solution rounded before the end
-  (observed 2026-10-28: 9,32 % printed, 9,33 % computed): the solution says so; it is not a wrong
-  answer (FR-036).
 - A statement lacks a datum that the same page gives elsewhere (observed 2026-10-28: a mass where a
-  volume was needed, and the density in a worked example beside it): the solution uses it and says
-  where it came from, and the table lists the exercise with its result under each reading (FR-036).
+  volume was needed, and the density in a worked example beside it): the solution says so, with its
+  result under each reading (FR-036).
 - The notes, the teacher's sheets and the textbook name one quantity in different words, or give
   one name two meanings (observed 2026-10-28: «masa-kontzentrazioa» as a percentage on a sheet and in
   g/L in the book): the theory sheet shows each wording and how to tell them apart (FR-032).
@@ -743,13 +755,10 @@ and cannot judge what the notebook writes.
   solution comes after a page break, at the end.
 - **FR-036**: The notebook computes every number of both sheets. This is an accepted risk
   (see Clarifications) and the one exception to FR-009 and SC-001. The
-  problems-sheet prompt MUST ask the notebook to recompute every answer the photocopies print and
-  compare it at the printed precision, equal when within half a unit of the last digit printed,
-  and to list after the solutions, in a table under a neutral heading that names no one, each
-  disagreement with the exercise, the printed value, the computed value and what went wrong, and
-  each statement missing a datum with its result under each reading. A difference that only comes
-  from rounding before the end is noted beside its solution, not in the table. Outside the table,
-  a wrong printed value appears only in the worked solution of that same exercise, with its cause.
+  problems-sheet prompt MUST NOT ask the notebook to compare its results with the answers the
+  photocopies print, and MUST tell it not to say that a printed answer is wrong. A statement missing
+  a datum is noted beside its solution, with the result under each reading. A wrong printed value
+  reaches the sheet only through a standing rule of the family (spec 009).
   A check of the sheets' numbers by a model that executes code MAY later be inserted between
   generation and printing, for that step alone.
 - **FR-037**: Before it asks the notebook for anything, the command MUST refuse, with a message
@@ -964,8 +973,8 @@ and cannot judge what the notebook writes.
 - **SC-009**: No title and no note in any notebook says «opcional», «extra» or «si quieres».
 - **SC-010**: In every problems sheet, every exercise of every photocopy of the topic appears in
   exactly one pattern, and every pattern has exactly one worked problem.
-- **SC-011**: On a test topic whose photocopy prints a known wrong answer, the problems sheet's
-  table lists it with the right value; and no exam sheet is printed when notebooks are switched off
+- **SC-011**: On a test topic with no standing rule about its printed answers, no problems sheet
+  has a table of printed answers or says that one is wrong; and no exam sheet is printed when notebooks are switched off
   or `nlm` is not usable when the command starts.
 - **SC-012**: A theory sheet fits the pages of its slot (measured once, 2026-10-28: four A4 pages
   for a 90-minute slot), and its sections follow the announcement's points one to one.
@@ -999,8 +1008,7 @@ and cannot judge what the notebook writes.
 - When the exam sheets are made, relative to the exam, is the family's call: the one run,
   observed 2026-10-28, made them on the morning of the day before, for that afternoon's slot.
 - Whether the notebook's reports follow the fixed prompts closely enough — every exercise in a
-  pattern, the terms first in the subject's language, the page count, the table of wrong printed
-  answers — has not been measured: the sheets observed 2026-10-28 were written by an agent, not by
+  pattern, the terms first in the subject's language, the page count — has not been measured: the sheets observed 2026-10-28 were written by an agent, not by
   the notebook. The first run of `exam build` is that measurement, and the prompts are unmeasured
   until then.
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
