@@ -236,7 +236,7 @@ def holds(source: str, quote: str) -> bool:
     return len(quote.split()) >= _MIN_QUOTE_WORDS and bool(wanted) and wanted in _normal(source)
 
 
-def _names(source: str, exercise: str, quote: str) -> bool:
+def _prints_name(source: str, exercise: str, quote: str) -> bool:
     """Whether the source prints the exercise's name right before the quote, or within it."""
     text, name, wanted = _normal(source), _normal(exercise), _normal(quote)
     start = text.find(wanted)
@@ -267,7 +267,7 @@ def _candidate(raw: dict[str, Any], sources: dict[str, Read]) -> tuple[tuple[str
     if source is None or quote is None or not holds(source.text, quote):
         return None
     name = _text(raw.get("exercise"))
-    named = name is not None and len(name.split()) <= _MAX_EXERCISE_WORDS and _names(source.text, name, quote)
+    named = name is not None and len(name.split()) <= _MAX_EXERCISE_WORDS and _prints_name(source.text, name, quote)
     wanted = _normal(quote)
     if not named and _normal(source.text).count(wanted) > 1:
         return None
