@@ -201,6 +201,8 @@ and never quotes a piece's status output, which can hold its prompt.
    - Compare the practice sheet's problems with the teacher's sheets: **no problem may reuse their
      data.** The model reuses them even when told not to (measured 2026-10-26: 7 of 11 practice
      problems were the teacher's, with the same numbers). Regenerate if it does.
+   - The practice sheet says, at its head and over its solutions, that its problems are not the
+     teacher's (spec 002 FR-049). Regenerate if it does not.
    - Videos: duration (`ffprobe`) and a few frames (`ffmpeg -ss <s> -frames:v 1`). The audio
      language cannot be checked this way; say so.
 6. **Print the parent's material** with
@@ -342,5 +344,7 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
   there only when a standing rule of the family gives it (spec 002 FR-036), or name the teacher as
   wrong.
 - Write an exam sheet by hand: `exam build` asks the notebook for it.
+- Add a problem from no class source without saying, beside its statement and its solution, that it
+  is not the teacher's (spec 002 FR-049).
 - Make a second notebook for the topic, or share the parent's material with the student.
 - Type a password. The family signs in.
