@@ -104,8 +104,8 @@ and never quotes a piece's status output, which can hold its prompt.
 - **A book read for the subject** (spec 002 FR-048), which is no textbook unit. Propose the folder
   and wait for the family's word: `<YYYYMMDD> - Irakurketa - <title>/`, no `Tema NN`, dated the day
   it is made when Classroom posted nothing. Ask whether its exam is the subject's or one of its
-  own. While this folder is the subject's most recent, every `exam build` for that subject names
-  its `--topic`: without one it takes this folder. Its sources are the publisher's guide, in
+  own. `exam build` never takes this folder as the subject's most recent topic: only `--topic`
+  reaches it. Its sources are the publisher's guide, in
   `notebook/`, and photos of the book in `notes/`, transcribed as in step 1; never a copy from a
   download site. Until the photos arrive the notebook cannot summarise the book: say so, and make
   no piece that depends on its text (summary, glossary, practice sheet, mind map, quiz, flashcards,

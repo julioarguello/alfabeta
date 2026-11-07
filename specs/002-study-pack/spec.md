@@ -970,7 +970,8 @@ and cannot judge what the notebook writes.
   «Pendiente — no se puede confirmar sin el libro», with the pages missing. An answer key that must
   reach a piece word for word MUST be checked row by row against the key before printing; a key
   Studio did not copy faithfully (measured 2026-11-07) is written by the run from the key, and the
-  report says so.
+  report says so. `exam build` MUST NOT take this folder as the subject's most recent topic (FR-023):
+  only `--topic` reaches it.
 
 ### Key Entities
 
