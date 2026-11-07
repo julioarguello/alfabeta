@@ -309,6 +309,10 @@ the final implementation.
   difference between a solution and the photocopy, and the sheet says nothing about it. Comparing is done outside the sheet, by whoever can compute: an answer recomputed
   and found wrong, if the family wants it on the sheet, goes in as a standing rule (spec 009), which
   prevails over the prompt. The operator decided this on 2026-11-06.
+- Q: What became of those three sheets? → A: The operator chose, that once, to have the third
+  corrected by hand against the sources and printed, instead of generating a fourth. Each run had
+  fixed the last one's errors and brought new ones. It is not a procedure: this spec still says
+  nobody writes the sheets by hand.
 
 ### Session 2026-11-07
 
@@ -544,6 +548,9 @@ and cannot judge what the notebook writes.
    each pattern has one worked problem (one the teacher assigned when the pattern has one), each
    statement is in its original language followed by a Spanish translation, and the solutions come
    only after a page break.
+9. **Given** a problem solved in the notes, **When** the problems sheet is read, **Then** it appears
+   in a pattern with its statement if the sources hold it, and otherwise says «Enunciado no disponible»
+   and gives the notes' data, with no statement written for it.
 8. **Given** a photocopy with a known wrong printed answer, **When** the problems sheet is read,
    **Then** nothing on the sheet says that a printed answer is wrong or names anyone, unless a
    standing rule of the family gives that answer.
@@ -1017,9 +1024,8 @@ and cannot judge what the notebook writes.
   key for it (`[schedule]` holds the sync's times). Four pages for 90 minutes was measured once.
 - When the exam sheets are made, relative to the exam, is the family's call: the one run,
   observed 2026-10-28, made them on the morning of the day before, for that afternoon's slot.
-- The notebook does not follow the fixed prompts closely enough to print its sheets unread: real runs
-  of `exam build` (Session 2026-11-06) needed correcting by hand. How often that changes with the
-  current prompts has not been measured.
+- Whether the notebook follows the current prompts closely enough to print its sheets unread has not
+  been measured. Real runs of `exam build` on 2026-11-06 did not (see that session).
 - The teacher's photocopies are sources of the topic's notebook (spec 005's Classroom living file,
   or added as sources); a photocopy that is not cannot be mapped.
 - An exam announced only in class, or detected in a material or an assignment, has no announcement

@@ -292,7 +292,7 @@ alfabeta makes them through the notebook. What that run measured:
 | Two photocopies fitted six patterns; five exercises were printed on both | a map of patterns, not a list of exercises |
 | The check reported five disagreements: three wrong answers on the teacher's sheet (the same three that step 2 had computed and passed, as checked 2026-10-26, to the parent's guide as `{corrections}`; the notebook does not find them by itself, spec 002 FR-036), a worked example of the textbook that contradicts itself, and one rounding before the end; solving found one statement missing a datum | a table of printed answers in the prompt, withdrawn 2026-11-06: in three runs through the notebook it was false every time (spec 002 FR-036) |
 | The topic's study guide had been generated two days earlier, before the class notes reached the folder | the command regenerates a guide made before the notes |
-| Nothing had measured how the notebook does on these two prompts | real runs of `exam build`, 2026-11-06: read every sheet, and correct it by hand before the student uses it |
+| Nothing had measured how the notebook does on these two prompts | real runs of `exam build`, 2026-11-06, had errors the operator chose to have corrected by hand, that once (spec 002) |
 
 ## Measured behaviour of Gemini Notebook
 
