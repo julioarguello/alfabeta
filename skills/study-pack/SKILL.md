@@ -113,9 +113,11 @@ and never quotes a piece's status output, which can hold its prompt.
   if the guide quotes the sentence that settles it, or if it is an unequivocal general fact the
   book does not contradict. Otherwise it reads «Pendiente — no se puede confirmar sin el libro»,
   with the pages missing. Discarding an option as absurd is no base: in a satirical book it may be
-  the answer. A key that must arrive word for word skips steps 3, 6 and 7 for that piece: it is
-  written from the key, checked by script and printed with `print_pack.render`, PDF and Markdown in
-  `notebook/`.
+  the answer. A question on what the book says is not settled by a fact about the world. A key that
+  must arrive word for word skips steps 3, 6 and 7 for that piece: it is written from the key, checked
+  by script and printed with `print_pack.render`, PDF and Markdown in `notebook/`. A script proves
+  the piece matches the key, not that the key is right: before printing, another agent that has not
+  seen the key answers the same questions, and each difference is settled or marked doubtful.
 
 ## Steps
 
