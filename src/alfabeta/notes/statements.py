@@ -190,6 +190,12 @@ def _text(value: object) -> str | None:
     return said or None
 
 
+def _is_on_page(number: str, page: str) -> bool:
+    """Whether a problem's number is short, says something, and is the page's own."""
+    wanted = _normal(number)
+    return len(number.split()) <= _MAX_NUMBER_WORDS and bool(wanted) and wanted in _normal(page)
+
+
 def problems_of(answer: dict[str, Any], page: str) -> list[dict[str, Any]]:
     """The problems a listing answered, each field one line or nothing, and a number only if the page has it."""
     problems: list[dict[str, Any]] = []
@@ -198,7 +204,7 @@ def problems_of(answer: dict[str, Any], page: str) -> list[dict[str, Any]]:
             said = cast("dict[str, Any]", entry)
             problem = {k: _text(said.get(k)) for k in ("number", "data", "result", "anchor")}
             number = problem["number"]
-            if number and (len(number.split()) > _MAX_NUMBER_WORDS or _normal(number) not in _normal(page)):
+            if number and not _is_on_page(number, page):
                 problem["number"] = None  # it is written in the transcription: the page's own, and short
             problems.append(problem)
     return problems
@@ -250,40 +256,48 @@ def _evidence(value: object) -> str:
     return "por " + (f"{', '.join(named[:-1])} y {named[-1]}" if len(named) > 1 else named[0])
 
 
-def candidates_of(entry: object, sources: dict[str, Read]) -> list[dict[str, str]]:
-    """The candidates of an answer's entry that stand: a known source and a quote it holds.
+def _candidate(raw: dict[str, Any], sources: dict[str, Read]) -> tuple[tuple[str, str], dict[str, str]] | None:
+    """A candidate that stands, keyed by its source and quote; None when it proves nothing.
 
-    The quote is the proof. An exercise's name is only a label, written when the source prints it there, so
-    a name that cannot be checked costs the label and not the match. The same quote said twice is one
-    exercise, under the name that could be checked; so is the same name said twice.
+    The quote is the proof, and an exercise's name a label, written when the source prints it there. With
+    no name, a quote printed more than once in the source cannot say which exercise it is.
+    """
+    source = sources.get(str(raw.get("source")))
+    quote = _text(raw.get("quote"))
+    if source is None or quote is None or not holds(source.text, quote):
+        return None
+    name = _text(raw.get("exercise"))
+    named = name is not None and len(name.split()) <= _MAX_EXERCISE_WORDS and _names(source.text, name, quote)
+    wanted = _normal(quote)
+    if not named and _normal(source.text).count(wanted) > 1:
+        return None
+    return (source.label, wanted), {
+        "source": source.label,
+        "exercise": name if name and named else UNNAMED,
+        "quote": " ".join(quote.split()[:MAX_QUOTE_WORDS]),
+        "why": _evidence(raw.get("why")),
+    }
+
+
+def candidates_of(entry: object, sources: dict[str, Read]) -> list[dict[str, str]]:
+    """The candidates of an answer's entry that stand, each exercise once.
+
+    A name said twice is one exercise, and so is a quote with no name beside the same quote named. Two
+    checked names are two exercises, even with the same words: that is the doubt FR-016d names.
     """
     said = cast("dict[str, Any]", entry).get("candidates") if isinstance(entry, dict) else None
-    by_quote: dict[tuple[str, str], dict[str, str]] = {}
-    for raw in cast("list[Any]", said) if isinstance(said, list) else []:
-        if not isinstance(raw, dict):
-            continue
-        candidate = cast("dict[str, Any]", raw)
-        source = sources.get(str(candidate.get("source")))
-        quote = _text(candidate.get("quote"))
-        if source is None or quote is None or not holds(source.text, quote):
-            continue
-        key = (source.label, _normal(quote))
-        name = _text(candidate.get("exercise"))
-        named = name is not None and len(name.split()) <= _MAX_EXERCISE_WORDS and _names(source.text, name, quote)
-        if named or key not in by_quote or by_quote[key]["exercise"] == UNNAMED:
-            by_quote[key] = {
-                "source": source.label,
-                "exercise": name if name and named else UNNAMED,
-                "quote": " ".join(quote.split()[:MAX_QUOTE_WORDS]),
-                "why": _evidence(candidate.get("why")),
-            }
+    raws = cast("list[Any]", said) if isinstance(said, list) else []
+    standing = [c for c in (_candidate(cast("dict[str, Any]", r), sources) for r in raws if isinstance(r, dict)) if c]
+    named = {key for key, one in standing if one["exercise"] != UNNAMED}
     found: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    for one in by_quote.values():
-        name_key = (one["source"], one["exercise"])
-        if one["exercise"] == UNNAMED or name_key not in seen:
-            seen.add(name_key)
-            found.append(one)
+    for key, one in standing:
+        unnamed = one["exercise"] == UNNAMED
+        mark = key if unnamed else (one["source"], one["exercise"])
+        if mark in seen or (unnamed and key in named):
+            continue
+        seen.add(mark)
+        found.append(one)
     return found
 
 

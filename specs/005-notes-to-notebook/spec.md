@@ -178,7 +178,8 @@ implementation.
   does not find in that source's own text, with every number the same, drops the candidate, so a
   statement a source does not hold cannot reach the transcription. The quote is the proof and the
   exercise's name a label: a name the source does not print near the quote is not written, and the
-  match stands without it, because a statement with no number of its own is still a statement. A
+  match stands without it, because a statement with no number of its own is still a statement, unless
+  those words are printed more than once in the source, when they cannot say which exercise it is. A
   statement of under four words cannot be proved this way and is reported as missing.
 - Q: Writing a match changes the transcription. Does that undo the student's « (revisada)»? → A: No.
   The mark says the handwriting was read well, and that reading has not changed. Writing a match keeps

@@ -369,7 +369,9 @@ own table is the subset the requirements rest on; this one is the full list.
   work or its grading, `_kept`), its posting date beside it. The answer is checked, not trusted: a
   candidate needs a known source and a quote of four words or more found in it. The exercise's name is a
   label: written only when it is eight words at most and the source prints it within the quote or in the
-  2,000 letters before it, else the match stands as `sin nombre de ejercicio`. The compare
+  2,000 letters before it, else the match stands as `sin nombre de ejercicio`, unless the quote is printed
+  more than once in that source, when it cannot say which exercise it is and is dropped. Two checked names
+  with the same words stay two candidates, which is a doubt. The compare
   ignores spacing and punctuation, so a line break or a hyphen in an extracted PDF does not reject it,
   and keeps each number whole, so 2,5 is not 25 and -3 is not 3. A quote over twenty words is cut to
   twenty. No sentence of Claude's is written: what decided a match is chosen from date, topic, number,

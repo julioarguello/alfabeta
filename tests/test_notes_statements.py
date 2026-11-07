@@ -793,6 +793,34 @@ def test_the_same_name_with_two_quotes_is_not_a_doubt():
     assert "[enunciado del problema 3: «Tema01_ES.md», Ejercicio 3:" in written
 
 
+def twice(text: str) -> MemoryDrive:
+    drive = page_drive()
+    drive.folder("sb", "sciencebits", TOPIC)
+    drive.put("libro", "Tema01_ES.md", "text/markdown", text.encode(), parent="sb")
+    return drive
+
+
+def test_two_exercises_that_open_with_the_same_words_stay_a_doubt():
+    drive = twice(f"Ejercicio 3. {QUOTE} grande.\n\nEjercicio 9. {QUOTE} pequeño.\n")
+    pair = [candidate(), candidate(exercise="Ejercicio 9")]
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": pair}))
+    assert block_of(drive)["problems"][0]["status"] == statements.DOUBTFUL
+    assert "Ejercicio 3" in markdown_of(drive) and "Ejercicio 9" in markdown_of(drive)
+
+
+def test_words_printed_twice_with_no_name_identify_nothing_and_stay_open():
+    drive = twice(f"{QUOTE} grande.\n\n{QUOTE} pequeño.\n")
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [candidate(exercise="Ejercicio 99")]}))
+    assert block_of(drive)["problems"][0]["status"] == statements.MISSING
+    assert statements.is_open(block_of(drive)["problems"][0])
+
+
+def test_words_printed_twice_under_a_name_the_source_prints_stand():
+    drive = twice(f"Ejercicio 3. {QUOTE} grande.\n\n{QUOTE} pequeño.\n")
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [candidate()]}))
+    assert block_of(drive)["problems"][0]["status"] == statements.MATCHED
+
+
 def test_two_different_quotes_with_no_name_are_a_doubt():
     written = written_with(candidate(exercise="Ejercicio 99"), candidate(exercise="Ejercicio 98", quote=OTHER))
     assert "[enunciado dudoso del problema 3:" in written and written.count(statements.UNNAMED) == 2
@@ -838,7 +866,7 @@ def test_a_quote_longer_than_the_limit_is_kept_to_the_limit():
     assert len(kept.split()) == statements.MAX_QUOTE_WORDS and words.startswith(kept)
 
 
-@pytest.mark.parametrize("number", [REBUILT, "Un tren frena", ANCHOR])
+@pytest.mark.parametrize("number", [REBUILT, "Un tren frena", ANCHOR, "-"])
 def test_a_number_the_page_does_not_hold_or_too_long_is_not_written(number: str):
     drive = page_drive()
     with_book(drive)
