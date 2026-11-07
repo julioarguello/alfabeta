@@ -320,6 +320,19 @@ the final implementation.
   The operator decided that a problem solved in the notes is matched to its statement (spec 005,
   FR-016d). The sheet shows the statement when the sources hold it and says it is missing when they do
   not; it never writes one. A real topic had no photocopy with problems and two solved in the notes.
+- Q: Where does a book read for a subject go, when it is no textbook unit? → A: In its own folder,
+  `<YYYYMMDD> - Irakurketa - <title>`, with no `Tema NN`, which stays for textbook units. The
+  operator confirmed the name, and said the book's exam was independent of the subject's, so the
+  run asks which it is (FR-048). `exam build` with no `--topic` takes the subject's most recent dated
+  folder of any form, so while the book's folder is the newest, it would take the book.
+- Q: Can Studio copy a long answer key word for word, from the prompt, into a guide? → A: Not in
+  what was measured, on a notebook holding only the publisher's 31-page guide. One report kept the
+  opening chapters and then wrote filler rows and changed solutions; two shorter reports, with the
+  key row by row and told to copy it literally, answered the pending questions with invented
+  citations and invented whole questions. A script compared every row with the key, which is how
+  this was seen. The piece was written from the key and printed with the skill's renderer (FR-048).
+  Whether a key held as a source would fare better was not measured. The regular parent guide
+  (FR-012), which recomputes from its sources, was not part of this measurement.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -945,6 +958,19 @@ and cannot judge what the notebook writes.
     with no announcement, spec 007) has it.
   - New pages that reach a topic later are checked the same way, and the report names each
     correction and each question (spec 005 FR-020).
+
+- **FR-048**: A book read for a subject MUST get its own folder, `<YYYYMMDD> - Irakurketa -
+  <title>`, once the family confirms it, dated the day it is made when Classroom posted nothing, and
+  the run MUST ask whether its exam is the subject's or one of its own. Its sources are the
+  publisher's guide and the family's photos of the book, which rank as the book and not as class
+  notes; a copy from a download site is never one. Until the photos arrive, the run MUST say that the
+  notebook cannot summarise the book and MUST make no piece that depends on its text. A question of
+  the guide is answered only when the transcribed book says it, the guide quotes the sentence that
+  settles it, or it is an unequivocal general fact the book does not contradict; any other reads
+  «Pendiente — no se puede confirmar sin el libro», with the pages missing. An answer key that must
+  reach a piece word for word MUST be checked row by row against the key before printing; a key
+  Studio did not copy faithfully (measured 2026-11-07) is written by the run from the key, and the
+  report says so.
 
 ### Key Entities
 
