@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 NO_TOPIC = "No topic"
+READING_BOOK = "Irakurketa - "  # a book read for the subject (spec 002 FR-048)
 # What the student turned in, inside the assignment's folder (FR-015a, amended 2026-10-28).
 SUBMISSION_FOLDER = "submission"
 MAX_NAME_BYTES = 255
@@ -107,6 +108,11 @@ def undated(folder: str) -> str:
     """A topic folder's name without its `YYYYMMDD - ` prefix, the part it is found by."""
     dated = _DATED.match(folder)
     return dated.group(2) if dated else folder
+
+
+def is_reading_book(folder: str) -> bool:
+    """A book read for the subject, which is never the subject's most recent topic (spec 002 FR-048)."""
+    return undated(folder).startswith(READING_BOOK)
 
 
 def book_topics(subject_dir: Path, book: str) -> list[str]:

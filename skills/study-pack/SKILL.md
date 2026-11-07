@@ -104,8 +104,8 @@ and never quotes a piece's status output, which can hold its prompt.
 - **A book read for the subject** (spec 002 FR-048), which is no textbook unit. Propose the folder
   and wait for the family's word: `<YYYYMMDD> - Irakurketa - <title>/`, no `Tema NN`, dated the day
   it is made when Classroom posted nothing. Ask whether its exam is the subject's or one of its
-  own. While this folder is the subject's most recent, every `exam build` for that subject names
-  its `--topic`: without one it takes this folder. Its sources are the publisher's guide, in
+  own. Neither `exam build` nor a material with no topic takes this folder as the subject's most
+  recent topic: only `--topic` reaches it. Its sources are the publisher's guide, in
   `notebook/`, and photos of the book in `notes/`, transcribed as in step 1; never a copy from a
   download site. Until the photos arrive the notebook cannot summarise the book: say so, and make
   no piece that depends on its text (summary, glossary, practice sheet, mind map, quiz, flashcards,
@@ -113,9 +113,11 @@ and never quotes a piece's status output, which can hold its prompt.
   if the guide quotes the sentence that settles it, or if it is an unequivocal general fact the
   book does not contradict. Otherwise it reads «Pendiente — no se puede confirmar sin el libro»,
   with the pages missing. Discarding an option as absurd is no base: in a satirical book it may be
-  the answer. A key that must arrive word for word skips steps 3, 6 and 7 for that piece: it is
-  written from the key, checked by script and printed with `print_pack.render`, PDF and Markdown in
-  `notebook/`.
+  the answer. A question on what the book says is not settled by a fact about the world. A key that
+  must arrive word for word skips steps 3, 6 and 7 for that piece: it is written from the key, checked
+  by script and printed with `print_pack.render`, PDF and Markdown in `notebook/`. A script proves
+  the piece matches the key, not that the key is right: before printing, another agent that has not
+  seen the key answers the same questions, and each difference is settled or marked doubtful.
 
 ## Steps
 

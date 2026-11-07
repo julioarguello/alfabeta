@@ -487,6 +487,16 @@ def test_a_no_topic_material_goes_to_the_latest_topic_and_stays_there():
     assert body(drive, latest).count("normas[") == 1
 
 
+def test_a_no_topic_material_passes_over_a_book_read_for_the_subject():
+    drive = MemoryDrive.subject()
+    latest = classroom_set_up(drive, TOPIC_2, CLASSROOM_2, TEMA_02)
+    drive.folder("libro", "20991101 - Irakurketa - Un libro", "fyq")
+    drive.put("normas", "20261003 - Normas.pdf", PDF_MIME, b"%PDF normas", parent=CLASSROOM_0)
+    run(drive)
+    assert state_of(drive)["files"]["normas"]["living"] == TOPIC_2
+    assert body(drive, latest).startswith(f"classroom:{TEMA_02}:normas[Normas|")
+
+
 def test_a_no_topic_material_waits_for_a_topic_then_goes_into_it():
     drive = MemoryDrive()
     for fid, name, parent in (

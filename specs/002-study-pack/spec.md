@@ -323,8 +323,8 @@ the final implementation.
 - Q: Where does a book read for a subject go, when it is no textbook unit? → A: In its own folder,
   `<YYYYMMDD> - Irakurketa - <title>`, with no `Tema NN`, which stays for textbook units. The
   operator confirmed the name, and said the book's exam was independent of the subject's, so the
-  run asks which it is (FR-048). `exam build` with no `--topic` takes the subject's most recent dated
-  folder of any form, so while the book's folder is the newest, it would take the book.
+  run asks which it is (FR-048). The folder never counts as the subject's most recent topic, or the
+  subject's next exam and its notices would land in the book.
 - Q: Can Studio copy a long answer key word for word, from the prompt, into a guide? → A: Not in
   what was measured, on a notebook holding only the publisher's 31-page guide. One report kept the
   opening chapters and then wrote filler rows and changed solutions; two shorter reports, with the
@@ -704,7 +704,8 @@ and cannot judge what the notebook writes.
   one explainer video per point no block covers, numbered after the existing pieces, and MUST NOT
   make any other piece again. The family is told how many afternoons remain before the exam.
 - **FR-023**: No step may depend on detecting that a topic has ended. A material without a topic in
-  Classroom goes to the notebook of its subject's most recent topic, and the family is told.
+  Classroom goes to the notebook of its subject's most recent topic, never a book read for the subject
+  (FR-048), and the family is told.
 - **FR-024**: alfabeta MUST keep, per topic, a record: blocks, each piece with its notebook id,
   moment, title, language, verification result and date, the materials each «HOY» piece covers,
   and the corrections found. A later run reads it to avoid regenerating what exists.
@@ -970,7 +971,9 @@ and cannot judge what the notebook writes.
   «Pendiente — no se puede confirmar sin el libro», with the pages missing. An answer key that must
   reach a piece word for word MUST be checked row by row against the key before printing; a key
   Studio did not copy faithfully (measured 2026-11-07) is written by the run from the key, and the
-  report says so.
+  report says so. A key written by the run MUST be compared with the answers of an agent that has not
+  seen it, each difference settled or marked doubtful. This folder MUST NOT count as the subject's
+  most recent topic (FR-023, FR-030): only `--topic` reaches it.
 
 ### Key Entities
 

@@ -34,6 +34,7 @@ from alfabeta.exam.prep import (
     Refusal,
     Sheet,
     Slot,
+    topic_folder,
     topic_number,
 )
 from alfabeta.exam.printing import PrintPack
@@ -461,6 +462,33 @@ def test_without_a_topic_the_most_recent_one_is_taken(world: World, capsys: pyte
     assert world.run() == 1
     result, err = output(capsys)
     assert result == {"ok": False, "reason": "no_notebook"} and "Tema 02 - Otra materia" in err
+
+
+def test_without_a_topic_a_book_read_for_the_subject_is_passed_over(world: World, capsys: pytest.CaptureFixture[str]):
+    (world.base / "2026-2027" / "FyQ" / "20261101 - Irakurketa - Un libro").mkdir()
+    assert world.run("--exam", EXAM_DAY) == 0
+    _, err = output(capsys)
+    assert f"most recent one: 20260915 - {TOPIC}" in err
+    assert (world.topic / "exam" / "Problemas tipo · T01 (5 nov).pdf").is_file()
+
+
+def test_a_book_read_for_the_subject_is_reached_by_its_name(world: World, capsys: pytest.CaptureFixture[str]):
+    book = world.base / "2026-2027" / "FyQ" / "20261101 - Irakurketa - Un libro"
+    book.mkdir()
+    world.nlm.notebooks.append({"id": "nb-2", "title": "3º ESO. FyQ. Irakurketa - Un libro"})
+    world.living.also = (book.name,)
+    assert world.run("--exam", EXAM_DAY, "--topic", book.name) == 0
+    _, err = output(capsys)
+    assert "most recent" not in err
+    assert len(list((book / "exam").iterdir())) == 2
+    assert not (world.topic / "exam").exists()
+
+
+def test_a_subject_with_only_a_book_read_has_no_topic(tmp_path: Path):
+    (tmp_path / "20261101 - Irakurketa - Un libro").mkdir()
+    with pytest.raises(Refusal) as refused_with:
+        topic_folder(tmp_path, None)
+    assert refused_with.value.reason == "no_topic"
 
 
 # --- the study guide (step 5) -----------------------------------------------------------------------
