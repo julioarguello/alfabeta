@@ -548,12 +548,12 @@ and cannot judge what the notebook writes.
    each pattern has one worked problem (one the teacher assigned when the pattern has one), each
    statement is in its original language followed by a Spanish translation, and the solutions come
    only after a page break.
-9. **Given** a problem solved in the notes, **When** the problems sheet is read, **Then** it appears
-   in a pattern with its statement if the sources hold it, and otherwise says «Enunciado no disponible»
-   and gives the notes' data, with no statement written for it.
 8. **Given** a photocopy with a known wrong printed answer, **When** the problems sheet is read,
    **Then** nothing on the sheet says that a printed answer is wrong or names anyone, unless a
    standing rule of the family gives that answer.
+9. **Given** a problem solved in the notes, **When** the problems sheet is read, **Then** it appears
+   in a pattern with its statement if the sources hold it, and otherwise says «Enunciado no disponible»
+   and gives the notes' data, with no statement written for it.
 
 ---
 
