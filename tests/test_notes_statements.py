@@ -227,7 +227,6 @@ def test_a_quote_the_source_does_not_hold_cannot_reach_the_transcription():
     [
         {"source": "S9", "exercise": "Ejercicio 3", "quote": QUOTE, "why": "x"},  # no such source
         {"source": "S1", "exercise": "Ejercicio 3", "quote": "3", "why": "x"},  # too short to prove anything
-        {"source": "S1", "quote": QUOTE, "why": "x"},  # names no exercise
         "Ejercicio 3",  # not an object
     ],
 )
@@ -241,10 +240,10 @@ def test_a_candidate_that_proves_nothing_is_dropped(bad: Any):
 def test_a_problem_the_search_answer_leaves_out_is_missing_not_lost():
     drive = page_drive()
     with_book(drive)
-    second = {**PROBLEM, "number": "4", "anchor": "Fin de la clase"}
+    second = {**PROBLEM, "number": "5", "anchor": "Fin de la clase"}
     first_run(drive, listed(PROBLEM, second), found({"problem": "P2", "candidates": [candidate()]}))
     by_number = {p["number"]: p["status"] for p in block_of(drive)["problems"]}
-    assert by_number == {"3": statements.MISSING, "4": statements.MATCHED}
+    assert by_number == {"3": statements.MISSING, "5": statements.MATCHED}
 
 
 def test_a_quote_survives_the_line_breaks_and_hyphens_of_an_extracted_pdf():
@@ -309,10 +308,10 @@ def test_a_new_version_of_a_photo_reports_its_problems_even_in_the_same_places()
     with_book(drive)
     first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
     drive.put(PHOTO, "a.jpg", "image/jpeg", b"a2")
-    other = {**PROBLEM, "number": "8"}
+    other = {**PROBLEM, "number": "10"}
     answerer = ScriptedAnswerer(statements=[listed(other), found({"problem": "P1", "candidates": []})])
     run_notes(deps(drive, ScriptedFeed(drive, [[PHOTO]]), transcriber(), answerer=answerer, clock=later()))
-    assert "problema 8" in section_of(reports(drive)[-1])
+    assert "problema 10" in section_of(reports(drive)[-1])
 
 
 def test_a_write_left_pending_needs_no_key():
@@ -766,9 +765,37 @@ def test_a_reason_is_only_what_the_closed_list_holds():
         f"Ejercicio 3 {QUOTE}",  # printed right there, and too long to be a name
     ],
 )
-def test_an_exercise_the_source_does_not_name_drops_the_candidate(exercise: str):
+def test_an_exercise_the_source_does_not_name_is_not_written_and_the_match_stands(exercise: str):
     written = written_with(candidate(exercise=exercise))
-    assert "tren" not in written and "no se ha encontrado" in written
+    assert "tren" not in written and "Ejercicio 99" not in written
+    assert f"«Tema01_ES.md», {statements.UNNAMED}: «{QUOTE}…»" in written
+    assert "no se ha encontrado" not in written
+
+
+@pytest.mark.parametrize("exercise", [None, "", 7.5])
+def test_a_statement_with_no_name_of_its_own_is_still_found(exercise: Any):
+    drive = page_drive()
+    drive.folder("sb", "sciencebits", TOPIC)
+    drive.put("hoja", "enunciado.md", "text/markdown", f"{STATEMENT}.\n".encode(), parent="sb")
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [candidate(exercise=exercise)]}))
+    assert block_of(drive)["problems"][0]["status"] == statements.MATCHED
+    assert f"«enunciado.md», {statements.UNNAMED}" in markdown_of(drive)
+
+
+def test_the_same_quote_under_a_name_that_cannot_be_checked_is_not_a_doubt():
+    for pair in ([candidate(exercise="Ejercicio 99"), candidate()], [candidate(), candidate(exercise="Ejercicio 99")]):
+        written = written_with(*pair)
+        assert "[enunciado del problema 3: «Tema01_ES.md», Ejercicio 3:" in written
+
+
+def test_the_same_name_with_two_quotes_is_not_a_doubt():
+    written = written_with(candidate(), candidate(quote="dos kilos que acelera a cinco metros"))
+    assert "[enunciado del problema 3: «Tema01_ES.md», Ejercicio 3:" in written
+
+
+def test_two_different_quotes_with_no_name_are_a_doubt():
+    written = written_with(candidate(exercise="Ejercicio 99"), candidate(exercise="Ejercicio 98", quote=OTHER))
+    assert "[enunciado dudoso del problema 3:" in written and written.count(statements.UNNAMED) == 2
 
 
 def test_an_exercise_printed_far_from_the_quote_is_not_that_quotes_exercise():
@@ -776,10 +803,9 @@ def test_an_exercise_printed_far_from_the_quote_is_not_that_quotes_exercise():
     drive.folder("sb", "sciencebits", TOPIC)
     far = f"Ejercicio 1. Otra cosa.\n\n{'palabra ' * 400}\n\nEjercicio 2. {QUOTE}.\n"
     drive.put("libro", "Tema01_ES.md", "text/markdown", far.encode(), parent="sb")
-    wrong, right = candidate(exercise="Ejercicio 1"), candidate(exercise="Ejercicio 2")
-    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [wrong, right]}))
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": [candidate(exercise="Ejercicio 1")]}))
     assert block_of(drive)["problems"][0]["status"] == statements.MATCHED
-    assert "Ejercicio 2" in markdown_of(drive) and "Ejercicio 1" not in markdown_of(drive)
+    assert statements.UNNAMED in markdown_of(drive) and "Ejercicio 1" not in markdown_of(drive)
 
 
 @pytest.mark.parametrize(
@@ -812,10 +838,11 @@ def test_a_quote_longer_than_the_limit_is_kept_to_the_limit():
     assert len(kept.split()) == statements.MAX_QUOTE_WORDS and words.startswith(kept)
 
 
-def test_a_number_that_is_a_sentence_is_not_written():
+@pytest.mark.parametrize("number", [REBUILT, "Un tren frena", ANCHOR])
+def test_a_number_the_page_does_not_hold_or_too_long_is_not_written(number: str):
     drive = page_drive()
     with_book(drive)
-    first_run(drive, listed({**PROBLEM, "number": REBUILT}), found({"problem": "P1", "candidates": []}))
+    first_run(drive, listed({**PROBLEM, "number": number}), found({"problem": "P1", "candidates": []}))
     assert "tren" not in markdown_of(drive) and "problema sin número" in markdown_of(drive)
 
 

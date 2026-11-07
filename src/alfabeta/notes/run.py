@@ -689,13 +689,13 @@ def _list_problems(deps: NotesDeps, work: Pass, title: str, photo_id: str) -> No
     """One call with the page and no source: most pages hold no problem, and the sources are what costs."""
     page = work.pages[photo_id]
     block = page["statements"]
-    prompt = statements.list_prompt(title, statements.strip_statements(str(page["markdown"])))
-    answer = _ask(deps, work, prompt, statements.LIST_TOKENS, [photo_id])
+    literal = statements.strip_statements(str(page["markdown"]))
+    answer = _ask(deps, work, statements.list_prompt(title, literal), statements.LIST_TOKENS, [photo_id])
     if answer is None:
         if block["tries"] >= statements.MAX_TRIES:
             block["state"] = statements.GIVEN_UP
         return
-    problems = statements.problems_of(answer)
+    problems = statements.problems_of(answer, literal)
     block |= {"problems": problems, "tries": 0, "state": statements.LISTED if problems else statements.SETTLED}
 
 

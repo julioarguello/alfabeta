@@ -174,10 +174,12 @@ implementation.
   that exist. Both are paid and stopped like the other calls (FR-015).
 - Q: Could the model write a statement of its own? → A: Its answer has no field for one, and no free
   text of it is written. It names the source, the exercise as the source prints it, and a quote of four
-  to twenty words; what decided it is chosen from date, topic, number, data and result. An exercise or a
-  quote the run does not find in that source's own text, with the exercise printed right before the
-  quote and every number of the quote the same, drops the candidate, so a statement a source does not
-  hold cannot reach the transcription.
+  to twenty words; what decided it is chosen from date, topic, number, data and result. A quote the run
+  does not find in that source's own text, with every number the same, drops the candidate, so a
+  statement a source does not hold cannot reach the transcription. The quote is the proof and the
+  exercise's name a label: a name the source does not print near the quote is not written, and the
+  match stands without it, because a statement with no number of its own is still a statement. A
+  statement of under four words cannot be proved this way and is reported as missing.
 - Q: Writing a match changes the transcription. Does that undo the student's « (revisada)»? → A: No.
   The mark says the handwriting was read well, and that reading has not changed. Writing a match keeps
   the page's mark and its PDF's name, and the run records the version it wrote, so its write is never

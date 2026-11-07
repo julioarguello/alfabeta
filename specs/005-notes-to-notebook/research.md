@@ -367,12 +367,14 @@ own table is the subset the requirements rest on; this one is the full list.
   when problems exist. The sources are every Markdown in the topic's book folder, each language one
   source, then each file of each Classroom item the topic's Classroom file holds (never the student's
   work or its grading, `_kept`), its posting date beside it. The answer is checked, not trusted: a
-  candidate needs a known source, a quote of four words or more found in it, and an exercise of eight
-  words at most that the source prints within the quote or in the 2,000 letters before it. The compare
+  candidate needs a known source and a quote of four words or more found in it. The exercise's name is a
+  label: written only when it is eight words at most and the source prints it within the quote or in the
+  2,000 letters before it, else the match stands as `sin nombre de ejercicio`. The compare
   ignores spacing and punctuation, so a line break or a hyphen in an extracted PDF does not reject it,
   and keeps each number whole, so 2,5 is not 25 and -3 is not 3. A quote over twenty words is cut to
   twenty. No sentence of Claude's is written: what decided a match is chosen from date, topic, number,
-  data and result, and a problem's number of over four words counts as none. Claude's status does not
+  data and result, and a problem's number is kept only when the page holds it and it is four words at
+  most. Claude's status does not
   stand alone: no candidate left means `missing`, and two or more mean `doubtful`.
 - **Marks**: the lines go through `_write`, which updates by id and never renames, so a « (revisada)»
   survives in the PDF's name; `review` is not touched; the recorded `version` of the Markdown and

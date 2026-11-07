@@ -3,7 +3,8 @@
 Here are the two questions Claude is asked, what makes an answer acceptable, the lines the transcription
 carries, and what the report says. `run.py` reads the sources and writes the files; `report.py` says it.
 The answer has no field for a statement, and no free text of it reaches a transcription: a candidate's
-quote and exercise must be in that source's own text, and its reason is chosen from a closed list, so a
+quote must be in that source's own text, its exercise's name is written only if the source prints it
+there, a problem's number only if the page does, and its reason is chosen from a closed list, so a
 statement no source holds cannot be written (SC-009).
 """
 
@@ -56,6 +57,7 @@ NAMED_ONLY = "es un fichero que no se lee"
 NO_TEXT = "es un PDF sin texto"
 NO_ANSWER = "Claude no dio una respuesta usable"
 NO_WHY = "sin motivo dicho"
+UNNAMED = "sin nombre de ejercicio"  # the source does not print, near the quote, the name the answer gave
 
 _LINE = re.compile(r"^\[enunciado (?:dudoso )?del problema .*\]\s*$")
 _TOKEN = re.compile(r"[-\u2212\u2013]?\d+(?:[.,]\d+)*|[^\W\d_]+")
@@ -93,7 +95,8 @@ do its data and its result fit that exercise? Prefer the textbook, then Classroo
 and nothing else:
 
 {{"problems": [{{"problem": "<its ref>", "candidates": [{{"source": "<its ref>", \
-"exercise": "<its number or heading, copied exactly as the source prints it, eight words at most>", \
+"exercise": "<its number or heading, copied exactly as the source prints it, eight words at most; null when \
+it has none>", \
 "quote": "<four to twenty consecutive words of the statement, copied exactly from the source, in its language>", \
 "why": ["<what decided it, any of: date, topic, number, data, result>"]}}]}}]}}
 
@@ -187,16 +190,16 @@ def _text(value: object) -> str | None:
     return said or None
 
 
-def problems_of(answer: dict[str, Any]) -> list[dict[str, Any]]:
-    """The problems a listing answered, each field one line or nothing."""
+def problems_of(answer: dict[str, Any], page: str) -> list[dict[str, Any]]:
+    """The problems a listing answered, each field one line or nothing, and a number only if the page has it."""
     problems: list[dict[str, Any]] = []
     for entry in cast("list[Any]", answer["problems"]):
         if isinstance(entry, dict):
             said = cast("dict[str, Any]", entry)
             problem = {k: _text(said.get(k)) for k in ("number", "data", "result", "anchor")}
             number = problem["number"]
-            if number and len(number.split()) > _MAX_NUMBER_WORDS:
-                problem["number"] = None  # it is written in the transcription: a number, not a sentence
+            if number and (len(number.split()) > _MAX_NUMBER_WORDS or _normal(number) not in _normal(page)):
+                problem["number"] = None  # it is written in the transcription: the page's own, and short
             problems.append(problem)
     return problems
 
@@ -248,27 +251,39 @@ def _evidence(value: object) -> str:
 
 
 def candidates_of(entry: object, sources: dict[str, Read]) -> list[dict[str, str]]:
-    """The candidates of an answer's entry that stand: a known source, an exercise, a quote it holds."""
+    """The candidates of an answer's entry that stand: a known source and a quote it holds.
+
+    The quote is the proof. An exercise's name is only a label, written when the source prints it there, so
+    a name that cannot be checked costs the label and not the match. The same quote said twice is one
+    exercise, under the name that could be checked; so is the same name said twice.
+    """
     said = cast("dict[str, Any]", entry).get("candidates") if isinstance(entry, dict) else None
-    found: list[dict[str, str]] = []
-    seen: set[tuple[str, str]] = set()  # the same exercise said twice is not a doubt
+    by_quote: dict[tuple[str, str], dict[str, str]] = {}
     for raw in cast("list[Any]", said) if isinstance(said, list) else []:
         if not isinstance(raw, dict):
             continue
         candidate = cast("dict[str, Any]", raw)
         source = sources.get(str(candidate.get("source")))
-        exercise, quote = _text(candidate.get("exercise")), _text(candidate.get("quote"))
-        if source is None or exercise is None or quote is None or len(exercise.split()) > _MAX_EXERCISE_WORDS:
+        quote = _text(candidate.get("quote"))
+        if source is None or quote is None or not holds(source.text, quote):
             continue
-        if not holds(source.text, quote) or not _names(source.text, exercise, quote):
-            continue
-        if (source.label, exercise) in seen:
-            continue
-        seen.add((source.label, exercise))
-        kept = " ".join(quote.split()[:MAX_QUOTE_WORDS])
-        found.append(
-            {"source": source.label, "exercise": exercise, "quote": kept, "why": _evidence(candidate.get("why"))}
-        )
+        key = (source.label, _normal(quote))
+        name = _text(candidate.get("exercise"))
+        named = name is not None and len(name.split()) <= _MAX_EXERCISE_WORDS and _names(source.text, name, quote)
+        if named or key not in by_quote or by_quote[key]["exercise"] == UNNAMED:
+            by_quote[key] = {
+                "source": source.label,
+                "exercise": name if name and named else UNNAMED,
+                "quote": " ".join(quote.split()[:MAX_QUOTE_WORDS]),
+                "why": _evidence(candidate.get("why")),
+            }
+    found: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for one in by_quote.values():
+        name_key = (one["source"], one["exercise"])
+        if one["exercise"] == UNNAMED or name_key not in seen:
+            seen.add(name_key)
+            found.append(one)
     return found
 
 
