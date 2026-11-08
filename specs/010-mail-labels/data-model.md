@@ -7,7 +7,7 @@ No new configuration key and no new state file. Everything is derived from keys 
 | **Label plan** | ordered names: `Alfabeta`, `Alfabeta/<grade>`, then `Alfabeta/<grade>/<folder>` per subject in configuration order | `[student] grade_level`, `[[subjects]] folder` |
 | **Filter plan** | per subject: `subject` (folder), `label` (name), `query` | `[notebook] title_pattern` cut before `{topic}` (FR-003), the senders of research R1, FR-004 |
 | **Mail link** | a `[google.accounts.<alias>]` table with `role = "mail"`, the student's Gmail address, `scopes` of FR-007 | the student's configuration (spec 004's LinkedAccount) |
-| **Apply report** | `labels: [{name, status: created\|existing}]`, `filters: [{subject, status: created\|existing\|differs}]`, `existing_mail: [{subject, matched, in_inbox}]` or `existing_mail: {skipped: "<reason>"}` | `mail apply` |
+| **Apply report** | `labels: [{name, status: created\|existing}]`, `filters: [{subject, status: created\|existing\|differs}]`, `existing_mail: [{subject, matched, in_inbox}]` | `mail apply` |
 
 ## The mail link in the configuration
 
@@ -25,8 +25,9 @@ scopes = [
 ]
 ```
 
-`mail apply` uses the one account with role `mail`; none, or more than one, is `invalid_config`. Without `gmail.modify`
-among its configured scopes the existing-mail step is `skipped: "no_modify_scope"`.
+`mail apply` uses the one account with role `mail`; none, or more than one, is `invalid_config`. One whose configured
+scopes lack `gmail.modify` or `gmail.settings.basic` is `missing_scope` before any request (FR-012): labels need the
+first, filters the second.
 
 ## Rules
 

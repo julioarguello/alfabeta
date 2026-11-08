@@ -28,7 +28,7 @@ No setup: no dependency or folder is added.
   case are normalised; `differs` with another, left untouched (FR-006); list ids page by page and modify in batches of
   at most 1,000, adding the label and removing `INBOX`; counts `matched` and `in_inbox` (FR-009)
 - [ ] T004 [US1] Write a failing test in `tests/test_gmail.py` (SC-004): every request the adapter made in T003 is a
-  method and path on FR-008's list; a query without the sender clause, a label removal other than `INBOX`, an added
+  method and path under `users/me` on FR-008's list; a query without the sender clause, a label removal other than `INBOX`, an added
   label outside the plan, and a message fetch each raise before a request is sent
 - [ ] T005 [US1] Implement `src/alfabeta/google/gmail.py`: `GmailClient(transport, token, allowed_labels)` with the
   four calls of FR-008 and their guards, `GmailError(status)`, and `apply(client, plan, modify)` returning the apply
@@ -47,8 +47,10 @@ No setup: no dependency or folder is added.
 
 - [ ] T009 [US4] Write failing CLI tests: `mail plan` and `mail build` with no keychain and no network (FR-013); `mail
   apply` with no account of role `mail`, or two, is `invalid_config`; a revoked or missing token exits 2 naming the alias
-  and writes nothing; a 403 from Gmail exits 2 as `missing_scope`; without `gmail.modify` configured the existing-mail
-  step is `skipped`; no output holds the invented address (FR-011, FR-012)
+  and writes nothing; a configured account without both Gmail scopes, and a 403 from Gmail, exit 2 as `missing_scope`
+  and write nothing; an error after the first write exits 2 and says to run it again; no output holds the invented
+  address (FR-011, FR-012). US4 scenario 3 (the student's link unaffected) rests on spec 004's per-alias check and
+  separate keychain entries, covered by `tests/test_google_accounts.py`
 - [ ] T010 Add the `mail` group with `plan`, `apply` and `build` to `src/alfabeta/__main__.py`; drop the three entries
   from `PLANNED` in `tests/test_cli_naming.py`
 - [ ] T011 Document role `mail` in a comment of `config/template.toml` and its copy

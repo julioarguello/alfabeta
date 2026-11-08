@@ -178,11 +178,11 @@ R3); it must not take the calendar and Drive with it.
   link is checked and kept in use by `google account check` like any other (spec 004 FR-013, FR-015).
 - **FR-008**: The Gmail adapter MUST call only: list and create labels; list and create filters; list message ids with
   a query that starts with the fixed sender clause of FR-004; and modify those messages' labels, adding only an alfabeta
-  label and removing only `INBOX`. It never fetches a message, a thread, an attachment or a history, and a test asserts
+  label and removing only `INBOX`. Every path is under `users/me`: no address goes in a URL (constitution III). It never fetches a message, a thread, an attachment or a history, and a test asserts
   every request it makes against that list (as spec 004 FR-009a does for Drive).
-- **FR-009**: When the mail link holds `gmail.modify`, `mail apply` MUST also label the notices already in the mailbox
+- **FR-009**: `mail apply` MUST also label the notices already in the mailbox
   (spam and trash excluded) that match each subject's query, and take them out of the inbox. The report gives, per
-  subject, how many matched and how many were in the inbox. Without that scope it skips this step and says so.
+  subject, how many matched and how many were in the inbox before the run moved them.
 
 **The school account, by hand**
 
@@ -194,9 +194,10 @@ R3); it must not take the calendar and Drive with it.
 
 - **FR-011**: No command MUST print, log or write an address of the student or the content of a message. The output
   names labels, subjects and counts.
-- **FR-012**: A link that fails (`revoked`, `expired`, `no_token`) or lacks a scope (`missing_scope`, also from a 403 the
-  API answers) MUST stop `mail apply` before it writes anything, with exit 2 and the alias to link again. A failure
-  after the first write reports what was written.
+- **FR-012**: A link that fails (`revoked`, `expired`, `no_token`) or lacks a scope (`missing_scope`: a configured
+  account without both Gmail scopes of FR-007, or a 401 or 403 the API answers) MUST stop `mail apply` before it writes
+  anything, with exit 2 and the alias to link again. A failure after the first write exits 2 and says to run it again:
+  every step is idempotent, so the next run finishes what this one left.
 - **FR-013**: `mail plan` and `mail build` MUST work with no network and no link.
 
 ### Key Entities
@@ -205,13 +206,14 @@ R3); it must not take the calendar and Drive with it.
 - **Filter plan**: per subject, its label and query (FR-004).
 - **Mail link**: a linked account with role `mail` (spec 004 data model, LinkedAccount).
 - **Apply report**: per label `created` or `existing`; per filter `created`, `existing` or `differs`; per subject
-  `matched` and `in_inbox`, or `skipped` with its reason.
+  `matched` and `in_inbox`.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: After `mail apply` on the personal Gmail, the inbox holds 0 notebook notices of a configured subject, and
+- **SC-001**: After `mail apply` on the personal Gmail, the inbox holds 0 notebook notices of a configured subject of the
+  current grade, and
   each such notice carries exactly its subject's label.
 - **SC-002**: A second `mail apply` creates 0 labels and 0 filters.
 - **SC-003**: The next notebook shared after the run lands under its label with no one acting, out of the inbox, in both

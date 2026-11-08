@@ -48,7 +48,7 @@ FR-008's list.
 |---|---|
 | I. The student is configuration | Labels come from the grade and the subjects' folders; no branch names a subject or a student. |
 | II. Three layers | No new key; the template documents role `mail` in a comment; the token in the keychain. |
-| III. Minors' data | The family links the account itself. alfabeta never reads a message: it lists ids by a fixed query and changes labels, and a test holds it to that (FR-008). Outputs carry labels and counts only. The mailbox is the family's own Google account, a service the family uses. |
+| III. Minors' data | The family links the account itself. alfabeta never reads a message: it lists ids by a fixed query and changes labels, and a test holds it to that (FR-008). Outputs carry labels and counts only. The mailbox is the student's own Google account, a service the family uses and supervises. The stored `gmail.modify` token could read every message of a minor's mailbox; only alfabeta's adapter and its test (FR-008) keep it to labels, which is the same kind of self-limit as spec 004 FR-009a on the whole Drive. |
 | IV. Read-only on the school's platforms | Gmail is not the school's learning platform, and the school account is touched by no tool: the family imports a file by hand. |
 | V. Idempotent | FR-005, FR-006, FR-009: a second run creates nothing. |
 | VI. One source, tested provider | One adapter, `google/gmail.py`, tested with a recording transport. |

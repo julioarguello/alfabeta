@@ -24,7 +24,7 @@
 
 - **Measured** 2026-11-08 in the same account with the one real notice of R1:
   `from:<sender> subject:"<grade>. <Subject>."` matched it; the same query with another grade
-  (`4º` for `3º`) or another subject matched nothing. So `º` is kept as part of the grade's token, and the quoted phrase
+  (one grade up) or another subject matched nothing. So `º` is kept as part of the grade's token, and the quoted phrase
   keeps the subject apart.
 - Gmail ignores punctuation inside a quoted phrase, so the phrase of a subject whose name starts another's (invented:
   `Mates` and `Mates Avanzadas`) also matches the longer one. **Decision**: exclude, in the shorter one's query, every
@@ -74,4 +74,4 @@
   alfabeta never deletes, so a family's hand-made filter on the same label is never lost.
 - Existing notices: `messages.list` (≤ 500 ids a page) with the subject's query, then `messages.batchModify` (≤ 1,000
   ids a call) adding the label and removing `INBOX`, which is a no-op on a notice already done. A second list with
-  `in:inbox` added gives the count that left the inbox.
+  `in:inbox` added, made before the change, gives the count that leaves the inbox.
