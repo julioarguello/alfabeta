@@ -131,5 +131,7 @@ Record aggregates only, never per-photo times of the student (constitution III):
 the longest and the median delay from upload to living file, pages marked, and whether any notebook
 gained a source other than its two living files (SC-005). SC-001 passes when the longest delay is
 under an hour. From `notebook-agent.log`: passes that read a source, passes with `renewed: true`,
-and passes that turned `session` to `signed_out`, FR-019's notices (research R14's third question). Remove the test
+and passes that turned `session` to `signed_out`, FR-019's notices (research R14's third question). From the
+reports and the spend ledger: problems listed, matched, doubtful and missing, sources named as unread, and what the
+statements' calls cost (SC-009, research R15, whose cost is an estimate until then). Remove the test
 topic, its notebook and its Drive folder by hand at the end; alfabeta removes nothing.

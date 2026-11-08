@@ -167,6 +167,36 @@ implementation.
 - Q: And when no source holds the statement? → A: It is reported as missing, with what was searched.
   The working in the notes shows what was computed, not how the question was worded, and the wording
   is what the student has to learn to read, so a statement is never rebuilt from the data.
+- Q: Does matching a problem to its statement call Claude? → A: Yes. Telling what is a solved problem
+  in a handwritten page, and crossing it with a source by date, topic, number and solution, is not a
+  search for a string. One call lists a page's problems, without any source, so a page of theory costs
+  a page's tokens and no more; a second call, one per topic and run, searches only for the problems
+  that exist. Both are paid and stopped like the other calls (FR-015).
+- Q: Could the model write a statement of its own? → A: Its answer has no field for one, and no free
+  text of it is written. It names the source, the exercise as the source prints it, and a quote of four
+  to twenty words; what decided it is chosen from date, topic, number, data and result. A quote the run
+  does not find in that source's own text, with every number the same, drops the candidate, so a
+  statement a source does not hold cannot reach the transcription. The quote is the proof and the
+  exercise's name a label: a name the source does not print near the quote is not written, and the
+  match stands without it, because a statement with no number of its own is still a statement, unless
+  those words are printed more than once in the source, when they cannot say which exercise it is. A
+  statement of under four words cannot be proved this way and is reported as missing.
+- Q: Writing a match changes the transcription. Does that undo the student's « (revisada)»? → A: No.
+  The mark says the handwriting was read well, and that reading has not changed. Writing a match keeps
+  the page's mark and its PDF's name, and the run records the version it wrote, so its write is never
+  read as the student's correction. A Markdown the family edited is not written over: the match goes
+  to the living file and the report, and its Markdown waits for T031.
+- Q: A statement can arrive later: the teacher posts the sheet, or another language is captured. →
+  A: A problem reported as missing is searched again, once, whenever a source is new or changed, in
+  that source only, unless a new page of the topic searches every source in the same call, which then
+  costs nothing more. A problem with a match, certain or doubtful, is not searched again unless its page
+  changes. A repeated search that finds nothing reports nothing; the problem's line in the transcription
+  names the source it added, since that line claims only what was read.
+- Q: Are the photos of a book read for the subject notes with problems? → A: No. They rank as the book
+  (spec 002 FR-048), so nothing is listed or searched for them and nothing is paid.
+- Q: And the pages that were there before this was built? → A: They are not searched on their own, to
+  spend nothing the family did not ask for. The agent still does them by hand when it prepares a topic
+  (`skills/study-pack/SKILL.md`, step 1).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -484,13 +514,15 @@ source and one living Classroom source, and that a second run adds nothing.
   the Mac by hand. The pull into the master (FR-002), Classroom capture (spec 001), creating the
   living files and their sources (FR-009, User Story 5) and the owner's refresh (FR-018) stay on the
   Mac. Constitution IX is amended in the same pull request.
-- **FR-015**: The AI that transcribes and writes the "what it adds" report MUST be paid from the
-  operator's Claude plan API credit, in the alfabeta workspace and under its monthly spend limit.
-  When the limit is reached, those two steps wait and the family is told once; nothing else stops.
+- **FR-015**: The AI that transcribes, writes the report's "what it adds" and lessons (FR-020) and
+  matches problems to their statements (FR-016d) MUST be paid from the operator's Claude plan API
+  credit, in the alfabeta workspace and under its monthly spend limit. When the limit is reached, those
+  steps wait and the family is told once; nothing else stops.
 - **FR-016**: Photos and transcriptions MUST go only to the services the family configured: the
   student's Drive, the notebook owner's notebook, the operator's Google Cloud project for alfabeta,
-  and Claude through the alfabeta workspace (constitution III, 1.6.0). No model whose terms exclude
-  minors is used, and the student never interacts with the model directly.
+  and Claude through the alfabeta workspace (constitution III, 1.6.0). The same holds for the teacher's
+  material FR-016d searches; the student's work and its grading never go to Claude. No model whose terms exclude minors is used, and the student never interacts with the
+  model directly.
 - **FR-016a**: Before a photo is transcribed, alfabeta MUST decide whether it is a page of notes. A
   photo that is not (a credential, a document, a person) is never transcribed, never added to a
   notebook and never shared; the family is told which file it is, without its content, and
@@ -512,8 +544,12 @@ source and one living Classroom source, and that a second run adds nothing.
   solution's own data and result. The transcription writes the match beside the problem, with its
   source and the evidence that decided it, as FR-016c does for a word, so the notebook can use it; the
   report of FR-013 says the same. Two exercises that fit equally are both named, as a doubtful match.
-  A statement no source holds is reported as missing, naming the sources searched, and MUST NOT be
-  rebuilt from the working.
+  A statement no source holds is reported as missing, naming the sources searched and those it could
+  not read (an image, a PDF with no text, a source beyond the size a call takes), and MUST NOT be
+  rebuilt from the working. A topic with no source says so instead of searching, and the line in the
+  transcription says the same as the report: what was read, what could not be, or that there was
+  nothing to read. A page of a book read for the subject (spec 002 FR-048) is not searched. How it is written,
+  searched again and paid for is in the Clarifications (session 2026-11-07) and research R15.
 - **FR-020**: The report of FR-013 MUST name, for each notes page that reached a living file, the
   textbook lesson whose heading covers it, and say so when that lesson belongs to another topic or
   subtopic than the folder the page sits in (spec 002 FR-043), when it belongs to no subtopic yet

@@ -15,7 +15,8 @@ from alfabeta.notes.model import Arrival, Kind, PartKind, PhotoState, RanOn
 from alfabeta.notes.run import NotesDeps
 from alfabeta.notes.sources import NlmMissingError, Source, SourcesError
 from alfabeta.notes.state import DriveNotesStateStore
-from alfabeta.notes.transcribe import Transcription
+from alfabeta.notes.statements import LIST_HEAD, SEARCH_HEAD
+from alfabeta.notes.transcribe import ANSWER_TOKENS, Transcription
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
@@ -33,6 +34,7 @@ NOTES = "ap1"
 CLASSROOM = "cl1"
 TOPIC_2, CLASSROOM_2 = "t2", "cl2"
 NO_TOPIC, CLASSROOM_0 = "t0", "cl0"
+NO_PROBLEMS = '{"problems": []}'
 
 
 @dataclass
@@ -47,6 +49,8 @@ class MemoryDrive:
     updates: list[str] = field(default_factory=lambda: [])
     shared: list[tuple[str, str]] = field(default_factory=lambda: [])
     fail_writes: bool = False
+    refuses_updates: set[str] = field(default_factory=lambda: set())  # updating these fails, as Drive can
+    stale: dict[str, DriveFile] = field(default_factory=lambda: dict[str, DriveFile]())
     made: int = 0
     downloads: list[str] = field(default_factory=lambda: [])
     exports: list[str] = field(default_factory=lambda: [])
@@ -105,7 +109,12 @@ class MemoryDrive:
     def listed(self, item_id: str) -> DriveFile:
         if item_id not in self.files and item_id != self.root.id:
             raise OutsideFolderError
+        if item_id in self.stale:
+            return self.stale[item_id]  # as this run's listing saw it, before a later edit
         return self.files.get(item_id, self.root)
+
+    def get(self, file_id: str) -> DriveFile:
+        return self.files[file_id]
 
     def contains(self, item_id: str) -> bool:
         return item_id in self.files or item_id == self.root.id
@@ -200,7 +209,7 @@ class MemoryDrive:
     def update(
         self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
     ) -> DriveFile:
-        if self.fail_writes:
+        if self.fail_writes or file_id in self.refuses_updates:
             raise DriveError("Drive API returned 500", 500)
         current = self.files[file_id]
         if properties:
@@ -298,12 +307,21 @@ class ScriptedTranscriber:
 
 @dataclass
 class ScriptedAnswerer:
-    """The report's "what it adds": answers in order; with nothing scripted, a fixed Spanish bullet."""
+    """The report's "what it adds": answers in order; with nothing scripted, a fixed Spanish bullet.
+
+    The statements' questions (FR-016d) go apart, with their own answers; with nothing scripted, a page
+    holds no problem and the call is free, so a test about the report sees only the report's calls.
+    """
 
     answers: list[Transcription] = field(default_factory=lambda: [])
     prompts: list[str] = field(default_factory=lambda: [])
+    statements: list[Transcription] = field(default_factory=lambda: [])
+    statement_prompts: list[str] = field(default_factory=lambda: [])
 
-    def answer(self, prompt: str) -> Transcription:
+    def answer(self, prompt: str, max_tokens: int = ANSWER_TOKENS) -> Transcription:
+        if prompt.startswith((LIST_HEAD, SEARCH_HEAD)):
+            self.statement_prompts.append(prompt)
+            return self.statements.pop(0) if self.statements else Transcription(PhotoState.TRANSCRIBED, NO_PROBLEMS)
         self.prompts.append(prompt)
         if self.answers:
             return self.answers.pop(0)

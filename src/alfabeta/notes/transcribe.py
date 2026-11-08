@@ -2,8 +2,8 @@
 
 One Claude Messages API call per photo, through spec 004's `HttpTransport`, the one module allowed
 to open a socket. The key is the place's own (constitution II): the Mac's in its keychain, the
-cloud's in its secret store. The same client answers the report's one text question per changed
-topic, "what it adds" (research R8), under the same budget.
+cloud's in its secret store. The same client answers the text questions of the report (research R8)
+and of the statements of the notes' problems (research R15), under the same budget.
 """
 
 from __future__ import annotations
@@ -71,7 +71,7 @@ class Transcriber(Protocol):
 class Answerer(Protocol):
     """Answers one text question; the report's "what it adds" (research R8)."""
 
-    def answer(self, prompt: str) -> Transcription:
+    def answer(self, prompt: str, max_tokens: int = ANSWER_TOKENS) -> Transcription:
         """One question, one call; `transcribed` means answered, the text in `markdown`."""
         ...
 
@@ -123,9 +123,9 @@ class ClaudeTranscriber:
             return Transcription(PhotoState.UNREADABLE, usage=done.usage)
         return done
 
-    def answer(self, prompt: str) -> Transcription:
+    def answer(self, prompt: str, max_tokens: int = ANSWER_TOKENS) -> Transcription:
         """One text question, one call; the same refusals as a photo's (research R5)."""
-        return self._ask([{"type": "text", "text": prompt}], ANSWER_TOKENS)
+        return self._ask([{"type": "text", "text": prompt}], max_tokens)
 
     def _ask(self, content: list[dict[str, Any]], max_tokens: int) -> Transcription:
         """One Messages API call; `transcribed` with the text, or why there is none."""

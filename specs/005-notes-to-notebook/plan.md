@@ -116,6 +116,7 @@ src/alfabeta/notes/
 ├── secrets.py        # FileTokenStore: spec 004's TokenStore over the files the cloud mounts
 ├── pdf.py            # PdfBuilder: deterministic living files with reportlab and pypdf
 ├── sources.py        # NotebookSources port + NlmSources (`nlm source add --drive`, `nlm source content`), Mac only
+├── statements.py     # FR-016d without I/O: prompts, checking an answer, the lines in a transcription
 ├── run.py            # note transcribe: one reconciliation pass
 ├── setup.py          # notebook prepare
 ├── refresh.py        # notebook refresh: the owner's read of changed sources, and its record (Mac only)
@@ -141,8 +142,8 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 
 | Layer | Names | Responsibility |
 |---|---|---|
-| Domain | `Arrival`, `NotesPage`, `LivingFile`, `ClassroomEntry`, `ChangeCursor`, `RunReport`, `RefreshRecord` | Values, states and transitions from the [data model](data-model.md); no I/O |
-| Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `PdfBuilder`, `NotebookSources` (`add_drive_source`, `read_source`, `session_ok`, `renew_session`), `RefreshStore`, `Clock` | What the core needs from the outside |
+| Domain | `Arrival`, `NotesPage`, `LivingFile`, `ClassroomEntry`, `ChangeCursor`, `RunReport`, `RefreshRecord`; `statements.py`: the prompts and answers of the statements search, and its lines in a transcription | Values, states and transitions from the [data model](data-model.md); no I/O |
+| Ports | `ChangeFeed`, `StateStore`, `Transcriber`, `Answerer`, `PdfBuilder`, `NotebookSources` (`add_drive_source`, `read_source`, `session_ok`, `renew_session`), `RefreshStore`, `Clock` | What the core needs from the outside |
 | Adapters | `DriveChangeFeed`, `DriveNotesStateStore`, `ClaudeTranscriber`, `ReportlabPdfBuilder`, `NlmSources`, `FileTokenStore`, `LocalRefreshStore`, `LaunchdAgent` | Each implements one port; Drive ones wrap spec 004's `ScopedDrive` |
 | Services | `run_notes`, `setup_topic`, `check_cloud`, `write_report`, `refresh_sources` | One per subcommand or sync step; return results the CLI prints |
 | CLI | `note transcribe`, `notebook prepare`, `notebook refresh`, `notebook agent install|uninstall`, `google account link --client-file … --print-token` in `__main__.py` | Arguments, JSON out, exit codes ([contracts/cli.md](contracts/cli.md)) |
@@ -185,5 +186,5 @@ to 4.
 | One account-wide Drive read: the change feed | Drive v3's change feed takes no folder filter (research, first table); polling each folder instead costs one listing per folder per run | Spec 004 FR-009a amended: the adapter drops every change outside the allowlist before returning, keeps and logs nothing about it, and the scope test covers the feed |
 | The cloud's records in Drive instead of a database | One small JSON, two writers guarded by a revision check (research R4); constitution II (1.6.0) names the place | Firestore or Cloud Storage: a second service and permission set |
 | `reportlab` and `pypdf` at runtime | The standard library cannot draw or merge PDFs, and the notebook follows a PDF in Drive (research R6) | A Google Doc living file needs images at public URLs |
-| Two places that call Claude (transcription, "what it adds") under one budget | The report is what tells the family the pack is missing what the notes stress (US4) | No report: the student studies a pack that silently misses the notes |
+| Several places that call Claude under one budget: transcription, the report's "what it adds" and lessons, and the statements of the notes' problems | The report is what tells the family the pack is missing what the notes stress (US4); a problem's statement is what the student has to learn to read, and the notes do not hold it (FR-016d, research R15) | No report: the student studies a pack that silently misses the notes. A deterministic search for the statements: it cannot cross a problem by its solution |
 | A launchd agent on the Mac, besides the desktop app's scheduled sync (constitution 2.1.0) | Only the owner's read makes the notebook take a changed living file (measured 2026-10-28), and the operator wants that without starting the app (research R14) | The app's scheduled task: needs the app open, the dependency the operator wants gone. The daily sync alone: a page waits up to a day. A cloud-held owner session: declined by the operator for now, and not measured |

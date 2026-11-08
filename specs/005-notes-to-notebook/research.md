@@ -66,7 +66,7 @@ own table is the subset the requirements rest on; this one is the full list.
   logs nothing about it (spec 004 FR-009a, amended). A folder that joins the allowlist is listed
   whole once, so content moved in with it is taken in.
 - **Fields**: the feed asks only for `nextPageToken,newStartPageToken,changes(fileId,removed,
-  file(name,mimeType,parents,md5Checksum,modifiedTime,trashed))`; the name is read only for changes
+  file(name,mimeType,parents,md5Checksum,modifiedTime,trashed,properties))`; the name is read only for changes
   the adapter keeps.
 - **Echoes**: every write the cloud makes (state, run log, transcriptions, living files, reports,
   temporary conversions) comes back through the next feed page. A change to a file id the state
@@ -358,3 +358,56 @@ own table is the subset the requirements rest on; this one is the full list.
   (step 3b)? How often does the owner's session need `nlm auth refresh`, and how often does FR-019
   fire (step 8)? With two students sharing one owner profile, their agents could renew it at the
   same moment; `nlm` keeps a `locks/` folder of its own, not read for this plan.
+
+## R15 — Matching a solved problem to its statement
+
+- **Decision**: a step of the pass, after the Classroom items and before the living files, so the file
+  built in that pass holds the match. Two Claude calls through the report's `Answerer`: one per new
+  page, with the page and no source, lists its problems; one per topic and run, with the sources, only
+  when problems exist. The sources are every Markdown in the topic's book folder, each language one
+  source, then each file of each Classroom item the topic's Classroom file holds (never the student's
+  work or its grading, `_kept`), its posting date beside it. The answer is checked, not trusted: a
+  candidate needs a known source and a quote of four words or more found in it. The exercise's name is a
+  label: written only when it is eight words at most and the source prints it within the quote or in the
+  2,000 letters before it, else the match stands as `sin nombre de ejercicio`, unless the quote is printed
+  more than once in that source, when it cannot say which exercise it is and is dropped. Two checked names
+  with the same words stay two candidates, which is a doubt. The compare
+  ignores spacing and punctuation, so a line break or a hyphen in an extracted PDF does not reject it,
+  and keeps each number whole, so 2,5 is not 25 and -3 is not 3. A quote over twenty words is cut to
+  twenty. No sentence of Claude's is written: what decided a match is chosen from date, topic, number,
+  data and result, and a problem's number is kept only when the page holds it and it is four words at
+  most. Claude's status does not
+  stand alone: no candidate left means `missing`, and two or more mean `doubtful`.
+- **Marks**: the lines go through `_write`, which updates by id and never renames, so a « (revisada)»
+  survives in the PDF's name; `review` is not touched; the recorded `version` of the Markdown and
+  `markdown_version` become what was written, so the feed reads an echo, not a correction. For a pass
+  that stops before saving, the file's property `alfabeta_written` says the same, which is why the feed
+  asks Drive for `properties`. A recorded PDF `name` is left alone, so a mark the feed has not delivered
+  yet is still seen. An edit by the family (a checksum that is neither) is never written over; Drive is
+  asked for the file just before writing, since the run's listing is older than its calls to Claude.
+- **Two steps**: a page's lines and the living file are written apart, so `unbuilt` keeps a page's lines
+  owed to the file across runs, as a transcribed page's state does.
+- **Searching again**: a page's `searched` records each source's version. A problem still `missing`
+  is searched again only in sources that are new or changed, unless a new page of the topic shares the
+  call and brings every source with it, since that text is paid for anyway. A listing tells that, with
+  no download, so an idle run neither reads, pays nor writes (SC-004). Unusable answers count per page:
+  a new page sharing the call does not buy an older one a fourth try.
+- **The date it crosses**: a page's is its photo's `modifiedTime` in Drive, when it was uploaded, which
+  may be later than the class; a Classroom file's is its item's posting date. Claude weighs the date with
+  the topic, the number and the result, and it decides nothing alone.
+- **What a source could not give**: an image, a named-only file, a PDF with no extractable text, or a
+  file beyond `MAX_SOURCE_CHARS` (`MAX_SEARCH_CHARS` for a whole call) is recorded as unread with why and
+  named in the report's missing line and the transcription's, so "missing" never claims more than was
+  read. One beyond
+  `MAX_SEARCH_CHARS` is read by the next run's call, whose first source always fits. Drive failing to
+  read a source stops that topic's search for the run: an outage is not "missing". Reading images and
+  scanned PDFs with Claude is not built; it would cost a page's image tokens per page of each source.
+- **Cost**: not measured, like FR-015's transcription estimate; quickstart step 8 records it. At
+  the caps a search takes about 45,000 input tokens. One page of theory takes about 2,000.
+- **Rationale**: FR-016d's cross of date, topic, number and solution needs reading, as FR-020's lessons
+  do. Two calls because most pages hold no problem, and the sources are what costs.
+- **Alternatives**: one call per page with the sources: a page of theory would pay for the whole book,
+  and two pages for it twice. Only a deterministic search for the data's numbers: misses a change of
+  units or a problem known only by its number. A field with the statement's text, checked afterwards:
+  rejected, because a checked copy of a statement adds nothing the source does not hold, and the
+  notebook already has the textbook.

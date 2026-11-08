@@ -25,6 +25,7 @@ CLASSROOM_FOLDER = "classroom"
 LIVING_FOLDERS = {LivingKind.NOTES: NOTES_FOLDER, LivingKind.CLASSROOM: CLASSROOM_FOLDER}
 SKIPPED = frozenset({".alfabeta", "reports"})
 TRANSCRIPT_MARK = " · transcripción"
+WRITTEN = "alfabeta_written"  # a transcription Markdown's property: the checksum of what alfabeta wrote
 _TOPIC_DEPTH = 3  # root / year / subject / topic
 
 
@@ -98,6 +99,11 @@ class ChangeFeed(Protocol):
         ...
 
 
+def own_write(item: DriveFile) -> bool:
+    """Whether a Markdown is what alfabeta last wrote, even if a stopped pass never recorded it (research R15)."""
+    return item.prop(WRITTEN) == item.version
+
+
 def _is_living(item: DriveFile, kind: LivingKind) -> bool:
     """Whether a file directly in `notes/` or `classroom/` carries that folder's living file name."""
     stem = item.name.rsplit(".", 1)[0]
@@ -154,7 +160,7 @@ class DriveChangeFeed:
             # An echo of alfabeta's own write, except the student's two changes (research R2).
             if record.kind == Kind.NOTES_TRANSCRIPT and record.name is not None and item.name != record.name:
                 result.marks.append(Mark(item.id, item.name))
-            elif record.kind == Kind.NOTES_TEXT and item.version != record.version:
+            elif record.kind == Kind.NOTES_TEXT and item.version != record.version and not own_write(item):
                 result.corrections.append(Correction(item.id, item.version))
             return
         if record is not None and record.version == item.version and record.topic in (None, topic):

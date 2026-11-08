@@ -12,7 +12,9 @@ comparison the budget, the key or Claude's answer stops waits in the snapshot fo
 that has no pack or no theory to compare with is said in one line and dropped. Nothing here regenerates
 a study piece (FR-012): the report says that is the family's decision. Per topic whose folder holds a
 textbook with lesson headings, a second call names each new page's lesson, and the facts the textbook
-states otherwise (FR-020): a lesson another subtopic holds, or none does, is said, never acted on.
+states otherwise (FR-020): a lesson another subtopic holds, or none does, is said, never acted on. Each
+problem of the notes whose statement was found, stayed in doubt or is missing is said once per change
+(FR-016d); `run.py` searches, `statements.py` words it.
 """
 
 from __future__ import annotations
@@ -27,12 +29,13 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 from pypdf import PdfReader
 
 from alfabeta.google.drive import DriveError, OutsideFolderError
+from alfabeta.notes import statements
 from alfabeta.notes.model import Health, ItemState, Kind, LivingKind, PhotoState, Review, SpendLedger, Usage, reportable
 from alfabeta.placement import undated
 
 if TYPE_CHECKING:
     import datetime as dt
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
     from alfabeta.decisions import Subtopic
     from alfabeta.google.drive import DriveFile
@@ -184,6 +187,8 @@ _LIVING_CONDITIONS = {
 }
 _WAITING_SETUP = "el tema espera a que se cree su cuaderno («notebook prepare»)"
 SETUP = "setup"  # the snapshot's key, beside the living kinds, for a topic waiting for setup
+# A topic's own folders: what is left beside them is a book's (spec 001 `book place`). `apuntes` is `notes` before its rename.
+_NOT_BOOK = frozenset({"notes", "classroom", "notebook", "exam", "apuntes"})
 STARTS, CLEARS = "Comienza", "Resuelto"
 
 
@@ -241,11 +246,12 @@ class TopicChanges:
     new_pages: list[str] = field(default_factory=lambda: [])  # photo ids to compare: new, or waiting since a report
     started: list[str] = field(default_factory=lambda: [])
     cleared: list[str] = field(default_factory=lambda: [])
+    statements: list[str] = field(default_factory=lambda: [])  # FR-016d: what changed of each problem
 
     @property
     def empty(self) -> bool:
         """Whether nothing of it is worth a report."""
-        return not (self.lines or self.started or self.cleared)
+        return not (self.lines or self.started or self.cleared or self.statements)
 
 
 @dataclass
@@ -303,6 +309,19 @@ def snapshot(state: dict[str, Any], work: Pass, warn_pages: int) -> dict[str, An
         "living": living,
         "conditions": {"budget": budget, "no_key": work.no_key, "drive_write": work.write_failed},
         "compare": {},
+        "statements": {fid: _statements_said(p) for fid, p in sorted(pages.items()) if "statements" in p},
+    }
+
+
+def _statements_said(page: dict[str, Any]) -> dict[str, Any]:
+    """What the report has said of a page's problems: its state, and each problem's status by position."""
+    block = cast("dict[str, Any]", page["statements"])
+    problems = cast("list[dict[str, Any]]", block["problems"])
+    return {
+        "version": page.get("photo_version"),
+        "state": block["state"],
+        "edited": bool(block.get("edited")),
+        "problems": [str(p.get("status", "")) for p in problems],
     }
 
 
@@ -378,8 +397,41 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
                 section(topic).started.append(_LIVING_CONDITIONS[condition].format(name=name, pages=pages))
             if was in _LIVING_CONDITIONS:
                 section(topic).cleared.append(_LIVING_CONDITIONS[was].format(name=name, pages=pages))
+    _statement_lines(state, before, now, section)
     _conditions(changes, before, now)
     return changes
+
+
+def _statement_lines(
+    state: dict[str, Any], before: dict[str, Any], now: dict[str, Any], section: Callable[[str], TopicChanges]
+) -> None:
+    """Each problem whose status changed, once; each topic's pages that wait, once (FR-016d)."""
+    files = cast("dict[str, dict[str, Any]]", state.get("files", {}))
+    pages = cast("dict[str, dict[str, Any]]", state.get("pages", {}))
+    old = cast("dict[str, dict[str, Any]]", before.get("statements", {}))
+    waiting: Counter[str] = Counter()
+    for fid, said in cast("dict[str, dict[str, Any]]", now["statements"]).items():
+        if fid not in files:
+            continue
+        topic, name = str(files[fid]["topic"]), str(files[fid].get("name") or "página sin nombre")
+        was = old.get(fid, {})
+        if was.get("version") != said["version"]:
+            was = {}  # a new version of the photo: other problems, whatever their places
+        block = cast("dict[str, Any]", pages[fid]["statements"])
+        if said["state"] in (statements.PENDING, statements.LISTED):
+            waiting[topic] += was.get("state") not in (statements.PENDING, statements.LISTED)
+            continue
+        if said["state"] == statements.GIVEN_UP and was.get("state") != said["state"]:
+            section(topic).statements.append(f"«{name}»: {statements.GAVE_UP}.")
+        before_status = cast("list[str]", was.get("problems", []))
+        for i, problem in enumerate(cast("list[dict[str, Any]]", block["problems"])):
+            if (before_status[i] if i < len(before_status) else None) != said["problems"][i]:
+                section(topic).statements.append(statements.report_line(name, problem, block["searched"]))
+        if said["edited"] and not was.get("edited"):
+            section(topic).statements.append(f"«{name}»: {statements.EDITED}.")
+    for topic, n in waiting.items():
+        if n:
+            section(topic).statements.append(f"{_plural(n, ('página', 'páginas'))}: {statements.WAITING}.")
 
 
 def _conditions(changes: Changes, before: dict[str, Any], now: dict[str, Any]) -> None:
@@ -458,13 +510,13 @@ def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges
     if spent or work.budget_refused:
         return [NO_BUDGET]
     pages = cast("dict[str, dict[str, Any]]", work.state.get("pages", {}))
-    notes = "\n\n".join(str(pages[p]["markdown"]) for p in section.new_pages if p in pages)[:MAX_NOTES_CHARS]
+    notes = "\n\n".join(_literal(pages[p]) for p in section.new_pages if p in pages)[:MAX_NOTES_CHARS]
     try:
         done: Transcription = deps.answerer.answer(INSTRUCTIONS.format(notes=notes, guide=theory))
     except ValueError:
         return [NO_ANSWER]  # an answer that is not the JSON of the Messages API
     if done.usage is not None:
-        _spend(work, done.usage)
+        charge(work, done.usage)
     if done.state == PhotoState.BUDGET_WAIT:
         work.budget_refused = True
         return [NO_BUDGET]
@@ -473,6 +525,39 @@ def _what_it_adds(deps: NotesDeps, work: Pass, topic: str, section: TopicChanges
         return [NO_ANSWER]
     compared = f"Comparadas {_plural(len(section.new_pages), ('página nueva', 'páginas nuevas'))} con «{piece}» de «{pack.name}»."
     return [compared, "", done.markdown.strip(), "", DECISION]
+
+
+def _literal(page: dict[str, Any]) -> str:
+    """What the notes say: a page's text without the statements' lines (FR-016d)."""
+    return statements.strip_statements(str(page["markdown"]))
+
+
+def read_pdf(data: bytes) -> str:
+    """A PDF's text; empty when it has none or cannot be read, which its caller says."""
+    try:
+        return "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(data)).pages)
+    except Exception:  # a third-party parser over a file the run did not write: PyPdfError and others
+        return ""
+
+
+def book_sources(drive: ReportDrive, topic: str) -> list[DriveFile]:
+    """Every language captured of the topic's textbook: each Markdown of its book's folder (spec 001 `book place`).
+
+    A book's folder is any of the topic's but its own named ones. A copy `book place` kept is never one.
+    From the listing, with no download.
+    """
+    found: list[DriveFile] = []
+    for folder in drive.children(topic):
+        if folder.is_folder and folder.name not in _NOT_BOOK:
+            found += [
+                item
+                for item in drive.children(folder.id)
+                if not item.is_folder
+                and item.name.endswith(".md")
+                and not item.name.startswith(".")
+                and "(anterior " not in item.name
+            ]
+    return sorted(found, key=lambda f: f.name)
 
 
 def textbook(drive: ReportDrive, topic: str) -> str | None:
@@ -498,7 +583,7 @@ def textbook(drive: ReportDrive, topic: str) -> str | None:
     return None
 
 
-def _answer_json(text: str) -> dict[str, Any] | None:
+def answer_json(text: str) -> dict[str, Any] | None:
     """The JSON object of an answer, or None when it is not one."""
     start, end = text.find("{"), text.rfind("}")
     if start < 0 or end < start:
@@ -536,7 +621,7 @@ def _lessons(deps: NotesDeps, work: Pass, topic: str, wanted: list[str], *, spen
     named = {p: str(work.files.get(p, {}).get("name") or "página sin nombre") for p in wanted if p in pages}
     if not named:
         return [], False  # the pages waiting are gone
-    notes = "\n\n".join(f'<page name="{named[p]}">\n{pages[p]["markdown"]}\n</page>' for p in named)
+    notes = "\n\n".join(f'<page name="{named[p]}">\n{_literal(pages[p])}\n</page>' for p in named)
     prompt = LESSONS_INSTRUCTIONS.format(
         lessons="\n".join(f"{n}: {t}" for n, t in sorted(headings.items())),
         notes=notes[:MAX_NOTES_CHARS],
@@ -547,14 +632,14 @@ def _lessons(deps: NotesDeps, work: Pass, topic: str, wanted: list[str], *, spen
     except ValueError:
         return [LESSONS_HEADING, "", LESSONS_WAIT], True
     if done.usage is not None:
-        _spend(work, done.usage)
+        charge(work, done.usage)
     if done.state == PhotoState.BUDGET_WAIT:
         work.budget_refused = True
         return [LESSONS_HEADING, "", LESSONS_WAIT], True
     if done.state != PhotoState.TRANSCRIBED:
         # An answer Claude gave but cut short (it was paid for) would be cut again, and dearer: say so once.
         return ([LESSONS_HEADING, "", NO_LESSONS], False) if done.usage else ([LESSONS_HEADING, "", LESSONS_WAIT], True)
-    answer = _answer_json(done.markdown)
+    answer = answer_json(done.markdown)
     if answer is None:
         return [LESSONS_HEADING, "", NO_LESSONS], False  # asking again would pay for the same answer
     return _lesson_lines(deps, topic, answer, headings, list(named.values())), False
@@ -633,7 +718,7 @@ def _lesson_lines(
     return lines
 
 
-def _spend(work: Pass, usage: Usage) -> None:
+def charge(work: Pass, usage: Usage) -> None:
     """One more call in the month's ledger (FR-015, research R8)."""
     months = cast("dict[str, dict[str, int]]", work.state.get("spend", {}))
     ledger = SpendLedger({m: Usage(u["in"], u["out"]) for m, u in months.items()}).add(work.today[:7], usage)
@@ -680,6 +765,8 @@ def render(
             lines += ["", "### Qué aportan los apuntes nuevos", "", *adds[topic]]
         if topic in (lessons or {}):
             lines += ["", *(lessons or {})[topic]]
+        if section.statements:
+            lines += ["", statements.HEADING, "", *(f"- {line}" for line in section.statements)]
     if changes.started or changes.cleared:
         lines += ["", "## Avisos", ""]
         lines += [f"- {STARTS}: {line}." for line in changes.started]

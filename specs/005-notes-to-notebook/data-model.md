@@ -66,10 +66,32 @@ One per transcribed photo.
 | `review` | `automatic`, `checked` (PDF renamed with « (revisada)»), `wrong` (« (mal)») |
 | `source` | `claude` or `adopted` (an existing Markdown, research R2) |
 | `model`, `usage` | The model and its token counts, for the report; empty when adopted |
+| `statements` | The search for the statements of the page's solved problems (FR-016d), below. Absent on a page recorded before it was built, which is never searched on its own |
 
 A correction (research R7) keeps the page's `order`: a photo named like `photo_id`'s plus
 « (corregida)» replaces `photo_id` and its transcription; a new `markdown_version` re-renders the
 page from the Markdown. Either sets `review` back to `automatic`.
+
+### `statements` (on a page's record)
+
+| Field | Meaning |
+|---|---|
+| `state` | `pending` (problems not listed yet) → `listed` (listed, not searched yet) → `settled`, directly from `pending` for a page with no problem; or `given_up` (the answer listing its problems was unusable three times; said in the report, retried only if the page changes). A search whose answers are unusable three times leaves its problems `missing`, with its sources recorded as unread and why. A new version of the photo starts again at `pending` |
+| `problems` | One per solved problem, in the page's order: `number`, `data`, `result`, `anchor` (the page's line where it starts), `status` (`matched`, `doubtful` or `missing`, absent until searched), `candidates` |
+| `candidates` | One when `matched`, two or more when `doubtful`, none when `missing`. Each: `source` (its label), `exercise` (as the source prints it, within the quote or right before it, eight words at most; else `sin nombre de ejercicio`), `quote` (four to twenty words, found in that source's text), `why` (what decided it, from date, topic, number, data and result, in Spanish). No field holds a statement, and no sentence of Claude's is kept |
+| `searched` | Per source id: `version`, `label`, and `unread` with the reason when it could not be read. A source whose id and version are here is not searched again, unless it had no room in its call or a new page of the topic shares the call |
+| `tries`, `refused_on` | Unusable answers so far, this page's own; the day the budget refused a call, which is not repeated that day |
+| `unwritten` | The lines are in the record and not yet in the Markdown and PDF, because Drive failed; the next run writes them and pays for nothing |
+| `unbuilt` | The lines are in the record and not yet in the topic's living file, because it was missing or Drive failed; the first pass that finds it rebuilds it |
+| `edited` | The family edited the page's Markdown, so the lines were not written into it (research R15) |
+
+The lines themselves are part of `markdown`, which every living file and PDF renders, each right after
+its `anchor`, or at the end of the page when the anchor is not found. They are in the transcription's
+own bracket notation, `[enunciado del problema 3: …]`, so the literal text is what remains without
+them: a later write, and the report's other calls, strip them first. Writing them keeps `review`,
+`order` and the PDF's name, and sets `markdown_version` and the file's recorded `version` to what was
+written. The Markdown also carries `alfabeta_written`, the checksum of what alfabeta wrote, so a pass
+that stops before saving its records still recognises its own write (research R15).
 
 ## LivingFile
 
@@ -144,13 +166,14 @@ Written only when the run changed something (User Story 4).
 | Field | Meaning |
 |---|---|
 | `run_at` | Start of the run, `Europe/Madrid` |
-| per topic | State changes since the last report: pages added, items added, duplicates, unsupported, unreadable, gone, marks by the student, unexpected files, `waiting_setup`, living files `missing` or over the page count, failures, and the "what it adds" text |
+| per topic | State changes since the last report: pages added, items added, duplicates, unsupported, unreadable, gone, marks by the student, unexpected files, `waiting_setup`, living files `missing` or over the page count, failures, the "what it adds" text, and each problem whose statement was found, stayed in doubt or is missing (FR-016d), once per change of its status |
 | `spend` | Tokens in and out this run, and the month's spend so far from the spend ledger |
 
 The report is in Spanish, in Drive.
 
 ## SpendLedger (in `state.json`)
 
-One row per month: tokens in and out of every Claude call, transcriptions and "what it adds" alike,
+One row per month: tokens in and out of every Claude call, transcriptions and the report's and
+statements' questions alike,
 and their cost at `[notes] price_in` and `price_out`. The Console's cost page is the authority;
 reading it needs an admin key this plan does not ask for.
