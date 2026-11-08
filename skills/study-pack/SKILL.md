@@ -118,6 +118,18 @@ and never quotes a piece's status output, which can hold its prompt.
   by script and printed with `print_pack.render`, PDF and Markdown in `notebook/`. A script proves
   the piece matches the key, not that the key is right: before printing, another agent that has not
   seen the key answers the same questions, and each difference is settled or marked doubtful.
+  On the family's word, when questions on the book are due within the days the family names and the book is not there, a study
+  document may answer what stays pending: mark each answer sure, probable or guess, have an agent that
+  has not seen them solve the same questions, keep the lower grade, say at its head that it was made
+  without the book, and remove it from the notebook's sources when the photos arrive.
+
+## Language of a document
+
+A document the family or the student reads holds one language (spec 002 FR-050). When a piece is
+wanted in Spanish and in the subject's language, make two documents, never one mixed. A glossary, whose
+job is the pair of words, stays one. Terms in the subject's language given beside their Spanish, and
+a problem statement followed by its translation, are not mixing (FR-005, FR-032, FR-035). In a Spanish document, an exercise's solution in the subject's
+language stays as it is, with its meaning beside it.
 
 ## Steps
 
