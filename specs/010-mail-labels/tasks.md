@@ -49,8 +49,8 @@ No setup: no dependency or folder is added.
   apply` with no account of role `mail`, or two, is `invalid_config`; a revoked or missing token exits 2 naming the alias
   and writes nothing; a configured account without both Gmail scopes, and a 403 from Gmail, exit 2 as `missing_scope`
   and write nothing; an error after the first write exits 2 and says to run it again; no output holds the invented
-  address (FR-011, FR-012). US4 scenario 3 (the student's link unaffected) rests on spec 004's per-alias check and
-  separate keychain entries, covered by `tests/test_google_accounts.py`
+  address (FR-011, FR-012); a 401 is `revoked`. US4 scenario 3: a test in `tests/test_google_accounts.py` with two
+  aliases, `student` ok and the `mail` link revoked, where `google account check` reports each on its own
 - [ ] T010 Add the `mail` group with `plan`, `apply` and `build` to `src/alfabeta/__main__.py`; drop the three entries
   from `PLANNED` in `tests/test_cli_naming.py`
 - [ ] T011 Document role `mail` in a comment of `config/template.toml` and its copy

@@ -195,7 +195,7 @@ R3); it must not take the calendar and Drive with it.
 - **FR-011**: No command MUST print, log or write an address of the student or the content of a message. The output
   names labels, subjects and counts.
 - **FR-012**: A link that fails (`revoked`, `expired`, `no_token`) or lacks a scope (`missing_scope`: a configured
-  account without both Gmail scopes of FR-007, or a 401 or 403 the API answers) MUST stop `mail apply` before it writes
+  account without both Gmail scopes of FR-007, or a 403 the API answers; a 401 is `revoked`) MUST stop `mail apply` before it writes
   anything, with exit 2 and the alias to link again. A failure after the first write exits 2 and says to run it again:
   every step is idempotent, so the next run finishes what this one left.
 - **FR-013**: `mail plan` and `mail build` MUST work with no network and no link.
