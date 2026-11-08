@@ -125,9 +125,6 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("classroom", "agent", "install"): "spec 006 FR-015, plan",
     ("classroom", "agent", "uninstall"): "spec 006 FR-015, plan",
     ("exam", "create"): "spec 007 FR-001",
-    ("mail", "plan"): "spec 010 contracts/cli.md",
-    ("mail", "apply"): "spec 010 contracts/cli.md",
-    ("mail", "build"): "spec 010 contracts/cli.md",
 }
 # Options a spec designs on a built command and no code adds yet.
 PLANNED_OPTIONS: dict[tuple[str, ...], set[str]] = {

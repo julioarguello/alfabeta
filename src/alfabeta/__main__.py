@@ -27,6 +27,7 @@ from alfabeta import (
     decisions,
     downloads,
     guardrail,
+    mail,
     mirror,
     plan,
     replicas,
@@ -36,7 +37,7 @@ from alfabeta import (
 )
 from alfabeta.classification import CANDIDATE, Classifier
 from alfabeta.exam import cli as exam_cli
-from alfabeta.google import accounts, calendar
+from alfabeta.google import accounts, calendar, gmail
 from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, cache_path
 from alfabeta.google.keychain import KeychainError, KeychainStore
 from alfabeta.google.notify import MacNotifier, Notifier, signin_needed
@@ -69,6 +70,7 @@ TABLES = {
     "calendar": ("classroom", "calendar", "google"),
     "note": ("google", "drive", "notes"),
     "notebook": ("student", "google", "drive", "notes", "notebook"),
+    "mail": ("student", "classroom", "google", "notebook", "subjects"),
 }
 # `notebook agent` reads only the clone it runs and the refresh interval (spec 005 T046).
 AGENT_TABLES = ("tools", "notebook")
@@ -617,6 +619,80 @@ def _cmd_unlink(args: argparse.Namespace, cfg: config.StudentConfig, store: Keyc
     return EXIT_OK
 
 
+def _mail_plan(cfg: config.StudentConfig) -> mail.MailPlan:
+    return mail.plan(cfg.grade_level, tuple(s.folder for s in cfg.subjects), cfg.notebook_title_pattern)
+
+
+def _mail_account(cfg: config.StudentConfig) -> config.AccountConfig:
+    found = [a for a in cfg.accounts.values() if a.role == "mail"]
+    if len(found) != 1:
+        raise config.ConfigError(f"{len(found)} linked accounts with role 'mail'; spec 010 needs exactly one")
+    return found[0]
+
+
+def _cmd_mail(args: argparse.Namespace, cfg: config.StudentConfig, store: KeychainStore) -> int:
+    """`mail plan|apply|build` (spec 010 contracts/cli.md)."""
+    try:
+        mail_plan = _mail_plan(cfg)
+        if args.verb == "plan":
+            for label in mail_plan.labels:
+                print(f"alfabeta: label {label}", file=sys.stderr)
+            for spec in mail_plan.filters:
+                print(f"alfabeta: filter {spec.subject} -> {spec.label}", file=sys.stderr)
+            filters = [{"subject": f.subject, "label": f.label, "query": f.query} for f in mail_plan.filters]
+            _emit({"ok": True, "labels": list(mail_plan.labels), "filters": filters})
+            return EXIT_OK
+        if args.verb == "build":
+            out = Path(args.out).expanduser()
+            mail.write_import_file(mail_plan, out)
+            print(
+                f"alfabeta: {len(mail_plan.filters)} filters written; labels, if the import leaves them out:",
+                file=sys.stderr,
+            )
+            for label in mail_plan.labels:
+                print(f"alfabeta:   {label}", file=sys.stderr)
+            _emit({"ok": True, "filters": len(mail_plan.filters), "out": str(out)})
+            return EXIT_OK
+    except mail.MailError as err:
+        return _fail(err.reason, EXIT_INVALID, str(err))
+    return _cmd_mail_apply(cfg, store, mail_plan)
+
+
+def _cmd_mail_apply(cfg: config.StudentConfig, store: KeychainStore, mail_plan: mail.MailPlan) -> int:
+    account = _mail_account(cfg)
+    relink = f"link it again: google account link --student {cfg.student} --account {account.alias}"
+    if not set(gmail.SCOPES) <= set(account.scopes):
+        return _fail("missing_scope", EXIT_LINK, f"the mail link '{account.alias}' lacks a Gmail scope; {relink}")
+    transport = UrllibTransport()
+    try:
+        token = accounts.access_token(cfg, account.alias, store, transport)
+        client = gmail.GmailClient(transport, token, frozenset(mail_plan.labels))
+        report = gmail.apply(client, mail_plan)
+    except accounts.LinkError as err:
+        return _fail(err.reason, EXIT_LINK, f"the mail link '{account.alias}' is not usable ({err.reason}); {relink}")
+    except gmail.GmailError as err:
+        if err.status == 401:
+            return _fail("revoked", EXIT_LINK, f"Gmail no longer accepts the mail link '{account.alias}'; {relink}")
+        if err.status == 403:
+            return _fail("missing_scope", EXIT_LINK, f"Gmail refused the mail link '{account.alias}'; {relink}")
+        return _fail(
+            "network", EXIT_LINK, f"Gmail answered {err.status}; labels or filters may be half done, run it again"
+        )
+    except TransportError:
+        return _fail("network", EXIT_LINK, "Gmail could not be reached; run it again")
+    for row in report.labels:
+        print(f"alfabeta: label {row['name']}: {row['status']}", file=sys.stderr)
+    for row in report.filters:
+        print(f"alfabeta: filter {row['subject']}: {row['status']}", file=sys.stderr)
+    for row in report.existing_mail:
+        print(
+            f"alfabeta: {row['subject']}: {row['matched']} notices labelled, {row['in_inbox']} were in the inbox",
+            file=sys.stderr,
+        )
+    _emit({"ok": True, **report.as_json()})
+    return EXIT_OK
+
+
 def _calendar_client(cfg: config.StudentConfig, store: KeychainStore) -> calendar.CalendarClient:
     transport = UrllibTransport()
     token = accounts.access_token(cfg, _student_account(cfg), store, transport)
@@ -813,6 +889,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     signin = notice.add_parser("send-sign-in", help="ask the family to sign in to Classroom; prints the wait")
 
+    mail_group = groups.add_parser("mail", help="the student's mailbox: labels and filters (spec 010)").add_subparsers(
+        dest="verb", required=True
+    )
+    mail_plan = mail_group.add_parser("plan", help="the labels and filters for the notices of shared notebooks")
+    mail_apply = mail_group.add_parser("apply", help="create them in the mailbox of the account with role 'mail'")
+    mail_build = mail_group.add_parser("build", help="write them as Gmail's filter import file")
+    mail_build.add_argument("--out", required=True)
+
     cal = groups.add_parser("calendar", help="the family calendar").add_subparsers(dest="verb", required=True)
     probe_group = cal.add_parser("probe", help="a test event with one reminder at its start").add_subparsers(
         dest="action", required=True
@@ -853,6 +937,9 @@ def build_parser() -> argparse.ArgumentParser:
         exam_prep,
         claude_set,
         signin,
+        mail_plan,
+        mail_apply,
+        mail_build,
     ):
         sub.add_argument("--student", required=True)
     return parser
@@ -915,6 +1002,8 @@ def main(argv: list[str] | None = None) -> int:
             return notes_cli.cmd_notebook_refresh(cfg, store, browser=args.browser)
         if args.group == "notebook":
             return notes_cli.cmd_notebook_setup(cfg, store, args.topic)
+        if args.group == "mail":
+            return _cmd_mail(args, cfg, store)
         if args.group == "google":
             if args.action == "link":
                 return _cmd_link(args, cfg, store)
