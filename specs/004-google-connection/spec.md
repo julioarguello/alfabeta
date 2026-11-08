@@ -159,7 +159,8 @@ run.
 - **Supervision**: if the student's Gmail is supervised with Family Link, Google may ask a parent to
   approve the app; the operator is that parent.
 - **The student changes the Gmail password**: Calendar and Drive authorisations survive it (only
-  Gmail scopes are revoked on a password change, per the same Google docs).
+  Gmail scopes are revoked on a password change, per the same Google docs). That is why spec 010's
+  Gmail access is a link of its own (role `mail`): only that link has to be made again.
 
 ## Requirements *(mandatory)*
 
@@ -189,6 +190,10 @@ run.
   The account with role `family` (spec 006) is asked for Gmail send only, plus `openid` and
   `email`: no Calendar, no Drive and no Gmail read. alfabeta sends from it only spec 006's notices,
   and only to that same account.
+  Spec 010 adds role `mail`: the student's Gmail linked a second time, under its own alias and
+  token, asked for `gmail.settings.basic` and `gmail.modify` plus `openid` and `email`, used only to
+  label the notices of shared notebooks (spec 010 FR-008). It is a separate link because a password
+  change revokes every token that holds a Gmail scope, and Calendar and Drive must survive it.
 - **FR-006**: The school account MUST be refused at linking.
 
 **Where the authorisation lives**
@@ -259,7 +264,7 @@ run.
 ### Key Entities
 
 - **App**: the registered client in the Google Cloud project — audience, publishing status, scopes.
-- **Linked account**: an alias, a role (`student`, or `family` for spec 006's notices), the scopes granted, the date it was linked, and
+- **Linked account**: an alias, a role (`student`, `family` for spec 006's notices, or `mail` for spec 010's labels), the scopes granted, the date it was linked, and
   a keychain entry. Never its address in logs.
 - **Authorisation check**: per run and per account — ok, revoked, expired, or missing a scope.
 - **Upload record**: a file's path in the student's folder, its Drive id, size and checksum, and the
