@@ -133,3 +133,26 @@ def test_unlink_revokes_and_forgets(cfg: config.StudentConfig, store: MemoryStor
 def test_check_without_client_says_so(cfg: config.StudentConfig):
     [status] = accounts.check_accounts(cfg, MemoryStore(), FakeTransport(), TODAY)
     assert status == accounts.AccountStatus("student", "no_client")
+
+
+def test_a_revoked_mail_link_leaves_the_student_link_ok(home: Path, store: MemoryStore):
+    """Spec 010 US4: the Gmail link is its own token; losing it is reported alone (spec 004 FR-013)."""
+    config_file = home / "s9" / "config.toml"
+    config_file.write_text(
+        config_file.read_text()
+        + f'\n[google.accounts.mailbox]\nrole = "mail"\naddress = "{STUDENT_ADDRESS}"\nscopes = ["openid", "email"]\n'
+    )
+    cfg = config.load(home, "s9", ("classroom", "calendar", "google"))
+    store.set("s9/mailbox", "refresco-buzon")
+    store.set("s9/student", "refresco")
+    # Aliases are checked in sorted order: mailbox first, then student.
+    t = FakeTransport(
+        [
+            json_response(400, EXPIRED | {"error_description": "Token has been revoked."}),
+            json_response(200, {"access_token": "a"}),
+        ]
+    )
+    assert accounts.check_accounts(cfg, store, t, TODAY) == [
+        accounts.AccountStatus("mailbox", "revoked"),
+        accounts.AccountStatus("student", "ok"),
+    ]

@@ -129,6 +129,9 @@ project_label = "changeme"
 [google.accounts.changeme]
 # One table per linked account; the alias is the table's name (e.g. [google.accounts.student]),
 # lowercase ASCII, and logs use only the alias.
+# Roles: "student" (Calendar and Drive, these scopes), "family" (spec 006: gmail.send, openid, email) and
+# "mail" (spec 010: the student's Gmail linked again, alone, for the labels of shared notebooks' notices,
+# scopes gmail.settings.basic, gmail.modify, openid and email).
 role = "student"
 # Kept only here to check that linking picked the right account. Never printed.
 address = "changeme@example.com"
