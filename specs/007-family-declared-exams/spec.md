@@ -57,6 +57,12 @@ route for the chat.
 
 ## Clarifications
 
+### Session 2026-11-08
+
+| # | Question | Answer | Applies to |
+|---|---|---|---|
+| Q9 | The family names the topics but says the scope is narrower, «what is in his class notes». What happens to the topics' material the notes never touch? | It goes on the sheets marked DUDOSO, with its source, never left out and never taught as in scope (#213) | FR-027a |
+
 ### Session 2026-11-05
 
 The operator accepted the first draft's proposal for Q1 to Q5 and Q7, changed Q6, and answered Q8. No
@@ -278,6 +284,9 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
 - **No problem photocopies in the notebook** (a subject the teacher does not use Classroom for): the
   problems sheet says so in a sentence and invents no problem. Problems solved in the notes still
   appear, with «Enunciado no disponible» when no source holds their statement (spec 002 FR-034).
+- **The family scopes the exam to the class notes, and a topic holds more**: a Classroom item or a textbook
+  lesson of a topic named that the notes never touch goes on the sheets as DUDOSO, with its source (FR-027a);
+  it is not dropped to fit.
 - **The topics named hold more than the slot allows**: the sheet prints and the command reports its page
   count, as spec 002 FR-031 already does; it is not cut to fit, because no source says what is out.
 - **The family stops declaring and keeps writing by hand**: nothing changes; a hand-written event is
@@ -418,7 +427,7 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   because the subject's most recent topic is a guess at the scope that only an announcement can
   excuse; when the agenda holds no such exam, with `no_exam`. Each message says to name the topics, and
   the notebook is asked for nothing.
-- **FR-027**: With no announcement the scope MUST be the whole of the topics named. Nothing is left out,
+- **FR-027**: With no announcement the scope MUST be the whole of the topics named. Nothing is left out (FR-027a),
   because no source says it is out (spec 002, Clarifications). The theory sheet's sections MUST follow
   the student's scheme, or the order of the sources where the notes hold none (constitution X). The scheme
   leads the structure and the wording, not the facts: a fact in the notes that the photocopies or the book
@@ -430,6 +439,19 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   reach the prompts, which `exam build` reads itself, and the sheet tells the student about each. Both
   sheets MUST say on their first page, in Spanish, that no announcement backs them and the scope is not
   confirmed; no announcement is invented or quoted.
+- **FR-027a**: With no announcement, when the family's words narrow the topics named, for example «what is in
+  his class notes», a part of those topics the notes never touch, a Classroom item or a textbook lesson, MUST be
+  neither left out nor taught as in scope (Q9). The sheets MUST mark each such part DUDOSO, name its source and
+  say the exam may not include it. DUDOSO means the scope is unconfirmed, never optional: the part stays on its
+  nearest branch (constitution X), and it is not FR-049's mark of spec 002, because a Classroom item is a class
+  source. The family's narrower scope is a source for what enters, not for what is out (spec 002, «an exclusion
+  needs a source»). `notebook/bloques.md` lists those parts one line each, with its source and the family's
+  words, under a heading «Dudoso, con su fuente» at the same or a higher level than «Correcciones a los
+  apuntes», never under it, and whose text never holds those words, so no line of it reaches
+  `{notes_corrections}`. `exam build` does not read that heading yet (T031). Until it does, the family may add a
+  subject standing rule (spec 009) naming each part and its source, removed after the exam; or, as the operator
+  ruled on 2026-11-08 (#213), the agent marks the parts on sheets it corrects by hand, marks a new
+  `exam build` would drop.
 - **FR-028**: Preparing an exam MUST NOT declare it: it writes no decision and no agenda entry and owns
   no event. A date only names the printed files and the sheets' day.
 - **FR-028a**: An undated preparation MUST say «sin fecha» where the date would go: the files are
