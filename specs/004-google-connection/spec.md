@@ -150,8 +150,8 @@ run.
   read 2026-10-27). The app MUST be published before the first real link (FR-003).
 - **More than 100 refresh tokens** for one account and one client: Google invalidates the oldest. A
   re-link replaces the stored token, it never adds a second one. Spec 005 adds one more link of the
-  same account for its cloud run, stored only there: two tokens, one per place, each replaced only
-  by a re-link in its own place.
+  same account for its cloud run, stored only there, and spec 010 a third for Gmail (role `mail`):
+  one token per link, each replaced only by a re-link of that link.
 - **The operator's work account changes or leaves the organisation**: the project and every
   authorisation go with it. The run says so as in User Story 4.
 - **An organisation policy in the work account forbids External apps**: the project cannot be
@@ -159,7 +159,8 @@ run.
 - **Supervision**: if the student's Gmail is supervised with Family Link, Google may ask a parent to
   approve the app; the operator is that parent.
 - **The student changes the Gmail password**: Calendar and Drive authorisations survive it (only
-  Gmail scopes are revoked on a password change, per the same Google docs).
+  Gmail scopes are revoked on a password change, per the same Google docs). That is why spec 010's
+  Gmail access is a link of its own (role `mail`): only that link has to be made again.
 
 ## Requirements *(mandatory)*
 
@@ -182,13 +183,18 @@ run.
 - **FR-004**: The accounts linked MUST be listed in the student's private configuration by alias
   and role. The first is the student's personal Gmail, role `student`. The operator's accounts are
   not linked unless a later spec needs them. Spec 006 needs one: a family account, role `family`,
-  linked only to send the family its notices (spec 006 FR-013).
+  linked only to send the family its notices (spec 006 FR-013). Spec 010 links the student's Gmail
+  a second time, role `mail`, only to label the notices of shared notebooks (FR-005).
 - **FR-005**: Each linked account MUST be asked only for the scopes alfabeta uses: Calendar events,
   to create, update and delete events and their reminders as that account; Drive, as FR-009
   decides; and `openid` and `email`, which only identify the account that was linked (FR-006). A scope is added only by a spec that needs it, and adding one means linking again.
   The account with role `family` (spec 006) is asked for Gmail send only, plus `openid` and
   `email`: no Calendar, no Drive and no Gmail read. alfabeta sends from it only spec 006's notices,
   and only to that same account.
+  Spec 010 adds role `mail`: the student's Gmail linked a second time, under its own alias and
+  token, asked for `gmail.settings.basic` and `gmail.modify` plus `openid` and `email`, used only to
+  label the notices of shared notebooks (spec 010 FR-008). It is a separate link because a password
+  change revokes every token that holds a Gmail scope, and Calendar and Drive must survive it.
 - **FR-006**: The school account MUST be refused at linking.
 
 **Where the authorisation lives**
@@ -259,7 +265,7 @@ run.
 ### Key Entities
 
 - **App**: the registered client in the Google Cloud project — audience, publishing status, scopes.
-- **Linked account**: an alias, a role (`student`, or `family` for spec 006's notices), the scopes granted, the date it was linked, and
+- **Linked account**: an alias, a role (`student`, `family` for spec 006's notices, or `mail` for spec 010's labels), the scopes granted, the date it was linked, and
   a keychain entry. Never its address in logs.
 - **Authorisation check**: per run and per account — ok, revoked, expired, or missing a scope.
 - **Upload record**: a file's path in the student's folder, its Drive id, size and checksum, and the
