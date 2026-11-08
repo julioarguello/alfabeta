@@ -102,6 +102,22 @@ def fix_lists(md: str) -> str:
     return "\n".join(out)
 
 
+def fix_rules(md: str) -> str:
+    """A blank line after a `---` rule that has text right under it (#218).
+
+    Pandoc reads such a rule as the start of a YAML block, or of a multiline table when another rule follows,
+    and the sheet does not print. A `---` right under a line of text is a heading's underline and stays.
+    """
+    lines = md.split("\n")
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        out.append(line)
+        is_rule = line.strip() == "---" and (not out[:-1] or not out[-2].strip())
+        if is_rule and i + 1 < len(lines) and lines[i + 1].strip():
+            out.append("")
+    return "\n".join(out)
+
+
 def break_before(md: str, heading: str) -> str:
     """A page break before the first heading whose text is `heading`.
 
@@ -248,7 +264,7 @@ La primera vez, abre tu cuaderno con este enlace. Después aparecerá en tu list
 
 
 def report(args: argparse.Namespace, work: Path) -> None:
-    md = fix_lists(download(args.profile, "report", args.notebook, args.artifact, work).read_text())
+    md = fix_rules(fix_lists(download(args.profile, "report", args.notebook, args.artifact, work).read_text()))
     if args.break_before:
         md = break_before(md, args.break_before)
     render(md, Path(args.out).expanduser(), work)
@@ -294,7 +310,7 @@ def topic(args: argparse.Namespace, work: Path) -> None:
         index.append(f"| ✎ | {name} | en este documento |")
         body += ['<div class="newpage"></div>', "", f"## {name}", ""]
         if kind == "report":
-            body.append(demote(fix_lists(download(args.profile, "report", args.notebook, a["id"], work).read_text())))
+            body.append(demote(fix_rules(fix_lists(download(args.profile, "report", args.notebook, a["id"], work).read_text()))))
         elif kind == "quiz":
             body.append(
                 quiz_md(
