@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -131,6 +132,27 @@ Solución.
 
 | Problema | Impreso | Calculado | Qué pasa |
 """
+
+
+COVER = "Pregunta.\n\n---\n*(Cubre o dobla la hoja por esta línea antes de responder)*\n\nRespuesta.\n\n---\n\nFin.\n"
+
+
+def test_a_rule_with_text_right_under_it_gets_a_blank_line_and_an_underline_does_not():
+    out = load_script().fix_rules(COVER + "\nTítulo\n---\nTexto.\n")
+    assert "\n---\n\n*(Cubre" in out
+    assert out.endswith("\nTítulo\n---\nTexto.\n")
+
+
+@pytest.mark.skipif(shutil.which("pandoc") is None, reason="pandoc is not installed")
+def test_a_rule_followed_by_a_line_of_text_prints_as_a_rule():
+    done = subprocess.run(
+        ["pandoc", "-f", "markdown-fancy_lists+tex_math_dollars", "-t", "html5"],
+        input=load_script().fix_rules(COVER),
+        capture_output=True,
+        text=True,
+    )
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.count("<hr />") == 2 and "<p><em>(Cubre o dobla" in done.stdout
 
 
 def test_the_page_breaks_before_the_solutions_heading_and_not_before_the_table():
