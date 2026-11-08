@@ -8,7 +8,7 @@ an address, a Drive id, a notebook id or an absolute path. It implements spec 00
 
 | Subcommand | Runs on | What it does | Writes to | Output | Codes |
 |---|---|---|---|---|---|
-| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing), the mirrors | JSON `{ok, exam_date, announced, rules:[{sheet, used, fingerprint}], topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook`, `rules_too_long` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
+| `exam build --student <id> --subject <folder> [--exam YYYY-MM-DD \| --undated] [--slot HH:MM-HH:MM] [--topic <folder>]...` | Mac | Asks the exam topic's notebook for the theory sheet and the problems sheet with the fixed prompts, regenerating the study guide first when it predates the class notes, and prints both into the topic's `exam/` folder | the notebook (two reports; the study guide when stale; the start note), the pack record (FR-024), the refresh record of spec 005, the topic's `exam/` folder (created when missing) | JSON `{ok, exam_date, announced, rules:[{sheet, used, fingerprint}], topics:[{topic, guide_regenerated, slot_minutes, pages_allowed, sheets:[{kind, printed, pages}]}]}`, one entry per `--topic` (one without it); `kind` is `theory` or `problems`, `topic` an opaque index, never a name or id | 0 · 1 `notebook_disabled`, `subtopics_unnamed`, `no_exam`, `no_announcement`, `no_notebook`, `rules_too_long` · 3 a step from 5 on failed: a report never completed or did not print, the guide, Drive or a mirror · 5 `nlm` not usable |
 
 **Arguments**:
 
@@ -89,9 +89,8 @@ that fails does not stop the other.
    its folder's name after the date in place of `TNN`, cut so the whole name fits 255 UTF-8 bytes
    with the date kept. The problems sheet gets a page break before its «Soluciones» heading,
    `print_pack.py report --break-before Soluciones`; a sheet with no such heading prints without
-   it, says so on stderr, and the run is not code 3 for it. Then it refreshes
-   the mirrors as the pack's step 9 does; a mirror that fails or is not mounted is counted, stops
-   nothing and makes the run code 3.
+   it, says so on stderr, and the run is not code 3 for it. Nothing is copied to the student's
+   other accounts: they see `exam/` in the shared school-year folder (spec 001 FR-011a).
 9. Counts the theory sheet's pages against `pages_allowed`. A longer sheet is printed and reported
    on stderr; it is not regenerated. Nothing else of either sheet is checked: not its language,
    not its numbers (FR-009, FR-036).

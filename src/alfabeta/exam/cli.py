@@ -17,7 +17,7 @@ import time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from alfabeta import config, decisions, mirror
+from alfabeta import config, decisions
 from alfabeta.exam import prompts
 from alfabeta.exam.drive import DriveLivingNotes
 from alfabeta.exam.nlm import NlmError, NlmNotebook
@@ -69,12 +69,11 @@ def _fail(reason: str, code: int, message: str) -> int:
 
 
 def exam_deps(cfg: config.StudentConfig, store: TokenStore) -> ExamDeps:
-    """The real ports: `nlm`, the student's Drive, `print_pack.py`, rsync, the clock."""
+    """The real ports: `nlm`, the student's Drive, `print_pack.py`, the clock."""
     return ExamDeps(
         notebook=NlmNotebook(cfg.nlm_profile),
         living=DriveLivingNotes(cfg, store),
         printer=PrintPack(cfg.nlm_profile),
-        mirrors=lambda: len(mirror.sync(cfg.base, cfg.mirrors)["failed"]),
         sleep=time.sleep,
         now=lambda: dt.datetime.now(MADRID),
     )

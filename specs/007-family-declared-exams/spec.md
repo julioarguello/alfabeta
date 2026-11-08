@@ -520,7 +520,7 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
 - The 14 days of FR-012 are not measured (Q3): only long enough to catch a moved exam without warning
   about next month's exam.
 - A cloud run reads the same decisions as the Mac, so a declared exam reaches its agenda as a correction
-  does today. Whichever spec builds a cloud rebuild of the agenda also records matches (FR-011). Drive and the mirrors receive `agenda.md` with the next run that uploads, not at once.
+  does today. Whichever spec builds a cloud rebuild of the agenda also records matches (FR-011). Drive, and with it every account the school-year folder is shared with, receives `agenda.md` with the next run that uploads, not at once.
 - `exam create` names a noun and a verb the vocabulary already has (`.claude/rules/cli-naming.md`):
   `create` is "make one object". The `exam` group's meaning widens from the sheets to the exam. It is
   not a `create-exam` leaf of the `decision` group, because a noun with two verbs may not join them as

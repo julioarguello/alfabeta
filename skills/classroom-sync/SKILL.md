@@ -149,9 +149,11 @@ Below, `alfabeta <command>` stands for that line.
 11. **Apply.** `alfabeta classroom apply` (with the same `--subject`). `classroom apply` finds what
     was collected through the current `plan.json`, so when subjects go one at a time, plan, download
     and apply each before planning the next. On a subject's first run, apply once more: it must
-    report `added` 0 and `changed` 0. Every apply ends by copying the master into each folder of
-    `drive.mirrors` (FR-011a): the summary says «espejos al día: N, fallidos: M», and a failed mirror
-    stops nothing; `alfabeta drive sync-mirrors` alone repairs one once it is mounted again. Every
+    report `added` 0 and `changed` 0. Every apply ends by making sure each account of
+    `drive.share_with` can edit the school-year folder (FR-011a): the summary says «carpeta del curso
+    compartida con N cuenta(s), fallidas: M», and a failed share stops nothing; `alfabeta drive
+    share` alone repairs one (a `refused` account's domain takes no outside shares: tell the family,
+    never retry in a loop). Nothing is copied to another account's Drive. Every
     apply also rewrites the school year's `agenda.md` and `agenda.json` if they changed; after a
     correction alone, `alfabeta agenda build`, inside a run (`lock take`), does the same without
     applying. Then `alfabeta lock release`.

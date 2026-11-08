@@ -83,7 +83,7 @@ constitution 2.6.0, amended by the spec.
 | IV. Read-only on the school's platforms | The guard of research R4 in the browser before any page script: presses cancelled, document loads and calls allowlisted by name, form hosts blocked; the allowlist from read-only loads only (R3), and no write is sent to test it; a challenge stops the run; no stealth flags, no proxy: only the keychain flags Chrome needs to read its own cookies are changed | Pass, conditional on S8 (if reads cannot be told from writes by name, the read is not built) |
 | V. Idempotent, incremental | Captures keep today's ids (base64 of the decimal id, R7); apply unchanged; an unchanged item's materials are copied from the last capture, and a periodic full read asks again (R1) | Pass |
 | VI. One isolated, tested provider | The read is a second capture route of the Classroom provider behind the same capture contract; one class's failure stops only that class (FR-008); tests against fake answers and a fake Classroom, never the real one | Pass |
-| VII. Outputs degrade on their own | A failed email does not stop the read; a failed read applies what it read (`partial`); the mirrors and the agenda as today | Pass |
+| VII. Outputs degrade on their own | A failed email does not stop the read; a failed read applies what it read (`partial`); the shares and the agenda as today | Pass |
 | VIII. `Europe/Madrid` | Instants converted with `zoneinfo`; a due date without time stays a date (R7); the schedule's times are local | Pass |
 | IX. Simplicity | On the Mac; one new runtime dependency, justified below; no database, no server, no third party | Pass, with the exceptions in Complexity Tracking |
 
@@ -163,7 +163,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 4. `classroom capture`: the guarded read (R1, R3, R4, R7, R8), class by class, each class's capture
    written when it ends; the session dies → the classes read are kept (`partial`, FR-009); a
    challenge → stop `challenge`.
-5. `classroom plan` and `classroom apply` (spec 001), which apply, bring the mirrors up to date and
+5. `classroom plan` and `classroom apply` (spec 001), which apply, check the shares and
    regenerate the agenda; judgement left pending (FR-007).
 6. Result email (FR-014), one log line (FR-020), release the locks.
 

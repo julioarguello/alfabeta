@@ -13,18 +13,18 @@ repo's `config/template.toml`; ignore its `rules_*` keys, spec 009 FR-013), then
 `uv run --project <tools.repository> python -m alfabeta config check --student <student>`. If it fails, say which
 keys and stop. Never create the configuration or write to it. It provides:
 `student.display_name`, `student.grade_level`, `student.school_year`, `storage.base` (the master folder),
-`drive.mirrors` (list), `tools.folder` (`$H`), `tools.repository` (the clone), `downloads.folder`, the `[[subjects]]`
+`drive.share_with` (list), `tools.folder` (`$H`), `tools.repository` (the clone), `downloads.folder`, the `[[subjects]]`
 with `book = "sciencebits"` (`folder` is the subject's short name, `book_class` its class in Science Bits),
 `sciencebits.url`, `sciencebits.languages` (the first one gives the topic folder's title), `notebook.enabled`,
 `notebook.title_pattern`, `notebook.nlm_profile` and `notebook.share_with` (list).
-The lists may be `[]`. Never print a mirror's path or a `share_with` address: say "mirror 2" or "2 accounts" (the
-paths carry the account's email).
+The lists may be `[]`. Never print a `share_with` address or the absolute path of `storage.base`: say "2 accounts"
+(the Drive for desktop path carries the account's email).
 
 Result per topic:
 - `TemaNN_<LANG>.pdf` and `.md` in the topic folder's `sciencebits/` (see Names). Each PDF: cover, clickable table
   of contents (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content)
   and the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
-- The same files in every folder of `drive.mirrors`, one-way copies of `storage.base`.
+- Nothing copied to other accounts: those in `drive.share_with` see the files in the shared school-year folder.
 - If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, each once, shared as viewer with
   every account in `notebook.share_with`, and its link in the topic folder's `notebook/«Abrir el cuaderno.pdf»`
   (spec 002 FR-047).
@@ -163,10 +163,9 @@ nothing, and the collector would then go on copying the next unit's zips.
    renew` between these steps.
 8. **Place.** `alfabeta book place --student <student> --subject <subject> --topic "Tema NN - <title>" --origin
    "$WORK/out"` copies `out/` into the topic folder's `sciencebits/` (see Names), keeping a changed file's previous
-   version, brings the mirrors up to date and writes its line in the run log; what it does and refuses is its row in
+   version, and writes its line in the run log; what it does and refuses is its row in
    the repository's `specs/001-classroom-sync/contracts/cli.md`. From its JSON keep the `topic_folder` (relative to
-   `storage.base`; `folder` is the `sciencebits/` inside it), the files it `placed` (step 9 needs them) and `mirrors`
-   (`up_to_date`, `failed`: a mirror that is not mounted or fails is caught up by the next run). If it exits 1, restore
+   `storage.base`; `folder` is the `sciencebits/` inside it) and the files it `placed` (step 9 needs them). If it exits 1, restore
    the window's size, close the run's tab and say what happened; then end with `alfabeta log write-stop --reason drive_not_mounted` (or
    `lock_not_held`) for those two reasons, and with `alfabeta lock release` for the others: `ambiguous_topic` (two
    folders of the subject are topic `Tema NN`: the family merges them, never you), `no_book` (no `[[subjects]]` entry
@@ -206,9 +205,7 @@ nothing, and the collector would then go on copying the next unit's zips.
      needs no default profile). Run it on every run that finds the notebook shared with an account of
      `notebook.share_with`, now or before: it writes the page only when absent or carrying another link. If it
      fails, the notebook stays; the summary says the notebook's link was not left in the folder, and the next run
-     leaves it. Step 8 already refreshed the
-     mirrors, so refresh each mounted one again as the study pack's step 9 does (`rsync -rlt --exclude .DS_Store
-     "<storage.base>/" "<mirror>/"`, never `--delete`; one not mounted is skipped and reported by count).
+     leaves it. The other accounts see the page through the shared school-year folder; nothing is copied.
    - Test: `nlm notebook query <id> "<short question>"`.
    - `alfabeta log write-notebook --student <student> --topic "Tema NN - <title>" --result created|unchanged --shares
      <invited>,<already>,<failed>`: `unchanged` when the notebook already existed and no source was added or
@@ -220,7 +217,7 @@ nothing, and the collector would then go on copying the next unit's zips.
      What step 8 placed stays as it is.
 10. **Close.** Move every `sb_*.zip` from `downloads.folder` to
     `<downloads.folder>/alfabeta_work/collected-<YYYYMMDDHHMMSS>/`, never delete them; `resize_window` back to the size step 5 kept, close
-    the run's tab, `alfabeta lock release`, and summarise per unit: folder, mirrors up to date and failed (by count), notebook link, accounts it is
+    the run's tab, `alfabeta lock release`, and summarise per unit: folder, notebook link, accounts it is
     shared with (by count) and any failed invite, whether the link page was left in `notebook/`, screens per language
     and what was left out: per language, the hidden lessons, and the languages and units the teacher does not show.
 

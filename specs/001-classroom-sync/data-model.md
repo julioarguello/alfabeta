@@ -55,7 +55,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `classroom.account` | email address | Compared locally with the account button; never goes in a URL |
 | `storage.base` | path | The student's base folder on the Mac, the master; must exist and stay outside the Google Drive for desktop mount (spec 004 R7); never shown |
 | `drive.root` | text | The alfabeta folder's path inside the student's My Drive (spec 004); never the root of «Mi unidad» (My Drive) |
-| `drive.mirrors` | list of paths | One-way mirrors of the base folder in the student's other accounts' mounted Drives (FR-011a); may be empty; none may be inside the base folder, contain it, or be the root of «Mi unidad»; never shown |
+| `drive.share_with` | list of addresses | The student's other accounts, each given editor access to the school-year folder inside `drive.root` (FR-011a); may be empty; each must be an address; never shown |
 | `calendar.shared_with` | list of email addresses | Accounts the calendar is shared with, each with permission to see all event details (FR-011b); may be empty; never goes in a URL or the log |
 | `downloads.folder` | path | Where Chrome leaves its downloads |
 | `sync.full_review_days` | integer ≥ 1 | Every how many days all attachments are downloaded again |
@@ -73,7 +73,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `runner.enabled` | boolean | Whether the unattended runner reads this student's pending work (User Story 7); `false` leaves FR-006 and FR-021a unchanged. A local pointer so the Mac finds the job; the job gets its project and secret names from its environment, not this file. These `[runner]` keys are added to the config contract and the template by T087 when User Story 7 is built; they are not in the template yet, so an existing config is unaffected |
 | `runner.route` | `token` · `web` · empty | The route the spike settled (FR-032a, FR-032b); `""` when disabled |
 | `runner.session_secret` | text | Base name of the student's vault secrets; the runner derives one entry per purpose (FR-033a: the token or stored session, `-password`, `-totp`, `-drive`); never a value; `""` when disabled |
-| `runner.state_folder` | text | Name of the state folder inside the alfabeta Drive folder that holds the single data home (FR-035; constitution II/VII — in Drive, not a separate store, never mirrored); `""` when disabled |
+| `runner.state_folder` | text | Name of the state folder inside the alfabeta Drive folder that holds the single data home (FR-035; constitution II/VII — in Drive, not a separate store, never shared with another account); `""` when disabled |
 | `runner.page_timeout_seconds` / `runner.run_timeout_seconds` | integer ≥ 1 | Per-page and whole-run time limits (FR-037); the job timeout is set above `run_timeout_seconds` |
 | `runner.challenge_cooldown_minutes` | integer ≥ 1 | After a `challenge`, how long before a run reaches Classroom again; the run records a `cooldown_until` in the data home (FR-037) |
 
@@ -234,10 +234,10 @@ same reason and the same version ends 0 without reaching Classroom and without a
 stopped run stores no new version, FR-037) and `blocked` (the count of page loads, presses and
 requests the web-route guard blocked, FR-038; absent on the token route). Each line carries the
 `run` of its lock. The `classroom apply` line also carries
-`mirrors`: `{up_to_date, failed}`, counts of the configured mirrors (FR-011a), never their paths.
+`shares`: `{shared, failed}`, counts of the accounts of `drive.share_with` (FR-011a), never their addresses. `drive share` writes its own line: `type: shares`, `at`, `run`, `result` (`ok` · `failed`) and `shares`.
 `book place` writes a shorter
-line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`) and `mirrors`;
-a placement cut short by a write error has `result: failed`, `reason: write_failed` and `placed` (how many files it copied) instead of `mirrors`.
+line: `type: book`, `at`, `run`, `source`, `subject`, `topic`, `result` (`placed` · `unchanged`);
+a placement cut short by a write error has `result: failed`, `reason: write_failed` and `placed` (how many files it copied).
 `log write-notebook` writes another: `type: notebook`, `at`, `run`, `topic` and `result` (`created` ·
 `unchanged` · `failed` · `disabled`), with `reason` if it fails (short text, without student data), and
 `shares`: `{invited, already, failed}`, counts of the accounts in `notebook.share_with` (FR-011b),

@@ -21,7 +21,6 @@ fails, say which keys and stop. Never create the configuration or write to it.
 |---|---|
 | `student.grade_level`, `student.school_year` | prompts and names; the topic folder's first level |
 | `storage.base` | the topic folder |
-| `drive.mirrors` | the folders refreshed after the videos are copied (step 9); never shown, only counted |
 | `tools.repository` | the clone every command and script runs from |
 | `[[subjects]]` `folder`, `language` | the subject's folder, and the language it is taught and examined in (`es`, `en`…) |
 | `rules_both`, `rules_problems`, `rules_theory`, in `[student]` and in the subject's `[[subjects]]` | the family's standing rules (below); never shown |
@@ -45,7 +44,7 @@ email or an id into the repository.
 The family's standing rules (spec 009) are the `rules_*` keys of the table above: what they said once about
 the student and about the subject, so that nobody repeats it. `""` means none. Read them each run, before
 the prompts and the judgement steps, and copy them nowhere: not into `bloques.md`, not into any file of the
-topic's folder, which mirrors to other Drives.
+topic's folder, which other accounts can open (`drive.share_with`).
 
 | Piece | Takes |
 |---|---|
@@ -246,9 +245,8 @@ language stays as it is, with its meaning beside it.
    (`nlm studio rename <id> "<title>"`). A rename to the same title does not move an item: send a
    temporary title first.
 9. **Copy every video to the topic's `notebook/`** (`nlm download video <nb> --id <id> -o "<topic
-   folder>/notebook/<title>.mp4"`), then refresh each folder of `drive.mirrors` from the master
-   (`rsync -rlt --exclude .DS_Store "<storage.base>/" "<mirror>/"`, never `--delete`; a mirror that
-   fails is counted and stops nothing): a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam build`
+   folder>/notebook/<title>.mp4"`); the student's other accounts see them in the shared school-year
+   folder, with no copy: a viewer may not see the videos in the notebook (table below). **No separate start note**: the study guide is piece `0` (the operator, 2026-10-29); `exam build`
    writes its own note under its moment, `EXAMEN <weekday> · Empieza aquí`. **Configure the tutor chat**
    ([`prompts.md`](prompts.md)).
 9b. **Generate the study guide** («Study guide — 0» in [`prompts.md`](prompts.md)) now that the
@@ -327,7 +325,7 @@ no agent: `nlm report create <nb> --format "Create Your Own" --language es --pro
 `print-report.sh` (step 6) under its path, adding `--break-before Soluciones` for the problems
 sheet; `print-report.sh` creates the topic's `exam/` folder when it is missing. That path skips
 what the command adds: reading the notes source again, regenerating a stale guide, the titles, the
-start note, the pack record, the page count and the mirrors (refresh them as step 9 says).
+start note, the pack record and the page count.
 
 How it was first done, as observed 2026-10-28 on one exam of one topic: an agent wrote both sheets from the
 topic folder, every result computed by a script it wrote, and the family then decided that

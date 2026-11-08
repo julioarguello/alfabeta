@@ -707,7 +707,7 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
 - **Decision**: with the runner enabled, the student's data home is a state folder inside the
   alfabeta folder of the student's Drive (constitution II and VII, as spec 005 sets for a cloud run),
   reached through spec 004's Google connection over the Drive REST API with the standard library. It
-  is a hidden subfolder of `drive.root` that no mirror receives (VII). The runner works on a local
+  is a hidden subfolder of `drive.root` that is never shared with another account (VII). The runner works on a local
   copy under `--home` and writes changed files back, so the commands do not change. The Mac holds no
   second copy that can be written.
 - **Lock**: `fcntl.flock` does not work over Drive, so the student's lock becomes the lease of R6: a

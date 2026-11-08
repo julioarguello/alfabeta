@@ -73,9 +73,9 @@ year.
 | II. Three layers that never mix | `config/template.toml` in the repo; `config.toml` outside it; decisions, state and other data in `data/`; keys validated against the template; guardrail in pre-commit and CI with a self-test | Pass |
 | III. Minors' data | Nothing personal in URLs (the account is located by its `/u/<n>` index, comparing the email locally), in the log (opaque ids, relative paths, never the absolute path of the root) or in the repository: test pages are synthetic (only the structure of the real ones; every text and attribute invented). Classmates' comments and names are not stored. The student's grades, gradings and submissions are stored because they are study material, and they go to a family folder, not to third parties | Pass |
 | IV. Read-only on the school's platforms | The extractor only reads the DOM; it navigates only to the home page, «Trabajo de clase» (Classwork), the stream and the detail page; it never follows forms or quizzes and never clicks the «Tu trabajo» (Your work) panel (a `jsdom` test checks this); it detects anti-bot challenges and stops; at least 2 s between pages. Reading a question's detail page is not opening a quiz: opening one means answering it or following its form, and S3 checks that reading it changes nothing (if it did, questions are read from the listing only) | Pass |
-| V. Idempotent, incremental sync | Classroom identifier per item, hash per replica, comparison before writing (the agenda too, which does not depend on the day), previous versions kept, nothing deleted (the mirrors are never pruned: `rsync` without `--delete`, which writes nothing to a mirror already up to date), a per-student lock and a lock on the Mac's browser with `fcntl.flock` for the whole run, renewed at every step and released only on idle. A run's captures, plan and log line are its own record (the exception V allows); state and decisions are not rewritten unless they change, and the date of the last full review is taken from the log, not from the state | Pass |
+| V. Idempotent, incremental sync | Classroom identifier per item, hash per replica, comparison before writing (the agenda too, which does not depend on the day), previous versions kept, nothing deleted (a share is never removed, and an account that can already edit the school-year folder gets no request), a per-student lock and a lock on the Mac's browser with `fcntl.flock` for the whole run, renewed at every step and released only on idle. A run's captures, plan and log line are its own record (the exception V allows); state and decisions are not rewritten unless they change, and the date of the last full review is taken from the log, not from the state | Pass |
 | VI. One source, one isolated and tested provider | A shared `Source` port: `ClassroomSource` (captures) and `BookSource` (a book provider's directory); the subfolder comes from the source's name; adding another book touches neither `placement` nor `replicas`. Classroom extractor tested with `jsdom` on synthetic pages and the logic with `pytest`. Recorded exception: Science Bits' existing extractors remain untested (Complexity Tracking) | Pass with recorded exception |
-| VII. Every output is optional and degrades on its own | The Drive folder is the base output and the master of its mirrors; a mirror that fails is counted in the summary and the log and stops neither the master nor the other mirrors (FR-011a). The calendar is left for epic 2, with its `shared_with` list already in the template (FR-011b). The Science Bits notebook stays as it is today (enabled or not by configuration), and its result, a failure included, is logged with `log write-notebook`; if it fails, what was placed in the Drive is not touched | Pass |
+| VII. Every output is optional and degrades on its own | The Drive folder is the base output, shared with the student's other accounts as editors of its school-year folder; an account whose share fails is counted in the summary and the log and stops neither the master nor the other accounts (FR-011a). The calendar is left for epic 2, with its `shared_with` list already in the template (FR-011b). The Science Bits notebook stays as it is today (enabled or not by configuration), and its result, a failure included, is logged with `log write-notebook`; if it fails, what was placed in the Drive is not touched | Pass |
 | VIII. Local time, always `Europe/Madrid` | A single date resolver with `zoneinfo`; year inferred from the school year; tests across clock changes and year changes | Pass |
 | IX. Simplicity | No runtime dependencies (runtime capture validation checks keys by hand); files instead of a database; `jsonschema`, Node and `jsdom` only in development (see Complexity Tracking); `uv`, already adopted for the environment, only prepares the environment and launches the command on the Mac, with no new libraries | Pass with justification |
 
@@ -92,7 +92,7 @@ as above:
 | III. Minors' data | The family signs in by hand once; no password is typed by Claude; the secret is the minimum for the route; it never reaches a log, an error, Claude's context or a URL; the notice names the opaque `id`. III (2.0.0) permits a vault and a scripted sign-in under limits, which this meets (FR-033). The risks (first-party impersonation for the token route, a scripted sign-in on a minor's account for the web route, and the administrators' access) are named for the family to accept (research R15, R17) | Pass (III amended, risks named) |
 | IV. Read-only on the school's platforms | Token route: read-only scope only, and IV (2.0.0) permits this first-party token read with no OAuth client of ours, to be proven by S4 (S4 measured 2026-10-31: not built — research R15). Web route: a browser-level guard, installed before any page script, cancels presses and blocks loads and form requests outside the exact allowlist, so the page's own `extract.js` cannot press (research R18), tested offline; a sign-in page runs only the permitted scripted sign-in, a challenge a human would clear stops the run; no proxy, no fingerprint change, no second address after a challenge. The web guard's background-call allowlist depends on S6 | Pass (token read under IV's 2.0.0 exception; web route conditional on S6) |
 | V. Idempotent, incremental sync | Same command and state on the single data home (FR-035); the lock is a lease in the Drive state folder (research R19); a read that is not complete marks nothing done or withdrawn; a no-change run writes no secret version and no agenda (FR-025) | Pass |
-| VII. Every output is optional and degrades on its own | The runner writes no replica and skips the master and mirrors (FR-036); the agenda goes straight to Drive through spec 004's connection and counts only when Drive confirms it; a failed Drive write stops the run `drive_write_failed` and the next run retries | Pass |
+| VII. Every output is optional and degrades on its own | The runner writes no replica and skips the master and the shares (FR-036); the agenda goes straight to Drive through spec 004's connection and counts only when Drive confirms it; a failed Drive write stops the run `drive_write_failed` and the next run retries | Pass |
 | VIII. Local time | Each detail page carries its own `seen_at` (research R5), used for the date and for the overdue decision; the job's time zone is irrelevant because every instant is stored with its offset and resolved in `Europe/Madrid` | Pass |
 | IX. Simplicity | The job is the measured need of 2.0.0 (the second named need after spec 005): it starts, reads and ends, in the operator's Google Cloud project for alfabeta, with no server of ours left running; Playwright (web route only) is the one new dependency, in the runner's image only (Complexity Tracking) | Pass with justification |
 
@@ -229,9 +229,9 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 6. Claude downloads each requested attachment (the method from spike S1), in the plan's batches and
    with at least 2 s between downloads; `download collect` after each batch verifies them.
 7. `classroom apply --student <id>`: recomputes the targets with the decisions in force, places replicas,
-   updates state and log, regenerates the agenda if it changes, brings each mirror up to date
-   from the root (`rsync -rlt --exclude .DS_Store <root>/ <mirror>/`, no `--delete`; FR-011a) and
-   prints the summary for the family, mirrors included by count. `lock release` at the end; if the run dies, the lock is released on idle.
+   updates state and log, regenerates the agenda if it changes, makes sure each account of
+   `drive.share_with` can edit the school-year folder (FR-011a) and prints the summary for the
+   family, shares included by count. `lock release` at the end; if the run dies, the lock is released on idle.
 
 ### Unattended run (User Story 7)
 
@@ -253,7 +253,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
      `challenge`; missing labels, `unexpected_ui`; a page past its limit, `timeout`. The capture
      lands in `captures/`.
 4. `classroom plan` and `classroom apply` (unattended, from the lock) run with `--home` on the pulled-down copy of the Drive state folder, with nothing to download,
-   no replica, and no master or mirror write (H1); `classroom apply` regenerates the agenda and uploads it
+   no replica, and no master or share write (H1); `classroom apply` regenerates the agenda and uploads it
    through spec 004's connection with the credential of FR-033a, confirmed by Drive, and only if its
    hash changed (FR-036).
 5. It stores the renewed secret as a new version only if it changed, destroys the older ones,
@@ -266,7 +266,7 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 
 - The skill reads `~/.alfabeta/<student>/config.toml` instead of `~/.alfabeta/config.json`:
   `[[subjects]]` with `book = "sciencebits"` and `book_class`, the school year from `[student]`,
-  `[sciencebits] url`, `[tools] folder` (instead of the tools folder in Dropbox), `[drive] mirrors`
+  `[sciencebits] url`, `[tools] folder` (instead of the tools folder in Dropbox), `[drive] share_with`
   (instead of `storage.mirrors`) and `[notebook]` (instead of `notebook.*`, `share_with` included). No key outside the template, and the skill never writes to the
   configuration: if it is missing or invalid, `config check` and stop.
 - It takes the student's and the browser's lock (`lock take --mode interactive`, or `scheduled` if a
@@ -278,8 +278,8 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
 - Its result (`TemaNN_<LANG>.pdf` and `.md`) is still generated as today in the working folder under
   Downloads, and `book place` moves it through `BookSource` to
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN - title>/<book>/` inside the Drive root (the subfolder is
-  the value of `book`), with the same hash and previous-version rules as Classroom, and then brings the
-  mirrors up to date as `classroom apply` does. It reuses the
+  the value of `book`), with the same hash and previous-version rules as Classroom; the other accounts see it through the
+  shared school-year folder. It reuses the
   existing folder named `Tema NN - <title>` after its date, whatever the date and the title (of two,
   the one already holding `<book>/`); only if there is none does it create one dated today.
 - It neither reads nor writes Dropbox; what was captured there before stays as it is.

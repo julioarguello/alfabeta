@@ -111,4 +111,4 @@ Spanish text; no name, address or Classroom title (SC-006). Sent from the accoun
 | scheduler | `Scheduler` | launchd |
 | remote view | `RemoteView` | Chrome Remote Desktop |
 | local notification | `Notifier` | macOS |
-| mirrors | spec 001's mirror step | Google Drive for desktop |
+| shares | spec 001's share step (FR-011a) | the Drive API, through alfabeta's own connection |

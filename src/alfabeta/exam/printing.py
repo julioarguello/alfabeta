@@ -1,9 +1,8 @@
-"""Printing the exam sheets with the study pack's printer, and refreshing the mirrors (step 8).
+"""Printing the exam sheets with the study pack's printer (step 8).
 
 `print_pack.py report` downloads one report and prints it to A4 PDF; it runs with this interpreter,
-which has alfabeta installed, and reads the profile it is given. The mirrors are refreshed as the
-pack's step 9 does: `rsync -rlt --exclude .DS_Store <base>/ <mirror>/`, never `--delete`. A mirror
-that is not mounted is not written to: rsync would create the folder on the Mac's own disk.
+which has alfabeta installed, and reads the profile it is given. The student's other accounts see the
+sheets through the shared school-year folder (spec 001 FR-011a): nothing is copied to them.
 """
 
 from __future__ import annotations

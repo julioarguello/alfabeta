@@ -71,7 +71,7 @@ constitution 1.6.0, amended in this pull request.
 | IV. Read-only on school platforms | Nothing here reads or writes Classroom; it reads what classroom-sync put into Drive | Pass |
 | V. Idempotent, incremental | Records keyed by Drive id and checksum; cursor saved last; deterministic rebuilds compared by checksum before upload; nothing deleted, a vanished photo is reported | Pass |
 | VI. One isolated, tested provider | Drive behind spec 004's adapter, Claude behind one `Transcriber` port, `nlm` behind one `NotebookSources` port; each with recorded or fake responses | Pass |
-| VII. Outputs degrade on their own (1.6.0) | A spent budget stops transcription only; a missing setup stops only that topic's notebook; the master receives everything Drive holds under a topic folder, the family's files and the cloud's, so the mirrors do too; state and reports stay in Drive | Pass |
+| VII. Outputs degrade on their own (1.6.0) | A spent budget stops transcription only; a missing setup stops only that topic's notebook; the master receives everything Drive holds under a topic folder, the family's files and the cloud's, so the shared school-year folder holds them too; state and reports stay in Drive | Pass |
 | VIII. `Europe/Madrid` | The schedule and the report's times are in `Europe/Madrid` | Pass |
 | IX. Simplicity | The cloud part is the need spec 005 names (1.6.0); one job, one schedule, no store beyond Drive; two dependencies justified | Pass, with the exceptions in Complexity Tracking |
 
