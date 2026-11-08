@@ -161,7 +161,9 @@ language stays as it is, with its meaning beside it.
      what a source says is out of the exam — the announcement, the teacher — each with that source
      named in `bloques.md`. A textbook lesson, a notes page or a Classroom item is never an entry
      because the handouts do not practise it: the sheets say what the teacher stresses, not what
-     the exam leaves out.
+     the exam leaves out. When the family narrows the scope, «what is in his class notes», the
+     topic's material the notes never touch is not out either: in the pack it stays a block, with
+     no exclusion; only the exam sheets mark it DUDOSO (spec 007 FR-027a).
    - **The notes' schemes are the skeleton** (constitution X, spec 002 FR-038). Before anything
      else, list every scheme in the notes — a tree, a concept map, a chain of arrows, a labelled
      drawing — with its page. When there is one, the blocks are its branches, in its order and
@@ -307,7 +309,14 @@ two sheets and an equal part of the slot, with the prompts «… for an exam wit
 the whole of those topics and say no announcement backs them; with no date, the files and the sheets say
 `sin fecha`. It takes a topic's corrections from «Correcciones a los apuntes» in `notebook/bloques.md`
 by itself, so keep one entry per line under that markdown heading (`##`, `###`…), and when the family decides a question against the
-notes, move its line there, with the answer (spec 002 FR-046). Tell the family to read the sheet's last part,
+notes, move its line there, with the answer (spec 002 FR-046). When the family says the scope is narrower
+than the topics, «what is in his class notes», list each Classroom item or textbook lesson the notes never touch
+under «Dudoso, con su fuente» in `bloques.md`, one line each with its source and the family's words: a heading
+at the same or a higher level than «Correcciones a los apuntes», never under it, and whose text never holds those
+words, so it never reaches the sheets as a correction. DUDOSO means the scope is unconfirmed, never optional.
+`exam build` does not read that heading yet (spec 007 FR-027a, T031): until it does, ask the family for a subject
+standing rule naming each part and its source, to remove after the exam; it reaches every piece of the subject
+made while it stands. Tell the family to read the sheet's last part,
 «Para la familia». The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036). It does not judge the printed answers: when
 you recompute one and find it wrong, and the family wants it on the sheet, it goes in as a standing rule.

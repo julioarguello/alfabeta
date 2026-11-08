@@ -39,6 +39,8 @@ T009.
 - [x] T008 [US5] Mutation: in a copy-backed edit, make `find_exam` proceed with no `--topic`. T001's refusal test fails; restore from the copy. Record it in the pull request.
 - [ ] T009 [US5] Family step, quickstart step 1: first move any ruling already recorded under «Preguntas sobre los apuntes» in that topic's `bloques.md` to «Correcciones a los apuntes» (spec 002 FR-046). Then the first real run with no announcement. Record in the slice's issue only counts: branches with a section out of top-level branches, whether both first pages carry the sentence, whether a correction in `bloques.md` is taught and flagged, also where the notes insist or the sources are silent, whether a branch no source explains is in «Para la familia», and whether the problems sheet holds only the sources' problems (SC-010). No title or date.
 
+- [ ] T031 [US5] Build FR-027a, in its own issue and pull request: `exam build` reads «Dudoso, con su fuente» from each topic's `notebook/bloques.md`, one line per part, and both no-announcement prompts mark those parts DUDOSO with their source and say the exam may not include them; with no such heading the prompts read as before. `notes_corrections` in `src/alfabeta/exam/prep.py` closes a section on that heading as it does on «Preguntas sobre los apuntes», at any level. Tests first in `tests/test_exam_prep.py` with invented data, nested headings included; the new placeholder gets its row in the placeholder table of `skills/study-pack/prompts.md`, and the pinned hash of the announced texts stays unchanged. A warning names the folder, never a line. Until it is built, FR-027a's interim route stands (`skills/study-pack/SKILL.md`).
+
 **Checkpoint**: both sheets for any exam, from one command.
 
 ---
@@ -108,7 +110,7 @@ T009.
 
 ## Dependencies
 
-- Slice 1 (T001–T009) depends on nothing. T009 needs a real notebook and the family.
+- Slice 1 (T001–T009) depends on nothing. T009 needs a real notebook and the family. T031, its own issue and pull request, needs T003 to T006; slice 2 does not wait for it.
 - Slice 2 (T010–T026): US1 first; US2 and US3 need US1. T021 assumes slice 1's refusals, so slice 2 follows slice 1.
 - Slice 3 (T027–T030): after slice 2 and julioarguello/alfabeta#136.
 
@@ -123,4 +125,4 @@ T009.
 Slice 1 alone is the first deliverable: it needs no other change, and it gives the family both sheets for an exam
 that reached them on paper. Slice 2 gives them the agenda and is useful with no calendar. Slice 3 waits for the writer.
 
-Task counts: US5 9 · US1 7 · US2 2 · US3 8 · US4 4. Total 30.
+Task counts: US5 10 · US1 7 · US2 2 · US3 8 · US4 4. Total 31.
