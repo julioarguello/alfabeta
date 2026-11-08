@@ -300,10 +300,11 @@ by itself, so keep one entry per line under that markdown heading (`##`, `###`�
 notes, move its line there, with the answer (spec 002 FR-046). When the family says the scope is narrower
 than the topics, «what is in his class notes», list each Classroom item or textbook lesson the notes never touch
 under «Dudoso, con su fuente» in `bloques.md`, one line each with its source and the family's words: a heading
-at the same or a higher level than «Correcciones a los apuntes», never under it, so it never reaches the sheets
-as a correction. DUDOSO means the scope is unconfirmed, never optional. `exam build` does not read that heading
-yet (spec 007 FR-027a, T031): until it does, ask the family for a subject standing rule naming each part, or
-mark the parts on sheets you correct by hand, which a new `exam build` drops. Tell the family to read the sheet's last part,
+at the same or a higher level than «Correcciones a los apuntes», never under it, and whose text never holds those
+words, so it never reaches the sheets as a correction. DUDOSO means the scope is unconfirmed, never optional.
+`exam build` does not read that heading yet (spec 007 FR-027a, T031): until it does, ask the family for a subject
+standing rule naming each part and its source, to remove after the exam; it reaches every piece of the subject
+made while it stands. Tell the family to read the sheet's last part,
 «Para la familia». The notebook computes every number on both sheets: an accepted risk, and the
 one place where nothing recomputes them (spec 002 FR-036). It does not judge the printed answers: when
 you recompute one and find it wrong, and the family wants it on the sheet, it goes in as a standing rule.

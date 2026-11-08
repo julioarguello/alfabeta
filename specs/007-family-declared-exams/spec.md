@@ -449,9 +449,8 @@ spec 002's tests. What the sheets say needs a real notebook, as spec 002 User St
   words, under a heading «Dudoso, con su fuente» at the same or a higher level than «Correcciones a los
   apuntes», never under it, and whose text never holds those words, so no line of it reaches
   `{notes_corrections}`. `exam build` does not read that heading yet (T031). Until it does, the family may add a
-  subject standing rule (spec 009) naming each part and its source, removed after the exam; or, as the operator
-  ruled on 2026-11-08 (#213), the agent marks the parts on sheets it corrects by hand, marks a new
-  `exam build` would drop.
+  subject standing rule (spec 009) naming each part and its source, and remove it after the exam; while it
+  stands it reaches every piece of the subject made, not only the exam sheets.
 - **FR-028**: Preparing an exam MUST NOT declare it: it writes no decision and no agenda entry and owns
   no event. A date only names the printed files and the sheets' day.
 - **FR-028a**: An undated preparation MUST say «sin fecha» where the date would go: the files are
