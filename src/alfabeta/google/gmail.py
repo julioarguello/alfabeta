@@ -1,7 +1,7 @@
 """The student's Gmail, reached only for labels and filters (spec 010 FR-008).
 
 The client makes four kinds of request and no other: list and create labels, list and create filters,
-list message ids by a query that starts with the notebook senders, and change those messages' labels.
+list message ids by one of the plan's queries, and change the labels of messages it listed.
 It never fetches a message, a thread, an attachment or a history. Every guard raises before a request
 is sent.
 """
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 API = "https://gmail.googleapis.com/gmail/v1/users/me"
 INBOX = "INBOX"
+INBOX_ONLY = " in:inbox"  # the one suffix a planned query may carry, to count what is in the inbox
 LIST_PAGE = 500  # messages.list's maximum
 MODIFY_BATCH = 1000  # messages.batchModify's maximum
 MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify"  # labels, the list and the labels of messages
@@ -41,13 +42,15 @@ class GuardError(Exception):
 
 
 class GmailClient:
-    """One mailbox, one access token, and the labels alfabeta may add."""
+    """One mailbox, one access token, the plan's labels and queries, and nothing else."""
 
-    def __init__(self, transport: HttpTransport, token: str, allowed_labels: frozenset[str]) -> None:
+    def __init__(self, transport: HttpTransport, token: str, mail_plan: MailPlan) -> None:
         self._transport = transport
         self._token = token
-        self._allowed = frozenset(name.casefold() for name in allowed_labels)
+        self._allowed = frozenset(name.casefold() for name in mail_plan.labels)
+        self._queries = frozenset(f.query for f in mail_plan.filters)
         self._label_ids: set[str] = set()  # ids of allowed labels, learnt from list or create
+        self._listed: set[str] = set()  # message ids a planned query returned
 
     def _call(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
         headers = {"Authorization": f"Bearer {self._token}"}
@@ -99,19 +102,22 @@ class GmailClient:
             ids += [str(m["id"]) for m in cast("list[dict[str, str]]", page.get("messages", []))]
             token = str(page.get("nextPageToken", ""))
             if not token:
+                self._listed.update(ids)
                 return ids
 
     def move(self, ids: list[str], label_id: str) -> None:
         """Add one alfabeta label to the messages and take them out of the inbox."""
         self._check_label(label_id)
+        if not set(ids) <= self._listed:
+            raise GuardError("a message no planned query listed")
         for start in range(0, len(ids), MODIFY_BATCH):
             body = {"ids": ids[start : start + MODIFY_BATCH], "addLabelIds": [label_id], "removeLabelIds": [INBOX]}
             self._call("POST", "/messages/batchModify", body)
 
-    @staticmethod
-    def _check_query(query: str) -> None:
-        if not query.startswith(SENDER_CLAUSE + " "):
-            raise GuardError("a query without the notebook senders")
+    def _check_query(self, query: str) -> None:
+        planned = query.removesuffix(INBOX_ONLY)
+        if planned not in self._queries or not planned.startswith(SENDER_CLAUSE + " "):
+            raise GuardError("a query that is not one of the plan's")
 
     def _check_label(self, label_id: str) -> None:
         if label_id not in self._label_ids:
@@ -172,7 +178,7 @@ def apply(client: GmailClient, mail_plan: MailPlan) -> ApplyReport:
     moved: list[dict[str, Any]] = []
     for spec in mail_plan.filters:
         matched = client.message_ids(spec.query)
-        in_inbox = client.message_ids(f"{spec.query} in:inbox")
+        in_inbox = client.message_ids(spec.query + INBOX_ONLY)
         client.move(matched, ids[spec.label])
         moved.append({"subject": spec.subject, "matched": len(matched), "in_inbox": len(in_inbox)})
     report.existing_mail = moved

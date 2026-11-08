@@ -651,7 +651,7 @@ def _cmd_mail(args: argparse.Namespace, cfg: config.StudentConfig, store: Keycha
             )
             for label in mail_plan.labels:
                 print(f"alfabeta:   {label}", file=sys.stderr)
-            _emit({"ok": True, "filters": len(mail_plan.filters), "out": str(out)})
+            _emit({"ok": True, "filters": len(mail_plan.filters), "out": args.out})
             return EXIT_OK
     except mail.MailError as err:
         return _fail(err.reason, EXIT_INVALID, str(err))
@@ -666,15 +666,31 @@ def _cmd_mail_apply(cfg: config.StudentConfig, store: KeychainStore, mail_plan: 
     transport = UrllibTransport()
     try:
         token = accounts.access_token(cfg, account.alias, store, transport)
-        client = gmail.GmailClient(transport, token, frozenset(mail_plan.labels))
+        client = gmail.GmailClient(transport, token, mail_plan)
         report = gmail.apply(client, mail_plan)
     except accounts.LinkError as err:
+        if err.reason == "network":
+            return _fail("network", EXIT_LINK, "Google could not be reached; run it again")
+        if err.reason == "no_client":
+            return _fail(
+                "no_client",
+                EXIT_LINK,
+                f"alfabeta's Google client is not stored: google set-client --student {cfg.student}",
+            )
         return _fail(err.reason, EXIT_LINK, f"the mail link '{account.alias}' is not usable ({err.reason}); {relink}")
     except gmail.GmailError as err:
         if err.status == 401:
-            return _fail("revoked", EXIT_LINK, f"Gmail no longer accepts the mail link '{account.alias}'; {relink}")
+            return _fail(
+                "revoked",
+                EXIT_LINK,
+                f"Gmail no longer accepts the mail link '{account.alias}'; {relink}, then run it again",
+            )
         if err.status == 403:
-            return _fail("missing_scope", EXIT_LINK, f"Gmail refused the mail link '{account.alias}'; {relink}")
+            return _fail(
+                "missing_scope",
+                EXIT_LINK,
+                f"Gmail refused the mail link '{account.alias}' (a missing permission); {relink}, then run it again",
+            )
         return _fail(
             "network", EXIT_LINK, f"Gmail answered {err.status}; labels or filters may be half done, run it again"
         )

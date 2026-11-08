@@ -95,7 +95,7 @@ class FakeGmail:
 
 
 def _client(box: FakeGmail) -> gmail.GmailClient:
-    return gmail.GmailClient(box, "acceso", frozenset(PLAN.labels))
+    return gmail.GmailClient(box, "acceso", PLAN)
 
 
 def _statuses(rows: list[dict[str, str]]) -> list[str]:
@@ -133,7 +133,7 @@ def test_an_added_subject_creates_only_its_own():
     box = FakeGmail()
     gmail.apply(_client(box), PLAN)
     wider = mail.plan("1º ESO", ("Mates", "Lengua", "Bio"), "{grade}. {subject}. {topic}")
-    report = gmail.apply(gmail.GmailClient(box, "acceso", frozenset(wider.labels)), wider)
+    report = gmail.apply(gmail.GmailClient(box, "acceso", wider), wider)
     assert _statuses(report.labels) == ["existing"] * 4 + ["created"]
     assert _statuses(report.filters) == ["existing", "existing", "created"]
 
@@ -142,6 +142,7 @@ def test_a_label_in_another_case_is_reused():
     box = FakeGmail(labels={"INBOX": "INBOX", "X1": "alfabeta"})
     report = gmail.apply(_client(box), PLAN)
     assert report.labels[0] == {"name": "Alfabeta", "status": "existing"}
+    assert len([c for c in box.calls if c == ("POST", "/labels")]) == 3
     assert list(box.labels.values()).count("alfabeta") == 1
     assert "Alfabeta" not in box.labels.values()
 
@@ -206,10 +207,14 @@ def test_every_request_is_on_the_allowed_list():
     assert set(box.calls) <= ALLOWED
 
 
+# "L9" is the plan's first subject label in the box below, known to the client once it listed the labels.
 OFF_THE_LIST: dict[str, Callable[[gmail.GmailClient], object]] = {
     "no sender clause": lambda c: c.message_ids('subject:"1º ESO. Mates."'),
     "other senders": lambda c: c.message_ids("from:(GeminiNotebook-noreply@x.example) is:unread"),
-    "filter without senders": lambda c: c.create_filter('subject:"x"', "L1"),
+    "a planned query widened": lambda c: c.message_ids(PLAN.filters[0].query + " OR in:anywhere"),
+    "another suffix": lambda c: c.message_ids(PLAN.filters[0].query + " is:unread"),
+    "filter not in the plan": lambda c: c.create_filter('subject:"x"', "L9"),
+    "move ids never listed": lambda c: c.move(["m0"], "L9"),
     "label outside the plan": lambda c: c.create_label("Personal"),
     "add the inbox": lambda c: c.move(["m0"], "INBOX"),
     "add a label not ours": lambda c: c.move(["m0"], "L-not-ours"),
@@ -218,7 +223,7 @@ OFF_THE_LIST: dict[str, Callable[[gmail.GmailClient], object]] = {
 
 @pytest.mark.parametrize("case", sorted(OFF_THE_LIST))
 def test_a_request_off_the_list_raises_before_anything_is_sent(case: str):
-    box = FakeGmail()
+    box = FakeGmail(labels={"INBOX": "INBOX", "L9": PLAN.filters[0].label})
     client = _client(box)
     client.labels()
     sent = len(box.calls)
@@ -239,5 +244,5 @@ def test_an_api_error_is_raised_with_its_status():
             return Response(403, b"{}")
 
     with pytest.raises(gmail.GmailError) as err:
-        gmail.apply(gmail.GmailClient(Denied(), "acceso", frozenset(PLAN.labels)), PLAN)
+        gmail.apply(gmail.GmailClient(Denied(), "acceso", PLAN), PLAN)
     assert err.value.status == 403

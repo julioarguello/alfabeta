@@ -193,6 +193,25 @@ def test_a_missing_token_is_no_token(home: Path, monkeypatch: pytest.MonkeyPatch
     assert (code, out["reason"]) == (2, "no_token")
 
 
+def test_a_server_error_creating_a_label_is_network(
+    home: Path, monkeypatch: pytest.MonkeyPatch, store: MemoryStore, capsys: pytest.CaptureFixture[str]
+):
+    _add_account(home, _mail_account("mailbox", [SETTINGS, MODIFY]))
+
+    class FailsOnCreate(FakeGmail):
+        def request(self, method: str, url: str, **kw: Any) -> Response:
+            if method == "POST" and url.endswith("/labels"):
+                return Response(500, b"{}")
+            return super().request(method, url, **kw)
+
+    box = FailsOnCreate()
+    _patch(monkeypatch, store, Wire(box))
+    code, out, err = _main(home, ["mail", "apply"], capsys)
+    assert (code, out["reason"]) == (2, "network")
+    assert "run it again" in err
+    assert box.filters == []
+
+
 def test_a_401_is_revoked(
     home: Path, monkeypatch: pytest.MonkeyPatch, store: MemoryStore, capsys: pytest.CaptureFixture[str]
 ):
