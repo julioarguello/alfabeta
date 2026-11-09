@@ -1,5 +1,8 @@
 """The exam sheets' fixed prompts, read from the study-pack skill's `prompts.md` (spec 002 FR-029).
 
+`language_values` also holds the values the skill's agent gives the pack prompts' language placeholders, which
+`prompts.md`'s table quotes (#226); a test keeps the two in step.
+
 The prompts are texts of the repository, measured in Spanish; this module only finds them and fills
 their `{placeholders}`. A placeholder left without a value is a bug, never a prompt sent half-filled,
 and a value is never read again for placeholders: an announcement may hold braces of its own.
@@ -141,7 +144,7 @@ def language_words(code: str) -> str:
 
 
 def language_values(code: str) -> dict[str, str]:
-    """The exam sheets' placeholders that hang on the subject's language (prompts.md, #224).
+    """The placeholders of `prompts.md` that hang on the subject's language: the exam sheets' and the pack's (#224, #226).
 
     The templates were written for a subject taught in another language to a student who studies in castellano;
     for a subject in castellano a translation or a term in two languages only repeats the same words.
@@ -154,6 +157,13 @@ def language_values(code: str) -> dict[str, str]:
             "term_order": "Cada término va tal como lo escribe el material de clase; ",
             "statement": "su enunciado copiado tal cual",
             "bilingual_terms": "",
+            "also_in": "",
+            "term_columns": "término tal como aparece en el material de clase",
+            "parent_lacks": "",
+            "in_language": "",
+            "translated": "",
+            "in_spanish": "",
+            "term_in_brackets": "",
         }
     return {
         "language": words,
@@ -163,6 +173,13 @@ def language_values(code: str) -> dict[str, str]:
         ),
         "statement": "su enunciado copiado tal cual en su idioma, su traducción al castellano",
         "bilingual_terms": f"Cada término, primero en {words} y después en castellano. ",
+        "also_in": f" también en {words}",
+        "term_columns": f"término en {words} tal como aparece en el material de clase | castellano",
+        "parent_lacks": f" y no sabe {words}",
+        "in_language": f" en {words}",
+        "translated": " traducido al castellano",
+        "in_spanish": " en castellano y",
+        "term_in_brackets": f" y el término en {words} entre paréntesis",
     }
 
 

@@ -611,7 +611,8 @@ and cannot judge what the notebook writes.
 - A topic has no calculations: its videos have no worked example and its practice sheet holds
   questions instead of problems.
 - A subject is taught in Spanish: practice, quiz and flashcards are in Spanish, and the glossary
-  keeps Spanish and English.
+  keeps Spanish and English. No piece asks for a translation or gives a term twice: the language
+  placeholders of `prompts.md` take their castellano values (#224, #226).
 - The mind map leaves out a block: it is reported; it is not regenerated, because its content
   cannot be steered.
 - An exam is announced only in class, or spec 001 detected it in a material or an assignment, so
@@ -657,7 +658,8 @@ and cannot judge what the notebook writes.
   practice sheet, a quiz, flashcards, a study guide and a mind map. Class notes become a source
   as their literal transcription (spec 005, which superseded the check this requirement asked for).
 - **FR-005**: Videos and the study guide MUST be in Spanish, giving each key term also in the
-  subject's language (the one it is taught and examined in) as the class material writes it.
+  subject's language (the one it is taught and examined in) as the class material writes it; for a
+  subject taught in Spanish, once, as the class material writes it (#226).
   Practice sheet, quiz and flashcards MUST be in the subject's language, configured per subject.
   The exam's problems sheet is the exception (FR-029).
 - **FR-006**: The practice sheet MUST go from a fully worked example to partly worked ones to
@@ -685,7 +687,8 @@ and cannot judge what the notebook writes.
 - **FR-012**: The topic's `notebook/` folder MUST hold, in Spanish: the confirmed blocks with their
   sources; a parent's guide with questions to ask at home and the teacher's sheets translated and
   recomputed, each mismatch marked neutrally; and a glossary (the subject's language, Spanish, English,
-  one-line definition, formula). The guide and the glossary as PDF and Markdown.
+  one-line definition, formula). For a subject taught in Spanish nothing is translated and the
+  glossary has one Spanish column (#226). The guide and the glossary as PDF and Markdown.
 - **FR-013**: None of the parent's material may be visible in the notebook when the run ends.
 
 **Order and names**

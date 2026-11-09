@@ -127,7 +127,8 @@ and never quotes a piece's status output, which can hold its prompt.
 A document the family or the student reads holds one language (spec 002 FR-050). When a piece is
 wanted in Spanish and in the subject's language, make two documents, never one mixed. A glossary, whose
 job is the pair of words, stays one. Terms in the subject's language given beside their Spanish, and
-a problem statement followed by its translation, are not mixing (FR-005, FR-032, FR-035). In a Spanish document, an exercise's solution in the subject's
+a problem statement followed by its translation, are not mixing (FR-005, FR-032, FR-035). For a
+subject taught in castellano the two languages are one: no translation and no term given twice (#224, #226). In a Spanish document, an exercise's solution in the subject's
 language stays as it is, with its meaning beside it.
 
 ## Steps
@@ -194,7 +195,9 @@ language stays as it is, with its meaning beside it.
    line of `{corrections}`; a statement missing a datum is noted too. Never repeat a wrong value in
    anything the student sees, except on the exam's problems sheet when a standing rule of the family
    gives it (see [The day before an exam](#the-day-before-an-exam-two-sheets-on-paper)).
-3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time:
+3. **Generate**, with the templates in [`prompts.md`](prompts.md), passing `--profile <profile>` each time.
+   For a subject whose `language` is `es`, give each language placeholder (`{studies_in}`,
+   `{also_in}`, `{term_columns}`…) the castellano value its table row names:
    - one video per block (`--format explainer --language es-ES`); after an announcement that
      reopened confirmed blocks, only the video of each uncovered point, with the other blocks and
      the sourced «out» lines as its `{exclude}`;

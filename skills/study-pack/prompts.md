@@ -4,7 +4,8 @@ The prompts are in Spanish because they were measured in Spanish (2026-10-26); a
 untested prompt. `{placeholders}` come from the configuration, from the topic's confirmed blocks
 (`notebook/bloques.md`) or, for the exam sheets, from the exam and its announcement, and for the
 exam's start note from the title `exam build` gives the theory sheet. Replace every one before
-sending; a prompt that still holds one of these placeholders is a bug. A brace that comes with a value, an
+sending; the ones that hang on the subject's language take, for a subject in castellano (`es`), the
+castellano value of their row, so no piece asks for a translation or a term twice (#224, #226); a prompt that still holds one of these placeholders is a bug. A brace that comes with a value, an
 announcement's or a rule's, stays as written.
 
 > [!IMPORTANT]
@@ -38,17 +39,24 @@ announcement's or a rule's, stays as written.
 | `{part}` | empty for an exam over one topic; over several subtopics (spec 002 FR-045), «, pero este examen abarca varios subtemas y este cuaderno solo tiene el subtema «<topic>» (parte N de M): haz sección solo de los puntos que tratan tus fuentes y nombra los demás en una línea «En otro subtema o sin material:», sin desarrollarlos», with no final full stop. With no announcement, over several topics of any kind: «; este examen abarca varios temas y este cuaderno solo tiene «<topic>» (parte N de M): cubre solo ese tema» |
 | `{rules}` | «Del alumno: <text>» and «De la asignatura: <text>», separated by a space, each only when that level has text; within a level `both` before the piece's kind, separated by a space (spec 009, `specs/009-standing-rules/contracts/prompts.md`) |
 | `{theory}` | the theory sheet's title in Studio, `EXAMEN jueves 1 · Teoría para el examen · Tema 02 - …` |
-| `{studies_in}` | an exam sheet's: « y estudia en castellano»; empty when the subject's language is castellano (`es`) |
+| `{studies_in}` | the video's, the glossary's and the exam sheets': « y estudia en castellano»; empty when the subject's language is castellano (`es`) |
 | `{term_order}` | the theory sheets': «Cada término va primero en <language>, tal como lo escribe el material de clase, y después en castellano; »; for castellano «Cada término va tal como lo escribe el material de clase; » |
 | `{statement}` | the problems sheets': «su enunciado copiado tal cual en su idioma, su traducción al castellano»; for castellano «su enunciado copiado tal cual», with no translation |
 | `{bilingual_terms}` | the problems sheets': «Cada término, primero en <language> y después en castellano. »; empty for castellano, where a term in two languages is the same word twice |
+| `{also_in}` | the video's and the tutor chat's: « también en <language>»; empty for castellano |
+| `{term_columns}` | the glossary's: «término en <language> tal como aparece en el material de clase \| castellano»; for castellano «término tal como aparece en el material de clase», so the glossary keeps Spanish and English (spec 002, edge cases) |
+| `{parent_lacks}` | the parent guide's: « y no sabe <language>»; empty for castellano |
+| `{in_language}` | the parent guide's and the flashcards': « en <language>»; empty for castellano |
+| `{translated}` | the parent guide's: « traducido al castellano»; empty for castellano |
+| `{in_spanish}` | the flashcards': « en castellano y»; empty for castellano |
+| `{term_in_brackets}` | the summary's: « y el término en <language> entre paréntesis»; empty for castellano, where it would repeat the word |
 
 ## Video — one per block, plus one per point of the announcement no block covers
 
 `nlm video create <nb> --format explainer --language es-ES --focus "<prompt>" --profile <profile> -y`
 
 ```text
-Vídeo explicativo de 3 a 4 minutos para un alumno de {grade} que da esta asignatura en {language} y estudia en castellano. Explica en castellano solo esto: {block}. {scheme}Cada vez que aparezca un término clave, dilo también en {language} tal como aparece en el material de clase ({terms}). Resuelve un solo ejemplo paso a paso con datos de las hojas del profesor: {worked_example}. No expliques {exclude}. Termina con tres preguntas cortas para contestar sin mirar.
+Vídeo explicativo de 3 a 4 minutos para un alumno de {grade} que da esta asignatura en {language}{studies_in}. Explica en castellano solo esto: {block}. {scheme}Cada vez que aparezca un término clave, dilo{also_in} tal como aparece en el material de clase ({terms}). Resuelve un solo ejemplo paso a paso con datos de las hojas del profesor: {worked_example}. No expliques {exclude}. Termina con tres preguntas cortas para contestar sin mirar.
 ```
 
 Drop the worked-example sentence for a block with no calculation.
@@ -66,13 +74,13 @@ The last sentence is the topic's typical error; replace it with the one that app
 ## Glossary — for the parent, in `notebook/`
 
 ```text
-Glosario del tema para un alumno de {grade} que da la asignatura en {language} y estudia en castellano. Una sola tabla con las columnas: término en {language} tal como aparece en el material de clase | castellano | inglés | definición de una línea en castellano | fórmula o unidad, si la hay. Como máximo 25 términos, solo los que aparecen en las hojas y la presentación del profesor, en el orden en que se estudian: {blocks}. {scheme}Sin introducción ni texto adicional.
+Glosario del tema para un alumno de {grade} que da la asignatura en {language}{studies_in}. Una sola tabla con las columnas: {term_columns} | inglés | definición de una línea en castellano | fórmula o unidad, si la hay. Como máximo 25 términos, solo los que aparecen en las hojas y la presentación del profesor, en el orden en que se estudian: {blocks}. {scheme}Sin introducción ni texto adicional.
 ```
 
 ## Parent guide — for the parent, in `notebook/`
 
 ```text
-Guía en castellano para un padre o una madre que ayuda en casa y no sabe {language}; el alumno da la asignatura en {language}. {scheme}Secciones: 1) Qué entra en el examen, por bloques: {blocks}. 2) Preguntas para hacerle en casa, por bloque, en una tabla: pregunta en castellano | respuesta esperada | término en {language}. 3) Solucionario de la hoja {answer_sheet}: enunciado traducido al castellano, planteamiento y resultado de cada ejercicio, recalculado por ti. Marca de forma neutra, sin culpar a nadie, los resultados que no coinciden con la hoja: {corrections}; indica también si a algún enunciado le falta un dato. 4) Errores típicos que vigilar.
+Guía en castellano para un padre o una madre que ayuda en casa{parent_lacks}; el alumno da la asignatura en {language}. {scheme}Secciones: 1) Qué entra en el examen, por bloques: {blocks}. 2) Preguntas para hacerle en casa, por bloque, en una tabla: pregunta en castellano | respuesta esperada | término{in_language}. 3) Solucionario de la hoja {answer_sheet}: enunciado{translated}, planteamiento y resultado de cada ejercicio, recalculado por ti. Marca de forma neutra, sin culpar a nadie, los resultados que no coinciden con la hoja: {corrections}; indica también si a algún enunciado le falta un dato. 4) Errores típicos que vigilar.
 ```
 
 ## Quiz and flashcards — in the subject's language
@@ -88,7 +96,7 @@ Test para practicar el examen: {blocks}. {scheme}Preguntas de comprensión y de 
 `nlm flashcards create <nb> --focus "<prompt>" --profile <profile> -y`
 
 ```text
-Tarjetas de vocabulario del tema: en el anverso el término en {language} tal como aparece en el material de clase; en el reverso, el término en castellano y en inglés y una definición de una línea. {scheme}Solo términos de las hojas y la presentación del profesor: {blocks}.
+Tarjetas de vocabulario del tema: en el anverso el término{in_language} tal como aparece en el material de clase; en el reverso, el término{in_spanish} en inglés y una definición de una línea. {scheme}Solo términos de las hojas y la presentación del profesor: {blocks}.
 ```
 
 ## Theory sheet — for an exam
@@ -150,7 +158,8 @@ says its day. Nothing is marked optional to make it fit:
   names the branch of the scheme it covers, as `bloques.md` names it (FR-038). The prompt itself has
   no `{scheme}`: it copies `{plan}` as it is, so the plan carries the branches;
 - **block A, the videos**: for each one, the student draws his own scheme while watching (branches
-  and short sentences, with the word in the subject's language), then compares its branches with the
+  and short sentences, with the word in the subject's language — for a subject in castellano, the
+  class material's word), then compares its branches with the
   notebook's mind map (it carries no text) and its text with that block's part of the summary,
   correcting only the essentials in another colour;
 - **the textbook's own tests**, when the book has them (spec 002 FR-051): each part's tests in
@@ -164,7 +173,8 @@ says its day. Nothing is marked optional to make it fit:
   flashcards, each with its minutes, and five minutes to mark in his scheme what he got wrong,
   in the book's test too;
 - **what he can do when it ends**: draw his schemes without looking and explain each branch in one
-  sentence, with the word in the subject's language.
+  sentence, with the word in the subject's language (for a subject in castellano, the class
+  material's word).
 
 ## Summary of the notes
 
@@ -176,7 +186,7 @@ words, and `{blocks}` are the branches' names when there is a scheme.
 `nlm report create <nb> --format "Create Your Own" --language es --prompt "<prompt>" --profile <profile> -y`
 
 ```text
-Resumen para estudiar, corto y fácil de leer, para un alumno de {grade} que da la asignatura en {language}. Título: «Resumen de tus apuntes · {topic}». Condensa SOLO lo que dicen los apuntes del alumno, siguiendo sus esquemas y con sus mismas palabras; usa el libro solo para aclarar o corregir una rama, nunca para añadir temas nuevos. Una parte por bloque, cada una de media página como máximo, en este orden: {blocks}. Formato de cada parte: el esquema como lista con sangría, en el orden de sus apuntes; cada rama con UNA sola línea corta de explicación y el término en {language} entre paréntesis. Al final de cada parte, una línea «Lo que más se confunde:» con la confusión típica de esa parte. {notes_corrections}Sin introducción, sin conclusiones, sin preguntas, sin tablas largas.
+Resumen para estudiar, corto y fácil de leer, para un alumno de {grade} que da la asignatura en {language}. Título: «Resumen de tus apuntes · {topic}». Condensa SOLO lo que dicen los apuntes del alumno, siguiendo sus esquemas y con sus mismas palabras; usa el libro solo para aclarar o corregir una rama, nunca para añadir temas nuevos. Una parte por bloque, cada una de media página como máximo, en este orden: {blocks}. Formato de cada parte: el esquema como lista con sangría, en el orden de sus apuntes; cada rama con UNA sola línea corta de explicación{term_in_brackets}. Al final de cada parte, una línea «Lo que más se confunde:» con la confusión típica de esa parte. {notes_corrections}Sin introducción, sin conclusiones, sin preguntas, sin tablas largas.
 ```
 
 `{notes_corrections}`: see the placeholder table. Example for this summary, 2026-10-31: «La
@@ -252,5 +262,5 @@ Reglas fijas de la familia para este alumno y esta asignatura: aplícalas en tod
 `nlm chat configure <nb> --goal custom --prompt "<prompt>" --profile <profile>`
 
 ```text
-Eres un tutor para un alumno de {grade}. Explica en castellano y da cada término clave también en {language}. Antes de dar una solución, da una pista y espera a que el alumno lo intente. {scheme}{notes_corrections}En lo demás, cuando las fuentes no coinciden, prima los apuntes del alumno sobre el material del profesor, y el material del profesor sobre el libro. No atribuyas a nadie la autoría de una fuente ni de una nota.
+Eres un tutor para un alumno de {grade}. Explica en castellano y da cada término clave{also_in}. Antes de dar una solución, da una pista y espera a que el alumno lo intente. {scheme}{notes_corrections}En lo demás, cuando las fuentes no coinciden, prima los apuntes del alumno sobre el material del profesor, y el material del profesor sobre el libro. No atribuyas a nadie la autoría de una fuente ni de una nota.
 ```
