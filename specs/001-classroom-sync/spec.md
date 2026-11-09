@@ -252,12 +252,14 @@ for the final implementation.
     state folder and the reports stay the family's (constitution VII). It shares through its own
     Google connection (spec 004) and counts a share only when Drive answers `writer`.
   - Measured 2026-11-08 on the sender side: the school-year folder has the owner and one `writer`
-    permission for the school account, and its subfolders inherit it. Not yet measured on the
-    recipient side: whether the school domain shows a folder shared from a personal account (the
-    2026-10-26 measurement covered notebooks and calendars only). A refusal is reported as
-    `refused` and the rest of the sync goes on.
-  - The existing mirror copy in the school account is removed by the family, to Drive's trash,
-    once the shared folder is seen there; what only the mirror held was kept apart beforehand.
+    permission for the school account, and its subfolders inherit it. Measured 2026-11-09 on the
+    recipient side: the school domain shows the folder shared from the personal account, it opens,
+    and the family added a shortcut to it in the school account's Drive. A domain whose admin
+    refuses outside shares is still possible elsewhere: a refusal is reported as `refused` and the
+    rest of the sync goes on.
+  - The mirror copy in the school account was moved to Drive's trash on 2026-11-09, after the
+    shared folder was seen there; a content check found no file that only the copy held beyond
+    what was kept apart on 2026-11-08.
 
 ## User Scenarios & Testing *(mandatory)*
 
