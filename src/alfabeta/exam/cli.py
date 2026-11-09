@@ -133,10 +133,10 @@ def _sheets(
             "notes_corrections": prompts.notes_corrections(notes_corrections(folder)),
         }
     theory_prompt, theory_rules = prompts.with_rules(
-        prompts.fill(prompts.template(theory), values).rstrip(), rules, "theory"
+        prompts.with_format(prompts.fill(prompts.template(theory), values).rstrip(), language), rules, "theory"
     )
     problems_prompt, problems_rules = prompts.with_rules(
-        prompts.fill(prompts.template(problems), values).rstrip(), rules, "problems"
+        prompts.with_format(prompts.fill(prompts.template(problems), values).rstrip(), language), rules, "problems"
     )
     return (
         Sheet("theory", "Teoría para el examen", theory_prompt, rules=theory_rules),

@@ -275,7 +275,8 @@ that nothing of it reached the repository, and that a later run uses it.
 ### Measurable Outcomes
 
 - **SC-001**: With every rule key empty, in a fixture, each prompt `exam build` sends is byte-identical to the one sent before
-  this feature, for all the prompts of an exam with and without an announcement.
+  this feature, for all the prompts of an exam with and without an announcement; since spec 002 FR-052 (#229), that
+  prompt ends with the reading format, which comes before any rules.
 - **SC-002**: In a fixture with rules for two subjects, no prompt of one carries a word of the other's, and no theory sheet's
   prompt carries a problems rule.
 - **SC-003**: The template's examples are invented, and in a fixture no word of a rule reaches any run's output, record or log.
