@@ -51,7 +51,9 @@ EXAM_DAY = "2026-11-05"  # a Thursday
 ANNOUNCED = "20261020"
 SCOPE = "Examen del tema 1 el jueves 5: densidad {y} concentración, y los problemas de la ficha."
 NOTE_PATH = f"2026-2027/FyQ/{ANNOUNCED} - No topic/classroom/{ANNOUNCED} - aviso - Examen del tema 1 el jueves.md"
-PLACEHOLDERS = re.compile(r"\{(grade|language|subject|exam_day|scope|scope_date|slot|pages|theory)\}")
+PLACEHOLDERS = re.compile(
+    r"\{(grade|language|subject|exam_day|scope|scope_date|slot|pages|theory|studies_in|term_order|statement|bilingual_terms)\}"
+)
 
 
 @dataclass
@@ -282,6 +284,10 @@ def test_the_three_exam_texts_are_in_prompts_md_and_every_placeholder_is_filled(
             "pages",
             "theory",
             "part",
+            "studies_in",
+            "term_order",
+            "statement",
+            "bilingual_terms",
         }
 
 
@@ -1176,10 +1182,11 @@ def test_the_practice_sheet_prompt_asks_for_the_mark_and_the_exam_prompts_use_on
 
 
 def test_the_announced_texts_are_as_they_were():
-    # SC-008. Changing an announced text on purpose changes its hash here, in that change.
+    # SC-008. Changing an announced text on purpose changes its hash here, in that change: last, the
+    # language placeholders and «Otro del mismo patrón» (#224).
     hashes = {
-        prompts.THEORY: "3ebce803a9299b5e8b78c75ac6d9b2aecbf7f6ec14bf56a4d0fb4cfda95021f6",
-        prompts.PROBLEMS: "d2fefe880347b7d006ca6197612ba8f10d4e66396ba378f0d0b36a816045d27b",
+        prompts.THEORY: "0df1a1363f4ff4da1b32624343643ec2f30278c0e44231a4ccb8edf8368ad241",
+        prompts.PROBLEMS: "0b1e4b6b36aba37dc725fe68d5eda1929a9d716a548e3b868def0965b6db203c",
         prompts.START_NOTE: "c42279fab6ff05e773fd0bfe185c2a7cdbf398c0dde6aa704626fceb3659cd65",
     }
     for heading, expected in hashes.items():
@@ -1225,6 +1232,75 @@ def test_a_problem_solved_in_the_notes_is_used_and_its_statement_is_never_writte
 def test_the_problems_text_with_no_announcement_ends_as_the_announced_one():
     tail = prompts.template(prompts.PROBLEMS)[prompts.template(prompts.PROBLEMS).index("Usa solo los problemas") :]
     assert prompts.template(prompts.PROBLEMS_OPEN).endswith(f"{tail} {{notes_corrections}}")
+
+
+# --- the subject's language (#224) ------------------------------------------------------------------
+
+EXAM_SHEETS = (prompts.THEORY, prompts.PROBLEMS, prompts.THEORY_OPEN, prompts.PROBLEMS_OPEN)
+# What a subject in castellano must not be asked for: a translation, a term twice, a second language.
+BILINGUAL = ("traducción", "y después en castellano", "y estudia en castellano")
+
+
+def filled(heading: str, code: str) -> str:
+    """The text under `heading` with the language's values and a stand-in for every other placeholder."""
+    names = set(re.findall(r"\{(\w+)\}", prompts.template(heading)))
+    return prompts.fill(prompts.template(heading), dict.fromkeys(names, "X") | prompts.language_values(code))
+
+
+@pytest.mark.parametrize("heading", EXAM_SHEETS)
+def test_a_subject_in_castellano_is_asked_for_no_translation_and_no_term_pairs(heading: str):
+    text = filled(heading, "es")
+    assert not [clause for clause in BILINGUAL if clause in text]
+    assert "que da la asignatura en castellano." in text
+    if heading in (prompts.THEORY, prompts.THEORY_OPEN):
+        assert "Cada término va tal como lo escribe el material de clase; si los apuntes" in text
+    else:
+        assert "su enunciado copiado tal cual y por qué es el más difícil" in text
+        assert "No culpes ni nombres a nadie. Comprueba dos veces cada número." in text
+
+
+@pytest.mark.parametrize("heading", EXAM_SHEETS)
+def test_a_subject_in_another_language_keeps_the_translation_and_the_term_pairs(heading: str):
+    text = filled(heading, "eu")
+    assert "que da la asignatura en euskera y estudia en castellano." in text
+    if heading in (prompts.THEORY, prompts.THEORY_OPEN):
+        assert (
+            "Cada término va primero en euskera, tal como lo escribe el material de clase, y después en castellano;"
+            " si los apuntes" in text
+        )
+    else:
+        assert "su enunciado copiado tal cual en su idioma, su traducción al castellano y por qué" in text
+        assert "Cada término, primero en euskera y después en castellano. Comprueba" in text
+
+
+@pytest.mark.parametrize("heading", [prompts.PROBLEMS, prompts.PROBLEMS_OPEN])
+def test_the_second_problem_of_a_pattern_is_never_worded_as_optional(heading: str):
+    text = prompts.template(heading)
+    assert "sobra tiempo" not in text and "puedes añadir" not in text
+    assert "con el título «Otro del mismo patrón», sin llamarlo opcional, adicional ni extra" in text
+
+
+def set_language(world: World, code: str) -> None:
+    """FyQ, the exam's subject, taught in `code`."""
+    config = world.home / STUDENT / "config.toml"
+    first, rest = config.read_text().split('language = "es"', 1)
+    config.write_text(f'{first}language = "{code}"{rest}')
+
+
+@pytest.mark.parametrize("no_announcement", [False, True])
+def test_exam_build_drops_the_translation_only_for_a_subject_in_castellano(
+    world: World, capsys: pytest.CaptureFixture[str], no_announcement: bool
+):
+    extra = ("--undated", "--topic", world.topic.name) if no_announcement else ()
+    assert world.run(*extra) == 0  # FyQ is `es` in the sandbox
+    for prompt in sent(world):
+        assert not [clause for clause in BILINGUAL if clause in prompt]
+    set_language(world, "eu")
+    assert world.run(*extra) == 0
+    theory, problems = sent(world)[2:]
+    assert "y estudia en castellano" in theory and "primero en euskera" in theory
+    assert "su traducción al castellano" in problems and "primero en euskera y después en castellano" in problems
+    capsys.readouterr()
 
 
 def test_no_agenda_exam_a_date_and_a_topic_print_under_that_date(world: World, capsys: pytest.CaptureFixture[str]):

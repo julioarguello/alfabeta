@@ -42,7 +42,7 @@ from alfabeta.notes.run import topic_name
 
 if TYPE_CHECKING:
     import argparse
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
     from alfabeta.google.keychain import TokenStore
@@ -100,7 +100,7 @@ def _open_part(topic: str, index: int, count: int) -> str:
 def _sheets(
     cfg: config.StudentConfig,
     subject: str,
-    language: str,
+    language: Mapping[str, str],
     exam: Exam,
     slot: Slot,
     folder: Path,
@@ -111,7 +111,7 @@ def _sheets(
     topic = topic_name(folder.name)
     values = {
         "grade": cfg.grade_level,
-        "language": language,
+        **language,
         "subject": subject,
         "slot": slot.words,
         "pages": str(slot.pages),
@@ -179,7 +179,7 @@ def cmd_exam_prep(
         return _fail("no_subject", EXIT_INVALID, "--subject is not the folder of a configured subject")
     try:
         slot = Slot.parse(args.slot)
-        language = prompts.language_words(subject.language)
+        language = prompts.language_values(subject.language)
     except Refusal as refusal:
         return _fail(refusal.reason, EXIT_INVALID, str(refusal))
     except prompts.PromptError as err:
