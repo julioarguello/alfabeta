@@ -1930,7 +1930,7 @@ def test_the_reading_format_asks_for_structure_and_keeps_languages_apart():
         "una sola vez por concepto",
         "nunca traducido palabra a palabra dentro de una frase",
         "dos bloques separados",
-        "Un término en euskera",
+        "también en otro idioma",
     ):
         assert asked in text, asked
     # For castellano nothing about a second language: it would be the same words twice (#224).
@@ -1944,7 +1944,9 @@ def test_exam_build_adds_the_reading_format_to_both_sheets_before_the_rules(
     set_language(world, code)
     set_rules(world, subject={"both": "de la asignatura"})
     assert world.run() == 0
-    for prompt in sent(world):
+    asked = sent(world)
+    assert len(asked) == 2
+    for prompt in asked:
         assert f" {formatted(code)} {ADDED}" in prompt
     capsys.readouterr()
 
