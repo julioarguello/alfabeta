@@ -348,6 +348,15 @@ the final implementation.
 - Q: Can one document hold a piece's text in Spanish and in the subject's language? → A: No (FR-050).
   The operator was given one guide with both mixed and asked for two, always: mixed, it is a mess.
 
+### Session 2026-11-08
+
+- Q: The textbook has its own tests, recorded for the teacher: does the study guide send the student
+  to them? → A: Yes (FR-051). For a Tecnología exam the operator asked the guide to include the
+  tecno12-18 tests — the interactive version of each part, with tests between pages, and the
+  chapter's global test — and then asked for it to be the rule. The student does them himself, in
+  the version the teacher asked for; the tool never answers them on his account, and no piece gives
+  their answers before he has done them, or the result the teacher sees would not be his.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who launches alfabeta and helps at home, reading Spanish
@@ -1015,6 +1024,15 @@ and cannot judge what the notebook writes.
   Spanish (FR-005, FR-032), a problem statement followed by its translation (FR-035), a glossary, whose
   job is the pair of words, and an exercise's solution in the subject's language, which stays as it is
   with its meaning beside it.
+- **FR-051**: When the topic's textbook offers its own exercises or tests for the topic (questions
+  between its pages, an interactive version, a whole-topic test), the study guide MUST schedule them,
+  with their minutes, inside its blocks (FR-042): each part's tests in the learning block, beside
+  the part they test, and a whole-topic test in the checking block, before the practice sheet or
+  quiz, done without looking at anything. The student does them in the version the teacher asked
+  for, the one that records his results when there are two. The tool MUST NOT answer them on the
+  student's account, and no piece may give their answers before he has done them. A test the
+  teacher has not opened is a step that says to go on to the next, not an optional piece (FR-015).
+  What he failed in them joins what he reviews before the exam.
 
 ### Key Entities
 

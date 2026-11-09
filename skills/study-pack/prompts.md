@@ -146,9 +146,16 @@ says its day. Nothing is marked optional to make it fit:
   and short sentences, with the word in the subject's language), then compares its branches with the
   notebook's mind map (it carries no text) and its text with that block's part of the summary,
   correcting only the essentials in another colour;
+- **the textbook's own tests**, when the book has them (spec 002 FR-051): each part's tests in
+  the learning block, beside the part they test, and the whole-topic test opening block B, without
+  looking at anything, before the practice. Name the version the teacher asked for (the one that
+  records results) and where it is. A test the teacher may not have opened says «si no está
+  abierto, pasa al paso siguiente». The plan never gives their answers, and you never do them on
+  his account;
 - the 15-minute break, away from screens;
-- **block B, checking**: practice, quiz, flashcards, each with its minutes, and five minutes to mark
-  in his scheme what he got wrong;
+- **block B, checking**: the book's whole-topic test if there is one, then practice, quiz,
+  flashcards, each with its minutes, and five minutes to mark in his scheme what he got wrong,
+  in the book's test too;
 - **what he can do when it ends**: draw his schemes without looking and explain each branch in one
   sentence, with the word in the subject's language.
 

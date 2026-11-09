@@ -205,7 +205,8 @@ language stays as it is, with its meaning beside it.
    - **the study guide, piece 0**, generated after step 9 has copied the videos to Drive, since it
      links each one there (FR-039) (`prompts.md`, «Study guide — 0»): only the plan — the order of
      every piece, how to use each video, times with breaks, what he can do at the end. No theory;
-     it points at the other pieces by number. It is the student's entry point;
+     it points at the other pieces by number. When the textbook has its own tests, the plan
+     schedules them and he does them himself (FR-051). It is the student's entry point;
    - **the summary of the notes** (`prompts.md`, «Summary of the notes»): the
      notes condensed on their schemes, one short part per content block, each studied with its video. It is what he studies from.
 
