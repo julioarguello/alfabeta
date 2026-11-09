@@ -86,6 +86,8 @@ replaces the local MCP design of julioarguello/alfabeta#2.
     desktop on the same Mac. After every sync each mirror is brought up to date from the master.
     Mechanism measured on the family Mac on 2026-10-26: `rsync -rlt --exclude .DS_Store
     <master>/ <mirror>/`, without `--delete`. A mirror is never edited back into the master.
+    *Superseded on 2026-11-08 (Session 2026-11-08 below): the other accounts share the school-year
+    folder instead of receiving a copy.*
   - Calendar: the one calendar is shared with every account in `calendar.shared_with`, each with
     permission to see all event details.
   - Notebooks: each topic notebook is shared as viewer with every account in
@@ -234,6 +236,28 @@ for the final implementation.
   T063 checks it). So a scheduled run that finds the session expired, the window hidden or the Mac locked
   notifies the operator on the Mac and waits for the sign-in, up to `schedule.wait_minutes`, rather
   than stopping at once (FR-021a); only when the wait ends does it stop as before.
+
+### Session 2026-11-08
+
+- Q: The student's other accounts get the master through one-way mirrors (Session 2026-10-26).
+  Should they keep getting a copy? → A: No. The operator decided on 2026-11-08 that each of them is
+  given **editor** access to the master's school-year folder instead, so there is one set of files
+  (julioarguello/alfabeta#220). What it fixes, measured that day on the family Mac: a mirror only
+  moved when a Mac sync ran, so files placed in the master between syncs never reached the school
+  account; and a mirror never deletes, so it held 723 files against the master's 571, 91 of them
+  with content the master no longer has (renders replaced by `enunciado.md`, items Classroom no
+  longer shows). Every target still takes a list of accounts (FR-011b):
+  - Drive: `drive.share_with` lists the accounts; `drive.mirrors` is gone. alfabeta shares the
+    **school-year folder** (`<drive.root>/<student.school_year>`), not the alfabeta root, so the
+    state folder and the reports stay the family's (constitution VII). It shares through its own
+    Google connection (spec 004) and counts a share only when Drive answers `writer`.
+  - Measured 2026-11-08 on the sender side: the school-year folder has the owner and one `writer`
+    permission for the school account, and its subfolders inherit it. Not yet measured on the
+    recipient side: whether the school domain shows a folder shared from a personal account (the
+    2026-10-26 measurement covered notebooks and calendars only). A refusal is reported as
+    `refused` and the rest of the sync goes on.
+  - The existing mirror copy in the school account is removed by the family, to Drive's trash,
+    once the shared folder is seen there; what only the mirror held was kept apart beforehand.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -517,13 +541,17 @@ test.
   nowhere else; it stops and says so.
 - Google Drive for desktop is still uploading files from the previous sync: no effect,
   because alfabeta writes to the folder on disk.
-- A mirror's account is not mounted, or its Drive is full: the master and the other mirrors are
-  updated, the summary counts that mirror as failed, and the next sync brings it up to date.
-- A replica moves or is renamed in the master (a corrected match, a previous version): the mirror
-  receives the new name and keeps the old one, because a mirror is never pruned. A mirror holds at
-  least what the master holds, not exactly the same.
-- Someone edits or adds a file in a mirror: it is never copied back; if the master changes that
-  same file, the next sync overwrites the mirror's copy.
+- An account of `drive.share_with` lost its access, or holds a lower role (someone changed it by
+  hand): the next sync adds the permission again or raises it to editor; it never removes one.
+- The other account's domain refuses folders shared from outside (a school admin setting): Drive
+  answers 403, the summary counts that account as failed (`refused`) and the rest of the sync goes
+  on; the family sees the material through the personal account until the school allows it.
+- Someone edits, adds or deletes a file from the other account: it is the master itself, so the
+  change is the master's; what the family adds under a topic is brought back as constitution VII
+  says, and a deletion is the family's, never alfabeta's. As an editor, the other account can
+  delete or move the master's files; Drive's trash keeps them 30 days, and the next sync replaces a
+  replica it no longer finds. A file the other account creates there is owned by that account: if
+  the school closes the account, the file goes with it unless the family copies it first.
 - Two syncs of the same student at once: the second does not start while the first is still running.
 - Dates around the summer and winter daylight-saving changes: the date shown is the one Classroom
   shows.
@@ -632,15 +660,19 @@ test.
   Mac upload path is rewritten when spec 004's Drive slice is built, julioarguello/alfabeta#30. This
   amendment does not rewrite it, and the runner (FR-036) already writes only through that
   connection.)
-- **FR-011a**: The master is the source of the mirrors. After every sync **on the Mac** that reaches
-  `classroom apply`, and after a book provider places a topic (`book place`), alfabeta MUST bring each folder
-  in `drive.mirrors` up to date from the master, one-way: it copies what is new or changed in the
-  master, never deletes anything from a mirror and never copies from a mirror into the master. A
-  mirror already up to date MUST receive zero writes (FR-025). A mirror that is not mounted or fails
-  MUST NOT stop the sync, the master or the other mirrors: it is reported and brought up to date by
-  the next sync. The summary for the family MUST say how many mirrors are up to date and how many
-  failed, never their paths (FR-031). An empty list means no mirrors. The unattended runner does not
-  touch the master or the mirrors (FR-036): its `classroom apply` skips both.
+- **FR-011a**: The student's other accounts (`drive.share_with`) reach the master by sharing, never
+  by a copy (Session 2026-11-08). After every sync **on the Mac** that reaches `classroom apply`,
+  alfabeta MUST make sure each of them can edit the school-year folder (`<drive.root>/<school
+  year>`) of the student's Drive, through its own Google connection: an account that can already
+  edit it gets no request (FR-025), a lower role on the folder itself is raised to `writer`, and a
+  missing one is added without mailing anybody. A share counts only when Drive answers `writer`.
+  alfabeta MUST NOT share the alfabeta root (its state folder and reports stay the family's), MUST
+  NOT remove a permission, and MUST NOT copy the master to another account's Drive. An account that
+  fails MUST NOT stop the sync, the master or the other accounts: it is reported and tried again by
+  the next sync. The summary for the family MUST say how many accounts can edit the folder and how
+  many failed, never their addresses (FR-031). An empty list means sharing with nobody. The
+  unattended runner does not touch the master or the shares (FR-036): its `classroom apply` skips
+  both.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
   permission to see all event details (the operator shares it by hand; spec 003 research R13 checks
@@ -920,7 +952,7 @@ Example of the resulting structure (invented names):
   a cut-short capture (expired session, error) withdraws nothing. alfabeta MUST NOT delete anything
   from the student's folder.
 - **FR-028**: Every sync MUST leave a log entry with start, end, subjects walked and
-  items added, changed, withdrawn or not fetched, and mirrors up to date or failed (FR-011a), and
+  items added, changed, withdrawn or not fetched, and accounts the school-year folder is shared with or failed (FR-011a), and
   end with a summary for the family.
 - **FR-029**: The failure of a subject or of an attachment MUST NOT abort the rest. If it is
   interrupted, the next sync continues without duplicating.
@@ -940,8 +972,8 @@ Example of the resulting structure (invented names):
 
 - **FR-031**: The name, the email or any data identifying the student MUST NOT appear in a
   URL that alfabeta builds, in the log or in an error message. Paths are shown
-  relative to the student's root folder, and the absolute path of the root or of a mirror is never
-  shown, because the Google Drive for desktop mount path carries the account's email.
+  relative to the student's root folder, and the absolute path of the root is never
+  shown, nor the address of an account it is shared with, because the Google Drive for desktop mount path carries the account's email.
 
 **Reading Classroom with nobody present (User Story 7)**
 
@@ -1020,14 +1052,14 @@ Example of the resulting structure (invented names):
 - **FR-035**: A student MUST have a single data home (configuration, state, decisions, log,
   captures, lease). With the runner enabled it lives in a state folder inside the alfabeta folder of
   the student's Drive (constitution II and VII: in Drive, reached through spec 004's connection,
-  never part of the master and never mirrored), and any run for that student — the runner's, or a
+  never part of the master and never shared with another account), and any run for that student — the runner's, or a
   family session's on the Mac — takes the student's lease there before reading or writing it. Two
   copies of a student's state that can both be written MUST NOT exist. A Mac session reaches the
   home with `runner home pull`/`push` (research R19).
 - **FR-036**: The runner's outputs MUST be only its data home; the agenda (FR-020), written to the
   school-year folder in Drive through alfabeta's own Google connection (spec 004, with the
   credential of FR-033a) and counted as written only when Drive confirms it; and the calendar, once
-  spec 003 builds it. Its `classroom apply` MUST skip the master folder and the mirrors, which stay with the
+  spec 003 builds it. Its `classroom apply` MUST skip the master folder and the shares, which stay with the
   full sync on the Mac. The data home keeps the hash of the agenda last written to Drive; any run,
   on the Mac or the runner, that is about to upload `agenda.*` MUST first regenerate it from the
   shared data home and upload only if that hash changed, so no path (a Mac `classroom apply`, `book place`, a
@@ -1069,12 +1101,12 @@ Example of the resulting structure (invented names):
 ### Key Entities *(include if feature involves data)*
 
 - **Student**: a *tenant*. Their private configuration (display name, school year, master folder in
-  the family's Drive and its mirrors, subjects, Classroom account, the accounts the calendar and the
+  the family's Drive and the accounts its school-year folder is shared with, subjects, Classroom account, the accounts the calendar and the
   notebooks are shared with) and their single data home (log, sync state, the family's decisions),
   on the Mac or, with the runner enabled, in a state folder in the student's Drive (FR-035), the
   secrets in the cloud project's vault (FR-033).
-- **Mirror**: a folder in another of the student's accounts' Drive, mounted on the same Mac, kept
-  up to date one-way from the master folder.
+- **Share**: an editor permission for another of the student's accounts on the school-year folder of
+  the master, added and kept by alfabeta through its own Google connection (FR-011a).
 - **Subject**: a course of the student, with its folder name and the Classroom class that
   corresponds to it.
 - **Topic folder**: the third level of the structure, prefixed with its date. A topic folder holds
@@ -1109,7 +1141,7 @@ Example of the resulting structure (invented names):
   «Trabajo de clase» are replicated in its folder or noted with link and reason, checked item by
   item against what the student sees in Classroom.
 - **SC-002**: A second sync without changes (FR-025) modifies zero files in the student's folder
-  and in its mirrors.
+  and in the permissions of its school-year folder.
 - **SC-003**: A moved due date, a new material or an attachment of an item that Classroom
   shows as modified appear in the folder and in the summary in the first sync after the
   change; an attachment edited only in Drive, or of an item that shows no modification mark (an
@@ -1133,9 +1165,9 @@ Example of the resulting structure (invented names):
   notice email — including a Google sign-in redirect URL and the account button, which can carry the
   address. The runner never logs an `accounts.google.com` URL. The command never prints
   `display_name`: only Claude uses it when talking with the family in the chat.
-- **SC-010**: After a sync in which every mirror is mounted, every file in the master is in every
-  mirror with the same size and modification time (a `rsync -rlt --dry-run` from the master lists
-  nothing to copy).
+- **SC-010**: After a sync that reaches Drive, every account of `drive.share_with` whose domain takes
+  outside shares holds `writer` on the school-year folder (Drive's permission list says so), and no
+  copy of the master exists in another account's Drive.
 - **SC-011**: With the runner enabled and the operator's Mac off, an assignment the student has
   pending before a scheduled run is in the agenda in Drive after that run, with its due date, and
   nobody was at any computer.
@@ -1199,11 +1231,10 @@ Example of the resulting structure (invented names):
 - The family Drive is mounted on the Mac with Google Drive for desktop. Which personal Google account
   it is (the family confirms which when mounting it in the plan), and which folder each student's
   root lives in, is configuration.
-- The student's other accounts (on 2026-10-26, the school Google Workspace for Education account)
-  get the material through mirrors (FR-011a), not through Drive sharing: each one's Drive is mounted
-  by Google Drive for desktop on the same Mac and its folder is listed in `drive.mirrors`. alfabeta
-  does not manage Drive permissions, except the one share of each living file that spec 005 adds
-  (FR-011b).
+- The student's other accounts (the school Google Workspace for Education account) get the
+  material by sharing (FR-011a, Session 2026-11-08): alfabeta gives each one editor access to the
+  school-year folder and manages no other Drive permission, except the one share of each living file
+  that spec 005 adds (FR-011b). Until 2026-11-08 they got it through one-way mirrors.
 - alfabeta's own OAuth client is not available for the student's school account
   (`docs/classroom-investigacion.md`), so the full sync reads everything from what the student sees
   in the browser. The unattended runner's token route (FR-032a) tries the API as a first-party
@@ -1233,8 +1264,8 @@ Example of the resulting structure (invented names):
 
 - The Claude desktop app with access to the Mac's files.
 - Chrome with the Claude extension and the student's Classroom session in it.
-- Google Drive for desktop with the family's account, already installed on the Mac, and with the
-  account of each mirror mounted too.
+- Google Drive for desktop with the family's account, already installed on the Mac. The other
+  accounts need nothing mounted: they reach the shared school-year folder from Drive itself.
 - The `sciencebits-a-notebooklm` skill, which moves to reading the per-student configuration and
   writing to the common structure (FR-022).
 - For User Story 7: the family's cloud project with a scheduled job, a secret store (the vault) and

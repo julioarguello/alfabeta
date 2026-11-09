@@ -828,11 +828,9 @@ and cannot judge what the notebook writes.
   alone (measured 2026-10-31: not listed for a viewer until opened once by its link). The Science
   Bits skill's notebook step (spec 001 FR-011b), on every run that finds the notebook shared with
   an account of `notebook.share_with`, now or before, MUST leave in the topic's `notebook/` folder
-  a one-page PDF, «Abrir el cuaderno.pdf», with the notebook's title and its link, and bring the
-  mirrors up to date; and the printed topic MUST carry the same link under its title, on the first
+  a one-page PDF, «Abrir el cuaderno.pdf», with the notebook's title and its link; and the printed topic MUST carry the same link under its title, on the first
   page (FR-017). The link is the one `nlm notebook get` returns; alfabeta never builds it. The
-  file is written only when it is absent or does not carry that link; otherwise the folder and its
-  mirrors receive no write (spec 001 FR-011a). A PDF and not a shortcut file (`.url`, `.webloc`),
+  file is written only when it is absent or does not carry that link; otherwise the folder receives no write (spec 001 FR-025). A PDF and not a shortcut file (`.url`, `.webloc`),
   since the student opens the folder in Drive, which shows a PDF; that Drive's viewer follows the
   link is not yet measured and the first topic it is written for checks it. A failed write does
   not undo the share: the summary says the notebook's link was not left in the folder, and the
@@ -894,9 +892,8 @@ and cannot judge what the notebook writes.
     and its Drive id, so its living files and their notebook sources stay where they are (spec 005
     FR-011 forbids moving them; a rename of their parent moves nothing); its notebook is renamed the
     same way (`nlm notebook rename`) and keeps its pack, which is subtopic A's; alfabeta's records
-    follow the rename in the same step. Only lessons outside subtopic A get new folders. A mirror
-    keeps the old `Tema NN` folder beside the renamed one, since mirrors are never pruned (spec 001);
-    the family is told. A topic never split keeps its `Tema NN` name, and counts as holding the
+    follow the rename in the same step. Only lessons outside subtopic A get new folders. The other accounts
+    see the rename at once in the shared school-year folder (spec 001 FR-011a); the family is told. A topic never split keeps its `Tema NN` name, and counts as holding the
     lessons its pack's blocks cover.
   - **Its sources**: a new subtopic's notebook takes the textbook of its own lessons only — each
     language's textbook Markdown cut at that file's own lesson headings (`## Lección N:`,

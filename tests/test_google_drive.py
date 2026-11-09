@@ -7,6 +7,7 @@ import hashlib
 import json
 import urllib.parse
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -213,3 +214,67 @@ def test_a_conversion_goes_only_into_a_folder_of_the_tree(tmp_path: Path):
     with pytest.raises(DriveError, match="not a folder"):
         drive.convert("ficha-1", "ficha-0", DOC, {"alfabeta_for": "ficha-1"})
     assert len(t.calls) == before
+
+
+def permissions(*held: dict[str, Any]) -> Response:
+    return json_response(200, {"permissions": list(held)})
+
+
+def test_a_folder_is_shared_to_edit_without_mailing_anybody(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses += [
+        permissions({"id": "p0", "role": "owner", "emailAddress": "alumna@example.com"}),
+        json_response(200, {"id": "p1", "role": "writer"}),
+    ]
+    assert drive.share_writer("tema-1", "familia@example.com") == "added"
+    method, url, _, body = t.calls[-1]
+    assert method == "POST" and url.endswith("/files/tema-1/permissions?sendNotificationEmail=false&fields=id,role")
+    assert json.loads(body or b"{}") == {"role": "writer", "type": "user", "emailAddress": "familia@example.com"}
+
+
+def test_an_account_that_can_already_edit_gets_no_request(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses.append(permissions({"id": "p1", "role": "writer", "emailAddress": "Familia@Example.com"}))
+    assert drive.share_writer("tema-1", "familia@example.com") == "already"
+    assert [c[0] for c in t.calls[-1:]] == ["GET"] and not t.responses
+
+
+def test_a_lower_role_on_the_folder_itself_is_raised_not_doubled(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    reader = {
+        "id": "p1",
+        "role": "reader",
+        "emailAddress": "familia@example.com",
+        "permissionDetails": [{"inherited": False}],
+    }
+    t.responses += [permissions(reader), json_response(200, {"id": "p1", "role": "writer"})]
+    assert drive.share_writer("tema-1", "familia@example.com") == "raised"
+    method, url, _, body = t.calls[-1]
+    assert (method, json.loads(body or b"{}")) == ("PATCH", {"role": "writer"})
+    assert "/files/tema-1/permissions/p1?" in url
+
+
+def test_a_lower_role_inherited_from_above_gets_its_own_permission(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    inherited = {
+        "id": "p1",
+        "role": "reader",
+        "emailAddress": "familia@example.com",
+        "permissionDetails": [{"inherited": True}],
+    }
+    t.responses += [permissions(inherited), json_response(200, {"id": "p2", "role": "writer"})]
+    assert drive.share_writer("tema-1", "familia@example.com") == "added"
+    assert t.calls[-1][0] == "POST"
+
+
+def test_a_share_is_counted_only_when_drive_answers_writer(tmp_path: Path):
+    drive, t = opened(tmp_path)
+    t.responses += [permissions(), json_response(200, {"id": "p1", "role": "reader"})]
+    with pytest.raises(DriveError, match="not confirmed"):
+        drive.share_writer("tema-1", "familia@example.com")
+    t.responses += [permissions(), Response(403, b'{"error": {"code": 403}}')]
+    with pytest.raises(DriveError) as err:
+        drive.share_writer("tema-1", "familia@example.com")
+    assert err.value.status == 403
+    with pytest.raises(DriveError):
+        drive.share_writer("ficha-1", "familia@example.com")  # a file is never shared this way

@@ -148,14 +148,14 @@ def test_placing_the_same_files_again_writes_nothing(box: Box, tmp_path: Path):
     assert tree(box.base) | {"state": tree(box.data)["state.json"]} == before
     first, again = lines(box)[-2:]
     assert first["result"] == "placed" and again["result"] == "unchanged"
-    assert {k: again[k] for k in ("type", "run", "source", "subject", "topic", "mirrors")} == {
+    assert {k: again[k] for k in ("type", "run", "source", "subject", "topic")} == {
         "type": "book",
         "run": box.run,
         "source": "sciencebits",
         "subject": "FyQ",
         "topic": TOPIC,
-        "mirrors": {"up_to_date": 0, "failed": 0},
     }
+    assert "mirrors" not in again  # nothing is copied to the other accounts: they share the folder (FR-011a)
     assert dt.datetime.fromisoformat(again["at"]).tzinfo is not None
 
 
@@ -305,20 +305,6 @@ def test_it_writes_only_in_the_students_base_and_data_folders(box: Box, tmp_path
     assert done.returncode == 0, done.stderr
     assert {k: v for k, v in tree(box.home).items() if not k.startswith(("drive/sample", "sample/data"))} == outside
     assert tree(fake_home) == mac
-
-
-@pytest.mark.skipif(shutil.which("rsync") is None, reason="rsync is not installed")
-def test_the_mirrors_are_brought_up_to_date(box: Box, tmp_path: Path):
-    mirror = tmp_path / "mirror"
-    mirror.mkdir()
-    config = box.home / "sample" / "config.toml"
-    config.write_text(config.read_text().replace("mirrors = []", f"mirrors = [{json.dumps(str(mirror))}]"))
-    done = place(box, built(tmp_path / "out"))
-    assert done.returncode == 0, done.stderr
-    assert json.loads(done.stdout)["mirrors"] == {"up_to_date": 1, "failed": 0}
-    assert (mirror / TOPIC_FOLDER / "sciencebits" / "Tema01_ES.pdf").is_file()
-    assert lines(box)[-1]["mirrors"] == {"up_to_date": 1, "failed": 0}
-    assert str(mirror) not in done.stdout + done.stderr
 
 
 @dataclass

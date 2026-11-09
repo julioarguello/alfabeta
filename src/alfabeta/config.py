@@ -32,6 +32,8 @@ _NAME = re.compile(r"[a-z][a-z0-9_-]*")
 # Google Drive for desktop mounts every account under this folder (spec 004 R7).
 _DRIVE_MOUNTS = Path("Library") / "CloudStorage"
 _MY_DRIVE = frozenset({"mi unidad", "my drive"})
+# An account address for `drive.share_with`: a local part, one at sign and a domain with a dot, no spaces.
+_ADDRESS = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 
 
 class ConfigError(Exception):
@@ -243,9 +245,9 @@ class StudentConfig:
         return _int(self.data, "sync.lock_idle_minutes")
 
     @property
-    def mirrors(self) -> tuple[Path, ...]:
-        """The one-way mirrors of the base folder in the student's other Drives; never shown."""
-        return tuple(Path(m).expanduser() for m in _strs(self.data, "drive.mirrors", allow_empty=True))
+    def share_with(self) -> tuple[str, ...]:
+        """The student's other accounts that can edit the school-year folder of the Drive; never shown."""
+        return _strs(self.data, "drive.share_with", allow_empty=True)
 
     @property
     def notebook_enabled(self) -> bool:
@@ -457,15 +459,9 @@ def _check_places(cfg: StudentConfig, problems: list[Problem], warnings: list[Pr
     elif not root or root.lower() in _MY_DRIVE:
         problems.append(Problem("drive.root", "is_my_drive"))
 
-    for index, value in enumerate(_strs(data, "drive.mirrors", allow_empty=True)):
-        key = f"drive.mirrors[{index}]"
-        mirror = _local(value)
-        if mirror.name.lower() in _MY_DRIVE:
-            problems.append(Problem(key, "is_my_drive"))
-        elif _inside(mirror, base) or _inside(base, mirror):
-            problems.append(Problem(key, "overlaps_base"))
-        elif not mirror.is_dir():
-            warnings.append(Problem(key, "not_mounted"))
+    for index, value in enumerate(_strs(data, "drive.share_with", allow_empty=True)):
+        if not _ADDRESS.fullmatch(value.strip()):
+            problems.append(Problem(f"drive.share_with[{index}]", "not_an_address"))
 
 
 def check(home: Path, student: str, template: Path = TEMPLATE) -> tuple[list[Problem], list[Problem]]:

@@ -65,6 +65,7 @@ CALLS: dict[str, Callable[[ScopedDrive], object]] = {
     "listed": lambda d: d.listed(OUTSIDE),
     "made_for": lambda d: d.made_for(OUTSIDE, {"alfabeta_for": "foto-1"}),
     "share_reader": lambda d: d.share_reader(OUTSIDE, "familia@example.com"),
+    "share_writer": lambda d: d.share_writer(OUTSIDE, "familia@example.com"),
     "export": lambda d: d.export(OUTSIDE),
     "convert": lambda d: d.convert(OUTSIDE, "tema-1", "application/vnd.google-apps.document", {"alfabeta_for": "x"}),
 }

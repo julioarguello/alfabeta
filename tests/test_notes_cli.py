@@ -32,7 +32,7 @@ rules_theory = ""
 
 [drive]
 root = "alfabeta"
-mirrors = []
+share_with = []
 
 [notebook]
 enabled = false

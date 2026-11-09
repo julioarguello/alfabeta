@@ -62,7 +62,7 @@ other two, and the need to be at the Mac for the third.
 - **A read with no app open.** alfabeta's own command reads Classroom on the Mac from a browser
   profile kept for the student, with no window on screen, through Classroom's own read calls behind
   the browser guard spec 001 research R18 designed. It leaves the capture spec 001 already applies,
-  so replicas, mirrors and the agenda do not change.
+  so replicas, shares and the agenda do not change.
 - **A notice with a link, and the sign-in from the phone.** When a read needs a sign-in, the family
   gets an email with one link. On the Mac the link brings the sign-in window to the front; on the
   phone it opens a remote view of the Mac's screen with that window. The family signs in; alfabeta
@@ -77,7 +77,7 @@ other two, and the need to be at the Mac for the third.
 - **Reading with nobody signing in** (spec 001 User Story 7, #2). R15 and R20 leave no route that
   keeps the session alive; User Story 7 stays as specified and gated on its spikes.
 - **Running the read on the phone, or on a machine other than the Mac.** The session lives in the
-  browser where the family signs in, and the read, Drive and the mirrors are on the Mac; the phone
+  browser where the family signs in, and the read and Drive are on the Mac; the phone
   is a remote view, not where the read runs. A dedicated always-on machine at home, as the peer
   project uses, is left to a later spec, with constitution IX amended first.
 - **A third-party messaging channel** such as Telegram, which the peer project uses: constitution
@@ -127,7 +127,7 @@ names and response shapes are a starting point, not a measurement of this accoun
   mac, pues desde el mac» — can the read run on whichever device the link is clicked? → A: The link
   works from both, but the read always runs on the Mac: the session lives in the browser where the
   family signs in, and Google ties it to that device, so a sign-in on the phone's own browser would
-  leave the Mac without it; and the read, Drive and the mirrors are on the Mac. From the phone the
+  leave the Mac without it; and the read and Drive are on the Mac. From the phone the
   link opens the remote view of the Mac's screen. For the family the steps are the same on both:
   click and sign in.
 - Q: Notices to the phone, through what? → A: An email from a family account alfabeta links only
@@ -163,7 +163,7 @@ post in Classroom and never interact with alfabeta.
 Once the student's school account is signed in to the profile alfabeta keeps for it, a read runs on
 the Mac from alfabeta's own command, without the Claude app and without any window on screen. It
 reads every active class and leaves the capture spec 001's apply step uses, so the topic folders,
-the mirrors and the agenda are updated exactly as today.
+the shares and the agenda are updated exactly as today.
 
 **Why this priority**: it removes the two needs that force the family to the Mac today, the open app
 and the visible window, and the other stories stand on it.
@@ -314,7 +314,7 @@ arrives.
 - **FR-007**: The read MUST leave, in spec 001's capture format, everything the current extractor
   captures: classes, topics, items with their details, statuses, modification marks and
   attachments, the stream's posts, and, where spec 001 User Story 6 is built, the student's
-  submissions and gradings. Planning, applying, replicas, mirrors and the agenda then work
+  submissions and gradings. Planning, applying, replicas, shares and the agenda then work
   unchanged. What needs judgement (a class not yet linked to a subject, a new topic match, an exam
   candidate; spec 001 R7) MUST NOT be decided by this read: it is left pending, counted in the
   result email and decided in the family's next session with Claude (spec 001 FR-021b); what is
@@ -422,7 +422,7 @@ arrives.
 - **FR-025**: The commands MUST NOT assume macOS outside five named seams, each one interface whose
   only implementation today is the Mac's: where secrets live (the macOS keychain, alfabeta's
   `TokenStore`), what starts a read at the scheduled times (launchd), the remote view for the
-  sign-in (Chrome Remote Desktop to the Mac), the local notification (macOS) and the mirrors
+  sign-in (Chrome Remote Desktop to the Mac), the local notification (macOS) and the shares
   (Google Drive for desktop) — and, with them, what is Mac-only around the sign-in: the launcher
   (FR-016), the browser installation (FR-002) and bringing a window to the front (FR-013, FR-017).
   Moving the read to another machine is then a new implementation of those seams plus the
@@ -453,7 +453,7 @@ arrives.
   deadline, link) or a read ended (student id, counts, stop reason).
 - **Capture**: what the read leaves for spec 001's apply step, in spec 001's format.
 - **Seam**: one interface the commands call for something that differs between machines (secrets,
-  scheduler, remote view, local notification, mirrors), with the Mac as its only implementation
+  scheduler, remote view, local notification, shares), with the Mac as its only implementation
   today (FR-025).
 
 ## Success Criteria *(mandatory)*

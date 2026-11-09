@@ -380,7 +380,6 @@ class ExamDeps:
     notebook: Notebook
     living: LivingNotesReader
     printer: Printer
-    mirrors: Callable[[], int]  # refreshes every mirror; how many failed
     sleep: Callable[[float], None]
     now: Callable[[], dt.datetime]
 
@@ -599,7 +598,7 @@ class ExamPrep:
         return titles
 
     def _print(self, done: dict[str, str]) -> dict[str, int | None]:
-        """Step 8: each completed sheet into the topic's `exam/`, then the mirrors; pages by kind."""
+        """Step 8: each completed sheet into the topic's `exam/`; pages by kind."""
         pages: dict[str, int | None] = {}
         if not done:
             return pages
@@ -622,10 +621,6 @@ class ExamPrep:
             else:
                 _say(f"«{sheet.name}» did not print")
                 self.partial = True
-        failed = self.deps.mirrors()
-        if failed:
-            _say(f"{failed} mirror(s) of the base folder were not refreshed")
-            self.partial = True
         return pages
 
     def run(self) -> dict[str, Any]:

@@ -243,7 +243,7 @@ def notebook_of(profile: str, nb: str) -> tuple[str, str]:
 
 
 def link(args: argparse.Namespace, work: Path) -> None:
-    """Written only when absent or carrying another link, so an up-to-date mirror gets no write."""
+    """Written only when absent or carrying another link, so an up-to-date folder gets no write."""
     out = Path(args.out).expanduser()
     if not out.is_absolute():  # a path relative to storage.base would land beside the clone, outside Drive
         sys.exit("print_pack: link needs an absolute path to the topic's notebook/ folder")

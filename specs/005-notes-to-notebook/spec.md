@@ -39,8 +39,9 @@ Out of this spec:
 - How Classroom is captured: spec 001. Capture stays on the Mac, because the school blocks the
   Classroom API for minors and only the student's browser session reads it.
 - The Google connection, its accounts and scopes: spec 004.
-- The school account's Drive. It is a one-way mirror that is never read back (constitution VII), so
-  a photo the student puts there is not seen.
+- The school account's own Drive. The school account edits the master's shared school-year folder
+  (constitution VII, spec 001 FR-011a), so a photo the student puts in a topic's `notes/` from there
+  is in the master and is read; one left elsewhere in the school Drive is not seen.
 - The calendar.
 
 ### What was measured before writing this
@@ -527,7 +528,7 @@ source and one living Classroom source, and that a second run adds nothing.
   photo that is not (a credential, a document, a person) is never transcribed, never added to a
   notebook and never shared; the family is told which file it is, without its content, and
   alfabeta never deletes it (2026-10-29: a printed access PIN among six photos). If it sits in a
-  topic folder of Drive, the copy constitution VII makes to the master and the mirrors is the only
+  topic folder of Drive, the copy constitution VII makes to the master is the only
   one, and the report says so, so the family can move it out.
 - **FR-016b**: When the notes come from a notebook the family points at, alfabeta MUST read its
   sharing first and report, before anything else, a notebook open by link that holds the student's
@@ -611,7 +612,7 @@ source and one living Classroom source, and that a second run adds nothing.
 ## Assumptions
 
 - The student uploads photos to the topic's `notes/` folder in the Drive of his personal Gmail,
-  the master. The school Drive is a mirror and is never read (constitution VII).
+  the master. From the school account he reaches the same folder, shared with it (spec 001 FR-011a).
 - The notebook owner's account needs read access to each living file, and to nothing else (FR-009),
   as on 2026-10-27; never the whole folder with the student's work and grades. Whether the
   notebook's viewers also need it was not measured; quickstart step 3 checks. On 2026-10-28 the

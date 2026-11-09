@@ -62,7 +62,7 @@ solution, and one PDF per task was printed. The numbers here describe that one r
 
 | Where | What changes |
 |---|---|
-| Spec 001 | User Story 8 and FR-039 to FR-044, merged briefly as a `family/` folder, are withdrawn in favour of this spec; the numbers stay free. FR-011a's mirrors carry patches. |
+| Spec 001 | User Story 8 and FR-039 to FR-044, merged briefly as a `family/` folder, are withdrawn in favour of this spec; the numbers stay free. FR-011a's shared school-year folder shows patches to the other accounts. |
 | Spec 001 placement | Moving an item moves its `patches/` too (FR-006 here). |
 | Spec 002 | Study material may read a task's document as that task's material (FR-011 here). |
 | Constitution, Technical constraints › Storage | Names the `patches` folder beside `submission`, through the amendment process. |
@@ -223,7 +223,7 @@ moved with it. Then change the task's text and check the report says its patches
   (statement, solution, correction or practice) and its source (family or calculated). The source belongs to the
   patch, never to the folder.
 - **FR-005**: A patch MUST NOT change a replica. `classroom apply` MUST NOT overwrite, quarantine or count patches
-  as replicas, and each mirror (spec 001 FR-011a) MUST carry them.
+  as replicas; the accounts the school-year folder is shared with (spec 001 FR-011a) see them where they are.
 - **FR-006**: When a task's folder changes, its `patches/` MUST move with it, with no second copy left behind.
 - **FR-007**: When the teacher changes a patched task, the report MUST say that its patches and its document should
   be reviewed. Patches are never removed by a sync.
@@ -287,6 +287,6 @@ moved with it. Then change the task's text and check the report says its patches
 
 ## Dependencies
 
-- Spec 001: the item's folder, placement, mirrors and the sync report.
+- Spec 001: the item's folder, placement, shares and the sync report.
 - Spec 002: study material reading the document (FR-011).
 - Constitution III and IV: minors' data, and read-only on the school's platforms.

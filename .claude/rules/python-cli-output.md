@@ -103,8 +103,8 @@ Guidance for human-facing stderr lines; a contract's wording (a Spanish line it 
   directory plus the count when the directory is the unit. A delete lists what went.
 - **Path form: relative to the student's root, never absolute** — the absolute root of Google
   Drive for desktop carries the account's email address (spec 001 contract; principle III). No
-  output names an address, a token or a `display_name`; accounts by alias, ids abbreviated, a
-  mirror by its position. This replaces the shared rule's "absolute otherwise": the constitution
+  output names an address, a token or a `display_name`; accounts by alias, ids abbreviated, an
+  account of a list (`drive.share_with`) by its position. This replaces the shared rule's "absolute otherwise": the constitution
   wins.
 - **Announce before crossing a boundary** — a line before a download, an upload, a sign-in.
 
@@ -132,7 +132,7 @@ Boundary announcements **not gated** — a review item.
 - **The message names the key, never the value** (principle III; `config check`).
 - **Several items, one line or entry each** — a headline that counts, then `<item>  <outcome>` in
   the order processed; design from every combination of outcomes. **Verdict last.**
-- **A loop asks every item before it fails** — collect each status (`mirror`: a failed mirror is
+- **A loop asks every item before it fails** — collect each status (`share`: a failed account is
   counted and the rest go on) and exit with the worst after the last.
 
 **Gate:** each command's tests assert its `reason` and exit code for every failure its contract

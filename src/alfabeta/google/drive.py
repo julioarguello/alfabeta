@@ -35,6 +35,8 @@ FIELDS = "id,name,mimeType,parents,size,md5Checksum,modifiedTime,trashed,propert
 # `properties` tells a change alfabeta wrote from one the family made (research R15).
 CHANGE_FIELDS = "nextPageToken,newStartPageToken,changes(fileId,removed,file(name,mimeType,parents,md5Checksum,modifiedTime,trashed,properties))"
 _BOUNDARY = "alfabeta-part"
+# Roles that can already edit a folder: nothing to add for an account that holds one.
+_EDITING_ROLES = frozenset({"writer", "fileOrganizer", "organizer", "owner"})
 
 
 class DriveError(Exception):
@@ -427,6 +429,33 @@ class ScopedDrive:
             raise DriveError("only a file is shared, never a folder")
         body = json.dumps({"role": "reader", "type": "user", "emailAddress": address}).encode()
         self._call("POST", f"{API}/{file_id}/permissions?sendNotificationEmail=false", body, "application/json")
+
+    def share_writer(self, folder_id: str, address: str) -> str:
+        """Let one account edit one folder, without mailing it (spec 001 FR-011a, #220).
+
+        An account that can already edit it is left alone; a lower role it holds on the folder itself
+        is raised; otherwise a permission is added. The answer must say `writer`, or it is not
+        confirmed. Returns what happened: `already`, `raised` or `added`.
+        """
+        self._folder(folder_id)
+        fields = "permissions(id,role,emailAddress,permissionDetails(inherited))"
+        listed = self._call("GET", f"{API}/{folder_id}/permissions?fields={urllib.parse.quote(fields)}")
+        held = [p for p in listed.get("permissions", []) if str(p.get("emailAddress", "")).lower() == address.lower()]
+        if any(p.get("role") in _EDITING_ROLES for p in held):
+            return "already"
+        # Only a permission Drive marks as the folder's own is raised; anything else gets a new one.
+        own = next((p for p in held if any(d.get("inherited") is False for d in p.get("permissionDetails", []))), None)
+        body = json.dumps({"role": "writer"} if own else {"role": "writer", "type": "user", "emailAddress": address})
+        if own:
+            made = self._call(
+                "PATCH", f"{API}/{folder_id}/permissions/{own['id']}?fields=id,role", body.encode(), "application/json"
+            )
+        else:
+            url = f"{API}/{folder_id}/permissions?sendNotificationEmail=false&fields=id,role"
+            made = self._call("POST", url, body.encode(), "application/json")
+        if made.get("role") != "writer":
+            raise DriveError("the share was not confirmed")
+        return "raised" if own else "added"
 
     def update(
         self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None

@@ -274,7 +274,7 @@ measured on this account; they seed the spikes below and replace none of them (F
 | Scheduler | `Scheduler` | launchd (`classroom agent`) | records the plist it would write |
 | Remote view | `RemoteView` (the notice's link) | Chrome Remote Desktop | a fixed link |
 | Local notification | spec 004's `Notifier` | `osascript` (`MacNotifier`) | records texts |
-| Mirrors | spec 001's mirror step | Google Drive for desktop | temp folders |
+| Shares | spec 001's share step (FR-011a) | the Drive API, through alfabeta's own connection | a fake transport |
 
 Around the sign-in, Mac-only: the browser installation (`BrowserInstall`: where Chrome is), the
 sign-in window (`SignInWindow`: open, address, front, close) and the launcher, each behind a port

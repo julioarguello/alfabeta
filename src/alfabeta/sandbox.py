@@ -57,7 +57,7 @@ base = {q(str(base_folder(home, student)))}
 
 [drive]
 root = "alfabeta"
-mirrors = []
+share_with = []
 
 [calendar]
 id = "familia@calendar.example.org"

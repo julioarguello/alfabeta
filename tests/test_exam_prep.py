@@ -20,6 +20,7 @@ import pytest
 from pypdf import PdfWriter
 
 from alfabeta import __main__ as cli_main
+from alfabeta import config as cli_config
 from alfabeta import sandbox
 from alfabeta.exam import prompts
 from alfabeta.exam.cli import cmd_exam_prep
@@ -178,7 +179,6 @@ class World:
     living: FakeLiving
     printer: FakePrinter
     slept: list[float] = field(default_factory=lambda: [])
-    mirror_failures: int = 0
 
     @property
     def base(self) -> Path:
@@ -197,7 +197,6 @@ class World:
             notebook=NlmNotebook(PROFILE, self.nlm),
             living=self.living,
             printer=self.printer,
-            mirrors=lambda: self.mirror_failures,
             sleep=self.slept.append,
             now=lambda: dt.datetime(2026, 10, 28, 16, 0, tzinfo=dt.UTC),
         )
@@ -619,13 +618,6 @@ def test_a_sheet_that_does_not_print_is_code_3(world: World, capsys: pytest.Capt
     assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, False] and "did not print" in err
 
 
-def test_a_mirror_that_fails_is_counted_and_stops_nothing(world: World, capsys: pytest.CaptureFixture[str]):
-    world.mirror_failures = 1
-    assert world.run() == 3
-    result, err = output(capsys)
-    assert [s["printed"] for s in result["topics"][0]["sheets"]] == [True, True] and "1 mirror(s)" in err
-
-
 # --- refusals: nothing asked, nothing printed --------------------------------------------------------
 
 
@@ -861,13 +853,19 @@ def test_a_usage_error_of_nlm_login_is_not_a_signed_out_session():
     assert err.value.reason == "nlm_failed"
 
 
-def test_the_configurations_warnings_are_shown(world: World, capsys: pytest.CaptureFixture[str]):
-    config = world.home / STUDENT / "config.toml"
-    config.write_text(config.read_text().replace("mirrors = []", f'mirrors = ["{world.home}/no-montado"]'))
-    world.mirror_failures = 1
-    assert world.run() == 3
+def test_the_configurations_warnings_are_shown(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    real = cli_config.check
+
+    def with_a_warning(home: Path, student: str) -> tuple[list[cli_config.Problem], list[cli_config.Problem]]:
+        problems, warnings = real(home, student)
+        return problems, [*warnings, cli_config.Problem("clave.inventada", "aviso_inventado")]
+
+    monkeypatch.setattr(cli_config, "check", with_a_warning)
+    assert world.run() == 0
     _, err = output(capsys)
-    assert "warning: drive.mirrors[0]: not_mounted" in err
+    assert "warning: clave.inventada: aviso_inventado" in err
 
 
 def test_the_printer_runs_print_pack_with_the_profile_and_passes_on_only_its_own_lines(

@@ -13,7 +13,7 @@ from alfabeta import config, sandbox
 SECRET_VALUE = "valor-que-no-debe-salir"
 
 
-def _full(base: Path, tools: Path, mirror: Path) -> str:
+def _full(base: Path, tools: Path) -> str:
     return f"""
 [student]
 display_name = "Alumna Inventada"
@@ -32,7 +32,7 @@ base = "{base}"
 
 [drive]
 root = "alfabeta"
-mirrors = ["{mirror}"]
+share_with = ["familia@example.org"]
 
 [calendar]
 id = "familia@calendar.example.org"
@@ -104,8 +104,7 @@ def home(tmp_path: Path) -> Path:
     home = tmp_path / "home"
     (home / "s9").mkdir(parents=True)
     (tmp_path / "base").mkdir()
-    (tmp_path / "mirror").mkdir()
-    write(home, _full(tmp_path / "base", tmp_path / "tools", tmp_path / "mirror"))
+    write(home, _full(tmp_path / "base", tmp_path / "tools"))
     return home
 
 
@@ -202,30 +201,18 @@ def test_data_and_tools_folders_stay_out_of_the_base_folder(home: Path, tmp_path
     ]
 
 
-def test_mirrors_never_overlap_the_base_and_unmounted_is_a_warning(home: Path, tmp_path: Path):
-    mirror = str(tmp_path / "mirror")
-    write(home, text(home).replace(mirror, str(tmp_path / "base" / "sub")))
-    assert keys(config.check(home, "s9")[0]) == [("drive.mirrors[0]", "overlaps_base")]
-    write(home, text(home).replace(str(tmp_path / "base" / "sub"), str(tmp_path / "gone")))
-    assert config.check(home, "s9") == ([], [config.Problem("drive.mirrors[0]", "not_mounted")])
+@pytest.mark.parametrize("value", ["familia", "familia@", "@example.org", "dos espacios@example.org", ""])
+def test_an_account_to_share_with_must_be_an_address(home: Path, value: str):
+    write(home, text(home).replace('share_with = ["familia@example.org"]', f'share_with = ["{value}"]'))
+    problems, warnings = config.check(home, "s9")
+    assert (keys(problems), warnings) == ([("drive.share_with[0]", "not_an_address")], [])
 
 
-@pytest.mark.parametrize(
-    ("where", "reason"),
-    [
-        ("base", "overlaps_base"),
-        ("base/sub", "overlaps_base"),
-        ("", "overlaps_base"),
-        ("drive/Mi unidad", "is_my_drive"),
-    ],
-    ids=["the-base", "inside-the-base", "contains-the-base", "my-drive"],
-)
-def test_a_mirror_that_is_the_base_holds_it_or_is_my_drive_is_refused(
-    home: Path, tmp_path: Path, where: str, reason: str
-):
-    (tmp_path / where).mkdir(parents=True, exist_ok=True)
-    write(home, text(home).replace(str(tmp_path / "mirror"), str(tmp_path / where).rstrip("/")))
-    assert keys(config.check(home, "s9")[0]) == [("drive.mirrors[0]", reason)]
+def test_the_accounts_to_share_with_are_read_and_may_be_none(home: Path):
+    assert config.load_all(home, "s9").share_with == ("familia@example.org",)
+    write(home, text(home).replace('share_with = ["familia@example.org"]', "share_with = []"))
+    assert config.load_all(home, "s9").share_with == ()
+    assert config.check(home, "s9") == ([], [])
 
 
 def test_student_id_is_lowercase_ascii(home: Path):

@@ -38,10 +38,10 @@ base = "changeme"                   # e.g. "~/alfabeta/<student>"
 [drive]
 # The alfabeta folder's path inside the student's My Drive (spec 004), never the root of My Drive.
 root = "changeme"                   # e.g. "alfabeta"
-# One-way mirrors of the base folder (FR-011a): a folder in each of the student's other accounts' Drives,
-# mounted by Google Drive for desktop on this Mac. Brought up to date after every sync; never read back,
-# never pruned. Never shown in messages. [] for none.
-mirrors = ["changeme"]              # e.g. ["~/Library/CloudStorage/GoogleDrive-<school account>/Mi unidad/alfabeta"]
+# The student's other accounts (FR-011a): each can edit the school-year folder inside `root`, shared
+# through alfabeta's own connection, so they see the same files with no copy. Checked on every sync; a
+# share is never removed. Never shown in messages. [] for none.
+share_with = ["changeme"]           # e.g. ["<student>@<school domain>"]
 
 [calendar]
 # The family calendar alfabeta writes to, as the student's Gmail (spec 004). Never printed.

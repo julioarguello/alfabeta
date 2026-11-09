@@ -144,20 +144,19 @@ cannot be undone.
   for it on a sync client whose result it cannot read.
 - Whatever that Drive holds under a topic folder and the master lacks (what the family adds, such as
   the student's photos of his notes, and what a cloud run writes) MUST be brought back into the
-  master, so the mirrors receive it too. This is the only Drive-to-master direction; it never
-  applies to a mirror. A cloud run's state folder and its reports live only in Drive: they are not
-  part of the master and never reach a mirror.
+  master. This is the only Drive-to-master direction. A cloud run's state folder and its reports
+  live only in Drive: they are not part of the master and are never shared with another account.
 - A cloud run that only reads a platform (spec 001's Classroom read) writes no replicas and no topic
   material: it writes only what it derives — the agenda (regenerated from the shared state by any Mac
-  run, so a mirror still receives it through the master) and the calendar — straight through that
+  run) and the calendar — straight through that
   connection and confirmed the same way.
-- alfabeta then brings each configured mirror up to date from the master, one-way. A mirror is the
-  Drive folder of an account alfabeta's own connection cannot reach (the school account), mounted on
-  the same Mac. It is never read back into the master, and nothing is deleted from it. Its upload
-  belongs to the sync client, so alfabeta reports it as written on the Mac, never as confirmed. A
-  failed mirror MUST NOT undo or block the master or the other outputs.
-- Every output reaches every account the configuration lists for it: the mirrors for the folder,
-  and a list of accounts the calendar and each notebook are shared with. alfabeta shares nothing
+- The student's other accounts (the school account) reach the master by sharing, never by a copy:
+  through its own connection, alfabeta gives each account the configuration lists editor access to
+  the school-year folder, not to the alfabeta root, and counts a share only when Drive confirms it.
+  It never removes a permission and never writes a copy of the master into another account's
+  Drive. A failed share MUST NOT undo or block the master or the other outputs.
+- Every output reaches every account the configuration lists for it: the accounts the school-year
+  folder, the calendar and each notebook are shared with. alfabeta shares nothing
   with an account the configuration does not list. The Gemini Notebook notebook and the calendar
   are outputs enabled by configuration.
 - Gemini Notebook has no public API and is used through `notebooklm-mcp-cli`, which can break. If one
@@ -233,7 +232,7 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
   YAML or JSON).
 - **Storage**: one master folder per student on disk, uploaded to the cloud their configuration
-  sets, plus zero or more one-way mirrors with the same content in the student's other accounts.
+  sets; the student's other accounts edit its school-year folder through a share, with no copy.
   Structure shared by every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/<folder>/`.
   Every topic folder starts with a date, the posting date of its first Classroom material, so the
@@ -317,4 +316,4 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.7.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-05
+**Version**: 2.8.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-08

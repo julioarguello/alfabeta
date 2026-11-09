@@ -48,7 +48,7 @@ class notes (photos) ─┐
 Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► each listed account
 Science Bits ─────────┘     {notes, classroom, sciencebits, notebook, exam}              (shared as viewer)
                                               │
-                                              ├──► one-way mirrors in the student's other accounts' Drives
+                                              ├──► school-year folder shared as editor with the student's other accounts
                                               └──► calendar: assignments, exams, posted material ──► each listed account
 ```
 
@@ -72,10 +72,10 @@ worst guide to the exam. The reasons, and the evidence behind them, are in
 In the design, the notebooks belong to a parent's personal Google account and are shared as viewer
 with every account the configuration lists (`notebook.share_with`), so the family can share them
 freely and the adult account avoids the platform's 18+ limit on cinematic video. The calendar is
-shared the same way (`calendar.shared_with`), and the topic folders reach the student's other
-accounts as one-way mirrors of the master folder (`drive.mirrors`). Measured 2026-10-26: a school
-Google Workspace for Education domain allowed a notebook and a calendar owned by a personal Gmail
-account to be shared with the school account and opened there.
+shared the same way (`calendar.shared_with`), and the student's other accounts get editor access
+to the school-year folder of the master (`drive.share_with`), with no copy. Measured 2026-10-26: a
+school Google Workspace for Education domain allowed a notebook and a calendar owned by a personal
+Gmail account to be shared with the school account and opened there.
 
 ## Get started
 
@@ -101,7 +101,7 @@ account to be shared with the school account and opened there.
 | [Google Chrome](https://www.google.com/chrome/) with the Claude in Chrome extension | The Science Bits and Classroom skills read their pages in it, with your own sign-in. For Science Bits, allow automatic downloads and pop-ups for `learning-bits.com` and turn off «Ask where to save each file» |
 | [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) (`nlm`), installed with [uv](https://docs.astral.sh/uv/) | Gemini Notebook has no public API; `nlm` talks to it from the command line |
 | [pandoc](https://pandoc.org/installing.html), [Graphviz](https://graphviz.org/download/) and [Google Chrome](https://www.google.com/chrome/) | The study pack renders reports and mind maps to PDF with them |
-| A folder synced to your cloud storage | The skills write each topic under `storage.base` and copy it to each folder in `drive.mirrors`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
+| A folder synced to your cloud storage | The skills write each topic under `storage.base`, whose school-year folder alfabeta shares with each account in `drive.share_with`; the Classroom sync will need [Google Drive for desktop](https://www.google.com/drive/download/) |
 
 Nothing extra is needed for Python beyond uv: `build.py` and its `render.py` run under `uv run`, which installs
 `reportlab`, `beautifulsoup4` and `pypdf` from this repository's lock, and the fonts they draw with are in
