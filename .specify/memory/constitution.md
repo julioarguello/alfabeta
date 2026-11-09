@@ -211,6 +211,27 @@ in the textbook's order left the student lost, while his notes carried schemes t
 follow (2026-10-29). The last bullet came after a summary and a flashcard repeated a fact the notes
 had wrong while the practice sheet of the same notebook corrected it (2026-10-31).
 
+### XI. Study material reads at a glance
+
+- Every text the student or the family reads — whoever writes it: a notebook prompt, an alfabeta
+  command or an agent by hand — MUST be laid out to be scanned, not read through: a heading per
+  section, one idea per line in indented lists or tables, short sentences. No long paragraph, and
+  no line that strings several ideas together with `·`, commas or full stops: a line that does not
+  fit in two printed lines is split into sub-points. Bold marks only what is to be learnt.
+- Each sentence is whole in one language. A term in a second language appears once per concept, in
+  the same place on its line throughout the document or in a column of its own, never as a
+  translation after each word inside a sentence; a statement and its translation are two blocks,
+  one below the other, never alternated sentence by sentence.
+- The rule lives once, at the level of the tool, so that every prompt and every piece written by
+  hand takes it without being told again (spec 002 FR-052). A family's standing rule may change the
+  layout of a subject's pieces (spec 009). The literal transcription of the class notes (spec 005)
+  copies the student's page as it is and is outside this principle.
+
+Rationale: the operator found the exam material of a topic taught in another language hard to study
+from (2026-11-09): explanations as paragraphs, items strung on one line, and a gloss in the other
+language after nearly every word, so that neither language could be read quickly. He asked for the
+rule in the most basic prompts and for everything, not for that topic alone.
+
 ## Technical constraints
 
 - **Environment**: the Claude desktop app with access to the Mac, and a browser with the student's
@@ -316,4 +337,4 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.8.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-08
+**Version**: 2.9.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-09

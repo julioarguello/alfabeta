@@ -357,6 +357,16 @@ the final implementation.
   the version the teacher asked for; the tool never answers them on his account, and no piece gives
   their answers before he has done them, or the result the teacher sees would not be his.
 
+### Session 2026-11-09
+
+- Q: How is a piece laid out, and how do two languages share it? → A: To be scanned (FR-052,
+  constitution XI). Reading the exam material of a topic taught in Basque, the operator found the
+  notes "overuse 'brick' text, with little structured text, which makes learning harder", and the
+  languages "so intermixed that it is hard to read quickly" («abusan de texto "ladrillo" y veo poco
+  texto estructurado, lo cual dificulta el aprendizaje… cuando es multi-idioma está tan entremezclado
+  que es complejo leer rápidamente»). He did not want that material redone then, but the rule in the
+  most basic prompts, "for everything" («esto aplica para todo»).
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who launches alfabeta and helps at home, reading Spanish
@@ -1029,7 +1039,8 @@ and cannot judge what the notebook writes.
   Outside this requirement are the terms in the subject's language that a text gives beside their
   Spanish (FR-005, FR-032), a problem statement followed by its translation (FR-035), a glossary, whose
   job is the pair of words, and an exercise's solution in the subject's language, which stays as it is
-  with its meaning beside it.
+  with its meaning beside it; each of them laid out as FR-052 says: a term once per concept and in a
+  fixed place, a translation as a block of its own.
 - **FR-051**: When the topic's textbook offers its own exercises or tests for the topic (questions
   between its pages, an interactive version, a whole-topic test), the study guide MUST schedule them,
   with their minutes, inside its blocks (FR-042): each part's tests in the learning block, beside
@@ -1039,6 +1050,21 @@ and cannot judge what the notebook writes.
   student's account, and no piece may give their answers before he has done them. A test the
   teacher has not opened is a step that says to go on to the next, not an optional piece (FR-015).
   What he failed in them joins what he reviews before the exam.
+- **FR-052**: Every piece the student or the family reads, whoever writes it (a notebook prompt,
+  `exam build` or the agent by hand), MUST be laid out to be scanned (constitution XI): a heading per
+  section, one idea per line in indented lists or tables, short sentences, no long paragraph and no
+  line stringing several ideas with `·`, commas or full stops, bold only for what is to be learnt.
+  Each sentence is whole in one language; a term in the subject's language appears once per concept,
+  in the same place on its line throughout the document or in a column of its own, never translated
+  word by word inside a sentence; a statement and its translation are two blocks, one below the
+  other. The words live once, in the section «Reading format — added to a prompt» of the skill's
+  `prompts.md`: `exam build` adds it to both sheets after the filled prompt and before any standing
+  rules, and refuses (`invalid_prompt`) when the section is missing; the skill adds it to the
+  summary, the practice sheet, the parent guide, the glossary and the tutor chat, and follows it in
+  what it writes itself. For a subject taught in Spanish its sentences on a second language are
+  dropped (#224). The video (spoken), the quiz and flashcards (laid out by the notebook), guide 0
+  (copied word for word, so its `{plan}` follows it) and the start notes do not take it. Spec 009's
+  SC-001 reads «as it was» as the filled prompt and this text.
 
 ### Key Entities
 
@@ -1092,6 +1118,10 @@ and cannot judge what the notebook writes.
 - **SC-013**: Each problem from outside the class sources added to a sheet says so beside its
   statement and its solution, every practice sheet says so at its head and over its solutions, and
   every quiz says so in its title.
+- **SC-014**: In a piece made after FR-052, no paragraph runs over four printed lines, no line holds
+  more than one idea strung with `·`, and no sentence mixes the two languages beyond one term in its
+  fixed place; checked by reading the first pieces of a topic taught in another language. Not
+  measured yet.
 
 ## Assumptions
 

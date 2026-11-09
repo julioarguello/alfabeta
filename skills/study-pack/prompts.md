@@ -11,8 +11,8 @@ announcement's or a rule's, stays as written.
 > [!IMPORTANT]
 > `exam build` finds its texts by their exact headings: «Theory sheet — for an exam», «Problems sheet
 > — for an exam» and «Start note — for an exam», and the same three with « with no announcement» after
-> them, and «Standing rules — added to a prompt». Renaming one makes the command refuse (`invalid_prompt`) and
-> ask the notebook for nothing.
+> them, «Reading format — added to a prompt» and «Standing rules — added to a prompt». Renaming one makes the
+> command refuse (`invalid_prompt`) and ask the notebook for nothing.
 
 | Placeholder | Source |
 |---|---|
@@ -50,6 +50,7 @@ announcement's or a rule's, stays as written.
 | `{translated}` | the parent guide's: « traducido al castellano»; empty for castellano |
 | `{in_spanish}` | the flashcards': « en castellano y»; empty for castellano |
 | `{term_in_brackets}` | the summary's: « y el término en <language> entre paréntesis»; empty for castellano, where it would repeat the word |
+| `{languages_apart}` | the reading format's: « Cada frase va entera en un solo idioma. Un término en <language> aparece una sola vez por concepto y en el mismo sitio de la línea en todo el documento, o en su propia columna de una tabla, nunca traducido palabra a palabra dentro de una frase. Un enunciado y su traducción van en dos bloques separados, uno debajo del otro, nunca frase a frase.»; empty for castellano |
 
 ## Video — one per block, plus one per point of the announcement no block covers
 
@@ -245,6 +246,32 @@ With or without a date: the note above says «Hoy», which is false for a prepar
 
 ```text
 Para este examen ({exam_name}): «{theory}» ({slot}). Sigue el plan con el que empieza la hoja.
+```
+
+## Reading format — added to a prompt
+
+Constitution XI, spec 002 FR-052 (#229): how every text the student or the family reads is laid out,
+added after the filled prompt and one space, before any standing rules. Its one placeholder,
+`{languages_apart}`, keeps the languages apart; for a subject in castellano it is empty, since a
+second language there would be the same words twice (#224). Not measured.
+
+| Piece | Takes it |
+|---|---|
+| Theory and problems sheets, with and without an announcement | yes, added by `exam build` |
+| Summary, practice sheet, parent guide, glossary | yes |
+| Tutor chat | yes: its answers are text the student reads |
+| Video's focus | no: it is spoken, and the format is for the page |
+| Quiz, flashcards | no: Studio lays them out itself, one question or one card at a time |
+| Guide 0 | no: its prompt copies a block word for word, so the `{plan}` you write follows it |
+| Start notes | no: fixed texts, already one line per step |
+
+Why: the operator found the exam material of a topic taught in another language hard to study from
+(2026-11-09): items strung together on one line with `·`, explanations as paragraphs, and a Spanish
+gloss in brackets after nearly every word of the subject's language, so that neither language could
+be read quickly.
+
+```text
+Formato, para leer de un vistazo: cada sección con su título y, debajo, una idea por línea, en listas con sangría o en tablas, con frases cortas. Nada de párrafos largos ni de varias ideas seguidas en una misma línea, separadas por puntos, comas o «·»: si una línea no cabe en dos renglones, pártela en subpuntos. Negrita solo para lo que hay que aprenderse.{languages_apart}
 ```
 
 ## Standing rules — added to a prompt

@@ -1662,6 +1662,11 @@ def from_template(heading: str, prompt: str) -> bool:
     return prompt == prompt.rstrip() and re.fullmatch("(.*?)".join(literal), prompt, re.DOTALL) is not None
 
 
+def formatted(code: str) -> str:
+    """The reading format as `exam build` adds it for a subject taught in `code` (spec 002 FR-052)."""
+    return prompts.fill(prompts.template(prompts.FORMAT), prompts.language_values(code))
+
+
 def sent(world: World) -> list[str]:
     """The prompt of each sheet asked for, in order; the built-in guide takes none."""
     return [a[a.index("--prompt") + 1] for a in world.nlm.asked("report", "create") if "--prompt" in a]
@@ -1674,9 +1679,11 @@ def test_a_prompt_only_gains_the_added_text_and_with_no_rules_stays_as_it_was(
     extra = ("--undated", "--topic", world.topic.name) if no_announcement else ()
     assert world.run(*extra) == 0
     before = sent(world)
-    # SC-001: exactly the template, filled, with nothing after it.
+    # SC-001: exactly the template, filled, with nothing after it but the reading format (spec 002 FR-052).
     texts = (prompts.THEORY_OPEN, prompts.PROBLEMS_OPEN) if no_announcement else (prompts.THEORY, prompts.PROBLEMS)
-    assert [from_template(h, p) for h, p in zip(texts, before, strict=True)] == [True, True]
+    tail = f" {formatted('es')}"  # FyQ is `es` in the sandbox
+    assert [p.endswith(tail) for p in before] == [True, True]
+    assert [from_template(h, p.removesuffix(tail)) for h, p in zip(texts, before, strict=True)] == [True, True]
     assert not any(ADDED in p for p in before)
     set_rules(world, student={"both": "del alumno"}, subject={"problems": "de la asignatura"})
     assert world.run(*extra) == 0
@@ -1908,3 +1915,43 @@ def test_a_base_inside_drive_is_a_warning_beside_a_place_that_is_a_problem(
     err = refused(world, capsys, 1, "invalid_config")
     assert "alfabeta: warning: storage.base: inside_drive_mount" in err and "invalid_config" not in err
     assert world.nlm.calls == []
+
+
+# --- the reading format (constitution XI, spec 002 FR-052, #229) ------------------------------------
+
+
+def test_the_reading_format_asks_for_structure_and_keeps_languages_apart():
+    text = formatted("eu")
+    for asked in (
+        "una idea por línea",
+        "Nada de párrafos largos",
+        "pártela en subpuntos",
+        "Cada frase va entera en un solo idioma",
+        "una sola vez por concepto",
+        "nunca traducido palabra a palabra dentro de una frase",
+        "dos bloques separados",
+        "Un término en euskera",
+    ):
+        assert asked in text, asked
+    # For castellano nothing about a second language: it would be the same words twice (#224).
+    assert [clause for clause in (*BILINGUAL, "idioma") if clause in formatted("es")] == []
+
+
+@pytest.mark.parametrize("code", ["es", "eu"])
+def test_exam_build_adds_the_reading_format_to_both_sheets_before_the_rules(
+    world: World, capsys: pytest.CaptureFixture[str], code: str
+):
+    set_language(world, code)
+    set_rules(world, subject={"both": "de la asignatura"})
+    assert world.run() == 0
+    for prompt in sent(world):
+        assert f" {formatted(code)} {ADDED}" in prompt
+    capsys.readouterr()
+
+
+def test_a_renamed_reading_format_refuses_and_asks_for_nothing(
+    world: World, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(prompts, "FORMAT", "Otro título")
+    refused(world, capsys, 1, "invalid_prompt")
+    assert world.nlm.asked("report", "create") == []

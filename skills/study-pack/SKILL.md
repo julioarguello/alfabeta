@@ -55,7 +55,7 @@ topic's folder, which other accounts can open (`drive.share_with`).
 | Guide 0, the built-in study guide, the tutor chat, start notes | nothing. Guide 0's prompt copies a block word for word, so the rules shape the `{plan}` you write. The chat talks with the student, and a question could draw a rule out of it |
 | The blocks and the plan you work out yourself | follow `rules_both` and `rules_theory`, within the limits below |
 
-To add them, fill the prompt, then append one space and the text of «Standing rules — added to a prompt» in
+To add them, fill the prompt and add the reading format ([Reading format](#reading-format)), then append one space and the text of «Standing rules — added to a prompt» in
 [`prompts.md`](prompts.md): the student's rules first, then the subject's. `{rules}` over 2,000 characters
 is too long: tell the family which piece and by how much, and never cut it. `exam build` adds them to its
 two sheets by itself. A rule can hold quotes, `$` or backticks, as formulas do: put the filled prompt in a
@@ -127,9 +127,28 @@ and never quotes a piece's status output, which can hold its prompt.
 A document the family or the student reads holds one language (spec 002 FR-050). When a piece is
 wanted in Spanish and in the subject's language, make two documents, never one mixed. A glossary, whose
 job is the pair of words, stays one. Terms in the subject's language given beside their Spanish, and
-a problem statement followed by its translation, are not mixing (FR-005, FR-032, FR-035). For a
+a problem statement followed by its translation, are not mixing (FR-005, FR-032, FR-035), as long as
+they keep the layout of the next section. For a
 subject taught in castellano the two languages are one: no translation and no term given twice (#224, #226). In a Spanish document, an exercise's solution in the subject's
 language stays as it is, with its meaning beside it.
+
+## Reading format
+
+Every piece is laid out to be scanned, not read through (constitution XI, spec 002 FR-052): a
+heading per section, one idea per line in indented lists or tables, short sentences, no paragraph
+and no line stringing ideas with `·`. Each sentence is whole in one language; a term in the
+subject's language appears once per concept, in the same place on every line or in a column of its
+own, never as a gloss after each word; a statement and its translation are two blocks.
+
+- **Prompts**: fill the prompt, then append one space and the text of «Reading format — added to a
+  prompt» in [`prompts.md`](prompts.md), with `{languages_apart}` filled for the subject's language,
+  and only then any standing rules. Its table there says which pieces take it; `exam build` adds it
+  to its two sheets by itself.
+- **What you write yourself** follows the same layout with no prompt to remind you: `{plan}` for
+  guide 0, `bloques.md`, a key written by hand and printed with `print_pack.render`, and any sheet
+  the family asks you to make outside Studio. Before printing, read it once as the student would:
+  a paragraph, a line of `·`-joined items or a sentence that changes language is rewritten.
+- A family's standing rule may change the layout of a subject's pieces (spec 009).
 
 ## Steps
 

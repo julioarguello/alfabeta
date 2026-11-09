@@ -30,6 +30,8 @@ START_NOTE = "Start note — for an exam"
 THEORY_OPEN = "Theory sheet — for an exam with no announcement"
 PROBLEMS_OPEN = "Problems sheet — for an exam with no announcement"
 START_NOTE_OPEN = "Start note — for an exam with no announcement"
+# How every sheet is laid out, added to each one before any rules (constitution XI, spec 002 FR-052, #229).
+FORMAT = "Reading format — added to a prompt"
 # The text a prompt gains when the student or the subject has standing rules (spec 009).
 RULES = "Standing rules — added to a prompt"
 RULES_LIMIT = 2000  # characters of `{rules}`; unmeasured (spec 009 research R5)
@@ -113,6 +115,15 @@ class RulesUsed:
         return {"used": list(self.used), "fingerprint": self.fingerprint}
 
 
+def with_format(prompt: str, language: Mapping[str, str]) -> str:
+    """`prompt`, filled and right-stripped, with the reading format after it and one space (spec 002 FR-052).
+
+    `language` is `language_values` of the subject. Read on every run, so a renamed heading refuses before
+    anything is asked.
+    """
+    return f"{prompt} {fill(template(FORMAT), language)}"
+
+
 def with_rules(prompt: str, rules: Rules, kind: str) -> tuple[str, RulesUsed | None]:
     """`prompt`, filled, with the rules that speak to `kind` after it, and what it gained (spec 009 FR-003).
 
@@ -164,6 +175,7 @@ def language_values(code: str) -> dict[str, str]:
             "translated": "",
             "in_spanish": "",
             "term_in_brackets": "",
+            "languages_apart": "",
         }
     return {
         "language": words,
@@ -180,6 +192,12 @@ def language_values(code: str) -> dict[str, str]:
         "translated": " traducido al castellano",
         "in_spanish": " en castellano y",
         "term_in_brackets": f" y el término en {words} entre paréntesis",
+        "languages_apart": (
+            " Cada frase va entera en un solo idioma."
+            f" Un término en {words} aparece una sola vez por concepto y en el mismo sitio de la línea en todo el"
+            " documento, o en su propia columna de una tabla, nunca traducido palabra a palabra dentro de una frase."
+            " Un enunciado y su traducción van en dos bloques separados, uno debajo del otro, nunca frase a frase."
+        ),
     }
 
 
