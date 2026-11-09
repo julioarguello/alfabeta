@@ -1280,6 +1280,85 @@ def test_the_second_problem_of_a_pattern_is_never_worded_as_optional(heading: st
     assert "con el título «Otro del mismo patrón», sin llamarlo opcional, adicional ni extra" in text
 
 
+# The pack's prompts, filled by the skill's agent from the table (#226): each with the clauses a subject in another
+# language keeps, word for word as before.
+PACK = {
+    "Video — one per block, plus one per point of the announcement no block covers": (
+        "que da esta asignatura en euskera y estudia en castellano.",
+        "dilo también en euskera tal como aparece en el material de clase",
+    ),
+    "Glossary — for the parent, in `notebook/`": (
+        "que da la asignatura en euskera y estudia en castellano.",
+        "columnas: término en euskera tal como aparece en el material de clase | castellano | inglés |",
+    ),
+    "Parent guide — for the parent, in `notebook/`": (
+        "que ayuda en casa y no sabe euskera; el alumno da la asignatura en euskera.",
+        "respuesta esperada | término en euskera.",
+        "enunciado traducido al castellano, planteamiento",
+    ),
+    "Quiz and flashcards — in the subject's language": (
+        "en el anverso el término en euskera tal como aparece",
+        "en el reverso, el término en castellano y en inglés y una definición",
+    ),
+    "Summary of the notes": ("explicación y el término en euskera entre paréntesis.",),
+    "Tutor chat": ("Explica en castellano y da cada término clave también en euskera.",),
+}
+# What a pack prompt for a subject in castellano must not hold: a translation, a second language that is the first.
+BILINGUAL_PACK = (
+    "traduc",
+    "estudia en castellano",
+    "también en castellano",
+    "no sabe castellano",
+    "término en castellano",
+    "en castellano y en inglés",
+    "| castellano |",
+    "en castellano entre paréntesis",
+)
+
+
+def pack_filled(heading: str, code: str) -> str:
+    """Every `text` block of the section, not only the first (quiz and flashcards share one), filled for `code`."""
+    sections = re.split(r"^(?=## )", prompts.PROMPTS.read_text(), flags=re.MULTILINE)
+    section = next(s for s in sections if s.split("\n", 1)[0] == f"## {heading}")
+    texts = re.findall(r"^```text\n(.*?)\n^```", section, flags=re.MULTILINE | re.DOTALL)
+    names = set(re.findall(r"\{(\w+)\}", "".join(texts)))
+    values = dict.fromkeys(names, "X") | prompts.language_values(code)
+    return "\n".join(prompts.fill(text, values) for text in texts)
+
+
+@pytest.mark.parametrize("heading", PACK)
+def test_a_pack_prompt_for_another_language_keeps_its_clauses_word_for_word(heading: str):
+    text = pack_filled(heading, "eu")
+    assert [clause for clause in PACK[heading] if clause not in text] == []
+
+
+@pytest.mark.parametrize("heading", PACK)
+def test_a_pack_prompt_for_castellano_asks_for_no_translation_and_no_word_twice(heading: str):
+    text = pack_filled(heading, "es")
+    assert [clause for clause in BILINGUAL_PACK if clause in text] == []
+
+
+def test_the_glossary_of_a_subject_in_castellano_keeps_spanish_and_english():
+    # Spec 002, edge cases: «the glossary keeps Spanish and English».
+    text = pack_filled("Glossary — for the parent, in `notebook/`", "es")
+    assert "columnas: término tal como aparece en el material de clase | inglés | definición" in text
+
+
+@pytest.mark.parametrize("code", ["es", "eu"])
+def test_the_table_quotes_every_language_value_the_code_holds(code: str):
+    # The skill's agent fills the pack's prompts from the table; `exam build` from the code. One must not drift.
+    rows = dict(re.findall(r"^\| `\{(\w+)\}` \|(.*)$", prompts.PROMPTS.read_text(), flags=re.MULTILINE))
+    values = prompts.language_values(code)
+    quoted = {
+        name: f"«{value.replace('euskera', '<language>').replace('|', chr(92) + '|')}»"
+        for name, value in values.items()
+        if name != "language" and value
+    }
+    assert [name for name, value in quoted.items() if value not in rows.get(name, "")] == []
+    empty = [name for name, value in values.items() if not value]
+    assert [name for name in empty if "empty for castellano" not in rows[name] and "empty when" not in rows[name]] == []
+
+
 def set_language(world: World, code: str) -> None:
     """FyQ, the exam's subject, taught in `code`."""
     config = world.home / STUDENT / "config.toml"
