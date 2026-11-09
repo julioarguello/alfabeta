@@ -586,8 +586,8 @@ and cannot judge what the notebook writes.
 7. **Given** the teacher's photocopies, **When** the problems sheet is read, **Then** every
    exercise is in exactly one pattern, exercises printed on two photocopies are named as repeats,
    each pattern has one worked problem (one the teacher assigned when the pattern has one), each
-   statement is in its original language followed by a Spanish translation, and the solutions come
-   only after a page break.
+   statement is in its original language followed by a Spanish translation (none for a subject
+   taught in Spanish), and the solutions come only after a page break.
 8. **Given** a photocopy with a known wrong printed answer, **When** the problems sheet is read,
    **Then** nothing on the sheet says that a printed answer is wrong or names anyone, unless a
    standing rule of the family gives that answer.
@@ -789,7 +789,8 @@ and cannot judge what the notebook writes.
   command reports the printed page count against the slot; a longer sheet is printed and
   reported, not regenerated.
 - **FR-032**: On both sheets every term MUST appear first in the subject's language, as the class
-  material writes it, and then in Spanish. Where the notes, the teacher's sheets and the textbook
+  material writes it, and then in Spanish; for a subject taught in Spanish, once, as the class
+  material writes it, since the pair would be the same word twice (#224). Where the notes, the teacher's sheets and the textbook
   use different words for one thing, or one word for two things, the theory sheet shows each and
   how to tell them apart.
 - **FR-033**: The command MUST first bring the notebook's class-notes source up to date, as spec
@@ -810,8 +811,10 @@ and cannot judge what the notebook writes.
   notes' data, with no statement written for it.
 - **FR-035**: For each pattern the problems sheet MUST work one problem, the hardest, preferring one
   the teacher assigned, and say why it is the hardest; it may name a second one of the same pattern
-  for spare time. Each worked problem gives its statement in its original language followed by a
-  Spanish translation, unless no source holds it (FR-034). The sheet gives the order and about how long each pattern takes, and every
+  for spare time, asked for as «another of the same pattern» and never labelled optional (SC-009;
+  «para si sobra tiempo» came back as «Problema Opcional para Tiempo Extra», #224). Each worked
+  problem gives its statement in its original language followed by a Spanish translation, unless no
+  source holds it (FR-034) or the subject is taught in Spanish, where it has no translation. The sheet gives the order and about how long each pattern takes, and every
   solution comes after a page break, at the end.
 - **FR-036**: The notebook computes every number of both sheets. This is an accepted risk
   (see Clarifications) and the one exception to FR-009 and SC-001. The

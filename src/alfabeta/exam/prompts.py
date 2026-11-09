@@ -48,6 +48,7 @@ LANGUAGES = {
     "ca": "catalán",
     "gl": "gallego",
 }
+SPANISH = "es"  # the language the student studies in: no translation, no term pairs (#224)
 WEEKDAYS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
 MONTHS = (
     "enero",
@@ -137,6 +138,32 @@ def language_words(code: str) -> str:
         return LANGUAGES[code]
     except KeyError:
         raise PromptError(f"no words for the language code {code!r}") from None
+
+
+def language_values(code: str) -> dict[str, str]:
+    """The exam sheets' placeholders that hang on the subject's language (prompts.md, #224).
+
+    The templates were written for a subject taught in another language to a student who studies in castellano;
+    for a subject in castellano a translation or a term in two languages only repeats the same words.
+    """
+    words = language_words(code)
+    if code == SPANISH:
+        return {
+            "language": words,
+            "studies_in": "",
+            "term_order": "Cada término va tal como lo escribe el material de clase; ",
+            "statement": "su enunciado copiado tal cual",
+            "bilingual_terms": "",
+        }
+    return {
+        "language": words,
+        "studies_in": " y estudia en castellano",
+        "term_order": (
+            f"Cada término va primero en {words}, tal como lo escribe el material de clase, y después en castellano; "
+        ),
+        "statement": "su enunciado copiado tal cual en su idioma, su traducción al castellano",
+        "bilingual_terms": f"Cada término, primero en {words} y después en castellano. ",
+    }
 
 
 def weekday(day: dt.date) -> str:
