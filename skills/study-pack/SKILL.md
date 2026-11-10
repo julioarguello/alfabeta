@@ -138,7 +138,10 @@ Every piece is laid out to be scanned, not read through (constitution XI, spec 0
 heading per section, one idea per line in indented lists or tables, short sentences, no paragraph
 and no line stringing ideas with `·`. Each sentence is whole in one language; a term in the
 subject's language appears once per concept, in the same place on every line or in a column of its
-own, never as a gloss after each word; a statement and its translation are two blocks.
+own, never as a gloss after each word. The subject's language leads; castellano goes right under,
+in italics (italics are for that alone) with the same words in bold: under each line for short texts
+(question, option, term), under the whole block for an explanation. `print_pack.render` prints
+italics smaller and grey, so the two languages part in greyscale.
 
 - **Prompts**: fill the prompt, then append one space and the text of «Reading format — added to a
   prompt» in [`prompts.md`](prompts.md), with `{languages_apart}` filled for the subject's language,

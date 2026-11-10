@@ -1056,8 +1056,11 @@ and cannot judge what the notebook writes.
   line stringing several ideas with `·`, commas or full stops, bold only for what is to be learnt.
   Each sentence is whole in one language; a term in the subject's language appears once per concept,
   in the same place on its line throughout the document or in a column of its own, never translated
-  word by word inside a sentence; a statement and its translation are two blocks, one below the
-  other. The words live once, in the section «Reading format — added to a prompt» of the skill's
+  word by word inside a sentence. The subject's language leads and castellano is a help under it, in
+  italics, the only use of italics, with the same words in bold: a short text (question, option,
+  term, single sentence) has its translation on the next line, a long one has the whole castellano
+  block right under it; the printed sheet shows castellano smaller and grey, so the two read apart in
+  greyscale. The words live once, in the section «Reading format — added to a prompt» of the skill's
   `prompts.md`: `exam build` adds it to both sheets after the filled prompt and before any standing
   rules, and refuses (`invalid_prompt`) when the section is missing; the skill adds it to the
   summary, the practice sheet, the parent guide, the glossary and the tutor chat, and follows it in
