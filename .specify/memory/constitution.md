@@ -218,10 +218,15 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
   section, one idea per line in indented lists or tables, short sentences. No long paragraph, and
   no line that strings several ideas together with `·`, commas or full stops: a line that does not
   fit in two printed lines is split into sub-points. Bold marks only what is to be learnt.
-- Each sentence is whole in one language. A term in a second language appears once per concept, in
-  the same place on its line throughout the document or in a column of its own, never as a
-  translation after each word inside a sentence; a statement and its translation are two blocks,
-  one below the other, never alternated sentence by sentence.
+- Each sentence is whole in one language, and the subject's language leads: it comes first, in plain
+  type; castellano is a help and sits right under it, on its own line, in italics, smaller and grey
+  in print (italics mark only that translation; what is bold in one language is bold in the other).
+  A short text (a question, an option, a term, a single sentence) carries its translation on the
+  line below; a long one (an explanation of several sentences) goes whole in the subject's language
+  with, right under it, the whole castellano block. A term in a second language appears once per
+  concept, in the same place on its line or in a column of its own, never as a translation after
+  each word inside a sentence. The difference reads in greyscale: by size, italics and tone, never
+  by colour alone.
 - The rule lives once, at the level of the tool, so that every prompt and every piece written by
   hand takes it without being told again (spec 002 FR-052). A family's standing rule may change the
   layout of a subject's pieces (spec 009). The literal transcription of the class notes (spec 005)
@@ -230,7 +235,10 @@ had wrong while the practice sheet of the same notebook corrected it (2026-10-31
 Rationale: the operator found the exam material of a topic taught in another language hard to study
 from (2026-11-09): explanations as paragraphs, items strung on one line, and a gloss in the other
 language after nearly every word, so that neither language could be read quickly. He asked for the
-rule in the most basic prompts and for everything, not for that topic alone.
+rule in the most basic prompts and for everything, not for that topic alone. On 2026-11-10, after
+comparing three layouts on a printed quiz review, he chose the translation right under each short
+text and under each block for long ones, with the subject's language always on top («la asignatura es
+en euskera y el castellano es una utility»), and noted that he prints in greyscale.
 
 ## Technical constraints
 
@@ -337,4 +345,4 @@ rule in the most basic prompts and for everything, not for that topic alone.
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.9.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-09
+**Version**: 2.10.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-10

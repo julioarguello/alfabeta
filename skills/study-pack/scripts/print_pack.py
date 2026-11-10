@@ -53,6 +53,7 @@ hr { border: 0; border-top: 1px solid #ddd; margin: 5mm 0; }
 .newpage { break-before: page; }
 .mindmap svg { display: block; margin: 0 auto; height: 225mm; width: auto; max-width: 100%; }
 .question { break-inside: avoid; margin-bottom: 4mm; }
+em { color: #5f5f5f; font-size: 0.88em; } /* castellano under the subject's language (constitution XI) */
 """
 # Measured 2026-10-28 with nlm 0.15.8: every command used here takes --profile but these two, which
 # read nlm's default profile (`auth.default_profile`); nlm reads no profile from the environment.

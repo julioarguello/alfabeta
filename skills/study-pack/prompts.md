@@ -50,7 +50,7 @@ announcement's or a rule's, stays as written.
 | `{translated}` | the parent guide's: « traducido al castellano»; empty for castellano |
 | `{in_spanish}` | the flashcards': « en castellano y»; empty for castellano |
 | `{term_in_brackets}` | the summary's: « y el término en <language> entre paréntesis»; empty for castellano, where it would repeat the word |
-| `{languages_apart}` | the reading format's: « Cada frase va entera en un solo idioma. Si el documento da un término también en otro idioma, aparece una sola vez por concepto y en el mismo sitio de la línea en todo el documento, o en su propia columna de una tabla, nunca traducido palabra a palabra dentro de una frase. Un enunciado y su traducción van en dos bloques separados, uno debajo del otro, nunca frase a frase.»; empty for castellano |
+| `{languages_apart}` | the reading format's: « Cada frase va entera en un solo idioma. Manda el <language>: cada frase va primero en <language>, en letra normal; el castellano es solo una ayuda y va justo debajo, en su propia línea y en cursiva. La cursiva se usa solo para esa traducción, y lo que va en negrita en <language> va también en negrita en castellano. Un texto corto (una pregunta, una opción, un término, una frase suelta) lleva su traducción en la línea de debajo; un texto largo (una explicación de varias frases) va entero en <language> y, pegado debajo, entero en castellano en cursiva. Si el documento da un término también en otro idioma, aparece una sola vez por concepto y en el mismo sitio de la línea en todo el documento, o en su propia columna de una tabla, nunca traducido palabra a palabra dentro de una frase.»; empty for castellano |
 
 ## Video — one per block, plus one per point of the announcement no block covers
 

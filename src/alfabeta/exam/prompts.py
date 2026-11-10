@@ -194,10 +194,16 @@ def language_values(code: str) -> dict[str, str]:
         "term_in_brackets": f" y el término en {words} entre paréntesis",
         "languages_apart": (
             " Cada frase va entera en un solo idioma."
+            f" Manda el {words}: cada frase va primero en {words}, en letra normal; el castellano es solo una ayuda y"
+            " va justo debajo, en su propia línea y en cursiva."
+            " La cursiva se usa solo para esa traducción, y lo que va en negrita en"
+            f" {words} va también en negrita en castellano."
+            " Un texto corto (una pregunta, una opción, un término, una frase suelta) lleva su traducción en la línea"
+            f" de debajo; un texto largo (una explicación de varias frases) va entero en {words} y, pegado debajo,"
+            " entero en castellano en cursiva."
             " Si el documento da un término también en otro idioma, aparece una sola vez por concepto y en el mismo"
             " sitio de la línea en todo el documento, o en su propia columna de una tabla, nunca traducido palabra a"
             " palabra dentro de una frase."
-            " Un enunciado y su traducción van en dos bloques separados, uno debajo del otro, nunca frase a frase."
         ),
     }
 

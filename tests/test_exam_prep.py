@@ -1929,7 +1929,10 @@ def test_the_reading_format_asks_for_structure_and_keeps_languages_apart():
         "Cada frase va entera en un solo idioma",
         "una sola vez por concepto",
         "nunca traducido palabra a palabra dentro de una frase",
-        "dos bloques separados",
+        "va justo debajo, en su propia línea y en cursiva",
+        "La cursiva se usa solo para esa traducción",
+        "va también en negrita en castellano",
+        "pegado debajo",
         "también en otro idioma",
     ):
         assert asked in text, asked
