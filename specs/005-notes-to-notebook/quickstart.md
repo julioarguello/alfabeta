@@ -24,6 +24,27 @@ Expect: `{ok: true}` with both sources set; the notebook lists exactly two Drive
 file is shared read-only with the notebook owner, and nothing else in the folder is. Run it again:
 nothing changes.
 
+## 1b. A deleted source comes back (FR-009a, FR-018a)
+
+Not run yet: on 2026-11-12 only `nlm`'s answers were measured, on a throwaway notebook (research,
+first table), and the commands were tested with fakes. On the test topic of step 1, never on a
+topic the student uses:
+
+1. Delete the living notes source from the test notebook, as an editor account in the notebook's
+   web page if one is at hand (the measured deletion was the owner's), else with `nlm source delete`.
+2. Add a page to the test topic (step 3) and run `python -m alfabeta notebook refresh --student <id>`.
+   Expect: `gone: 1`, `ok: false`, exit 3, one macOS notification naming «Apuntes · <topic>», and an
+   agenda line on the next sync. Run it again: no second notification.
+3. Run `python -m alfabeta notebook prepare --student <id> --topic "<subject>/<test topic folder>"`.
+   Expect: `notes_source: "restored"`, `classroom_source: "unchanged"`; the notebook lists one source
+   titled as the living notes file, and the file's Drive id and share are the ones of step 1. Run it
+   again: `unchanged`, and still one source.
+4. Run `python -m alfabeta notebook refresh --student <id>` twice. Expect: `read: 1` each time,
+   `gone: 0`, the new page in the notebook, and no agenda line on the next sync.
+
+Record: what an editor's deletion leaves (the same "not found"?), and whether the restored source
+holds every page of the living file on its first read.
+
 ## 2. Choose the model on the real notes
 
 Transcribe the four photos of 2026-10-26 with each candidate model and compare each result with the

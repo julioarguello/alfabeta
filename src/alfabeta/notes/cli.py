@@ -241,14 +241,17 @@ def cmd_notebook_refresh(
     _emit(report)
     when = deps.clock.now().isoformat(timespec="seconds")  # the agent's log has no time of its own
     counts = f"read {report['read']}, unchanged {report['unchanged']}, missing {report['missing']}"
+    counts += f", gone {report['gone']}"
     print(f"alfabeta: notebook refresh at {when}: {counts}", file=sys.stderr)
-    if not report["ok"] and report["session"] == "signed_out":
-        print(
-            "alfabeta: nlm is not signed in, even after renewing: run `nlm login --profile <profile>`", file=sys.stderr
-        )
+    if report["gone"]:  # reading again will not bring it back: only the setup adds a source (FR-009a)
+        gone = "a notebook no longer holds a living file's source; add it again (`notebook prepare`)"
+        print(f"alfabeta: {gone}", file=sys.stderr)
+    if not report["ok"] and report["session"] == "signed_out":  # the last session a pass measured
+        print("alfabeta: nlm is not signed in: run `nlm login --profile <profile>`", file=sys.stderr)
         return EXIT_SIGNED_OUT
     if not report["ok"]:
-        print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
+        if not report["gone"]:
+            print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
         return EXIT_PARTIAL
     return EXIT_OK
 

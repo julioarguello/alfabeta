@@ -62,6 +62,8 @@ Out of this spec:
 | The student's own access, as a viewer, does not make the notebook take a changed living file: about fifty minutes with the notebook open and three questions left its copy without the page. The owner's first read of the source (`nlm source content`) still returned the old copy; the next read, 76 seconds later, held the page, and the student's view answered at 10:05 UTC, under three minutes after the first read. Whether one read is enough is open (research R14) | Quickstart step 3, owner-free repeat on a test topic: `nlm source content` once a minute as the owner, the operator's report of the student's view (research.md, first table) | 2026-10-28 |
 | The owner's `nlm` session on the Mac, signed in on 2026-10-26, still worked two days later; its Google cookies expire on 2027-11-30, and `nlm auth refresh --http-only` ran with no browser and left it valid | `nlm login --check` before and after the refresh, `nlm notebook list` as control; cookie names and expiry dates from `nlm`'s own browser profile, never their values | 2026-10-28 |
 | A launchd job with `StartCalendarInterval` that falls due while the Mac sleeps runs once when it wakes; one with `StartInterval` skips the missed firings | `man launchd.plist` on the operator's Mac, read | 2026-10-28 |
+| A source deleted from its notebook is no longer in `nlm source list`, and `nlm source content` on its id exits 1 with `{"status": "error", "error": "API error (code 5): NOT_FOUND"}` and no hint: the same seconds after the deletion and two minutes later, and the same as for an id that never existed. A session that is signed out answers with a hint to run `nlm login` instead (read in `nlm`'s source, 2026-10-27) | A throwaway notebook of the owner's `nlm` profile with an invented title, deleted afterwards; its one source was a living file that holds only its cover page, already shared with the owner; the deletion was the owner's (`nlm source delete`), not an editor's in the notebook's web page, which was not measured; notebooklm-mcp-cli 0.15.8 | 2026-11-12 |
+| Adding the same Drive file again makes a source with a new id and the same title, the Drive file's name, and the owner reads it at once. The notebook does not refuse a Drive file it already holds: one more add made a second source with that title. A listed source carries `id`, `title`, `type`, `url` (empty) and `status`: nothing names its Drive file | Same notebook: `nlm source add --drive … --type pdf --wait` twice after the deletion, `nlm source list --json`, `nlm source content` | 2026-11-12 |
 
 Who opens the notebook in the timing row was the owner. Whether a viewer opening it also triggers
 the refresh was not measured. Measured on 2026-10-28: it does not (rows above).
@@ -199,6 +201,60 @@ implementation.
   spend nothing the family did not ask for. The agent still does them by hand when it prepares a topic
   (`skills/study-pack/SKILL.md`, step 1).
 
+### Session 2026-11-12
+
+- Q: Since 2026-11-12 the student's accounts edit every topic notebook (spec 001 FR-011b), so one of
+  them can delete a living file's source there. What puts it back? → A: Until this session, nothing
+  (julioarguello/alfabeta#235, read in the code): the setup checked only that the Drive file was in
+  place, and the refresh asked for the recorded source on every pass and failed. Measured the same
+  day (table above): the deleted source answers "not found", which is neither a session that fails
+  nor any other failure. So the setup, run again on that topic, adds the same Drive file and records
+  its new source (FR-009a), and the refresh counts the source as gone and tells the family once, with
+  an agenda line while it lasts (FR-018a).
+- Q: The refresh is the one that finds it. Why does it not add the file again itself? → A: It runs
+  unattended every few minutes and only reads: it knows no notebook, lists no sources and writes no
+  state (FR-018, SC-004), and the setup stays the only step that changes a notebook's sources (User
+  Story 5). Decided in this change, not by the operator; the cost is that the repair waits for
+  someone to run the setup on that topic, which the notice and the agenda line ask for.
+- Q: How is it never added twice (FR-009)? → A: The notebook takes the same Drive file as often as it
+  is added, and a listed source does not name its Drive file (both measured, table above). So before
+  adding, the setup takes a source the notebook already lists under the file's name. That covers a
+  repair that added the source and then could not record it. It cannot tell the living source from a
+  PDF of the same name that someone uploaded by hand: that one would be taken for it; and it rests
+  on the listing naming every source the notebook holds. And one
+  listing is not taken as proof of a deletion, since a listing that came back short would add every
+  source of the topic a second time: the setup first reads the recorded source once, and adds only
+  when that read answers "not found"; a source that still answers is left as it is, and a read that
+  fails otherwise stops the setup.
+- Q: When is a deletion noticed? → A: When the refresh next has to read that source, which is after
+  the living file's next build. Until then the notebook lacks that file's content and nobody is
+  told: an idle refresh touches no notebook (SC-004), and no run lists a notebook's sources on its
+  own. Running the setup on the topic at any time finds it and repairs it.
+- Q: Does "not found" mean someone deleted it? → A: It means the source is not there for the owner's
+  session: the answer is the same for an id that never existed (measured). So the notice and the
+  agenda line say the notebook no longer has the source and claim no cause, one pass gives one
+  notice however many sources it finds gone, and a source stays listed as gone until a read of it
+  answers or the state no longer names it as a living file's source, which is what the setup does
+  when it records another in its place; also through the passes that do not ask for it. A state
+  read with no topic at all is one that was not found, and forgets nothing. Not measured: what the owner's profile answers when it is signed in as another account, or
+  when the whole notebook was deleted; if that is also "not found", every source due on that pass
+  is listed as gone, in one notice, and the setup then stops at `no_notebook`. A gone source whose
+  living file is also missing stays listed, and the setup answers `missing` for it until the file
+  is back in its folder.
+- Q: What stays unmeasured for an editor? → A: Everything but the answer to the owner's read and the
+  second add, above:
+  - a deletion made by an editor in the notebook's web page (the measured one was the owner's,
+    through `nlm`); it is assumed to leave the notebook as the owner's does;
+  - the setup's repair on a real topic: it was built against the measured answers and tested with
+    fakes, not run against a notebook (quickstart step 1b);
+  - the textbook's sources and the study pack's own sources (spec 002, the Science Bits skill):
+    whether any run adds one again after an editor deletes it was neither read in the code nor
+    measured here;
+  - a Studio piece the student deletes: whether a run makes it again or reports it is not decided
+    and not measured;
+  - an editor changing the chat's custom instructions, and an editor sharing the notebook further:
+    not measured.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A photo of the notes reaches the notebook with no one at a computer (Priority: P1)
@@ -330,7 +386,8 @@ names that idea and the piece that misses it.
 
 When a topic's notebook is created, its two living files are created with it, empty but for a cover
 page, and added to the notebook as Drive sources. That is the only step that changes a notebook's
-sources; the other use of the notebook tool on the Mac only reads them (FR-018).
+sources; the other use of the notebook tool on the Mac only reads them (FR-018). Run again later, the
+same step puts back a living file's source that someone deleted from the notebook (FR-009a).
 
 **Why this priority**: it happens once per topic and can be done by hand until it is automated.
 
@@ -352,6 +409,10 @@ source and one living Classroom source, and that a second run adds nothing.
 4. **Given** a topic whose `notes/` already holds a Markdown that embeds a photo by name (Tema 01
    since 2026-10-26), **When** the topic is first seen, **Then** that Markdown's section is taken as
    the photo's transcription and Claude is not called for it.
+5. **Given** a living file set up before and still in its folder, whose source someone deleted from
+   the notebook, **When** the setup runs again on that topic, **Then** the same Drive file is a
+   source of the notebook again, exactly once, its new source is recorded in place of the old one,
+   no file is created or shared again, and a further run changes nothing.
 
 ---
 
@@ -364,6 +425,11 @@ source and one living Classroom source, and that a second run adds nothing.
   `classroom/` for the Classroom file) and not trashed, and if not, reports it and does not
   recreate a second file or source. Put back in its folder, it is healthy again on the next check,
   and a page transcribed meanwhile reaches it on that pass.
+- **A living file's source is deleted from the notebook**, which its editors can do (spec 001
+  FR-011b). The Drive file is untouched and keeps receiving pages. The next refresh that has to read
+  the source finds it gone, tells the family once and the agenda shows a line while it lasts
+  (FR-018a); the setup, run on that topic, adds the same file again (FR-009a). Until the living file
+  next changes, nobody is told (Clarifications, session 2026-11-12).
 - **A living file set up at the topic's root, before 2026-10-28.** Moved by hand once into its
   folder (julioarguello/alfabeta#110); until then it is reported missing. Tema 01's two, moved in
   the Drive for desktop mount, kept their ids, which the notebook sources are bound to, and the
@@ -455,6 +521,17 @@ source and one living Classroom source, and that a second run adds nothing.
   read-only with the account in `[notebook] owner` (the one
   that owns the notebooks) and with no other, and adds each, once, to the topic's notebook as a
   Drive source. Material that arrives later goes into them; no other source is added for it.
+- **FR-009a**: When a living file that was set up is still in its own folder of the topic and the
+  topic's notebook no longer lists its recorded source, the setup on the Mac MUST add the same Drive
+  file to the notebook again and record the new source in place of the old one, creating no file
+  and sharing nothing again; its output says `restored` for that file. It MUST add only when one
+  read of the recorded source, as the owner, answers "not found": a recorded source that still
+  answers is left as it is, whatever the listing said, and a read that fails otherwise stops the
+  setup, which adds nothing more and records nothing (the topic's other living file may have been
+  added just before; the next run takes it by its title). It MUST NOT add it twice: before adding, it takes a source the notebook
+  already lists under the file's name (measured 2026-11-12: the notebook does not refuse a Drive
+  file it already holds, and a listed source does not name its Drive file). A living file that is
+  missing gets no source (FR-011). Nothing but the setup adds it: the refresh only tells (FR-018a).
 - **FR-010**: Notes pages go into the living notes file in the order they were first seen; a page
   moved to another subtopic's `notes/` (spec 002 FR-044) leaves the first living file and enters the
   second, as an item moved to another topic does. Each
@@ -491,6 +568,23 @@ source and one living Classroom source, and that a second run adds nothing.
   with no app open and no one at the Mac. A refresh compares each living file's last built checksum, which the cloud run records, with
   the checksum the owner last read, and reads only the sources that differ or await their confirming
   read: with nothing changed it reads one record, lists no Drive folder and touches no notebook. It never adds, removes or renames a source (FR-011).
+- **FR-018a**: When the owner's read of a living file's source is answered "not found", which is
+  what a source deleted from its notebook answers (measured 2026-11-12), the refresh MUST count it
+  apart from a read that failed (`gone`) and MUST tell the family on the Mac which living file it
+  was: a macOS notification on the pass that first finds it gone, not given again while it stays so,
+  and an agenda line from the Mac's sync while the refresh record lists it. Both name the living
+  file's title and the setup that repairs it (FR-009a), no account, notebook or id, and no cause,
+  which the answer does not give; a pass that finds several gone gives one notification, naming two
+  and counting the rest. The refresh adds nothing (FR-018). A source stays listed as gone until a
+  read of it answers or the state no longer names it as a living file's source, as when the setup
+  records another in its place; a state read with no topic at all forgets nothing. It stays listed
+  also through a pass that does not ask for it (its living file is missing, or its build is back
+  at a checksum already read);
+  no pass with a source listed as gone is `ok`: it ends as a partial failure, or as not signed in
+  when the owner's session, as last measured, is (FR-019); an idle one still calls no `nlm` and
+  writes nothing but the list, once, when the state stopped naming one of its sources. A pass that
+  stops on a signed-out owner keeps what it had learnt of the list. Once the setup records the new
+  source, the next pass reads it.
 - **FR-019**: When the owner's `nlm` session does not work, even after renewing it once with
   `nlm auth refresh --http-only` (research R14; the unattended pass never renews through a browser,
   which only `notebook refresh --browser`, started by the family, does), the
@@ -580,7 +674,8 @@ source and one living Classroom source, and that a second run adds nothing.
 - **Change cursor**: the position in Drive's record of changes the last cloud run reached, and when.
 - **Run report**: what changed per topic, in Spanish, plus failures.
 - **Refresh record**: on the Mac only, per notebook source, the living file checksum the owner last
-  read, and whether the owner's `nlm` session worked on the last refresh.
+  read, whether the owner's `nlm` session worked on the last refresh, and the sources the last
+  refresh found gone from their notebook, each with its living file's title.
 
 ## Success Criteria *(mandatory)*
 
@@ -621,6 +716,12 @@ source and one living Classroom source, and that a second run adds nothing.
 - A Drive-backed PDF keeps refreshing the way it did on 2026-10-27 and 2026-10-28: when the owner
   reads it. If Google changes it, the living files fall back to being refreshed as sources by the
   Mac run.
+- A source deleted from a notebook by one of its editors leaves the notebook as the owner's own
+  deletion did on 2026-11-12, and `nlm` keeps answering "not found" for it in those words; if either
+  changes, the refresh reports a read that fails, as before FR-018a, and the setup stops at that
+  read without repairing (`nlm_failed`), since it adds only on "not found" (FR-009a), until the
+  adapter is taught the new answer. What else an editor can undo is not measured (Clarifications,
+  session 2026-11-12).
 - The family's Mac is awake for part of each day, with the family's user session logged in, since a
   launchd agent of that user runs only inside it; while the Mac sleeps or nobody is logged in, the
   notebook waits (the operator's choice, Clarifications, session 2026-10-28).

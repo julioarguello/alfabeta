@@ -290,10 +290,14 @@ for the final implementation.
     notebooks, 36 already editors.
   - Not measured: what an editor can read or do that a viewer cannot. Google's help says owners
     and editors generate and viewers consume (`docs/explanation/study-material.md`), so an editor
-    may add, regenerate or delete what a run made. An accepted, open risk: read in the code on
-    2026-11-12, a living-file source (spec 005) deleted from the notebook is **not** added again —
-    `notebook prepare` checks only the Drive file and `notebook refresh` fails on the recorded
-    source at every pass (julioarguello/alfabeta#235). Whether an editor reads the prompt a Studio
+    may add, regenerate or delete what a run made. For a living-file source (spec 005) deleted
+    from the notebook, which nothing added again when the accounts became editors
+    (julioarguello/alfabeta#235): `notebook refresh` now tells the family it is gone and
+    `notebook prepare`, run again on the topic, adds the same Drive file once (spec 005 FR-009a and
+    FR-018a, with what `nlm` answers for a deleted source, measured 2026-11-12). Still an accepted,
+    open risk, not measured for an editor: the textbook's sources and the study pack's own, a
+    deleted Studio piece, the chat's custom instructions and sharing the notebook further (spec
+    005, Clarifications, session 2026-11-12). Whether an editor reads the prompt a Studio
     piece was made with is spec 009's check (SC-005): until it is done as an editor, a standing
     rule in a prompt is treated as readable by the student.
 

@@ -34,6 +34,9 @@ own table is the subset the requirements rest on; this one is the full list.
 | `nlm source stale` printed «All Drive sources are up to date» while the notebook's copy lacked a page the Drive file had held for 47 minutes, and the copy was still without it 5.5 minutes later: the command did not detect that the source was behind, and did not refresh it within those minutes | `nlm source stale` at 09:56:49 UTC, `nlm source content` at 10:02:17 UTC, the same owner-free repeat, notebooklm-mcp-cli 0.15.8 | 2026-10-28 |
 | The owner's `nlm` profile on the Mac, signed in on 2026-10-26, was still valid; its Google session cookies (`SID`, `__Secure-1PSID` and the rest) expire on 2027-11-30, `SIDCC` and its variants on 2027-10-26, and it holds no `__Secure-1PSIDTS`. `nlm auth refresh --http-only` printed «HTTP-only session refresh validated» and the profile stayed valid | `nlm login --check` before and after, `nlm notebook list` as control; names and expiry dates read from the `Cookies` database of `nlm`'s own browser profile, never the values; notebooklm-mcp-cli 0.15.8 | 2026-10-28 |
 | `launchd.plist`: a job with `StartCalendarInterval` that falls due while the Mac sleeps starts once when it wakes, missed firings coalesced; one with `StartInterval` misses them | `man launchd.plist` on the operator's Mac, read | 2026-10-28 |
+| A Drive PDF added to a new notebook (`nlm source add --drive … --type pdf --title … --wait --json`, answered within seconds with `{source_type, source_id, title}`, the title being the Drive file's name and not `--title`) was listed by `nlm source list --json` as one row `{id, title, type: "pdf", url: null, status: 2}`, and `nlm source content --json` and `nlm source get --json` on it exited 0 with `{content, title, source_type, url, char_count}`. `nlm notebook create --json` answers `{notebook_id, title, url, message}` | A throwaway notebook of the owner's `nlm` profile with an invented title, deleted afterwards; its one source was a living file that holds only its cover page, already shared with the owner; the deletion was the owner's (`nlm source delete`), not an editor's in the notebook's web page, which was not measured; notebooklm-mcp-cli 0.15.8 (julioarguello/alfabeta#235) | 2026-11-12 |
+| After `nlm source delete <id> --confirm` (exit 0), within three seconds: `nlm source list --json` exits 0 with an empty list, and `nlm source content --json` and `nlm source get --json` on the deleted id exit 1 with `{"status": "error", "error": "API error (code 5): NOT_FOUND"}` on standard output, no `hint`, nothing on standard error. Two minutes after the deletion, and after the same file had been added again, the deleted id answered the same. A source id that never existed answered the same, and so did `nlm source list` on a notebook id that never existed: the answer says "not there", not "deleted" | Same notebook, same day, 14:02:48 to 14:04:49 UTC | 2026-11-12 |
+| Adding the same Drive file again after the deletion made a source with a new id, the same title and the same content, read at once. Adding it once more while that source was listed made a second source, with a third id and the same title: the notebook does not refuse a Drive file it already holds. No field of a listed source names the Drive file | Same notebook: two more `nlm source add --drive`, `nlm source list --json` (two rows), then the extra source and the notebook deleted. The topic's own notebook was not changed: its own source of that file answered the owner's read (`nlm source get`, which returns the content as `source content` does) before the test and after it | 2026-11-12 |
 | The `nlm` project's own guide to remote use says cookies copied from another computer may expire quickly or be rejected, and calls a cloud VPS or container not recommended as a persistent deployment unless manual sign-ins are accepted; its issue #166 reports copied cookies dying in about two hours on a VPS, and the maintainer advises running `nlm login` on that machine so `nlm` can refresh from its own browser profile | github.com/jacob-bd/gemini-notebook-mcp-cli `docs/REMOTE_MCP.md` and issue #166, read | 2026-10-28 |
 | The operator checked the transcription of four pages of notes made on 2026-10-26 against the photos and accepted it; it is one Markdown with a `## Página N` section per photo, each embedding the photo by name | This project's conversation of 2026-10-26; the Markdown is in the topic's `apuntes/` | 2026-10-26 |
 | Tema 01's notebook holds those notes as two plain sources titled «Apuntes · Apuntes de clase · T01.md» and «… .pdf» | `nlm source add` output of 2026-10-26 | 2026-10-26 |
@@ -235,6 +238,25 @@ own table is the subset the requirements rest on; this one is the full list.
   01's adopted Markdown is in the first build. It lists the notebook's other sources whose
   title starts with «Apuntes ·» or «Classroom ·» and whose id is not a recorded living source
   (Tema 01's two, first table) for the family to remove by hand; alfabeta removes nothing (FR-011).
+- **Amended 2026-11-12 (julioarguello/alfabeta#235)**: for a living file already set up and in
+  place, the setup compares its recorded source with the sources it has just listed. When the
+  notebook no longer lists it, it reads the recorded source once (`nlm source content`): only the
+  answer "not found" lets it go on, a source that answers is `unchanged`, and any other failure
+  stops the setup, because a listing that came back short would otherwise add every source of the
+  topic a second time. Then it takes a listed source titled as the Drive file, and with none adds
+  the same file again; either way it records that source in place of the old one, and reports
+  `restored` (FR-009a). It builds nothing, uploads nothing and shares nothing for it: the Drive
+  file and its share with the owner were not touched by the deletion. The title is the only handle:
+  the notebook accepts a file it already holds and a listed source carries no Drive id (first
+  table, 2026-11-12), so the look-up before the add is what keeps a repair that stopped before its
+  save from adding a second source, as it already did for the first setup. The refresh needs no
+  change for the new source: its record has no entry for the new id, so the next pass reads it
+  (R14).
+- **Alternatives (2026-11-12)**: adding from the refresh, which is what meets the gone source:
+  rejected, since it would let an unattended pass change a notebook and would need the notebook's
+  id, a listing and a write of `state.json`, none of which the refresh has (R14, SC-004). Sharing
+  the file with the owner again in the repair: not done; what Drive answers to a second share of
+  one file with one account was never measured, and the deletion does not remove the share.
 
 ## R10 — Bringing Drive's files into the master
 
@@ -349,6 +371,26 @@ own table is the subset the requirements rest on; this one is the full list.
   - The student owning the notebooks, so that his own access refreshes them: the notebooks belong to
     an adult account to avoid under-18 limits, and the student's Gmail is supervised by Family Link
     (decided 2026-10-26). Rejected.
+- **Amended 2026-11-12 (julioarguello/alfabeta#235)**: a read answered "not found" (first table)
+  is a source its notebook no longer holds. `nlm`'s adapter tells it apart by the word `NOT_FOUND`
+  in the answer's `error`, and never when the answer carries the sign-in hint. The pass counts it
+  as `gone`, keeps it out of the reads, and keeps in the refresh record the sources known gone,
+  each with its living file's title (`Apuntes · <topic>` or `Classroom · <topic>`). A pass that
+  finds sources new to that list gives one macOS notification for them, naming two titles and
+  counting the rest; the Mac's sync shows one agenda line per listed source. A source leaves the
+  list only when a read of it answers or the state no longer names it as a living file's source,
+  which is what `notebook prepare` does when it records the new source (R9); a state read with no
+  topic at all is one that was not found, and forgets nothing. Usually a gone source stays due, so
+  each pass asks for it again; it is not due when its living file is missing or its build is back
+  at a checksum the owner had already read, and then it stays listed without being asked for (the
+  first build of this rebuilt the list from what each pass asked, which forgot such a source and
+  told the family a second time; found in review). No pass with a listed source is `ok`: it ends
+  as a partial failure (code 3), or 5 when the session, as last measured, is signed out; the list
+  is rewritten only when it changes. A pass that stops on a signed-out answer writes what it had
+  learnt of the list before stopping, and tells of a source new to it. A state read with no topic
+  at all is taken as not found, and forgets nothing. An idle pass still calls no `nlm`: a deletion is found only when the source next has to
+  be read. The same answer comes for an id that never existed, so `gone` means "not there",
+  whatever the reason, and the family's texts claim none.
 - **Questions for the quickstart**: does one read refresh every time, or does a pass need a
   second read to confirm (step 3b)? On 2026-10-28 the first read returned the old copy and the next,
   76 seconds later, held the page, so whether that second read did anything is not known. If step 3b

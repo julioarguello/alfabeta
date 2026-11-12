@@ -102,6 +102,22 @@ def test_a_read_that_fails_signed_out_says_so():
     assert err.value.signed_out
 
 
+def test_a_source_that_is_not_there_says_not_found_and_nothing_else_does():
+    # Measured 2026-11-12 (nlm 0.15.8) for a source deleted from its notebook: exit 1, this JSON, no hint.
+    gone = json.dumps({"status": "error", "error": "API error (code 5): NOT_FOUND"})
+    with pytest.raises(SourcesError) as err:
+        NlmSources("p", CodedNlm([(1, gone, "")])).read_source("src-1")
+    assert err.value.not_found and not err.value.signed_out
+    for code, out in [(1, json.dumps({"status": "error", "error": "API error (code 13): INTERNAL"})), (124, "")]:
+        with pytest.raises(SourcesError) as err:
+            NlmSources("p", CodedNlm([(code, out, "timed out" if code == 124 else "")])).read_source("src-1")
+        assert not err.value.not_found and not err.value.signed_out
+    hint = json.dumps({"status": "error", "error": "NOT_FOUND", "hint": "Run 'nlm login' to authenticate."})
+    with pytest.raises(SourcesError) as err:
+        NlmSources("p", CodedNlm([(1, hint, "")])).read_source("src-1")
+    assert err.value.signed_out and not err.value.not_found  # a session that fails is never a deletion
+
+
 @pytest.mark.parametrize(("code", "stderr", "ok"), [(0, "", True), (2, "", False)])
 def test_the_session_check_is_login_check(code: int, stderr: str, ok: bool):
     nlm = CodedNlm([(code, "", stderr)])

@@ -30,6 +30,9 @@ class FakeNotebook:
     )
     added: list[tuple[str, str]] = field(default_factory=lambda: [])
     fail_on_add: int = 0  # the nth add fails once, as nlm can
+    unlisted: set[str] = field(default_factory=lambda: set[str]())  # held, but dropped by a short listing
+    failing_reads: set[str] = field(default_factory=lambda: set[str]())  # reads that fail without saying why
+    reads: list[str] = field(default_factory=lambda: [])
 
     def find_notebook(self, title: str) -> str | None:
         return self.notebooks.get(title)
@@ -45,10 +48,14 @@ class FakeNotebook:
         return source
 
     def list_sources(self, notebook: str) -> list[Source]:
-        return list(self.sources)
+        return [s for s in self.sources if s.id not in self.unlisted]
 
     def read_source(self, source_id: str) -> None:
-        raise AssertionError("setup never reads a source")
+        self.reads.append(source_id)
+        if source_id in self.failing_reads:
+            raise SourcesError(signed_out=False)
+        if all(s.id != source_id for s in self.sources):
+            raise SourcesError(signed_out=False, not_found=True)  # measured 2026-11-12 for a deleted source
 
     def session_ok(self) -> bool:
         raise AssertionError("setup never checks the session")
@@ -103,6 +110,7 @@ def test_a_second_setup_creates_adds_and_lists_nothing_new():
     assert out["notes_source"] == out["classroom_source"] == "unchanged"
     assert out["plain_sources_to_remove"] == 1  # its own living sources are not listed
     assert (drive.uploads, nb.added) == (uploads, added)
+    assert nb.reads == []  # a source that is listed is not read: neither run asked the owner for one
 
 
 def test_a_recorded_living_file_that_was_deleted_is_reported_not_recreated():
@@ -112,6 +120,122 @@ def test_a_recorded_living_file_that_was_deleted_is_reported_not_recreated():
     out = setup(drive, nb)
     assert out["notes_source"] == "missing"
     assert not drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
+
+
+NOTES_TITLE = "Apuntes · Tema 01 - Materia inventada"
+
+
+def recorded(drive: SetupDriveFake, kind: str = "notes") -> dict[str, Any]:
+    return json.loads(drive.bodies[drive.named(STATE)[0]])["topics"][TOPIC]["living"][kind]
+
+
+def test_a_source_deleted_from_the_notebook_is_added_again_once_from_the_same_file():
+    # The student's accounts edit the notebook (spec 001 FR-011b), so a source can be deleted there (#235).
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    before = recorded(drive)
+    nb.sources = [s for s in nb.sources if s.id != before["source_id"]]
+    uploads, updates, shared = list(drive.uploads), list(drive.updates), list(drive.shared)
+    out = setup(drive, nb)
+    assert out == {
+        "ok": True,
+        "notes_source": "restored",
+        "classroom_source": "unchanged",
+        "plain_sources_to_remove": 1,
+    }
+    assert nb.added[2:] == [(before["file_id"], NOTES_TITLE)]  # the same Drive file, not a new one
+    assert nb.reads == [before["source_id"]]  # asked for once, and it answered "not found"
+    after = recorded(drive)
+    assert after == before | {"source_id": "src-3"}  # only the source changes: same file, same build
+    assert (drive.uploads, drive.shared) == (uploads, shared)  # no file is made and none is shared again
+    assert [name for name in drive.updates[len(updates) :] if name.endswith(".pdf")] == []
+    assert len(drive.named(f"{NOTES_TITLE}.pdf")) == 1
+    again = setup(drive, nb)  # a third run finds the new source listed
+    assert again["notes_source"] == "unchanged" and len(nb.added) == 3
+    assert recorded(drive) == after
+
+
+def test_a_source_put_back_but_not_recorded_is_taken_never_added_twice():
+    # A repair that added the source and then lost its save (another writer, or nlm failing on the other
+    # kind) runs again. Measured 2026-11-12: the notebook takes the same Drive file twice, so the title
+    # is what keeps it to one (FR-009).
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    gone = recorded(drive)["source_id"]
+    nb.sources = [s for s in nb.sources if s.id != gone] + [Source("puesta-otra-vez", f"{NOTES_TITLE}.pdf")]
+    out = setup(drive, nb)
+    assert (out["notes_source"], out["plain_sources_to_remove"]) == ("restored", 1)
+    assert len(nb.added) == 2  # nothing was added
+    assert recorded(drive)["source_id"] == "puesta-otra-vez"
+
+
+def test_both_sources_deleted_are_both_added_again():
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    nb.sources = [s for s in nb.sources if not s.id.startswith("src-")]
+    out = setup(drive, nb)
+    assert out["notes_source"] == out["classroom_source"] == "restored"
+    assert [t for _, t in nb.added[2:]] == [NOTES_TITLE, "Classroom · Tema 01 - Materia inventada"]
+    assert (recorded(drive)["source_id"], recorded(drive, "classroom")["source_id"]) == ("src-3", "src-4")
+
+
+def test_a_missing_living_file_gets_no_source_even_when_its_source_is_gone_too():
+    from dataclasses import replace
+
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    before = recorded(drive)
+    nb.sources = [s for s in nb.sources if s.id != before["source_id"]]
+    notes = before["file_id"]
+    drive.files[notes] = replace(drive.files[notes], parents=(TOPIC,))  # still in Drive, out of its folder
+    out = setup(drive, nb)
+    assert out["notes_source"] == "missing" and len(nb.added) == 2  # reported; nothing is added for it (FR-011)
+    assert recorded(drive) == before | {"health": "missing"} and nb.reads == []
+    drive.files[notes] = replace(drive.files[notes], parents=(NOTES,))  # put back: now it is repaired
+    assert setup(drive, nb)["notes_source"] == "restored" and len(nb.added) == 3
+    del drive.files[notes]  # deleted outright, with its new source gone as well
+    nb.sources = [s for s in nb.sources if s.id != "src-3"]
+    assert setup(drive, nb)["notes_source"] == "missing" and len(nb.added) == 3
+
+
+def test_a_listing_that_comes_back_short_adds_nothing():
+    # One listing is not proof of a deletion: the recorded source still answers, so it is left alone.
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    before = (recorded(drive), recorded(drive, "classroom"))
+    nb.unlisted = {"src-1", "src-2"}
+    out = setup(drive, nb)
+    assert out["notes_source"] == out["classroom_source"] == "unchanged"
+    assert len(nb.added) == 2 and nb.reads == ["src-1", "src-2"]
+    assert (recorded(drive), recorded(drive, "classroom")) == before
+
+
+def test_a_recorded_source_whose_read_fails_without_saying_why_stops_the_setup_and_adds_nothing():
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    before = recorded(drive)
+    nb.unlisted, nb.failing_reads = {"src-1"}, {"src-1"}
+    with pytest.raises(SourcesError):
+        setup(drive, nb)
+    assert len(nb.added) == 2 and recorded(drive) == before
+
+
+def test_a_repair_stopped_after_one_source_adds_each_once_when_run_again():
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    nb.sources = [s for s in nb.sources if not s.id.startswith("src-")]
+    nb.fail_on_add = 4  # the notes source is added again; nlm fails on the Classroom one
+    with pytest.raises(SourcesError):
+        setup(drive, nb)
+    assert recorded(drive)["source_id"] == "src-1"  # nothing was recorded: the run stopped before its save
+    out = setup(drive, nb)
+    assert out["notes_source"] == out["classroom_source"] == "restored"
+    assert [t for _, t in nb.added[2:]] == [NOTES_TITLE, "Classroom · Tema 01 - Materia inventada"]  # once each
+    assert (recorded(drive)["source_id"], recorded(drive, "classroom")["source_id"]) == ("src-3", "src-4")
+    assert sorted(s.title for s in nb.sources if s.id.startswith("src-")) == [
+        f"{NOTES_TITLE}.pdf",
+        "Classroom · Tema 01 - Materia inventada.pdf",
+    ]
 
 
 def test_a_living_file_at_the_topics_root_is_missing_until_it_is_back_in_its_folder():

@@ -462,7 +462,7 @@ def _agenda_builder(
         decisions=store.decisions(),
         state=current,
         captured=agenda.capture_instants(plan.latest_captures(data_dir / "captures")),
-        notices=refresh.agenda_notices(data_dir),  # spec 005 FR-019, while the owner's session fails
+        notices=refresh.agenda_notices(data_dir),  # spec 005 FR-019 and FR-018a, while either lasts
         reports=reports,
     )
 

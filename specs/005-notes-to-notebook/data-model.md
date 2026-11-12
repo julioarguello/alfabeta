@@ -102,7 +102,7 @@ Two per topic.
 | `topic` | Topic folder id |
 | `kind` | `notes` (`Apuntes · <topic>.pdf`) or `classroom` (`Classroom · <topic>.pdf`) |
 | `file_id` | Drive id; set only by `notebook prepare`, never changes once set |
-| `source_id` | The notebook source bound to it, set by `notebook prepare` |
+| `source_id` | The notebook source bound to it, set by `notebook prepare`, and set again by it only when the notebook no longer lists that source and the same file is added again (FR-009a) |
 | `built_md5` | Checksum of the last uploaded revision; a rebuild with the same checksum is not uploaded |
 | `pages` | Page count of the last build, reported above `[notes] warn_pages` |
 | `health` | `ok`, or `missing` (deleted, trashed or moved out of its own folder of the topic, `notes/` or `classroom/`); a check that finds it there again sets `ok`: reported, never recreated |
@@ -123,6 +123,7 @@ source id.
 | per `source_id` | `read_md5`: the living file's `built_md5` when the owner last read that source; `reads`: 1 after the read on the pass that saw that checksum, 2 after the confirming read on the next pass; `read_at`: when |
 | `session` | `ok` or `signed_out`: whether the owner's `nlm` session worked on the last pass, after research R14's renewals |
 | `session_since` | When `session` took its value; the notice of FR-019 goes out when it turns `signed_out`, never on a pass that finds it already so |
+| `gone` | Per source id a read found gone from its notebook, its living file's title (`Apuntes · <topic>` or `Classroom · <topic>`); an entry leaves when a read of that source answers or the state no longer names it as a living file's source (a state read with no topic at all is one that was not found, and forgets nothing), and the field is absent when there is none. The notice of FR-018a goes out, one per pass, for the ids new to it, and the agenda shows one line per entry |
 
 A source is read on a pass when its living file's `built_md5` differs from `read_md5` (then
 `reads = 1`) or when `reads` is 1 (then `reads = 2`); a source with no entry counts as differing. A
