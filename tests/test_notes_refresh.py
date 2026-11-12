@@ -279,9 +279,22 @@ def test_a_gone_source_the_state_no_longer_names_is_forgotten_even_by_an_idle_pa
     deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
     refresh_sources(deps)
     owner.calls.clear()
-    out = refresh_sources(RefreshDeps(FakeState({"topics": {}}), owner, deps.record, notifier, deps.clock))
+    unbound = living_state(("notes", None, MD5_A, "ok"))  # the topic is there; that source is not its own any more
+    out = refresh_sources(RefreshDeps(FakeState(unbound), owner, deps.record, notifier, deps.clock))
     assert (out["ok"], out["gone"]) == (True, 0) and owner.calls == []  # idle: no nlm call
     assert "gone" not in record(tmp_path) and agenda_notices(tmp_path / "data") == ()
+
+
+def test_a_state_that_was_not_found_forgets_nothing(tmp_path: Path):
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    refresh_sources(deps)
+    empties: list[dict[str, Any]] = [{}, {"topics": {}}]
+    for empty in empties:  # `state.json` not found reads as `{}`: not a state that dropped the source
+        out = refresh_sources(RefreshDeps(FakeState(empty), owner, deps.record, notifier, deps.clock))
+        assert (out["ok"], out["gone"]) == (False, 1) and record(tmp_path)["gone"] == {"src-1": GONE_TITLE}
+    refresh_sources(deps)
+    assert notifier.texts == [TOLD]  # the same deletion is not told twice
 
 
 def test_several_sources_gone_on_one_pass_give_one_notice_and_a_line_each(tmp_path: Path):
@@ -304,6 +317,46 @@ def test_a_signed_out_answer_after_a_not_found_keeps_what_was_known_gone(tmp_pat
     out = refresh_sources(deps)
     assert (out["session"], out["ok"], out["gone"]) == ("signed_out", False, 1)
     assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE} and notifier.texts == [TOLD, NOTICE]
+
+
+def test_a_not_found_and_then_a_signed_out_answer_on_one_pass_lists_and_tells_the_gone_one(tmp_path: Path):
+    state = living_state(("notes", "src-1", MD5_A, "ok"), ("classroom", "src-2", MD5_B, "ok"))
+    owner = FakeOwner(failing={"src-1": GONE, "src-2": SourcesError(signed_out=True)})
+    deps, _, notifier = world(tmp_path, state, owner)
+    out = refresh_sources(deps)
+    assert (out["session"], out["ok"], out["gone"], out["read"]) == ("signed_out", False, 1, 0)
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE} and notifier.texts == [TOLD, NOTICE]
+    assert agenda_notices(tmp_path / "data") == (AGENDA_LINE, GONE_AGENDA_LINE.format(title=GONE_TITLE))
+
+
+def test_a_source_that_answers_again_before_a_signed_out_answer_is_no_longer_gone(tmp_path: Path):
+    state = living_state(("notes", "src-1", MD5_A, "ok"), ("classroom", "src-2", MD5_B, "ok"))
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, _ = world(tmp_path, state, owner)
+    refresh_sources(deps)
+    owner.failing = {"src-2": SourcesError(signed_out=True)}  # src-1 answers; then the owner is signed out
+    out = refresh_sources(deps)
+    assert (out["session"], out["gone"], out["read"]) == ("signed_out", 0, 1)
+    assert "gone" not in record(tmp_path) and record(tmp_path)["sources"]["src-1"]["read_md5"] == MD5_A
+    assert agenda_notices(tmp_path / "data") == (AGENDA_LINE,)
+
+
+def test_a_signed_out_owner_does_not_hide_the_gone_remedy_on_the_command(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    owner = FakeOwner([True, False], failing={"src-1": GONE})
+    deps, _, _ = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    assert run_cli(deps) == 3
+    capsys.readouterr()
+    assert run_cli(deps) == 5  # the session fails on the next pass: the highest code wins
+    _, err = printed(capsys)
+    assert "`notebook prepare`" in err and "nlm login" in err
+
+
+def test_two_gone_sources_are_both_named_and_none_is_counted_as_more():
+    told = gone_notice(("Apuntes · A", "Classroom · A"))
+    assert "«Apuntes · A», «Classroom · A»;" in told and "más" not in told and "cada fuente" in told
+    assert "«Apuntes · A», «Classroom · A» y 1 más" in gone_notice(("Apuntes · A", "Classroom · A", "Apuntes · B"))
 
 
 def test_a_failing_session_keeps_what_is_known_gone(tmp_path: Path):

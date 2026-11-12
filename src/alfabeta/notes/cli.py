@@ -243,16 +243,16 @@ def cmd_notebook_refresh(
     counts = f"read {report['read']}, unchanged {report['unchanged']}, missing {report['missing']}"
     counts += f", gone {report['gone']}"
     print(f"alfabeta: notebook refresh at {when}: {counts}", file=sys.stderr)
-    if not report["ok"] and report["session"] == "signed_out":
+    if report["gone"]:  # reading again will not bring it back: only the setup adds a source (FR-009a)
+        gone = "a notebook no longer holds a living file's source; add it again (`notebook prepare`)"
+        print(f"alfabeta: {gone}", file=sys.stderr)
+    if not report["ok"] and report["session"] == "signed_out":  # the last session a pass measured
         print(
             "alfabeta: nlm is not signed in, even after renewing: run `nlm login --profile <profile>`", file=sys.stderr
         )
         return EXIT_SIGNED_OUT
     if not report["ok"]:
-        if report["gone"]:  # reading again will not bring it back: only the setup adds a source (FR-009a)
-            gone = "a notebook no longer holds a living file's source; add it again (`notebook prepare`)"
-            print(f"alfabeta: {gone}; a source that only failed is read again on the next pass", file=sys.stderr)
-        else:
+        if not report["gone"]:
             print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
         return EXIT_PARTIAL
     return EXIT_OK

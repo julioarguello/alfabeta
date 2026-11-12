@@ -383,9 +383,11 @@ own table is the subset the requirements rest on; this one is the full list.
   each pass asks for it again; it is not due when its living file is missing or its build is back
   at a checksum the owner had already read, and then it stays listed without being asked for (the
   first build of this rebuilt the list from what each pass asked, which forgot such a source and
-  told the family a second time; found in review). Every pass with a listed source ends as a
-  partial failure (code 3); the list is rewritten only when it changes, so those passes write
-  nothing. An idle pass still calls no `nlm`: a deletion is found only when the source next has to
+  told the family a second time; found in review). No pass with a listed source is `ok`: it ends
+  as a partial failure (code 3), or 5 when the session, as last measured, is signed out; the list
+  is rewritten only when it changes. A pass that stops on a signed-out answer writes what it had
+  learnt of the list before stopping, and tells of a source new to it. A state read with no topic
+  at all is taken as not found, and forgets nothing. An idle pass still calls no `nlm`: a deletion is found only when the source next has to
   be read. The same answer comes for an id that never existed, so `gone` means "not there",
   whatever the reason, and the family's texts claim none.
 - **Questions for the quickstart**: does one read refresh every time, or does a pass need a

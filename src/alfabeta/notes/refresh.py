@@ -56,7 +56,7 @@ AGENDA_LINE = (
 )
 # FR-018a. Each takes living files' titles, «Apuntes · <tema>» or «Classroom · <tema>»: no id, no account.
 # Neither says why the source is not there: `nlm` does not say (measured 2026-11-12).
-GONE_NOTICE = "el cuaderno ya no tiene la fuente {titles}; vuelve a añadirla con «notebook prepare» en ese tema"
+GONE_NOTICE = "el cuaderno ya no tiene {titles}; vuelve a añadir cada fuente con «notebook prepare» en su tema"
 GONE_AGENDA_LINE = (
     "**Aviso**: el cuaderno ya no tiene la fuente «{title}», así que no recibe sus páginas nuevas; vuelve a "
     "añadirla en ese tema con «python -m alfabeta notebook prepare --student <id> --topic "
@@ -199,15 +199,6 @@ def _session(sources: NotebookSources, *, browser: bool) -> tuple[bool, bool]:
     return False, True
 
 
-def _signed_out(deps: RefreshDeps, record: RefreshRecord, report: dict[str, Any], now: dt.datetime) -> dict[str, Any]:
-    """Stop: record `signed_out`, and tell the family only if that is a change (FR-019)."""
-    record, turned = record.with_session(Session.SIGNED_OUT, now)
-    deps.record.save(record)
-    if turned:
-        deps.notifier.notify(NOTICE)
-    return report | {"ok": False, "session": str(Session.SIGNED_OUT)}
-
-
 def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, Any]:
     """One pass: `{ok, read, unchanged, missing, gone, renewed, session}` (contracts/cli.md).
 
@@ -216,12 +207,16 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
     `gone` counts the sources the state names that their notebook no longer holds (FR-018a): found so
     on this pass, or on an earlier one and not read since. A pass with any is not `ok`, also the pass
     that asks for none of them (its living file is missing, or its build is back at a checksum already
-    read): a source leaves the list only when it is read or the state no longer names it.
+    read): a source leaves the list only when it is read or the state no longer names it. A pass that
+    stops on a signed-out owner (FR-019) keeps what it learnt about the list before stopping.
     """
-    living, missing, bound = _living(deps.state.load())
+    state = deps.state.load()
+    living, missing, bound = _living(state)
     record = deps.record.load()
     due = [built for built in living if record.due(built.source_id, built.built_md5)]
-    gone = {source: title for source, title in record.gone.items() if source in bound}
+    # A state with no topic at all is one that was not found, not one that dropped every source.
+    named = bound if state.get("topics") else frozenset(record.gone)
+    gone = {source: title for source, title in record.gone.items() if source in named}
     report: dict[str, Any] = {
         "ok": not gone,
         "read": 0,
@@ -237,19 +232,19 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
         return report
     now = deps.clock.now()
     works, report["renewed"] = _session(deps.sources, browser=browser)
-    if not works:
-        return _signed_out(deps, record, report, now)
-    record, _ = record.with_session(Session.OK, now)
-    report["session"] = str(Session.OK)
-    failed = False
-    for built in due:
+    signed_out, failed = not works, False
+    if works:
+        record, _ = record.with_session(Session.OK, now)
+        report["session"] = str(Session.OK)
+    for built in due if works else ():
         try:
             deps.sources.read_source(built.source_id)
         except NlmMissingError:
             raise
         except SourcesError as err:
             if err.signed_out:
-                return _signed_out(deps, record, report, now)
+                signed_out = True
+                break  # stop: what was read, and what was found gone or back, stays recorded
             failed = True  # read again on the next pass: its record did not move
             if err.not_found:
                 gone[built.source_id] = built.title
@@ -258,11 +253,17 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
         record = record.after_read(built.source_id, built.built_md5, now)
         report["read"] += 1
     report["gone"] = len(gone)
-    report["ok"] = not failed and not gone
+    report["ok"] = not (failed or gone or signed_out)
     record, new = record.with_gone(gone)
+    turned = False
+    if signed_out:  # FR-019: record it, and tell the family only if that is a change
+        record, turned = record.with_session(Session.SIGNED_OUT, now)
+        report["session"] = str(Session.SIGNED_OUT)
     deps.record.save(record)
     if new:  # once per source, and one notice per pass: a pass that finds it gone again says nothing
         deps.notifier.notify(gone_notice(new))
+    if turned:
+        deps.notifier.notify(NOTICE)
     return report
 
 
