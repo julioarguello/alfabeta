@@ -359,6 +359,19 @@ def test_two_gone_sources_are_both_named_and_none_is_counted_as_more():
     assert "«Apuntes · A», «Classroom · A» y 1 más" in gone_notice(("Apuntes · A", "Classroom · A", "Apuntes · B"))
 
 
+def test_a_signed_out_answer_stops_the_pass_and_a_gone_source_it_was_asked_for_stays_listed(tmp_path: Path):
+    state = living_state(("notes", "src-1", MD5_A, "ok"), ("classroom", "src-2", MD5_B, "ok"))
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, state, owner)
+    refresh_sources(deps)
+    owner.failing = {"src-1": SourcesError(signed_out=True)}  # the listed source itself answers signed-out
+    owner.calls.clear()
+    out = refresh_sources(deps)
+    assert owner.calls == ["check", "read src-1"]  # the pass stops there: the next source is not asked for
+    assert (out["session"], out["gone"], out["read"]) == ("signed_out", 1, 0)
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE} and notifier.texts == [TOLD, NOTICE]
+
+
 def test_a_failing_session_keeps_what_is_known_gone(tmp_path: Path):
     owner = FakeOwner([True, False], failing={"src-1": GONE})
     deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
@@ -394,6 +407,7 @@ def test_the_command_exits_3_on_a_gone_source_names_the_remedy_and_no_title(
     out, err = printed(capsys)
     assert (out["ok"], out["gone"]) == (False, 1)
     assert "`notebook prepare`" in err and "gone 1" in err
+    assert "could not be read" not in err  # reading it again will not bring it back
     every = json.dumps(out) + err + caplog.text
     assert "src-secreto" not in every and "Materia inventada" not in every  # the title is the family's notice only
     assert notifier.texts == [TOLD]
@@ -556,6 +570,7 @@ def test_nothing_the_command_prints_names_a_source_or_a_checksum(
     deps, _, _ = world(tmp_path, state, owner)
     assert run_cli(deps) == 3  # a read failed: partial
     out, err = printed(capsys)
+    assert "could not be read" in err and "notebook prepare" not in err  # a failure is not a deletion
     every = json.dumps(out) + err + caplog.text
     assert "src-secreto" not in every and MD5_A not in every and MD5_B not in every and "vivo-" not in every
 

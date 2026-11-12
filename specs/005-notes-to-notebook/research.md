@@ -378,8 +378,9 @@ own table is the subset the requirements rest on; this one is the full list.
   each with its living file's title (`Apuntes · <topic>` or `Classroom · <topic>`). A pass that
   finds sources new to that list gives one macOS notification for them, naming two titles and
   counting the rest; the Mac's sync shows one agenda line per listed source. A source leaves the
-  list only when a read of it answers or the state no longer names it, which is what
-  `notebook prepare` does when it records the new source (R9). Usually a gone source stays due, so
+  list only when a read of it answers or the state no longer names it as a living file's source,
+  which is what `notebook prepare` does when it records the new source (R9); a state read with no
+  topic at all is one that was not found, and forgets nothing. Usually a gone source stays due, so
   each pass asks for it again; it is not due when its living file is missing or its build is back
   at a checksum the owner had already read, and then it stays listed without being asked for (the
   first build of this rebuilt the list from what each pass asked, which forgot such a source and

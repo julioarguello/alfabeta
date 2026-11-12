@@ -4,14 +4,17 @@ Mac only. The student's own access does not make the notebook take a changed Dri
 owner does, within two minutes (measured 2026-10-28). A pass reads `state.json` from a Drive opened at
 the root (`ScopedDrive.open_root`, no listing), compares each living file's `built_md5` with the checksum
 the owner last read, and reads only the sources that differ or await their confirming read: with
-nothing changed it calls no `nlm` and writes nothing. It never adds, removes or renames a source (FR-011).
+nothing changed it calls no `nlm` and writes nothing, but the list of gone sources once, when the state
+dropped one. It never adds, removes or renames a source (FR-011).
 
 A source someone deleted from its notebook answers the read with "not found" (measured 2026-11-12,
 julioarguello/alfabeta#235). The pass counts it as `gone`, tells the family once, on the Mac, which
 living file it was, and the Mac's sync shows an agenda line while it lasts; `notebook prepare` on that
 topic adds the file again (FR-009a, FR-018a), and its new source is read on the next pass. A source
-stays `gone` until it is read or the state names another in its place, also through the passes that
-do not ask for it; "not found" says only that it is not there, so the notice claims no cause.
+stays `gone` until it is read or the state no longer names it as a living file's source, as when the
+setup records another in its place; a state read with no topic at all forgets nothing. It stays so
+also through the passes that do not ask for it; "not found" says only that it is not there, so the
+notice claims no cause.
 
 Unattended, a failing session is renewed once, with `nlm auth refresh --http-only`, which needs no
 browser. The renewal through `nlm`'s own browser profile runs only when a person at the Mac asks for it
@@ -204,10 +207,11 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
 
     `session` is the last one a pass measured, None before any did: an idle pass does not check it.
     `NlmMissingError` propagates: `nlm` that cannot be run is `no_nlm`, never a signed-out owner.
-    `gone` counts the sources the state names that their notebook no longer holds (FR-018a): found so
-    on this pass, or on an earlier one and not read since. A pass with any is not `ok`, also the pass
-    that asks for none of them (its living file is missing, or its build is back at a checksum already
-    read): a source leaves the list only when it is read or the state no longer names it. A pass that
+    `gone` counts the sources listed as no longer in their notebook (FR-018a): found so on this pass,
+    or on an earlier one and not read since. A pass with any is not `ok`, also the pass that asks for
+    none of them (its living file is missing, or its build is back at a checksum already read): a
+    source leaves the list only when it is read or the state no longer names it as a living file's
+    source, and a state read with no topic at all, which is one not found, forgets nothing. A pass that
     stops on a signed-out owner (FR-019) keeps what it learnt about the list before stopping.
     """
     state = deps.state.load()

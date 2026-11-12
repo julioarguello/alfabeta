@@ -556,8 +556,8 @@ class RefreshRecord:
     sources: Mapping[str, SourceRead] = field(default_factory=lambda: dict[str, SourceRead]())
     session: Session | None = None  # None until a pass has checked it
     session_since: dt.datetime | None = None  # when `session` took its value
-    # Sources the state names that their notebook no longer holds, each with its living file's title
-    # for the family (FR-018a); one leaves when it is read or the state no longer names it.
+    # Sources their notebook no longer holds, each with its living file's title for the family
+    # (FR-018a); one leaves when it is read or a state that holds topics no longer names it.
     gone: Mapping[str, str] = field(default_factory=lambda: dict[str, str]())
 
     def due(self, source_id: str, built_md5: str) -> bool:

@@ -234,8 +234,9 @@ implementation.
   session: the answer is the same for an id that never existed (measured). So the notice and the
   agenda line say the notebook no longer has the source and claim no cause, one pass gives one
   notice however many sources it finds gone, and a source stays listed as gone until a read of it
-  answers or the setup records another in its place, also through the passes that do not ask for
-  it. Not measured: what the owner's profile answers when it is signed in as another account, or
+  answers or the state no longer names it as a living file's source, which is what the setup does
+  when it records another in its place; also through the passes that do not ask for it. A state
+  read with no topic at all is one that was not found, and forgets nothing. Not measured: what the owner's profile answers when it is signed in as another account, or
   when the whole notebook was deleted; if that is also "not found", every source due on that pass
   is listed as gone, in one notice, and the setup then stops at `no_notebook`. A gone source whose
   living file is also missing stays listed, and the setup answers `missing` for it until the file
@@ -575,8 +576,10 @@ source and one living Classroom source, and that a second run adds nothing.
   file's title and the setup that repairs it (FR-009a), no account, notebook or id, and no cause,
   which the answer does not give; a pass that finds several gone gives one notification, naming two
   and counting the rest. The refresh adds nothing (FR-018). A source stays listed as gone until a
-  read of it answers or the state names another source in its place, also through a pass that does
-  not ask for it (its living file is missing, or its build is back at a checksum already read);
+  read of it answers or the state no longer names it as a living file's source, as when the setup
+  records another in its place; a state read with no topic at all forgets nothing. It stays listed
+  also through a pass that does not ask for it (its living file is missing, or its build is back
+  at a checksum already read);
   no pass with a source listed as gone is `ok`: it ends as a partial failure, or as not signed in
   when the owner's session, as last measured, is (FR-019); an idle one still calls no `nlm` and
   writes nothing but the list, once, when the state stopped naming one of its sources. A pass that
