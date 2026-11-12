@@ -249,10 +249,11 @@ def cmd_notebook_refresh(
         )
         return EXIT_SIGNED_OUT
     if not report["ok"]:
-        print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
         if report["gone"]:  # reading again will not bring it back: only the setup adds a source (FR-009a)
             gone = "a notebook no longer holds a living file's source; add it again (`notebook prepare`)"
-            print(f"alfabeta: {gone}", file=sys.stderr)
+            print(f"alfabeta: {gone}; a source that only failed is read again on the next pass", file=sys.stderr)
+        else:
+            print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
         return EXIT_PARTIAL
     return EXIT_OK
 

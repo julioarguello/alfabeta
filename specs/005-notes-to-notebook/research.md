@@ -240,7 +240,10 @@ own table is the subset the requirements rest on; this one is the full list.
   (Tema 01's two, first table) for the family to remove by hand; alfabeta removes nothing (FR-011).
 - **Amended 2026-11-12 (julioarguello/alfabeta#235)**: for a living file already set up and in
   place, the setup compares its recorded source with the sources it has just listed. When the
-  notebook no longer lists it, it takes a listed source titled as the Drive file, and with none adds
+  notebook no longer lists it, it reads the recorded source once (`nlm source content`): only the
+  answer "not found" lets it go on, a source that answers is `unchanged`, and any other failure
+  stops the setup, because a listing that came back short would otherwise add every source of the
+  topic a second time. Then it takes a listed source titled as the Drive file, and with none adds
   the same file again; either way it records that source in place of the old one, and reports
   `restored` (FR-009a). It builds nothing, uploads nothing and shares nothing for it: the Drive
   file and its share with the owner were not touched by the deletion. The title is the only handle:
@@ -371,14 +374,20 @@ own table is the subset the requirements rest on; this one is the full list.
 - **Amended 2026-11-12 (julioarguello/alfabeta#235)**: a read answered "not found" (first table)
   is a source its notebook no longer holds. `nlm`'s adapter tells it apart by the word `NOT_FOUND`
   in the answer's `error`, and never when the answer carries the sign-in hint. The pass counts it
-  as `gone`, keeps it out of the reads, and writes in the refresh record the sources found gone on
-  that pass, each with its living file's title (`Apuntes · <topic>` or `Classroom · <topic>`). A
-  source new to that list gets one macOS notification; the Mac's sync shows one agenda line per
-  listed source. A gone source stays due, so every pass asks for it again and ends as a partial
-  failure (code 3) until `notebook prepare` records the new source (R9); the list is rewritten only
-  when it changes, so those passes write nothing. An idle pass still calls no `nlm`: a deletion is
-  found only when the source next has to be read. The same answer comes for an id that never
-  existed, so `gone` means "not there", whatever the reason.
+  as `gone`, keeps it out of the reads, and keeps in the refresh record the sources known gone,
+  each with its living file's title (`Apuntes · <topic>` or `Classroom · <topic>`). A pass that
+  finds sources new to that list gives one macOS notification for them, naming two titles and
+  counting the rest; the Mac's sync shows one agenda line per listed source. A source leaves the
+  list only when a read of it answers or the state no longer names it, which is what
+  `notebook prepare` does when it records the new source (R9). Usually a gone source stays due, so
+  each pass asks for it again; it is not due when its living file is missing or its build is back
+  at a checksum the owner had already read, and then it stays listed without being asked for (the
+  first build of this rebuilt the list from what each pass asked, which forgot such a source and
+  told the family a second time; found in review). Every pass with a listed source ends as a
+  partial failure (code 3); the list is rewritten only when it changes, so those passes write
+  nothing. An idle pass still calls no `nlm`: a deletion is found only when the source next has to
+  be read. The same answer comes for an id that never existed, so `gone` means "not there",
+  whatever the reason, and the family's texts claim none.
 - **Questions for the quickstart**: does one read refresh every time, or does a pass need a
   second read to confirm (step 3b)? On 2026-10-28 the first read returned the old copy and the next,
   76 seconds later, held the page, so whether that second read did anything is not known. If step 3b

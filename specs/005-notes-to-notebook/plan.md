@@ -86,6 +86,15 @@ its record and output hold source ids and counts, never a name (III). The consti
 constraints named only the desktop app as the Mac's environment; 2.1.0 adds a launchd agent that runs
 alfabeta's own commands with no app open.
 
+Re-checked on 2026-11-12 for FR-009a and FR-018a (julioarguello/alfabeta#235): the sentence above no
+longer holds as written. The refresh record now also holds, for each source found gone, its living
+file's title (`Apuntes · <topic>` or `Classroom · <topic>`): a topic's name, never the student's, an
+address or an account. The title is shown only in the macOS notice and the agenda line, which are the
+family's; the command's output and the agent's log still hold counts alone, and the record stays in
+the data folder, readable by its user alone (II, III). The refresh still changes no notebook (FR-011);
+the setup, which already added sources, adds one again only after a read says the recorded one is not
+there. No dependency is added (IX).
+
 ## Project Structure
 
 ### Documentation (this feature)

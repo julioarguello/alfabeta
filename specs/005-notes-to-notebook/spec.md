@@ -220,11 +220,23 @@ implementation.
   is added, and a listed source does not name its Drive file (both measured, table above). So before
   adding, the setup takes a source the notebook already lists under the file's name. That covers a
   repair that added the source and then could not record it. It cannot tell the living source from a
-  PDF of the same name that someone uploaded by hand: that one would be taken for it.
+  PDF of the same name that someone uploaded by hand: that one would be taken for it. And one
+  listing is not taken as proof of a deletion, since a listing that came back short would add every
+  source of the topic a second time: the setup first reads the recorded source once, and adds only
+  when that read answers "not found"; a source that still answers is left as it is, and a read that
+  fails otherwise stops the setup.
 - Q: When is a deletion noticed? → A: When the refresh next has to read that source, which is after
   the living file's next build. Until then the notebook lacks that file's content and nobody is
   told: an idle refresh touches no notebook (SC-004), and no run lists a notebook's sources on its
   own. Running the setup on the topic at any time finds it and repairs it.
+- Q: Does "not found" mean someone deleted it? → A: It means the source is not there for the owner's
+  session: the answer is the same for an id that never existed (measured). So the notice and the
+  agenda line say the notebook no longer has the source and claim no cause, one pass gives one
+  notice however many sources it finds gone, and a source stays listed as gone until a read of it
+  answers or the setup records another in its place, also through the passes that do not ask for
+  it. Not measured: what the owner's profile answers when it is signed in as another account, or
+  when the whole notebook was deleted; if that is also "not found", every source due on that pass
+  is listed as gone, in one notice, and the setup then stops at `no_notebook`.
 - Q: What stays unmeasured for an editor? → A: Everything but the answer to the owner's read and the
   second add, above:
   - a deletion made by an editor in the notebook's web page (the measured one was the owner's,
@@ -508,11 +520,13 @@ source and one living Classroom source, and that a second run adds nothing.
 - **FR-009a**: When a living file that was set up is still in its own folder of the topic and the
   topic's notebook no longer lists its recorded source, the setup on the Mac MUST add the same Drive
   file to the notebook again and record the new source in place of the old one, creating no file
-  and sharing nothing again; its output says `restored` for that file. It MUST NOT add it twice:
-  before adding, it takes a source the notebook already lists under the file's name (measured
-  2026-11-12: the notebook does not refuse a Drive file it already holds, and a listed source does
-  not name its Drive file). A living file that is missing gets no source (FR-011). Nothing but the
-  setup adds it: the refresh only tells (FR-018a).
+  and sharing nothing again; its output says `restored` for that file. It MUST add only when one
+  read of the recorded source, as the owner, answers "not found": a recorded source that still
+  answers is left as it is, whatever the listing said, and a read that fails otherwise stops the
+  setup with nothing added. It MUST NOT add it twice: before adding, it takes a source the notebook
+  already lists under the file's name (measured 2026-11-12: the notebook does not refuse a Drive
+  file it already holds, and a listed source does not name its Drive file). A living file that is
+  missing gets no source (FR-011). Nothing but the setup adds it: the refresh only tells (FR-018a).
 - **FR-010**: Notes pages go into the living notes file in the order they were first seen; a page
   moved to another subtopic's `notes/` (spec 002 FR-044) leaves the first living file and enters the
   second, as an item moved to another topic does. Each
@@ -554,9 +568,14 @@ source and one living Classroom source, and that a second run adds nothing.
   apart from a read that failed (`gone`) and MUST tell the family on the Mac which living file it
   was: a macOS notification on the pass that first finds it gone, not given again while it stays so,
   and an agenda line from the Mac's sync while the refresh record lists it. Both name the living
-  file's title and the setup that repairs it (FR-009a), and no account, notebook or id. The refresh
-  adds nothing (FR-018): it asks for the source again on every pass, each of which ends as a partial
-  failure, until the setup records the new source, which the next pass reads.
+  file's title and the setup that repairs it (FR-009a), no account, notebook or id, and no cause,
+  which the answer does not give; a pass that finds several gone gives one notification, naming two
+  and counting the rest. The refresh adds nothing (FR-018). A source stays listed as gone until a
+  read of it answers or the state names another source in its place, also through a pass that does
+  not ask for it (its living file is missing, or its build is back at a checksum already read);
+  every pass with a source listed as gone ends as a partial failure, and an idle one still calls no
+  `nlm` and writes nothing but the list, once, when the state stopped naming one of its sources.
+  Once the setup records the new source, the next pass reads it.
 - **FR-019**: When the owner's `nlm` session does not work, even after renewing it once with
   `nlm auth refresh --http-only` (research R14; the unattended pass never renews through a browser,
   which only `notebook refresh --browser`, started by the family, does), the

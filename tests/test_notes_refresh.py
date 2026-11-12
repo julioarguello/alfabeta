@@ -22,12 +22,12 @@ from alfabeta.notes.model import RefreshRecord, Session, SourceRead
 from alfabeta.notes.refresh import (
     AGENDA_LINE,
     GONE_AGENDA_LINE,
-    GONE_NOTICE,
     NOTICE,
     RECORD,
     LocalRefreshStore,
     RefreshDeps,
     agenda_notices,
+    gone_notice,
     refresh_sources,
 )
 from alfabeta.notes.sources import SourcesError
@@ -172,6 +172,7 @@ def test_a_read_that_fails_is_not_recorded_and_the_pass_is_not_ok(tmp_path: Path
 
 GONE = SourcesError(signed_out=False, not_found=True)  # what `nlm` answers, measured 2026-11-12
 GONE_TITLE = "Apuntes · 20260910 - Tema 00 - Materia inventada"  # `living_state`'s first topic
+TOLD = gone_notice((GONE_TITLE,))
 
 
 def test_a_source_gone_from_its_notebook_is_counted_told_once_and_asked_for_again(tmp_path: Path):
@@ -180,19 +181,22 @@ def test_a_source_gone_from_its_notebook_is_counted_told_once_and_asked_for_agai
     out = refresh_sources(deps)
     assert owner.calls == ["check", "read src-1", "read src-2"]  # the other source is still read
     assert (out["ok"], out["read"], out["gone"], out["session"]) == (False, 1, 1, "ok")
-    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]
+    assert notifier.texts == [TOLD]
     saved = record(tmp_path)
     assert saved["gone"] == {"src-1": GONE_TITLE} and set(saved["sources"]) == {"src-2"}
     assert agenda_notices(tmp_path / "data") == (GONE_AGENDA_LINE.format(title=GONE_TITLE),)
 
-    path = tmp_path / "data" / RECORD
-    owner.failing["src-2"] = SourcesError(signed_out=False)  # so the second pass has nothing new to record
-    before = (path.read_bytes(), path.stat().st_mtime_ns)
     owner.calls.clear()
-    again = refresh_sources(deps)
-    assert "read src-1" in owner.calls and again["gone"] == 1  # asked for on every pass: its record did not move
-    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]  # told once, not on every pass
-    assert (path.read_bytes(), path.stat().st_mtime_ns) == before
+    again = refresh_sources(deps)  # the other source gets its confirming read: the record is written
+    assert owner.calls == ["check", "read src-1", "read src-2"]  # asked for again: its record did not move
+    assert (again["ok"], again["read"], again["gone"]) == (False, 1, 1)
+    assert notifier.texts == [TOLD]  # told once, not on every pass
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE} and record(tmp_path)["sources"]["src-2"]["reads"] == 2
+
+    path = tmp_path / "data" / RECORD
+    before = (path.read_bytes(), path.stat().st_mtime_ns)
+    assert refresh_sources(deps)["gone"] == 1  # only the gone one is due now: nothing new to record
+    assert notifier.texts == [TOLD] and (path.read_bytes(), path.stat().st_mtime_ns) == before
 
 
 def test_once_prepare_records_the_new_source_it_is_read_and_the_gone_one_forgotten(tmp_path: Path):
@@ -218,7 +222,88 @@ def test_a_gone_source_whose_next_read_fails_otherwise_stays_gone_and_is_not_tol
     assert refresh_sources(deps)["gone"] == 1 and record(tmp_path)["gone"] == {"src-1": GONE_TITLE}
     owner.failing["src-1"] = GONE
     refresh_sources(deps)
-    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]  # still the one notice
+    assert notifier.texts == [TOLD]  # still the one notice
+
+
+def test_a_gone_source_that_is_no_longer_asked_for_stays_gone_and_is_told_once(tmp_path: Path):
+    # Its build returns to the checksum the owner had read before the deletion: it is not due, and still deleted.
+    store = LocalRefreshStore(tmp_path / "data")
+    store.save(RefreshRecord({"src-1": SourceRead(MD5_A, 2, NOW)}, Session.OK, NOW))
+    owner, notifier = FakeOwner(failing={"src-1": GONE}), FakeNotifier()
+
+    def run(*living: tuple[str, str | None, str | None, str]) -> dict[str, Any]:
+        return refresh_sources(RefreshDeps(FakeState(living_state(*living)), owner, store, notifier, FixedClock(NOW)))
+
+    other = ("classroom", "src-2", MD5_A, "ok")
+    assert run(("notes", "src-1", MD5_B, "ok"), other)["gone"] == 1  # a new page: asked for, and gone
+    before = (store.path.read_bytes(), store.path.stat().st_mtime_ns)
+    owner.calls.clear()
+    idle = run(("notes", "src-1", MD5_A, "ok"), other)  # the confirming read of the other is still due
+    assert (idle["ok"], idle["gone"], idle["read"]) == (False, 1, 1) and owner.calls == ["check", "read src-2"]
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE}  # kept: nobody read it, and the state still names it
+    owner.calls.clear()
+    before = (store.path.read_bytes(), store.path.stat().st_mtime_ns)
+    quiet = run(("notes", "src-1", MD5_A, "ok"), other)  # nothing is due: no nlm call, nothing written
+    assert (quiet["ok"], quiet["gone"]) == (False, 1) and owner.calls == []
+    assert (store.path.read_bytes(), store.path.stat().st_mtime_ns) == before
+    assert agenda_notices(tmp_path / "data") == (GONE_AGENDA_LINE.format(title=GONE_TITLE),)
+    assert run(("notes", "src-1", MD5_B, "ok"), other)["gone"] == 1  # the page is back: asked for again
+    assert notifier.texts == [TOLD]  # one deletion, one notice
+
+
+def test_a_gone_source_whose_living_file_goes_missing_stays_gone(tmp_path: Path):
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    refresh_sources(deps)
+    moved = living_state(("notes", "src-1", MD5_A, "missing"), ("classroom", "src-2", MD5_B, "ok"))
+    out = refresh_sources(RefreshDeps(FakeState(moved), owner, deps.record, notifier, deps.clock))
+    assert (out["ok"], out["read"], out["missing"], out["gone"]) == (False, 1, 1, 1)
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE}
+    back = living_state(("notes", "src-1", MD5_A, "ok"), ("classroom", "src-2", MD5_B, "ok"))
+    refresh_sources(RefreshDeps(FakeState(back), owner, deps.record, notifier, deps.clock))
+    assert notifier.texts == [TOLD]
+
+
+def test_a_source_that_answers_again_is_no_longer_gone(tmp_path: Path):
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, _ = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    refresh_sources(deps)
+    owner.failing.clear()
+    out = refresh_sources(deps)
+    assert (out["ok"], out["read"], out["gone"]) == (True, 1, 0)
+    assert "gone" not in record(tmp_path) and agenda_notices(tmp_path / "data") == ()
+
+
+def test_a_gone_source_the_state_no_longer_names_is_forgotten_even_by_an_idle_pass(tmp_path: Path):
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    refresh_sources(deps)
+    owner.calls.clear()
+    out = refresh_sources(RefreshDeps(FakeState({"topics": {}}), owner, deps.record, notifier, deps.clock))
+    assert (out["ok"], out["gone"]) == (True, 0) and owner.calls == []  # idle: no nlm call
+    assert "gone" not in record(tmp_path) and agenda_notices(tmp_path / "data") == ()
+
+
+def test_several_sources_gone_on_one_pass_give_one_notice_and_a_line_each(tmp_path: Path):
+    kinds = [("notes", f"src-{n}", MD5_A, "ok") for n in range(4)]
+    owner = FakeOwner(failing={f"src-{n}": GONE for n in range(4)})
+    deps, _, notifier = world(tmp_path, living_state(*kinds), owner)
+    assert refresh_sources(deps)["gone"] == 4
+    titles = tuple(f"Apuntes · 2026091{n} - Tema 0{n} - Materia inventada" for n in range(4))
+    assert notifier.texts == [gone_notice(titles)]  # one notice, not four
+    assert f"«{titles[0]}», «{titles[1]}» y 2 más" in notifier.texts[0] and titles[2] not in notifier.texts[0]
+    assert agenda_notices(tmp_path / "data") == tuple(GONE_AGENDA_LINE.format(title=t) for t in titles)
+
+
+def test_a_signed_out_answer_after_a_not_found_keeps_what_was_known_gone(tmp_path: Path):
+    state = living_state(("notes", "src-1", MD5_A, "ok"), ("classroom", "src-2", MD5_B, "ok"))
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, state, owner)
+    refresh_sources(deps)
+    owner.failing["src-2"] = SourcesError(signed_out=True)  # the confirming read finds the owner signed out
+    out = refresh_sources(deps)
+    assert (out["session"], out["ok"], out["gone"]) == ("signed_out", False, 1)
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE} and notifier.texts == [TOLD, NOTICE]
 
 
 def test_a_failing_session_keeps_what_is_known_gone(tmp_path: Path):
@@ -228,7 +313,7 @@ def test_a_failing_session_keeps_what_is_known_gone(tmp_path: Path):
     assert refresh_sources(deps)["session"] == "signed_out"  # the pass stops before asking for anything
     assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE}
     assert agenda_notices(tmp_path / "data") == (AGENDA_LINE, GONE_AGENDA_LINE.format(title=GONE_TITLE))
-    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE), NOTICE]
+    assert notifier.texts == [TOLD, NOTICE]
 
 
 def test_a_record_written_before_gone_existed_reads_as_none_gone(tmp_path: Path):
@@ -240,10 +325,10 @@ def test_a_record_written_before_gone_existed_reads_as_none_gone(tmp_path: Path)
     assert "gone" not in record(tmp_path)  # written only while a source is gone
 
 
-def test_the_gone_notice_and_agenda_line_speak_spanish_and_name_only_the_living_file():
-    for text in (GONE_NOTICE, GONE_AGENDA_LINE):
-        shown = text.format(title=GONE_TITLE)
+def test_the_gone_notice_and_agenda_line_speak_spanish_name_only_the_living_file_and_claim_no_cause():
+    for shown in (TOLD, GONE_AGENDA_LINE.format(title=GONE_TITLE)):
         assert "fuente" in shown and "notebook prepare" in shown and GONE_TITLE in shown and "@" not in shown
+        assert "borr" not in shown  # "not found" does not say who or why (measured 2026-11-12)
 
 
 def test_the_command_exits_3_on_a_gone_source_names_the_remedy_and_no_title(
@@ -258,7 +343,7 @@ def test_the_command_exits_3_on_a_gone_source_names_the_remedy_and_no_title(
     assert "`notebook prepare`" in err and "gone 1" in err
     every = json.dumps(out) + err + caplog.text
     assert "src-secreto" not in every and "Materia inventada" not in every  # the title is the family's notice only
-    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]
+    assert notifier.texts == [TOLD]
 
 
 # --- the owner's session (FR-019, research R14) ------------------------------------------------

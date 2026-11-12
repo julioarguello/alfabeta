@@ -11,8 +11,9 @@ listed for the family to remove; nothing is removed (FR-011).
 A living file set up before, still in its folder, whose recorded source the notebook no longer lists
 (the student's accounts edit the notebook, so a source can be deleted there) is added again from the
 same Drive file and its new id recorded (FR-009a, julioarguello/alfabeta#235). Measured 2026-11-12:
-the notebook does not refuse a Drive file it already holds, so finding the source by its title before
-adding is what keeps it to one.
+a deleted source answers a read with "not found", and the notebook does not refuse a Drive file it
+already holds. So one listing is not taken as proof: the recorded source is read once, and only "not
+found" lets the setup add; and finding the source by its title before adding is what keeps it to one.
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ from alfabeta.notes.run import (
     settle_classroom,
     topic_name,
 )
+from alfabeta.notes.sources import SourcesError
 
 if TYPE_CHECKING:
     from alfabeta.google.drive import DriveFile
@@ -131,9 +133,9 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
                 living[kind] = {**living_record(current), "health": "missing"}
                 continue
             # Health is this check's: a file put back where setup made it is healthy again.
-            if any(s.id == current.source_id for s in present):
+            if any(s.id == current.source_id for s in present) or not _gone(sources, current.source_id):
                 outcome[kind] = "unchanged"
-            else:  # the notebook no longer lists the recorded source: the same file, again (FR-009a)
+            else:  # the notebook no longer holds the recorded source: the same file, again (FR-009a)
                 current = current.set_up(current.file_id, _source(sources, notebook, present, found))
                 outcome[kind] = "restored"
             living[kind] = living_record(current)
@@ -157,6 +159,24 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         "classroom_source": outcome[LivingKind.CLASSROOM],
         "plain_sources_to_remove": len(plain),
     }
+
+
+def _gone(sources: NotebookSources, source_id: str | None) -> bool:
+    """Whether a recorded source the listing lacks is really not in its notebook: its read says "not found".
+
+    A listing that came back short would make every recorded source look deleted, and each would be
+    added a second time. A source that still answers is left alone; a read that fails otherwise stops
+    the setup, which adds nothing on a doubt.
+    """
+    if source_id is None:
+        return True
+    try:
+        sources.read_source(source_id)
+    except SourcesError as err:
+        if err.not_found:
+            return True
+        raise
+    return False
 
 
 def _source(sources: NotebookSources, notebook: str, present: list[Source], file: DriveFile) -> str:

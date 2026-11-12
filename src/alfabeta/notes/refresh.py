@@ -9,7 +9,9 @@ nothing changed it calls no `nlm` and writes nothing. It never adds, removes or 
 A source someone deleted from its notebook answers the read with "not found" (measured 2026-11-12,
 julioarguello/alfabeta#235). The pass counts it as `gone`, tells the family once, on the Mac, which
 living file it was, and the Mac's sync shows an agenda line while it lasts; `notebook prepare` on that
-topic adds the file again (FR-009a, FR-018a), and its new source is read on the next pass.
+topic adds the file again (FR-009a, FR-018a), and its new source is read on the next pass. A source
+stays `gone` until it is read or the state names another in its place, also through the passes that
+do not ask for it; "not found" says only that it is not there, so the notice claims no cause.
 
 Unattended, a failing session is renewed once, with `nlm auth refresh --http-only`, which needs no
 browser. The renewal through `nlm`'s own browser profile runs only when a person at the Mac asks for it
@@ -52,14 +54,22 @@ AGENDA_LINE = (
     "**Aviso**: los cuadernos no reciben las páginas nuevas porque la sesión de nlm de la cuenta propietaria "
     "no funciona en el Mac; vuelve a iniciarla con «nlm login --profile <perfil>»."
 )
-# FR-018a. Each takes the living file's title, «Apuntes · <tema>» or «Classroom · <tema>»: no id, no account.
-GONE_NOTICE = (
-    "al cuaderno le falta la fuente «{title}», que alguien borró; vuelve a añadirla con «notebook prepare» en ese tema"
-)
+# FR-018a. Each takes living files' titles, «Apuntes · <tema>» or «Classroom · <tema>»: no id, no account.
+# Neither says why the source is not there: `nlm` does not say (measured 2026-11-12).
+GONE_NOTICE = "el cuaderno ya no tiene la fuente {titles}; vuelve a añadirla con «notebook prepare» en ese tema"
 GONE_AGENDA_LINE = (
-    "**Aviso**: el cuaderno ya no tiene la fuente «{title}» (alguien la borró), así que no recibe sus "
-    "páginas nuevas; vuelve a añadirla con «python -m alfabeta notebook prepare» en ese tema."
+    "**Aviso**: el cuaderno ya no tiene la fuente «{title}», así que no recibe sus páginas nuevas; vuelve a "
+    "añadirla en ese tema con «python -m alfabeta notebook prepare --student <id> --topic "
+    '"<asignatura>/<carpeta del tema>"».'
 )
+GONE_NAMED = 2  # titles a notice names; with more it counts the rest, so one pass gives one notice
+
+
+def gone_notice(titles: tuple[str, ...]) -> str:
+    """FR-018a's notice for the sources a pass found gone: one text, however many they are."""
+    named = ", ".join(f"«{title}»" for title in titles[:GONE_NAMED])
+    rest = len(titles) - GONE_NAMED
+    return GONE_NOTICE.format(titles=named if rest <= 0 else f"{named} y {rest} más")
 
 
 class StateReader(Protocol):
@@ -158,9 +168,10 @@ class _Built:
     title: str  # the living file's, for the family's notice when its source is gone (FR-018a)
 
 
-def _living(state: Mapping[str, Any]) -> tuple[list[_Built], int]:
-    """The living files bound to a source: those healthy and built, and how many are missing."""
+def _living(state: Mapping[str, Any]) -> tuple[list[_Built], int, frozenset[str]]:
+    """The living files bound to a source: those healthy and built, how many are missing, and every bound source."""
     built: dict[str, _Built] = {}
+    bound: set[str] = set()
     missing = 0
     for topic, data in cast("dict[str, dict[str, Any]]", state.get("topics", {})).items():
         records = cast("dict[str, dict[str, Any]]", data.get("living", {}))
@@ -169,12 +180,13 @@ def _living(state: Mapping[str, Any]) -> tuple[list[_Built], int]:
             living = living_of(topic, kind, record)
             if record is None or living.source_id is None:
                 continue  # waiting for `notebook prepare`: no source to read
+            bound.add(living.source_id)
             if Health(record.get("health", Health.OK)) != Health.OK:
                 missing += 1  # not read; FR-011's report covers it
             elif living.built_md5 is not None and living.source_id not in built:
                 title = Topic(topic, str(data.get("name", ""))).living_file_name(kind).removesuffix(".pdf")
                 built[living.source_id] = _Built(living.source_id, living.built_md5, title)
-    return list(built.values()), missing
+    return list(built.values()), missing, frozenset(bound)
 
 
 def _session(sources: NotebookSources, *, browser: bool) -> tuple[bool, bool]:
@@ -201,23 +213,27 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
 
     `session` is the last one a pass measured, None before any did: an idle pass does not check it.
     `NlmMissingError` propagates: `nlm` that cannot be run is `no_nlm`, never a signed-out owner.
-    `gone` counts the sources this pass asked for and their notebook no longer holds (FR-018a): each is
-    asked for again on every pass, since its record does not move, until `notebook prepare` records the
-    new source in its place.
+    `gone` counts the sources the state names that their notebook no longer holds (FR-018a): found so
+    on this pass, or on an earlier one and not read since. A pass with any is not `ok`, also the pass
+    that asks for none of them (its living file is missing, or its build is back at a checksum already
+    read): a source leaves the list only when it is read or the state no longer names it.
     """
-    living, missing = _living(deps.state.load())
+    living, missing, bound = _living(deps.state.load())
     record = deps.record.load()
     due = [built for built in living if record.due(built.source_id, built.built_md5)]
+    gone = {source: title for source, title in record.gone.items() if source in bound}
     report: dict[str, Any] = {
-        "ok": True,
+        "ok": not gone,
         "read": 0,
         "unchanged": len(living) - len(due),
         "missing": missing,
-        "gone": 0,
+        "gone": len(gone),
         "renewed": False,
         "session": str(record.session) if record.session else None,
     }
-    if not due:
+    if not due:  # no `nlm` call, and nothing written unless the state dropped a source listed as gone
+        if len(gone) != len(record.gone):
+            deps.record.save(record.with_gone(gone)[0])
         return report
     now = deps.clock.now()
     works, report["renewed"] = _session(deps.sources, browser=browser)
@@ -225,7 +241,7 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
         return _signed_out(deps, record, report, now)
     record, _ = record.with_session(Session.OK, now)
     report["session"] = str(Session.OK)
-    gone: dict[str, str] = {}
+    failed = False
     for built in due:
         try:
             deps.sources.read_source(built.source_id)
@@ -234,20 +250,19 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
         except SourcesError as err:
             if err.signed_out:
                 return _signed_out(deps, record, report, now)
-            report["ok"] = False  # read again on the next pass: its record did not move
-            # A read that fails otherwise says nothing: a source known gone stays so, and is not told again.
-            if err.not_found or built.source_id in record.gone:
+            failed = True  # read again on the next pass: its record did not move
+            if err.not_found:
                 gone[built.source_id] = built.title
-            continue
+            continue  # a read that fails otherwise says nothing: what was known gone stays so
+        gone.pop(built.source_id, None)  # it answered: it is there
         record = record.after_read(built.source_id, built.built_md5, now)
         report["read"] += 1
-    # A gone source stays due, so this pass asked for each one the state still names: `gone` is the
-    # whole list, and a source the setup replaced drops out of it.
     report["gone"] = len(gone)
+    report["ok"] = not failed and not gone
     record, new = record.with_gone(gone)
     deps.record.save(record)
-    for title in new:  # once per source: a pass that finds it gone again says nothing
-        deps.notifier.notify(GONE_NOTICE.format(title=title))
+    if new:  # once per source, and one notice per pass: a pass that finds it gone again says nothing
+        deps.notifier.notify(gone_notice(new))
     return report
 
 

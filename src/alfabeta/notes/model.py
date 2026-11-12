@@ -556,7 +556,8 @@ class RefreshRecord:
     sources: Mapping[str, SourceRead] = field(default_factory=lambda: dict[str, SourceRead]())
     session: Session | None = None  # None until a pass has checked it
     session_since: dt.datetime | None = None  # when `session` took its value
-    # Sources their notebook no longer holds, each with its living file's title for the family (FR-018a).
+    # Sources the state names that their notebook no longer holds, each with its living file's title
+    # for the family (FR-018a); one leaves when it is read or the state no longer names it.
     gone: Mapping[str, str] = field(default_factory=lambda: dict[str, str]())
 
     def due(self, source_id: str, built_md5: str) -> bool:
@@ -572,7 +573,7 @@ class RefreshRecord:
         return replace(self, sources={**self.sources, source_id: SourceRead(built_md5, reads, at)})
 
     def with_gone(self, gone: Mapping[str, str]) -> tuple[RefreshRecord, tuple[str, ...]]:
-        """The record with the sources a pass found gone, and the titles of those it did not know (FR-018a)."""
+        """The record with the sources now known gone, and the titles of those it did not know (FR-018a)."""
         new = tuple(title for source, title in gone.items() if source not in self.gone)
         return (self if dict(self.gone) == dict(gone) else replace(self, gone=dict(gone))), new
 
