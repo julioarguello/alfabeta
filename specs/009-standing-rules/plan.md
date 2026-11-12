@@ -20,7 +20,7 @@ Nothing here is built by this pull request.
 | # | Gate | Why | Tracked in |
 |---|---|---|---|
 | 1 | The student's real configuration gains the keys in the same sequence that brings the code to the family's checkout (research R9); no pull in that checkout between slice 1's merge and that sequence | Old code refuses them as extra and new code refuses their absence, in the scheduled sync and in the refresh agent, which fails silently | Slice 1, T020 |
-| 2 | The first real `exam build` with rules, read on paper, with a viewer's view of the notebook checked (SC-005) | The added text and the length limit are unmeasured, and the notebook keeps the prompt with the piece | Slice 1, T021 |
+| 2 | The first real `exam build` with rules, read on paper, with the view of the notebook from an account it is shared with checked (SC-005) | The added text and the length limit are unmeasured, and the notebook keeps the prompt with the piece | Slice 1, T021 |
 
 ## Technical Context
 
@@ -55,7 +55,7 @@ accounts it is shared with (gate 2), and a run's output, record and messages car
 |---|---|
 | I. The student is configuration | Rules are configuration. No branch names a subject or a student; `exam build` treats a rule as opaque text. |
 | II. Three layers | Template with `changeme` and generic examples in comments; real values outside the repository; a missing, extra or unset key stops as any other. |
-| III. Minors' data | Text goes only to the notebook's account and Claude, and whether its viewers can read a stored prompt is gate 2. Output and record hold level, kind and fingerprint. `Problem` names the key, never the value. The guardrail treats the keys as identifying. |
+| III. Minors' data | Text goes only to the notebook's account and Claude, and whether the accounts it is shared with (editors, spec 001 FR-011b) can read a stored prompt is gate 2. Output and record hold level, kind and fingerprint. `Problem` names the key, never the value. The guardrail treats the keys as identifying. |
 | IV. Read-only | Nothing touches a school platform. |
 | V. Idempotent sync | No sync command reads the keys, and its skill ignores them (FR-013). `config check` validates them, so it needs gate 1. |
 | VI. One source, tested provider | No new provider; the `nlm` stand-in serves. |

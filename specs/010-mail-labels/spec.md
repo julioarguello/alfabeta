@@ -13,8 +13,8 @@ are shared should fall there. These mails should skip the inbox."
 
 ## Context and scope
 
-Each topic gets a Gemini Notebook notebook, shared as viewer with every account in `[notebook] share_with` (spec 002,
-constitution VII). Google mails every invited account a notice. Over a school year that is one notice per topic and per
+Each topic gets a Gemini Notebook notebook, shared as editor with every account in `[notebook] share_with` (spec 001
+FR-011b; as viewer until 2026-11-12; constitution VII). Google mails every invited account a notice. Over a school year that is one notice per topic and per
 account, a dozen subjects, in two inboxes, and they bury the mail the student has to read.
 
 ### What reaches the student's mailboxes today

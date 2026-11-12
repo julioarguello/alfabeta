@@ -39,6 +39,17 @@ holds the publisher's guide. The notebook is the one whose title matches
 `<profile>`, say so and stop before any download, as `print_pack.py` does. Never write a name, an
 email or an id into the repository.
 
+**Share the notebook first, always.** Whenever this skill works on a notebook, and right after
+making one by hand (`nlm notebook create`) for a topic that had none, run `uv run --project
+<tools.repository> python -m alfabeta notebook share --student <student> --topic "<subject>/<topic
+folder>"` (the topic folder's full name, date included). It makes every account of
+`notebook.share_with` an **editor** of the notebook, inviting a missing one and raising a viewer;
+it removes nobody and never makes the notebook public (spec 001 FR-011b, FR-011c; the family,
+2026-11-12: every notebook, both of the student's accounts, as editor, always). Never share by hand
+with `nlm share invite`. If an account is in `failed`, say how many and go on. Then, if the topic's
+`notebook/` has no «Abrir el cuaderno.pdf», leave it with `print_pack.py link` (spec 002 FR-047):
+an invited account does not list the notebook until it opens it once by its link.
+
 ## Standing rules
 
 The family's standing rules (spec 009) are the `rules_*` keys of the table above: what they said once about
@@ -255,10 +266,10 @@ italics smaller and grey, so the two languages part in greyscale.
    `<tools.repository>/skills/study-pack/scripts/print-report.sh <nb> <artifact-id> <output.pdf> --student <student>`
    (A4, formulas rendered by KaTeX, page numbers) into `notebook/`: the parent guide and the
    glossary, each with its Markdown beside it.
-7. **Remove from Studio what the student must not see.** A viewer sees every Studio artifact, so the
+7. **Remove from Studio what the student must not see.** The student's accounts see every Studio artifact (measured as viewers; they are editors since 2026-11-12), so the
    parent guide (it holds the answers) and the glossary leave Studio once their PDF and Markdown are
-   in `notebook/` (`nlm studio delete <nb> <id> --profile <profile> --confirm`). Until this step a
-   viewer can see them: run it as soon as step 6 ends. Few pieces is a design hypothesis (see the
+   in `notebook/` (`nlm studio delete <nb> <id> --profile <profile> --confirm`). Until this step the
+   student can see them: run it as soon as step 6 ends. Few pieces is a design hypothesis (see the
    design page); Tema 01 ended with six to work through plus two to consult. Say so when a topic
    goes past that.
 8. **Number and order.** Every title starts with its place in the study order — `0` the study
@@ -377,6 +388,7 @@ plan (`nlm` reports the tier as `PRO_CONSUMER`).
 | Viewers are read-only and see every Studio artifact except videos: of five video overviews in one notebook, both viewer accounts saw only the oldest, in the list and by direct link; regenerating the hidden ones did not help | material for the parent leaves Studio; every video is also downloaded to the topic folder, and the start note links that folder |
 | Measured 2026-10-29 on a second notebook: the student's account saw every Studio piece and none of the three videos, not even the oldest | the guide links each video to its Drive copy (spec 002 FR-039) |
 | Measured 2026-10-31: three notebooks shared as viewer, listed by `nlm share status` as active, appeared in neither of the student's accounts until each was opened once by its link | the topic's `notebook/` holds «Abrir el cuaderno.pdf» from the share step, and the printed topic carries the link (spec 002 FR-047) |
+| Measured 2026-11-12: of 18 topic notebooks, the 3 made outside the Science Bits skill were shared with nobody; `nlm share invite … --role editor` on an account listed as viewer raises it to editor | `notebook share` is the only way a notebook is shared, and this skill runs it first (spec 001 FR-011c) |
 | Measured 2026-10-29: a «copy this verbatim» report came back verbatim two times out of five; the others were rewritten, links lost | check the guide line by line and regenerate, at most three times (FR-040) |
 | 3 videos and 3 reports took about 79 % of a 5-hour usage window and about 4 % of the weekly one (`nlm usage`) | one topic per window; videos last |
 | The tutor prompt worked as hints-before-answers, and in one sample attributed a note to the teacher | the prompt forbids attributing authorship |
@@ -399,4 +411,5 @@ Whether the chat reads notes, and what the student sees as a viewer, were not se
 - Add a problem from no class source without saying, beside its statement and its solution, that it
   is not the teacher's (spec 002 FR-049).
 - Make a second notebook for the topic, or share the parent's material with the student.
+- Leave a notebook unshared, share one as viewer, or make one public: `notebook share` shares it.
 - Type a password. The family signs in.

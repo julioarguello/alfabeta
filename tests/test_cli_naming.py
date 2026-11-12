@@ -83,7 +83,7 @@ VERBS = {
     "set": "store a value or a secret",
     "sign-in": "open a window for the family to sign in by hand; types nothing",
     "stage": "copy files to where a later step expects them",
-    "share": "let another account reach a folder; removes no access",
+    "share": "let another account reach a folder or a notebook; removes no access",
     "sync": "write the state out to an outside copy (the calendar)",
     "take": "acquire a run's lock",
     "transcribe": "turn photos into text pages",

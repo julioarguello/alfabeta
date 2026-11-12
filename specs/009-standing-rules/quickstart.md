@@ -26,6 +26,6 @@ Expected, with a rule key removed, renamed or left at `changeme`: the key is nam
 2. Run `exam build` for that subject with `--topic <folder>`.
 3. Read the result's `rules`: both are named, with a fingerprint.
 4. Read the printed sheets: each rule is applied, and none is quoted or mentioned.
-5. As a viewer of the notebook, look for the prompt on a sheet and on a quiz made with an invented rule. Until both are known, write
+5. From an account the notebook is shared with (an editor, spec 001 FR-011b), look for the prompt on a sheet and on a quiz made with an invented rule. Until both are known, write
    no rule that describes a difficulty.
 6. Record what it found with no personal data (SC-005).

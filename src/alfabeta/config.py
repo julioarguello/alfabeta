@@ -255,6 +255,11 @@ class StudentConfig:
         return _bool(self.data, "notebook.enabled")
 
     @property
+    def notebook_share_with(self) -> tuple[str, ...]:
+        """The accounts that edit every topic notebook (spec 001 FR-011b); never shown."""
+        return _strs(self.data, "notebook.share_with", allow_empty=True)
+
+    @property
     def notebook_title_pattern(self) -> str:
         """The name of each topic's notebook, with `{grade}`, `{subject}` and `{topic}`."""
         return _str(self.data, "notebook.title_pattern")

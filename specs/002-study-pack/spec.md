@@ -367,10 +367,20 @@ the final implementation.
   que es complejo leer rápidamente»). He did not want that material redone then, but the rule in the
   most basic prompts, "for everything" («esto aplica para todo»).
 
+### Session 2026-11-12
+
+- Q: The student is a viewer of the notebook; should he be able to change it? → A: Yes. The
+  operator, 2026-11-12: every notebook is shared with the student's two accounts as editor, always
+  (spec 001 Session 2026-11-12, FR-011b, FR-011c; julioarguello/alfabeta#233). This skill runs
+  `notebook share` for the topic before it generates anything, so a notebook nobody shared is
+  shared by the first run that touches it. The requirements that keep the parent's material out of
+  Studio (FR-009, FR-010, FR-013) stand: an editor sees at least what a viewer saw.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who launches alfabeta and helps at home, reading Spanish
-only), **the student** (a viewer of the topic's notebook) and **the teachers** (never interact).
+only), **the student** (who reaches the topic's notebook through the accounts it is shared with, as editor since 2026-11-12, spec 001
+FR-011b; a viewer before) and **the teachers** (never interact).
 
 ### User Story 1 - An announced exam gets its full pack, checked before anyone sees it (Priority: P1)
 
@@ -436,7 +446,8 @@ Gemini notebook lists none of them.
    with both values.
 2. **Given** an exercise whose statement lacks a datum, **When** the pack runs, **Then** the
    parent's guide says so instead of inventing it.
-3. **Given** the pack has finished, **When** the student opens the notebook as a viewer,
+3. **Given** the pack has finished, **When** the student opens the notebook from an account it is
+   shared with,
    **Then** neither the parent's guide nor the glossary is listed.
 
 ---
@@ -852,7 +863,9 @@ and cannot judge what the notebook writes.
 - **FR-047**: A shared notebook MUST reach the student through its link, not through the share
   alone (measured 2026-10-31: not listed for a viewer until opened once by its link). The Science
   Bits skill's notebook step (spec 001 FR-011b), on every run that finds the notebook shared with
-  an account of `notebook.share_with`, now or before, MUST leave in the topic's `notebook/` folder
+  an account of `notebook.share_with`, now or before, and since 2026-11-12 this skill's own share
+  step and the sweep after a sync on the Mac for each topic it shared (spec 001 FR-011c), MUST
+  leave in the topic's `notebook/` folder
   a one-page PDF, «Abrir el cuaderno.pdf», with the notebook's title and its link; and the printed topic MUST carry the same link under its title, on the first
   page (FR-017). The link is the one `nlm notebook get` returns; alfabeta never builds it. The
   file is written only when it is absent or does not carry that link; otherwise the folder receives no write (spec 001 FR-025). A PDF and not a shortcut file (`.url`, `.webloc`),
@@ -1130,7 +1143,11 @@ and cannot judge what the notebook writes.
 
 - The topic folder exists with its sources, filled by the textbook capture and by `classroom-sync`.
 - The notebook is owned by a parent's personal Google account on a paid plan and shared with the
-  student as viewer.
+  student's accounts as editor (spec 001 FR-011b and FR-011c, Session 2026-11-12 there; as viewer
+  before). What this spec measured about what the student sees was measured as a viewer and is
+  dated; none of it was measured again as an editor. An editor can change the notebook, and what
+  repairs a piece or a source the student deletes is not settled: a deleted living-file source is
+  not added again today (julioarguello/alfabeta#235).
 - The notebook platform has no public API; the tool that reaches it may break, in which case the
   run stops and says so.
 - The study guide, mind map and quiz are generated from the whole notebook; the platform does not

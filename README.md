@@ -46,7 +46,7 @@ into the topic folder's `sciencebits/`.
 ```
 class notes (photos) ─┐
 Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► each listed account
-Science Bits ─────────┘     {notes, classroom, sciencebits, notebook, exam}              (shared as viewer)
+Science Bits ─────────┘     {notes, classroom, sciencebits, notebook, exam}              (shared as editor)
                                               │
                                               ├──► school-year folder shared as editor with the student's other accounts
                                               └──► calendar: assignments, exams, posted material ──► each listed account
@@ -69,7 +69,7 @@ over Classroom, and Classroom over the textbook. The textbook still explains bes
 worst guide to the exam. The reasons, and the evidence behind them, are in
 [the explanation page](docs/explanation/study-material.md#three-sources-one-order-of-trust).
 
-In the design, the notebooks belong to a parent's personal Google account and are shared as viewer
+In the design, the notebooks belong to a parent's personal Google account and are shared as editor
 with every account the configuration lists (`notebook.share_with`), so the family can share them
 freely and the adult account avoids the platform's 18+ limit on cinematic video. The calendar is
 shared the same way (`calendar.shared_with`), and the student's other accounts get editor access
@@ -173,6 +173,7 @@ What a family runs, from the clone: `uv run python -m alfabeta <command>`. Every
 | `google account unlink --student <id> --account <alias>` | Revokes one account's link | to remove an account |
 | `claude set-key --student <id>` | Stores the Claude API key that transcribes the photos of class notes | once per Mac |
 | `notebook prepare --student <id> --topic <subject>/<folder>` | Adds the topic's two living files, class notes and Classroom, to its notebook | once per topic |
+| `notebook share --student <id> [--topic <subject>/<folder>] [--dry-run]` | Makes every account of `notebook.share_with` an editor of each topic's notebook; removes nobody | after making a notebook, and after each sync on the Mac |
 | `note transcribe --student <id>` | Turns the photos of class notes not yet transcribed into pages of the topic's living file | after photos are added; it also runs in the cloud |
 | `notebook refresh --student <id> [--browser]` | Reads, as the notebook's owner, each living file that changed since its last read, so the notebook takes the new pages; with nothing changed it calls no `nlm`. A signed-out owner gets one Mac notification and an agenda line; `--browser` also lets `nlm` renew the session through its own browser profile, so use it only at the Mac | every `notebook.refresh_minutes` through the agent; by hand when the agenda says the session is signed out |
 | `notebook agent install --student <id>` · `notebook agent uninstall --student <id>` | Writes the launchd agent that runs `notebook refresh` in `~/Library/LaunchAgents` and loads it, or unloads and deletes it; its passes are appended to `notebook-agent.log` in the student's data folder | once per Mac, and again after changing `notebook.refresh_minutes` |

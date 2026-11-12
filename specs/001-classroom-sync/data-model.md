@@ -66,7 +66,7 @@ Private configuration in `~/.alfabeta/<student>/config.toml` (contract:
 | `sciencebits.url` | URL | Science Bits class page |
 | `sciencebits.languages` | list | Languages each topic is captured in; the first one gives the folder's title |
 | `notebook.enabled` | boolean | Whether each topic's notebook is created |
-| `notebook.share_with` | list of email addresses | Accounts each topic notebook is shared with as viewer (FR-011b); may be empty; never goes in a URL or the log |
+| `notebook.share_with` | list of email addresses | Accounts each topic notebook is shared with as editor (FR-011b, FR-011c); may be empty; never goes in a URL or the log |
 | `subjects` | list of `Subject` | At least one |
 | `schedule.monday` … `schedule.sunday` | time `HH:MM` or empty | Time of the scheduled task on that weekday; empty = no run that day, all empty = on demand only. With `runner.enabled`, the times of the runner's job instead (FR-032) |
 | `schedule.wait_minutes` | integer ≥ 0 | Minutes a scheduled run waits for the family to sign in after notifying them on the Mac, before it stops (FR-021a); 0 = notify, then stop at once. Required, no default in code: added to `config/template.toml` and its contract copy together by T063a, so an existing configuration must add the line or `config check` reports it missing |
@@ -243,6 +243,11 @@ a placement cut short by a write error has `result: failed`, `reason: write_fail
 `shares`: `{invited, already, failed}`, counts of the accounts in `notebook.share_with` (FR-011b),
 never their addresses. `unchanged`: the notebook already existed and
 no source was added or replaced.
+`notebook share` writes one more, whether or not a run holds the lock: `type: notebook_shares`, `at`,
+`run` (null outside a run), `result` (`ok` · `failed`) and `shares`: `{notebooks, invited, raised,
+already, failed}`, the notebooks found and the counts of accounts over them (FR-011c), never an
+address or a notebook id. A run that could not start carries `result: failed` and `reason`
+(`no_nlm` · `nlm_signed_out` · `nlm_failed` · `no_notebook`) in place of `shares`. A `--dry-run` writes no line.
 
 ## Transitions
 
