@@ -174,21 +174,32 @@ def cmd_notebook_share(
     if not cfg.notebook_enabled:
         wanted = []
         print("alfabeta: [notebook] enabled is false; no notebook is shared", file=sys.stderr)
+
+    def logged(result: str, shares_counted: dict[str, int] | None = None, reason: str | None = None) -> None:
+        """The run's line (constitution VII: a share that could not even start shows in the log)."""
+        if dry_run:
+            return
+        line: dict[str, Any] = {"type": "notebook_shares", "at": dt.datetime.now(MADRID).isoformat()}
+        line |= {"run": os.environ.get(RUN_ENV), "result": result}
+        line |= {"shares": shares_counted} if shares_counted is not None else {"reason": reason}
+        StateStore(cfg.data_dir).log(line)
+
+    def stopped(reason: str, code: int, message: str) -> int:
+        logged("failed", reason=reason)
+        return _fail(reason, code, message)
+
     try:
         report = share_notebooks(shares(cfg.nlm_profile), wanted, cfg.notebook_share_with, dry_run=dry_run)
     except NlmMissingError:
-        return _fail("no_nlm", EXIT_INVALID, "nlm cannot be run: install it (`uv tool install notebooklm-mcp-cli`)")
+        return stopped("no_nlm", EXIT_INVALID, "nlm cannot be run: install it (`uv tool install notebooklm-mcp-cli`)")
     except SourcesError as err:
         if err.signed_out:
-            return _fail("nlm_signed_out", EXIT_SIGNED_OUT, "nlm is not signed in: run `nlm login --profile <profile>`")
-        return _fail("nlm_failed", EXIT_PARTIAL, "nlm failed; no notebook's sharing was read")
+            message = "nlm is not signed in: run `nlm login --profile <profile>`"
+            return stopped("nlm_signed_out", EXIT_SIGNED_OUT, message)
+        return stopped("nlm_failed", EXIT_PARTIAL, "nlm failed; no notebook's sharing was read")
     if topic is not None and cfg.notebook_enabled and cfg.notebook_share_with and not report["notebooks"]:
-        return _fail("no_notebook", EXIT_INVALID, "the topic has no notebook with its title")
-    if not dry_run:
-        line = {"type": "notebook_shares", "at": dt.datetime.now(MADRID).isoformat(), "run": os.environ.get(RUN_ENV)}
-        StateStore(cfg.data_dir).log(
-            line | {"result": "ok" if report["ok"] else "failed", "shares": share_counts(report)}
-        )
+        return stopped("no_notebook", EXIT_INVALID, "the topic has no notebook with its title")
+    logged("ok" if report["ok"] else "failed", share_counts(report))
     print(f"alfabeta: {share_summary(report)}", file=sys.stderr)
     _emit(report)
     return EXIT_OK if report["ok"] else EXIT_PARTIAL

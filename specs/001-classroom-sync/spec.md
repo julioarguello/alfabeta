@@ -275,22 +275,27 @@ for the final implementation.
   - The rule lives in one command, `notebook share`, not in a skill's prose: it walks the topic
     folders of the school year, finds each one's notebook by `notebook.title_pattern` and makes
     sure of the role. Every route that makes or fills a notebook calls it, whoever made the
-    notebook: the Science Bits skill, the study-pack skill, an agent working by hand, and the
-    attended sync on the Mac, which sweeps every topic.
+    notebook: the Science Bits skill, the study-pack skill, an agent working by hand, and every sync on the Mac, started by the family (`interactive`) or by
+    the Mac's daily task (`scheduled`), which sweeps every topic and leaves the notebook's link
+    (FR-047) in each topic it changed. Only the cloud's unattended runner does not (FR-036).
   - Measured 2026-11-12 on the family's notebooks, before the change: of 18 topic notebooks, 5
     listed both accounts as editor, 10 listed both as viewer and 3 were shared with nobody; the 3
     had been made outside the Science Bits skill, the only place that shared.
   - Measured the same day with nlm 0.15.8: `nlm share invite <id> <account> --role editor` on an
     account listed as viewer raises it to editor (`nlm share status` before: viewer; after: editor,
-    not pending). The invite asks for the notice email; whether each arrived was not checked. After
-    the correction every one of the 18 lists both accounts as editor (6 invited, 19 raised, 11
-    already editors, none failed), and `notebook share --dry-run` reads the same.
+    not pending). The invite asks for the notice email; whether each arrived, for an invite or for a
+    raise, was not checked. After the correction every one of the 18 lists both accounts as editor:
+    of 36 accounts over the notebooks, 6 were invited, 20 raised (one of them by the measurement
+    above) and 10 were already editors, none failed; `notebook share --dry-run` then read 18
+    notebooks, 36 already editors.
   - Not measured: what an editor can read or do that a viewer cannot. Google's help says owners
     and editors generate and viewers consume (`docs/explanation/study-material.md`), so an editor
-    may add, regenerate or delete what a run made; a later run finds what is missing, since every
-    step is idempotent (constitution V). Whether an editor reads the prompt a Studio piece was made
-    with is spec 009's check (SC-005), written for a viewer: until it is done as an editor, a
-    standing rule in a prompt is treated as readable by the student.
+    may add, regenerate or delete what a run made. An accepted, open risk: read in the code on
+    2026-11-12, a living-file source (spec 005) deleted from the notebook is **not** added again —
+    `notebook prepare` checks only the Drive file and `notebook refresh` fails on the recorded
+    source at every pass (julioarguello/alfabeta#235). Whether an editor reads the prompt a Studio
+    piece was made with is spec 009's check (SC-005): until it is done as an editor, a standing
+    rule in a prompt is treated as readable by the student.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -712,7 +717,7 @@ test.
   it), and each topic notebook, whoever
   made it, with each account in `notebook.share_with`, as **editor** (Session 2026-11-12). From spec 005
   (julioarguello/alfabeta#44) on, each topic's two living files are shared, as reader, with the
-  account in `notebook.owner`, and with no other. An account already shared with is
+  account in `notebook.owner`, and with no other. An account that already holds its role is
   not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
   count, never by address.
   A shared notebook also leaves its link in the topic's `notebook/` folder, since an invited
@@ -726,9 +731,12 @@ test.
   and MUST NOT guess between two notebooks with one title. A topic with no notebook is passed over.
   An account or a notebook that fails MUST NOT stop the rest: it is reported by topic and by the
   account's position in the list, never by address (FR-031), and the run is one `notebook_shares`
-  line in the log with counts. It MUST run whenever a notebook is created or filled, by a skill or
-  by an agent working by hand, and for every topic after each attended sync on the Mac; the
-  unattended runner does not run it (FR-036).
+  line in the log with counts. An editor whose invite is still pending counts as an editor. A run that cannot
+  start (no `nlm`, not signed in) is a `failed` line in the log too. It MUST run whenever a
+  notebook is created or filled, by a skill or by an agent working by hand, and for every topic
+  after each sync on the Mac, whether its run mode is `interactive` or `scheduled`; a topic the
+  sweep changed gets its link page (spec 002 FR-047) in the same run. Only the cloud's unattended
+  runner does not run it (FR-036).
 - **FR-012**: Inside the root, the structure MUST be common to every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/<source>/`,
   with `classroom` and `sciencebits` as this epic's sources. alfabeta writes nothing at a topic

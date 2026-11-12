@@ -173,8 +173,7 @@ nothing, and the collector would then go on copying the next unit's zips.
    would get one name), and `write_failed`, which records what it copied, so running it again completes it.
 9. **Gemini Notebook.** If `notebook.enabled` is false: `alfabeta log write-notebook --student <student> --topic "Tema NN -
    <title>" --result disabled`, and go on. Otherwise, with `caffeinate -i` on what takes long, and never printing an
-   address (`nlm share status` lists them: filter its output, e.g. with `sed -E
-   's/[[:alnum:]._+-]+@[[:alnum:].-]+/<address>/g'`):
+   address (the share step's command prints none; never run `nlm share status` yourself, which lists them):
    - `nlm login --check`; if it fails, `nlm login --storage protected` in the background (a separate Chrome with no
      profile: this is expected). Ask the user to sign in, confirm the two-step verification and **not close the window**;
      `alfabeta lock renew` while you wait.

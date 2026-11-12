@@ -128,17 +128,25 @@ class NlmSources:
 
     def notebooks(self) -> list[tuple[str, str]]:
         """The id and the title of every notebook of the profile, as `nlm notebook list` gives them."""
-        listed = cast("list[dict[str, Any]]", self._json("notebook", "list", stdin=""))
-        return [(str(nb.get("id", "")), str(nb.get("title", ""))) for nb in listed]
+        listed: object = self._json("notebook", "list", stdin="")
+        if not isinstance(listed, list):  # an answer that is not the list read in nlm's source
+            raise SourcesError(signed_out=False)
+        rows = [cast("dict[str, Any]", nb) for nb in cast("list[object]", listed) if isinstance(nb, dict)]
+        return [(str(nb.get("id", "")), str(nb.get("title", ""))) for nb in rows]
 
     def collaborators(self, notebook: str) -> dict[str, str]:
         """The role of each address `nlm share status` lists; never printed or logged (FR-031).
 
-        Its shape, read on 2026-11-12 (nlm 0.15.8): `{is_public, collaborators: [{email, role, is_pending}]}`.
+        Its shape, read on 2026-11-12 (nlm 0.15.8): `{is_public, access_level, public_link, collaborators:
+        [{email, role, is_pending, display_name}]}`; only the address and the role are read, so a
+        pending editor is an editor.
         """
-        status = cast("dict[str, Any]", self._json("share", "status", notebook, stdin=""))
-        listed = cast("list[dict[str, Any]]", status.get("collaborators") or [])
-        return {str(c.get("email", "")): str(c.get("role", "")) for c in listed}
+        status: object = self._json("share", "status", notebook, stdin="")
+        listed: object = cast("dict[str, Any]", status).get("collaborators") if isinstance(status, dict) else None
+        if not isinstance(listed, list):
+            raise SourcesError(signed_out=False)
+        rows = [cast("dict[str, Any]", c) for c in cast("list[object]", listed) if isinstance(c, dict)]
+        return {str(c.get("email", "")): str(c.get("role", "")) for c in rows}
 
     def invite_editor(self, notebook: str, address: str) -> None:
         """`nlm share invite --role editor`, which also raises a viewer (measured 2026-11-12); it takes no `--json`."""

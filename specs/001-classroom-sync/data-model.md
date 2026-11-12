@@ -246,7 +246,8 @@ no source was added or replaced.
 `notebook share` writes one more, whether or not a run holds the lock: `type: notebook_shares`, `at`,
 `run` (null outside a run), `result` (`ok` · `failed`) and `shares`: `{notebooks, invited, raised,
 already, failed}`, the notebooks found and the counts of accounts over them (FR-011c), never an
-address or a notebook id. A `--dry-run` writes no line.
+address or a notebook id. A run that could not start carries `result: failed` and `reason`
+(`no_nlm` · `nlm_signed_out` · `nlm_failed` · `no_notebook`) in place of `shares`. A `--dry-run` writes no line.
 
 ## Transitions
 

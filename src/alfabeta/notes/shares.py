@@ -8,7 +8,9 @@ when the notebook lists the account as editor afterwards. An account is named by
 list, never by its address (FR-031).
 
 Measured 2026-11-12 with nlm 0.15.8: `nlm share invite <id> <account> --role editor` on an account
-listed as viewer raises it to editor (`nlm share status` before and after); the invite mails a notice.
+listed as viewer raises it to editor (`nlm share status` before and after). The invite asks Google
+for its notice mail (read in nlm's source); whether one arrives, for an invite or for a raise, was
+not checked. An editor whose invite is still pending counts as an editor: the role is what is read.
 """
 
 from __future__ import annotations
@@ -113,12 +115,12 @@ def _share_one(port: NotebookShares, notebook: str, accounts: Sequence[str], *, 
     outcome: dict[str, Any] = {"invited": 0, "raised": 0, "already": 0, "failed": []}
     failures: list[dict[str, Any]] = []
     try:
-        before = port.collaborators(notebook)
+        before = _by_address(port.collaborators(notebook))
     except SourcesError:
         return outcome | {"failed": everyone}
     asked: dict[int, str] = {}  # the account's position → what the invite is for it
     for index, address in enumerate(accounts):
-        role = before.get(address)
+        role = before.get(_key(address))
         if role in EDITING:
             outcome["already"] += 1
             continue
@@ -135,11 +137,12 @@ def _share_one(port: NotebookShares, notebook: str, accounts: Sequence[str], *, 
     if not asked:
         return outcome | {"failed": failures}
     try:
-        after = port.collaborators(notebook)
-    except SourcesError:
-        after = {}
+        after = _by_address(port.collaborators(notebook))
+    except SourcesError:  # invited, and nothing says whether it took: the next run reads it again
+        failures += [{"index": index, "reason": "status_failed"} for index in asked]
+        return outcome | {"failed": sorted(failures, key=_position)}
     for index, kind in asked.items():
-        if after.get(accounts[index]) in EDITING:
+        if after.get(_key(accounts[index])) in EDITING:
             outcome[kind] += 1
         else:
             failures.append({"index": index, "reason": "not_confirmed"})
@@ -150,8 +153,17 @@ def _position(failure: dict[str, Any]) -> int:
     return int(failure["index"])
 
 
+def _key(address: str) -> str:
+    """An address as it is compared: the notebook may list it in another case than the configuration."""
+    return address.strip().casefold()
+
+
+def _by_address(roles: dict[str, str]) -> dict[str, str]:
+    return {_key(address): role for address, role in roles.items()}
+
+
 def counts(report: dict[str, Any]) -> dict[str, int]:
-    """The counts a log line carries: notebooks, and accounts invited, raised, already editors and failed."""
+    """The counts a log line carries: notebooks found, and accounts invited, raised, already editors and failed."""
     return {key: report[key] for key in ("notebooks", "invited", "raised", "already")} | {
         "failed": len(report["failed"])
     }
@@ -162,6 +174,6 @@ def summary(report: dict[str, Any]) -> str:
     c = counts(report)
     lead = "simulación, nada cambiado: " if report["dry_run"] else ""
     return (
-        f"{lead}{c['notebooks']} cuaderno(s) compartidos como editor: cuentas invitadas {c['invited']}, "
+        f"{lead}cuadernos compartidos como editor: {c['notebooks']} revisado(s), cuentas invitadas {c['invited']}, "
         f"subidas a editor {c['raised']}, ya editoras {c['already']}, fallidas {c['failed']}"
     )

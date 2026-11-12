@@ -15,7 +15,7 @@ import pytest
 
 from alfabeta import __main__, config
 from alfabeta.notes import cli, shares
-from alfabeta.notes.sources import NlmSources, SourcesError
+from alfabeta.notes.sources import NlmMissingError, NlmSources, SourcesError
 from tests.conftest import CONFIG
 
 ONE, TWO, OWNER = "familia@example.org", "alumna@colegio.example.com", "madre@example.com"
@@ -119,7 +119,9 @@ def test_a_dry_run_counts_and_invites_nobody():
     report = shares.share_notebooks(port, wanted((TOPIC, TITLE)), [ONE, TWO], dry_run=True)
     assert (report["dry_run"], report["invited"], report["raised"], report["changed"]) == (True, 1, 1, [TOPIC])
     assert port.invites == []
-    assert shares.summary(report).startswith("simulación, nada cambiado: 1 cuaderno(s)")
+    assert shares.summary(report).startswith(
+        "simulación, nada cambiado: cuadernos compartidos como editor: 1 revisado(s)"
+    )
 
 
 def test_a_refused_account_is_counted_by_position_and_the_rest_go_on():
@@ -150,6 +152,24 @@ def test_a_notebook_whose_sharing_cannot_be_read_fails_every_account_and_the_nex
         {"topic": TOPIC, "index": 1, "reason": "status_failed"},
     ]
     assert report["changed"] == [OTHER]
+
+
+def test_an_address_listed_in_another_case_is_the_same_account():
+    port = FakeShares(listed=[("nb-1", TITLE)], roles={"nb-1": {"Familia@Example.ORG": "editor"}})
+    report = shares.share_notebooks(port, wanted((TOPIC, TITLE)), [ONE])
+    assert (report["already"], report["failed"], port.invites) == (1, [], [])
+
+
+def test_an_invite_nobody_could_read_back_is_not_counted():
+    class ReadsOnce(FakeShares):
+        def collaborators(self, notebook: str) -> dict[str, str]:
+            if self.invites:
+                raise SourcesError(signed_out=False)
+            return super().collaborators(notebook)
+
+    report = shares.share_notebooks(ReadsOnce(listed=[("nb-1", TITLE)]), wanted((TOPIC, TITLE)), [ONE, TWO])
+    assert (report["invited"], report["changed"]) == (0, [])
+    assert [f["reason"] for f in report["failed"]] == ["status_failed", "status_failed"]
 
 
 def test_two_notebooks_with_one_title_are_never_guessed_between():
@@ -213,6 +233,15 @@ def test_the_adapter_reads_roles_by_address_and_invites_as_editor_with_the_profi
     assert not any("public" in argv for argv in calls)
 
 
+@pytest.mark.parametrize("answer", ["", "{}", '{"collaborators": null}', "[]"])
+def test_the_adapter_fails_on_an_answer_that_is_not_the_shape_it_reads(answer: str):
+    nlm = NlmSources("prueba", nlm_runner({"share status": (0, answer), "notebook list": (0, "{}")}, []))
+    with pytest.raises(SourcesError):
+        nlm.collaborators("nb-1")
+    with pytest.raises(SourcesError):
+        nlm.notebooks()
+
+
 def test_the_adapter_reports_a_failed_invite():
     nlm = NlmSources("prueba", nlm_runner({"share invite": (1, "")}, []))
     with pytest.raises(SourcesError):
@@ -257,7 +286,7 @@ def test_the_command_shares_every_topics_notebook_and_logs_counts_only(
     code, printed, err = run(cfg, port, capsys)
     assert code == 0
     assert (printed["notebooks"], printed["invited"], printed["raised"], printed["failed"]) == (2, 3, 1, [])
-    assert "2 cuaderno(s) compartidos como editor: cuentas invitadas 3, subidas a editor 1" in err
+    assert "cuadernos compartidos como editor: 2 revisado(s), cuentas invitadas 3, subidas a editor 1" in err
     (line,) = log_lines(cfg)
     assert (line["type"], line["result"]) == ("notebook_shares", "ok")
     assert line["shares"] == {"notebooks": 2, "invited": 3, "raised": 1, "already": 0, "failed": 0}
@@ -301,6 +330,40 @@ def test_with_notebooks_disabled_nothing_is_asked_or_shared(tmp_path: Path, caps
     code, printed, err = run(off, FakeShares(listed=[("nb-1", TITLE)]), capsys)
     assert (code, printed["notebooks"]) == (0, 0)
     assert "enabled is false" in err
+
+
+@pytest.mark.parametrize(
+    ("error", "code", "reason"),
+    [(NlmMissingError(), 1, "no_nlm"), (SourcesError(signed_out=False), 3, "nlm_failed")],
+)
+def test_a_run_that_could_not_start_is_refused_and_logged(
+    cfg: config.StudentConfig, capsys: pytest.CaptureFixture[str], error: Exception, code: int, reason: str
+):
+    class Broken(FakeShares):
+        def notebooks(self) -> list[tuple[str, str]]:
+            raise error
+
+    assert run(cfg, Broken(), capsys)[:2] == (code, {"ok": False, "reason": reason})
+    (line,) = log_lines(cfg)
+    assert (line["type"], line["result"], line["reason"]) == ("notebook_shares", "failed", reason)
+    assert run(cfg, Broken(), capsys, dry_run=True)[0] == code
+    assert len(log_lines(cfg)) == 1  # a dry run writes no line, even when it fails
+
+
+def test_main_reads_only_the_tables_the_command_needs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    student(tmp_path, tmp_path / "base", share_with=())  # no [google], [drive] or [notes] table is needed
+    seen: list[tuple[str | None, bool]] = []
+
+    def fake(share_cfg: config.StudentConfig, topic: str | None, *, dry_run: bool = False) -> int:
+        seen.append((topic, dry_run))
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_notebook_share", fake)
+    argv = ["--home", str(tmp_path), "notebook", "share", "--student", "s9", "--dry-run"]
+    assert __main__.main(argv) == 0
+    assert seen == [(None, True)]
 
 
 def test_the_parser_carries_the_command_with_its_student(tmp_path: Path):

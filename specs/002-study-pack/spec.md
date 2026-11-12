@@ -446,7 +446,8 @@ Gemini notebook lists none of them.
    with both values.
 2. **Given** an exercise whose statement lacks a datum, **When** the pack runs, **Then** the
    parent's guide says so instead of inventing it.
-3. **Given** the pack has finished, **When** the student opens the notebook as a viewer,
+3. **Given** the pack has finished, **When** the student opens the notebook from an account it is
+   shared with,
    **Then** neither the parent's guide nor the glossary is listed.
 
 ---
@@ -1142,8 +1143,9 @@ and cannot judge what the notebook writes.
 - The notebook is owned by a parent's personal Google account on a paid plan and shared with the
   student's accounts as editor (spec 001 FR-011b and FR-011c, Session 2026-11-12 there; as viewer
   before). What this spec measured about what the student sees was measured as a viewer and is
-  dated; none of it was measured again as an editor. An editor can change the notebook: a piece or
-  a source the student deletes is found missing and made again by the next run of this skill.
+  dated; none of it was measured again as an editor. An editor can change the notebook, and what
+  repairs a piece or a source the student deletes is not settled: a deleted living-file source is
+  not added again today (julioarguello/alfabeta#235).
 - The notebook platform has no public API; the tool that reaches it may break, in which case the
   run stops and says so.
 - The study guide, mind map and quiz are generated from the whole notebook; the platform does not
