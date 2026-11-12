@@ -25,8 +25,8 @@ Result per topic:
   of contents (lessons and sections), bookmarks, one screenshot per screen (and per button that changes the content)
   and the selectable text below it. The `.md` carries the same structured text (lesson → section → screen).
 - Nothing copied to other accounts: those in `drive.share_with` see the files in the shared school-year folder.
-- If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, each once, shared as viewer with
-  every account in `notebook.share_with`, and its link in the topic folder's `notebook/«Abrir el cuaderno.pdf»`
+- If `notebook.enabled`: a Gemini Notebook notebook with those files as sources, each once, shared as editor with
+  every account in `notebook.share_with` (spec 001 FR-011b), and its link in the topic folder's `notebook/«Abrir el cuaderno.pdf»`
   (spec 002 FR-047).
 - A line in the student's run log for the placement and another for the notebook step, whatever its result.
 
@@ -192,11 +192,14 @@ nothing, and the collector would then go on copying the next unit's zips.
      2026-11-05: `source add --file` registers the source under the file's own name, so repeating the step adds
      nothing. Read in nlm 0.15.8's source on 2026-10-28, not yet measured against a notebook: `source delete
      --confirm` skips its prompt.
-   - **Share.** `nlm share status <id> --json`; for each account in `notebook.share_with` not yet listed:
-     `nlm share invite <id> <account> --role viewer`. Never `nlm share public`. A failed invite does not undo the
-     notebook: note it and report it. Measured 2026-10-26: the school domain allows a notebook owned by a personal
-     Gmail account to be shared with the school account as viewer, and it opens there; if the school's admin
-     changes that, the invite fails and the summary says so.
+   - **Share.** `alfabeta notebook share --student <student> --topic "<subject>/<topic folder>"`, with the topic
+     folder's full name (date included): it makes every account in `notebook.share_with` an **editor** of the
+     notebook, inviting a missing one and raising a viewer, and never removes anybody (spec 001 FR-011c). Never
+     invite by hand with `nlm share invite`, and never `nlm share public`. Its JSON carries `invited`, `raised`,
+     `already` and `failed` (one entry per account that failed, by position). A failed account does not undo the
+     notebook: note it and report it, by count. Measured 2026-10-26: the school domain allows a notebook owned by a
+     personal Gmail account to be shared with the school account, and it opens there; if the school's admin changes
+     that, the account fails as `refused` and the summary says so.
    - **Link.** A shared notebook is not listed for the student until opened once by its link (measured
      2026-10-31; spec 002 FR-047), so leave the link where the student looks: `uv run --project
      <tools.repository> python <tools.repository>/skills/study-pack/scripts/print_pack.py link <id>
@@ -209,8 +212,8 @@ nothing, and the collector would then go on copying the next unit's zips.
    - Test: `nlm notebook query <id> "<short question>"`.
    - `alfabeta log write-notebook --student <student> --topic "Tema NN - <title>" --result created|unchanged --shares
      <invited>,<already>,<failed>`: `unchanged` when the notebook already existed and no source was added or
-     replaced, `created` otherwise; the three counts are over `notebook.share_with` (invited now, already listed,
-     failed).
+     replaced, `created` otherwise; the three counts are over `notebook.share_with`, from the share step's JSON: `invited` plus
+     `raised`, `already`, and the length of `failed`.
    - If `nlm` fails: `uv tool upgrade notebooklm-mcp-cli` once; if it still fails, `alfabeta log write-notebook … --result
      failed --reason "<what failed, in a few words, with no id or address>" --shares <invited>,<already>,<failed>`
      with the counts reached so far, and tell the family the topic is in its folder but the notebook step failed.

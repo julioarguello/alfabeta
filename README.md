@@ -46,7 +46,7 @@ into the topic folder's `sciencebits/`.
 ```
 class notes (photos) ─┐
 Google Classroom ─────┼──► <school year>/<subject>/YYYYMMDD - Tema NN - <title>/ ──► one notebook per topic ──► each listed account
-Science Bits ─────────┘     {notes, classroom, sciencebits, notebook, exam}              (shared as viewer)
+Science Bits ─────────┘     {notes, classroom, sciencebits, notebook, exam}              (shared as editor)
                                               │
                                               ├──► school-year folder shared as editor with the student's other accounts
                                               └──► calendar: assignments, exams, posted material ──► each listed account
@@ -69,7 +69,7 @@ over Classroom, and Classroom over the textbook. The textbook still explains bes
 worst guide to the exam. The reasons, and the evidence behind them, are in
 [the explanation page](docs/explanation/study-material.md#three-sources-one-order-of-trust).
 
-In the design, the notebooks belong to a parent's personal Google account and are shared as viewer
+In the design, the notebooks belong to a parent's personal Google account and are shared as editor
 with every account the configuration lists (`notebook.share_with`), so the family can share them
 freely and the adult account avoids the platform's 18+ limit on cinematic video. The calendar is
 shared the same way (`calendar.shared_with`), and the student's other accounts get editor access

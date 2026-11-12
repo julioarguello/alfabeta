@@ -74,6 +74,8 @@ TABLES = {
 }
 # `notebook agent` reads only the clone it runs and the refresh interval (spec 005 T046).
 AGENT_TABLES = ("tools", "notebook")
+# `notebook share` reads the topic folders on this Mac and the notebooks; no Google link (spec 001 FR-011b).
+SHARE_TABLES = ("student", "storage", "notebook")
 
 
 def _cmd_config_check(home: Path, student: str) -> int:
@@ -887,6 +889,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     notebook_setup = notebook.add_parser("prepare", help="the topic's two living files, added as sources")
     notebook_setup.add_argument("--topic", required=True, help="<subject>/<topic folder>")
+    notebook_share = notebook.add_parser(
+        "share", help="let each account of notebook.share_with edit every topic's notebook; removes nothing"
+    )
+    notebook_share.add_argument("--topic", help="<subject>/<topic folder>: only that topic's notebook")
+    notebook_share.add_argument("--dry-run", action="store_true", help="read and count; invite nobody")
     notebook_refresh = notebook.add_parser("refresh", help="the owner reads each changed living file's source")
     notebook_refresh.add_argument(
         "--browser",
@@ -967,6 +974,7 @@ def build_parser() -> argparse.ArgumentParser:
         collect,
         notes_run,
         notebook_setup,
+        notebook_share,
         notebook_refresh,
         agent_install,
         agent_remove,
@@ -1031,6 +1039,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.group == "notebook" and args.verb == "agent":
             agent_cfg = config.load(home, args.student, AGENT_TABLES)
             return notes_cli.cmd_notebook_agent(agent_cfg, home, args.action)
+        if args.group == "notebook" and args.verb == "share":
+            share_cfg = config.load(home, args.student, SHARE_TABLES)
+            return notes_cli.cmd_notebook_share(share_cfg, args.topic, dry_run=args.dry_run)
         cfg = config.load(home, args.student, TABLES[args.group])
         if args.group == "note":
             return notes_cli.cmd_notes_run(cfg, store)

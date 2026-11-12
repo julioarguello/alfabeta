@@ -153,7 +153,12 @@ Below, `alfabeta <command>` stands for that line.
     `drive.share_with` can edit the school-year folder (FR-011a): the summary says «carpeta del curso
     compartida con N cuenta(s), fallidas: M», and a failed share stops nothing; `alfabeta drive
     share` alone repairs one (a `refused` account's domain takes no outside shares: tell the family,
-    never retry in a loop). Nothing is copied to another account's Drive. Every
+    never retry in a loop). Nothing is copied to another account's Drive. After the last apply of an
+    attended run on the Mac, `alfabeta notebook share --student <student>` once: it makes every
+    account of `notebook.share_with` an editor of every topic's notebook, whoever made the notebook
+    (spec 001 FR-011c), and its line goes in the summary as it prints it («N cuaderno(s) compartidos
+    como editor: …»). A failed account or a signed-out `nlm` (exit 5) stops nothing: say it and go
+    on. An unattended run does not run it. Every
     apply also rewrites the school year's `agenda.md` and `agenda.json` if they changed; after a
     correction alone, `alfabeta agenda build`, inside a run (`lock take`), does the same without
     applying. Then `alfabeta lock release`.

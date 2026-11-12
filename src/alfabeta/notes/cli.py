@@ -1,5 +1,7 @@
 """`note transcribe`, `notebook prepare|refresh|agent` and `claude set-key` (spec 005 contracts/cli.md).
 
+`notebook share` is spec 001's (contracts/cli.md, FR-011b): it is here because it speaks to `nlm`.
+
 JSON on stdout, one line for people on stderr; no output names an address, a key, a Drive id, a
 source id, a checksum or a path. Exit codes: 0 ok · 1 usage or validation (`no_nlm` too) · 2 a Google
 link is not usable · 3 partial failure · 5 `nlm` not signed in; the highest wins. A spent budget is not
@@ -10,6 +12,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import sys
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
@@ -26,9 +29,13 @@ from alfabeta.notes.pdf import ReportlabPdfBuilder
 from alfabeta.notes.refresh import LocalRefreshStore, RefreshDeps, refresh_sources
 from alfabeta.notes.run import NotesDeps, run_notes
 from alfabeta.notes.setup import Setting, SetupError, setup_topic
+from alfabeta.notes.shares import counts as share_counts
+from alfabeta.notes.shares import share_notebooks, topics
+from alfabeta.notes.shares import summary as share_summary
 from alfabeta.notes.sources import NlmMissingError, NlmSources, SourcesError, run_bounded
 from alfabeta.notes.state import ConcurrentWriteError, DriveNotesStateStore, retry_once
 from alfabeta.notes.transcribe import TIMEOUT_SECONDS, ClaudeTranscriber, claude_key_name
+from alfabeta.state import RUN_ENV, StateStore
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -37,6 +44,7 @@ if TYPE_CHECKING:
     from alfabeta.config import StudentConfig
     from alfabeta.google.keychain import TokenStore
     from alfabeta.notes.agent import LaunchdAgent
+    from alfabeta.notes.shares import NotebookShares
 
 EXIT_OK, EXIT_INVALID, EXIT_LINK, EXIT_PARTIAL, EXIT_SIGNED_OUT = 0, 1, 2, 3, 5
 MADRID = ZoneInfo("Europe/Madrid")
@@ -143,6 +151,47 @@ def cmd_notebook_setup(
         return _fail("drive_failed", EXIT_PARTIAL, "Drive refused or did not answer; run setup again")
     _emit(out)
     return EXIT_OK
+
+
+def _bounded_nlm(profile: str) -> NotebookShares:
+    return NlmSources(profile, run_bounded)
+
+
+def cmd_notebook_share(
+    cfg: StudentConfig,
+    topic: str | None,
+    *,
+    dry_run: bool = False,
+    shares: Callable[[str], NotebookShares] = _bounded_nlm,
+) -> int:
+    """`notebook share [--topic <subject>/<folder>] [--dry-run]`: the accounts of `notebook.share_with` edit each one."""
+    year = cfg.base / cfg.school_year
+    wanted = topics(year, cfg.notebook_title_pattern, cfg.grade_level)
+    if topic is not None:
+        wanted = [t for t in wanted if t.topic == topic]
+        if not wanted:
+            return _fail("no_topic", EXIT_INVALID, "no topic folder has that name")
+    if not cfg.notebook_enabled:
+        wanted = []
+        print("alfabeta: [notebook] enabled is false; no notebook is shared", file=sys.stderr)
+    try:
+        report = share_notebooks(shares(cfg.nlm_profile), wanted, cfg.notebook_share_with, dry_run=dry_run)
+    except NlmMissingError:
+        return _fail("no_nlm", EXIT_INVALID, "nlm cannot be run: install it (`uv tool install notebooklm-mcp-cli`)")
+    except SourcesError as err:
+        if err.signed_out:
+            return _fail("nlm_signed_out", EXIT_SIGNED_OUT, "nlm is not signed in: run `nlm login --profile <profile>`")
+        return _fail("nlm_failed", EXIT_PARTIAL, "nlm failed; no notebook's sharing was read")
+    if topic is not None and cfg.notebook_enabled and cfg.notebook_share_with and not report["notebooks"]:
+        return _fail("no_notebook", EXIT_INVALID, "the topic has no notebook with its title")
+    if not dry_run:
+        line = {"type": "notebook_shares", "at": dt.datetime.now(MADRID).isoformat(), "run": os.environ.get(RUN_ENV)}
+        StateStore(cfg.data_dir).log(
+            line | {"result": "ok" if report["ok"] else "failed", "shares": share_counts(report)}
+        )
+    print(f"alfabeta: {share_summary(report)}", file=sys.stderr)
+    _emit(report)
+    return EXIT_OK if report["ok"] else EXIT_PARTIAL
 
 
 def refresh_deps(cfg: StudentConfig, store: TokenStore) -> RefreshDeps:

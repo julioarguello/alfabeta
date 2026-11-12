@@ -287,8 +287,8 @@ Facts the design starts from (detail in [research.md](research.md#observed-facts
   epic 3. In the `nlm` step the skill lists the notebook's sources, adds only the missing ones and replaces
   the source of a file `book place` placed again because it changed (constitution V: repeating a topic
   does not duplicate sources, and a change reaches the notebook). It then shares the notebook as
-  viewer with each account in `[notebook] share_with` that `nlm share status` does not already list
-  (`nlm share invite <id> <account> --role viewer`; FR-011b). Measured 2026-10-26: the school domain
+  editor with each account in `[notebook] share_with` through `notebook share --topic` (FR-011b,
+  FR-011c; until 2026-11-12 the skill invited each account as viewer itself). Measured 2026-10-26: the school domain
   allows a notebook owned by a personal Gmail account to be shared with the school account as
   viewer, and it opens there. After that step, the skill calls
   `log write-notebook` with its result and the sharing counts (`created`, `unchanged`, `failed` with a reason, or `disabled`): a

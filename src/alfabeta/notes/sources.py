@@ -126,6 +126,27 @@ class NlmSources:
             raise SourcesError(signed_out=False)
         return str(found[0]["id"]) if found else None
 
+    def notebooks(self) -> list[tuple[str, str]]:
+        """The id and the title of every notebook of the profile, as `nlm notebook list` gives them."""
+        listed = cast("list[dict[str, Any]]", self._json("notebook", "list", stdin=""))
+        return [(str(nb.get("id", "")), str(nb.get("title", ""))) for nb in listed]
+
+    def collaborators(self, notebook: str) -> dict[str, str]:
+        """The role of each address `nlm share status` lists; never printed or logged (FR-031).
+
+        Its shape, read on 2026-11-12 (nlm 0.15.8): `{is_public, collaborators: [{email, role, is_pending}]}`.
+        """
+        status = cast("dict[str, Any]", self._json("share", "status", notebook, stdin=""))
+        listed = cast("list[dict[str, Any]]", status.get("collaborators") or [])
+        return {str(c.get("email", "")): str(c.get("role", "")) for c in listed}
+
+    def invite_editor(self, notebook: str, address: str) -> None:
+        """`nlm share invite --role editor`, which also raises a viewer (measured 2026-11-12); it takes no `--json`."""
+        argv = ["nlm", "share", "invite", notebook, address, "--role", "editor", "--profile", self._profile]
+        done = self._call(argv, "")
+        if done.returncode != 0:
+            raise SourcesError(signed_out="nlm login" in done.stdout + done.stderr)
+
     def add_drive_source(self, notebook: str, file_id: str, title: str) -> str:
         """`--wait`: the source is processed before the id is recorded."""
         args = ("source", "add", notebook, "--drive", file_id, "--type", "pdf", "--title", title, "--wait")

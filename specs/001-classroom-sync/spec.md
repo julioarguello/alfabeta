@@ -92,6 +92,7 @@ replaces the local MCP design of julioarguello/alfabeta#2.
     permission to see all event details.
   - Notebooks: each topic notebook is shared as viewer with every account in
     `notebook.share_with`.
+    *Superseded on 2026-11-12 (Session 2026-11-12 below): as editor, and by a command.*
   - Measured 2026-10-26: the school domain allows a notebook owned by a personal Gmail account to be
     shared with the school account as viewer, and it opens there; a calendar shared from a personal
     account can be added in the school account and shows its events. Both depend on the school's
@@ -260,6 +261,36 @@ for the final implementation.
   - The mirror copy in the school account was moved to Drive's trash on 2026-11-09, after the
     shared folder was seen there; a content check found no file that only the copy held beyond
     what was kept apart on 2026-11-08.
+
+### Session 2026-11-12
+
+- Q: Each topic notebook is shared as viewer (Session 2026-10-26), by a step of the Science Bits
+  skill. Is that the role, and is that where the rule lives? → A: No to both. The operator,
+  2026-11-12: «cada vez que hagamos un notebook se ha de compartir con las dos cuentas del alumno
+  (personal + colegio) y ponerle como editor. Configúralo para que se haga siempre, tanto con el
+  automatismo como cuando lo hagas tú manualmente» (julioarguello/alfabeta#233).
+  - Every topic notebook is shared **as editor** with every account in `notebook.share_with`. A
+    missing account is invited, a lower role is raised, nothing is removed and no notebook is made
+    public.
+  - The rule lives in one command, `notebook share`, not in a skill's prose: it walks the topic
+    folders of the school year, finds each one's notebook by `notebook.title_pattern` and makes
+    sure of the role. Every route that makes or fills a notebook calls it, whoever made the
+    notebook: the Science Bits skill, the study-pack skill, an agent working by hand, and the
+    attended sync on the Mac, which sweeps every topic.
+  - Measured 2026-11-12 on the family's notebooks, before the change: of 18 topic notebooks, 5
+    listed both accounts as editor, 10 listed both as viewer and 3 were shared with nobody; the 3
+    had been made outside the Science Bits skill, the only place that shared.
+  - Measured the same day with nlm 0.15.8: `nlm share invite <id> <account> --role editor` on an
+    account listed as viewer raises it to editor (`nlm share status` before: viewer; after: editor,
+    not pending). The invite asks for the notice email; whether each arrived was not checked. After
+    the correction every one of the 18 lists both accounts as editor (6 invited, 19 raised, 11
+    already editors, none failed), and `notebook share --dry-run` reads the same.
+  - Not measured: what an editor can read or do that a viewer cannot. Google's help says owners
+    and editors generate and viewers consume (`docs/explanation/study-material.md`), so an editor
+    may add, regenerate or delete what a run made; a later run finds what is missing, since every
+    step is idempotent (constitution V). Whether an editor reads the prompt a Studio piece was made
+    with is spec 009's check (SC-005), written for a viewer: until it is done as an editor, a
+    standing rule in a prompt is treated as readable by the student.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -678,14 +709,26 @@ test.
 - **FR-011b**: Every output alfabeta shares MUST be shared with every account its list names, and
   with no other: the student's calendar with each account in `calendar.shared_with`, with
   permission to see all event details (the operator shares it by hand; spec 003 research R13 checks
-  it), and each topic notebook a skill
-  creates with each account in `notebook.share_with`, as viewer. From spec 005
+  it), and each topic notebook, whoever
+  made it, with each account in `notebook.share_with`, as **editor** (Session 2026-11-12). From spec 005
   (julioarguello/alfabeta#44) on, each topic's two living files are shared, as reader, with the
   account in `notebook.owner`, and with no other. An account already shared with is
   not invited again. A failed share MUST NOT undo the output; it is reported in the summary by
   count, never by address.
-  A shared notebook also leaves its link in the topic's `notebook/` folder, since a viewer does
-  not see it listed until opening it once (spec 002 FR-047).
+  A shared notebook also leaves its link in the topic's `notebook/` folder, since an invited
+  account does not see it listed until opening it once (spec 002 FR-047, measured for a viewer).
+- **FR-011c**: The notebooks' share MUST be one command, `notebook share`, and no skill or agent
+  shares a notebook any other way. It walks the topic folders of the school year on the Mac, names
+  each one's notebook with `notebook.title_pattern` and reads who the notebook lists: an account of
+  `notebook.share_with` that is missing is invited as editor, one with a lower role is raised, one
+  that already edits gets no request (FR-025). A share counts only when the notebook lists the
+  account as editor afterwards. It MUST NOT remove a collaborator, MUST NOT make a notebook public
+  and MUST NOT guess between two notebooks with one title. A topic with no notebook is passed over.
+  An account or a notebook that fails MUST NOT stop the rest: it is reported by topic and by the
+  account's position in the list, never by address (FR-031), and the run is one `notebook_shares`
+  line in the log with counts. It MUST run whenever a notebook is created or filled, by a skill or
+  by an agent working by hand, and for every topic after each attended sync on the Mac; the
+  unattended runner does not run it (FR-036).
 - **FR-012**: Inside the root, the structure MUST be common to every source:
   `<school-year>/<subject>/<YYYYMMDD> - <Tema NN[X] - title | teacher's title | No topic>/<source>/`,
   with `classroom` and `sciencebits` as this epic's sources. alfabeta writes nothing at a topic

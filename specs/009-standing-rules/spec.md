@@ -244,7 +244,8 @@ that nothing of it reached the repository, and that a later run uses it.
   configured rule in the repository, line by line. It MAY go to the services the family uses for the study material: the notebook
   owner's account and Claude (constitution III). The notebook keeps the prompt with the piece, so the accounts the notebook is
   shared with may be able to read it: the template warns of this, and no rule describing a difficulty is written until the first
-  real run has checked what a viewer sees, on a report and on a quiz (SC-005).
+  real run has checked what an account the notebook is shared with sees, on a report and on a quiz (SC-005). Those accounts are
+  editors since 2026-11-12 (spec 001 FR-011b, julioarguello/alfabeta#233), so the check is made as an editor.
 - **FR-010**: Rules too long for a prompt MUST stop `exam build` before anything is asked of the notebook, saying which sheet
   and by how much. The skill applies the same limit, and tells the family instead of cutting.
 
@@ -282,8 +283,8 @@ that nothing of it reached the repository, and that a later run uses it.
 - **SC-003**: The template's examples are invented, and in a fixture no word of a rule reaches any run's output, record or log.
 - **SC-004**: A family that has stated a rule does not need to repeat it: over two runs of a subject, the second needs no
   instruction from the chat to carry it.
-- **SC-005**: On the first real run with rules, reading the printed sheets shows each rule applied and none quoted, and a viewer
-  account's view of the notebook is checked for the prompt, on a sheet and on a quiz made with an invented rule. Until that run the added text is unmeasured, like the prompts around
+- **SC-005**: On the first real run with rules, reading the printed sheets shows each rule applied and none quoted, and the view of the notebook from
+  an account it is shared with (an editor, spec 001 FR-011b) is checked for the prompt, on a sheet and on a quiz made with an invented rule. Until that run the added text is unmeasured, like the prompts around
   it, and what it found is recorded with no personal data.
 
 ## Assumptions
