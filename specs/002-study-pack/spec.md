@@ -1146,8 +1146,10 @@ and cannot judge what the notebook writes.
   student's accounts as editor (spec 001 FR-011b and FR-011c, Session 2026-11-12 there; as viewer
   before). What this spec measured about what the student sees was measured as a viewer and is
   dated; none of it was measured again as an editor. An editor can change the notebook, and what
-  repairs a piece or a source the student deletes is not settled: a deleted living-file source is
-  not added again today (julioarguello/alfabeta#235).
+  repairs a piece or a source the student deletes is settled only for the two living files:
+  `notebook prepare` adds a deleted living-file source again and `notebook refresh` tells the
+  family it is gone (spec 005 FR-009a and FR-018a, julioarguello/alfabeta#235). For the textbook's
+  sources, this spec's own sources and a Studio piece, nothing is decided or measured.
 - The notebook platform has no public API; the tool that reaches it may break, in which case the
   run stops and says so.
 - The study guide, mind map and quiz are generated from the whole notebook; the platform does not

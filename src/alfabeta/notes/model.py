@@ -556,6 +556,8 @@ class RefreshRecord:
     sources: Mapping[str, SourceRead] = field(default_factory=lambda: dict[str, SourceRead]())
     session: Session | None = None  # None until a pass has checked it
     session_since: dt.datetime | None = None  # when `session` took its value
+    # Sources their notebook no longer holds, each with its living file's title for the family (FR-018a).
+    gone: Mapping[str, str] = field(default_factory=lambda: dict[str, str]())
 
     def due(self, source_id: str, built_md5: str) -> bool:
         """Whether a pass reads the source: a new build, or a first read awaiting its confirmation."""
@@ -568,6 +570,11 @@ class RefreshRecord:
         confirming = read is not None and read.read_md5 == built_md5 and read.reads == FIRST_READ
         reads = CONFIRMED if confirming else FIRST_READ
         return replace(self, sources={**self.sources, source_id: SourceRead(built_md5, reads, at)})
+
+    def with_gone(self, gone: Mapping[str, str]) -> tuple[RefreshRecord, tuple[str, ...]]:
+        """The record with the sources a pass found gone, and the titles of those it did not know (FR-018a)."""
+        new = tuple(title for source, title in gone.items() if source not in self.gone)
+        return (self if dict(self.gone) == dict(gone) else replace(self, gone=dict(gone))), new
 
     def with_session(self, session: Session, at: dt.datetime) -> tuple[RefreshRecord, bool]:
         """The record with the session measured now, and whether that turned it (FR-019's notice)."""

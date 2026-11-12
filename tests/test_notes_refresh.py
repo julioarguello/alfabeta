@@ -21,6 +21,8 @@ from alfabeta.notes import cli
 from alfabeta.notes.model import RefreshRecord, Session, SourceRead
 from alfabeta.notes.refresh import (
     AGENDA_LINE,
+    GONE_AGENDA_LINE,
+    GONE_NOTICE,
     NOTICE,
     RECORD,
     LocalRefreshStore,
@@ -81,7 +83,7 @@ def test_an_idle_pass_makes_no_nlm_call_writes_no_record_and_lists_no_folder(tmp
     assert len(t.calls) == 5 and not t.responses  # the root, two look-ups by name, state.json's revision and bytes
     assert not [url for _, url, _, _ in t.calls if "in+parents" in url and "name+%3D" not in url]  # no listing
     assert (store.path.read_bytes(), store.path.stat().st_mtime_ns) == before
-    assert out == {"ok": True, "read": 0, "unchanged": 2, "missing": 0, "renewed": False, "session": "ok"}
+    assert out == {"ok": True, "read": 0, "unchanged": 2, "missing": 0, "gone": 0, "renewed": False, "session": "ok"}
     assert notifier.texts == []
 
 
@@ -98,7 +100,7 @@ def test_a_changed_living_file_is_read_then_confirmed_then_left(tmp_path: Path):
     deps, owner, _ = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")))
     first = refresh_sources(deps)
     assert owner.calls == ["check", "read src-1"]  # a source with no entry counts as changed
-    assert first == {"ok": True, "read": 1, "unchanged": 0, "missing": 0, "renewed": False, "session": "ok"}
+    assert first == {"ok": True, "read": 1, "unchanged": 0, "missing": 0, "gone": 0, "renewed": False, "session": "ok"}
     assert record(tmp_path)["sources"]["src-1"] == {"read_md5": MD5_A, "reads": 1, "read_at": NOW.isoformat()}
 
     owner.calls.clear()
@@ -148,6 +150,7 @@ def test_a_living_file_never_built_or_never_set_up_is_not_read(tmp_path: Path):
         "read": 0,
         "unchanged": 0,
         "missing": 0,
+        "gone": 0,
         "renewed": False,
         "session": None,
     }
@@ -161,6 +164,101 @@ def test_a_read_that_fails_is_not_recorded_and_the_pass_is_not_ok(tmp_path: Path
     assert owner.calls == ["check", "read src-1", "read src-2"]  # one failure does not stop the other
     assert (out["ok"], out["read"], out["session"]) == (False, 1, "ok")
     assert set(record(tmp_path)["sources"]) == {"src-2"}
+    assert out["gone"] == 0 and "gone" not in record(tmp_path)  # a failure is not a deletion
+    assert deps.notifier.texts == []  # type: ignore[attr-defined]
+
+
+# --- a source deleted from its notebook (FR-018a, julioarguello/alfabeta#235) -------------------
+
+GONE = SourcesError(signed_out=False, not_found=True)  # what `nlm` answers, measured 2026-11-12
+GONE_TITLE = "Apuntes · 20260910 - Tema 00 - Materia inventada"  # `living_state`'s first topic
+
+
+def test_a_source_gone_from_its_notebook_is_counted_told_once_and_asked_for_again(tmp_path: Path):
+    state = living_state(("notes", "src-1", MD5_A, "ok"), ("classroom", "src-2", MD5_B, "ok"))
+    deps, owner, notifier = world(tmp_path, state, FakeOwner(failing={"src-1": GONE}))
+    out = refresh_sources(deps)
+    assert owner.calls == ["check", "read src-1", "read src-2"]  # the other source is still read
+    assert (out["ok"], out["read"], out["gone"], out["session"]) == (False, 1, 1, "ok")
+    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]
+    saved = record(tmp_path)
+    assert saved["gone"] == {"src-1": GONE_TITLE} and set(saved["sources"]) == {"src-2"}
+    assert agenda_notices(tmp_path / "data") == (GONE_AGENDA_LINE.format(title=GONE_TITLE),)
+
+    path = tmp_path / "data" / RECORD
+    owner.failing["src-2"] = SourcesError(signed_out=False)  # so the second pass has nothing new to record
+    before = (path.read_bytes(), path.stat().st_mtime_ns)
+    owner.calls.clear()
+    again = refresh_sources(deps)
+    assert "read src-1" in owner.calls and again["gone"] == 1  # asked for on every pass: its record did not move
+    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]  # told once, not on every pass
+    assert (path.read_bytes(), path.stat().st_mtime_ns) == before
+
+
+def test_once_prepare_records_the_new_source_it_is_read_and_the_gone_one_forgotten(tmp_path: Path):
+    deps, owner, notifier = world(
+        tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), FakeOwner(failing={"src-1": GONE})
+    )
+    refresh_sources(deps)
+    restored = living_state(("notes", "src-9", MD5_A, "ok"))  # `notebook prepare` recorded the new source
+    deps = RefreshDeps(FakeState(restored), owner, deps.record, deps.notifier, deps.clock)
+    owner.calls.clear()
+    out = refresh_sources(deps)
+    assert owner.calls == ["check", "read src-9"]  # a source with no entry is due: the same build, read again
+    assert (out["ok"], out["read"], out["gone"]) == (True, 1, 0)
+    assert "gone" not in record(tmp_path) and agenda_notices(tmp_path / "data") == ()
+    assert len(notifier.texts) == 1  # the one notice of when it went
+
+
+def test_a_gone_source_whose_next_read_fails_otherwise_stays_gone_and_is_not_told_again(tmp_path: Path):
+    owner = FakeOwner(failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    refresh_sources(deps)
+    owner.failing["src-1"] = SourcesError(signed_out=False)  # a timeout, say: it says nothing about the source
+    assert refresh_sources(deps)["gone"] == 1 and record(tmp_path)["gone"] == {"src-1": GONE_TITLE}
+    owner.failing["src-1"] = GONE
+    refresh_sources(deps)
+    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]  # still the one notice
+
+
+def test_a_failing_session_keeps_what_is_known_gone(tmp_path: Path):
+    owner = FakeOwner([True, False], failing={"src-1": GONE})
+    deps, _, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), owner)
+    refresh_sources(deps)
+    assert refresh_sources(deps)["session"] == "signed_out"  # the pass stops before asking for anything
+    assert record(tmp_path)["gone"] == {"src-1": GONE_TITLE}
+    assert agenda_notices(tmp_path / "data") == (AGENDA_LINE, GONE_AGENDA_LINE.format(title=GONE_TITLE))
+    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE), NOTICE]
+
+
+def test_a_record_written_before_gone_existed_reads_as_none_gone(tmp_path: Path):
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / RECORD).write_text(json.dumps({"sources": {"src-1": {"read_md5": MD5_A, "reads": 2}}}))
+    store = LocalRefreshStore(tmp_path / "data")
+    assert store.load().gone == {}
+    store.save(store.load())
+    assert "gone" not in record(tmp_path)  # written only while a source is gone
+
+
+def test_the_gone_notice_and_agenda_line_speak_spanish_and_name_only_the_living_file():
+    for text in (GONE_NOTICE, GONE_AGENDA_LINE):
+        shown = text.format(title=GONE_TITLE)
+        assert "fuente" in shown and "notebook prepare" in shown and GONE_TITLE in shown and "@" not in shown
+
+
+def test_the_command_exits_3_on_a_gone_source_names_the_remedy_and_no_title(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level(logging.DEBUG)
+    state = living_state(("notes", "src-secreto-1", MD5_A, "ok"))
+    deps, _, notifier = world(tmp_path, state, FakeOwner(failing={"src-secreto-1": GONE}))
+    assert run_cli(deps) == 3
+    out, err = printed(capsys)
+    assert (out["ok"], out["gone"]) == (False, 1)
+    assert "`notebook prepare`" in err and "gone 1" in err
+    every = json.dumps(out) + err + caplog.text
+    assert "src-secreto" not in every and "Materia inventada" not in every  # the title is the family's notice only
+    assert notifier.texts == [GONE_NOTICE.format(title=GONE_TITLE)]
 
 
 # --- the owner's session (FR-019, research R14) ------------------------------------------------
@@ -178,7 +276,15 @@ def test_unattended_a_failing_session_is_renewed_once_without_a_browser_then_tol
     deps, owner, notifier = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")), FakeOwner([False]))
     out = refresh_sources(deps)
     assert owner.calls == ["check", "renew http-only", "check"]  # never the default mode, which uses a browser
-    assert out == {"ok": False, "read": 0, "unchanged": 0, "missing": 0, "renewed": True, "session": "signed_out"}
+    assert out == {
+        "ok": False,
+        "read": 0,
+        "unchanged": 0,
+        "missing": 0,
+        "gone": 0,
+        "renewed": True,
+        "session": "signed_out",
+    }
     assert notifier.texts == [NOTICE]
     saved = record(tmp_path)
     assert (saved["session"], saved["session_since"], saved["sources"]) == ("signed_out", NOW.isoformat(), {})
@@ -286,7 +392,7 @@ def test_the_command_prints_the_counts_and_exits_0(tmp_path: Path, capsys: pytes
     deps, _, _ = world(tmp_path, living_state(("notes", "src-1", MD5_A, "ok")))
     assert run_cli(deps) == 0
     out, _ = printed(capsys)
-    assert set(out) == {"ok", "read", "unchanged", "missing", "renewed", "session"}
+    assert set(out) == {"ok", "read", "unchanged", "missing", "gone", "renewed", "session"}
 
 
 def test_a_signed_out_owner_exits_5_and_names_no_source(

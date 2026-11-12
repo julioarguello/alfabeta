@@ -7,6 +7,12 @@ first build; then, for each living file not yet recorded, it builds it in the to
 the folder), adds it as a Drive source and records both ids. A recorded file that is gone is
 reported, never recreated. Old plain sources of the notes or the Classroom material are
 listed for the family to remove; nothing is removed (FR-011).
+
+A living file set up before, still in its folder, whose recorded source the notebook no longer lists
+(the student's accounts edit the notebook, so a source can be deleted there) is added again from the
+same Drive file and its new id recorded (FR-009a, julioarguello/alfabeta#235). Measured 2026-11-12:
+the notebook does not refuse a Drive file it already holds, so finding the source by its title before
+adding is what keeps it to one.
 """
 
 from __future__ import annotations
@@ -34,7 +40,7 @@ from alfabeta.notes.run import (
 
 if TYPE_CHECKING:
     from alfabeta.google.drive import DriveFile
-    from alfabeta.notes.sources import NotebookSources
+    from alfabeta.notes.sources import NotebookSources, Source
 
 LIVING_TITLES = tuple(f"{kind.prefix} ·" for kind in LivingKind)
 
@@ -120,22 +126,23 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         if not current.waiting_setup:
             assert current.file_id is not None
             found = drive.listed(current.file_id) if drive.contains(current.file_id) else None
-            there = found is not None and in_place(drive, found, folder.id, kind)
-            outcome[kind] = "unchanged" if there else "missing"
+            if found is None or not in_place(drive, found, folder.id, kind):
+                outcome[kind] = "missing"  # reported, never recreated, and no source is added for it (FR-011)
+                living[kind] = {**living_record(current), "health": "missing"}
+                continue
             # Health is this check's: a file put back where setup made it is healthy again.
-            living[kind] = living_record(current) if there else {**living_record(current), "health": "missing"}
+            if any(s.id == current.source_id for s in present):
+                outcome[kind] = "unchanged"
+            else:  # the notebook no longer lists the recorded source: the same file, again (FR-009a)
+                current = current.set_up(current.file_id, _source(sources, notebook, present, found))
+                outcome[kind] = "restored"
+            living[kind] = living_record(current)
             continue
         data, pages = _build(deps, state, folder.id, name, kind)
         section = _section(drive, folder.id, LIVING_FOLDERS[kind])
         file = _living_file(deps, folder.id, section, Topic(folder.id, name).living_file_name(kind), data, kind)
         drive.share_reader(file.id, setting.owner)
-        title = file.name.removesuffix(".pdf")
-        # A setup stopped after adding the source (nlm failed on the next one, or another writer
-        # changed state.json) runs again: the source is found, never added twice (FR-009).
-        # Measured 2026-10-27: a Drive source's `url` is empty and its title is the Drive file's name,
-        # `.pdf` included, whatever `--title` said; so the name is what finds it.
-        again = next((s for s in present if s.title in (file.name, title)), None)
-        source = again.id if again else sources.add_drive_source(notebook, file.id, title)
+        source = _source(sources, notebook, present, file)
         built, _ = current.set_up(file.id, source).built(hashlib.md5(data).hexdigest(), pages)
         living[kind] = living_record(built)
         files = cast("dict[str, dict[str, Any]]", state.setdefault("files", {}))
@@ -150,6 +157,20 @@ def setup_topic(deps: NotesDeps, drive: SetupDrive, sources: NotebookSources, se
         "classroom_source": outcome[LivingKind.CLASSROOM],
         "plain_sources_to_remove": len(plain),
     }
+
+
+def _source(sources: NotebookSources, notebook: str, present: list[Source], file: DriveFile) -> str:
+    """The id of the notebook's source of a living file: the one it already lists, else a new one.
+
+    A setup stopped after adding the source (nlm failed on the next one, or another writer changed
+    state.json) runs again: the source is found, never added twice (FR-009). Measured 2026-10-27 and
+    again 2026-11-12: a Drive source's `url` is empty and its title is the Drive file's name, `.pdf`
+    included, whatever `--title` said, and a listed source carries no Drive id; so the name is what
+    finds it.
+    """
+    title = file.name.removesuffix(".pdf")
+    again = next((s for s in present if s.title in (file.name, title)), None)
+    return again.id if again else sources.add_drive_source(notebook, file.id, title)
 
 
 def _build(deps: NotesDeps, state: dict[str, Any], topic: str, name: str, kind: LivingKind) -> tuple[bytes, int]:

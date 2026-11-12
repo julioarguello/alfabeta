@@ -114,6 +114,73 @@ def test_a_recorded_living_file_that_was_deleted_is_reported_not_recreated():
     assert not drive.named("Apuntes · Tema 01 - Materia inventada.pdf")
 
 
+NOTES_TITLE = "Apuntes · Tema 01 - Materia inventada"
+
+
+def recorded(drive: SetupDriveFake, kind: str = "notes") -> dict[str, Any]:
+    return json.loads(drive.bodies[drive.named(STATE)[0]])["topics"][TOPIC]["living"][kind]
+
+
+def test_a_source_deleted_from_the_notebook_is_added_again_once_from_the_same_file():
+    # The student's accounts edit the notebook (spec 001 FR-011b), so a source can be deleted there (#235).
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    before = recorded(drive)
+    nb.sources = [s for s in nb.sources if s.id != before["source_id"]]
+    uploads, updates, shared = list(drive.uploads), list(drive.updates), list(drive.shared)
+    out = setup(drive, nb)
+    assert out == {
+        "ok": True,
+        "notes_source": "restored",
+        "classroom_source": "unchanged",
+        "plain_sources_to_remove": 1,
+    }
+    assert nb.added[2:] == [(before["file_id"], NOTES_TITLE)]  # the same Drive file, not a new one
+    after = recorded(drive)
+    assert after == before | {"source_id": "src-3"}  # only the source changes: same file, same build
+    assert (drive.uploads, drive.shared) == (uploads, shared)  # no file is made and none is shared again
+    assert [name for name in drive.updates[len(updates) :] if name.endswith(".pdf")] == []
+    assert len(drive.named(f"{NOTES_TITLE}.pdf")) == 1
+    again = setup(drive, nb)  # a third run finds the new source listed
+    assert again["notes_source"] == "unchanged" and len(nb.added) == 3
+    assert recorded(drive) == after
+
+
+def test_a_source_put_back_but_not_recorded_is_taken_never_added_twice():
+    # A repair that added the source and then lost its save (another writer, or nlm failing on the other
+    # kind) runs again. Measured 2026-11-12: the notebook takes the same Drive file twice, so the title
+    # is what keeps it to one (FR-009).
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    gone = recorded(drive)["source_id"]
+    nb.sources = [s for s in nb.sources if s.id != gone] + [Source("puesta-otra-vez", f"{NOTES_TITLE}.pdf")]
+    out = setup(drive, nb)
+    assert (out["notes_source"], out["plain_sources_to_remove"]) == ("restored", 1)
+    assert len(nb.added) == 2  # nothing was added
+    assert recorded(drive)["source_id"] == "puesta-otra-vez"
+
+
+def test_both_sources_deleted_are_both_added_again():
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    nb.sources = [s for s in nb.sources if not s.id.startswith("src-")]
+    out = setup(drive, nb)
+    assert out["notes_source"] == out["classroom_source"] == "restored"
+    assert [t for _, t in nb.added[2:]] == [NOTES_TITLE, "Classroom · Tema 01 - Materia inventada"]
+    assert (recorded(drive)["source_id"], recorded(drive, "classroom")["source_id"]) == ("src-3", "src-4")
+
+
+def test_a_missing_living_file_gets_no_source_even_when_its_source_is_gone_too():
+    drive, nb = drive_with_photo(), FakeNotebook()
+    setup(drive, nb, [["foto-1"]])
+    before = recorded(drive)
+    nb.sources = [s for s in nb.sources if s.id != before["source_id"]]
+    del drive.files[before["file_id"]]
+    out = setup(drive, nb)
+    assert out["notes_source"] == "missing" and len(nb.added) == 2  # reported; nothing is added for it (FR-011)
+    assert recorded(drive) == before | {"health": "missing"}
+
+
 def test_a_living_file_at_the_topics_root_is_missing_until_it_is_back_in_its_folder():
     from dataclasses import replace
 

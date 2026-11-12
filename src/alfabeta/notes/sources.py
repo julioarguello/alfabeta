@@ -12,6 +12,10 @@ whose output is discarded and never logged; `login --check`, which exits 0 when 
 works and 2 when it does not (read from `nlm`'s source, 0.15.8, 2026-10-28, as `exam build` uses it); and
 `auth refresh`, `--http-only` unless a person at the Mac asked for the renewal through `nlm`'s own
 browser profile. Each gets an empty, closed standard input, so a prompt fails instead of waiting.
+
+A source or a notebook that is not there answers `{status: "error", error: "API error (code 5):
+NOT_FOUND"}` with exit 1 and no hint, the same for an id deleted a moment ago and for one that never
+existed (measured 2026-11-12 with 0.15.8 on a throwaway notebook, julioarguello/alfabeta#235).
 """
 
 from __future__ import annotations
@@ -31,14 +35,20 @@ SIGNED_OUT_CHECK = 2  # `nlm login --check` on a session that does not work
 # launchd job (which never starts a second copy) until the session ends. Not measured: a bound.
 NLM_TIMEOUT_SECONDS = 300
 TIMED_OUT = 124  # what `timeout(1)` exits with
+NOT_FOUND = "NOT_FOUND"  # in the `error` of what was asked for and is not there (measured 2026-11-12)
 
 
 class SourcesError(Exception):
-    """`nlm` failed; `signed_out` when the operator must sign in again (exit 5)."""
+    """`nlm` failed; `signed_out` when the operator must sign in again (exit 5).
 
-    def __init__(self, signed_out: bool, message: str = "") -> None:
+    `not_found` when `nlm` said that what was asked for is not there: a source someone deleted from
+    its notebook answers so (measured 2026-11-12).
+    """
+
+    def __init__(self, signed_out: bool, message: str = "", *, not_found: bool = False) -> None:
         super().__init__(message or ("nlm is not signed in" if signed_out else "nlm failed"))
         self.signed_out = signed_out
+        self.not_found = not_found
 
 
 class NlmMissingError(SourcesError):
@@ -116,7 +126,8 @@ class NlmSources:
             parsed = None
         error = cast("dict[str, Any]", parsed) if isinstance(parsed, dict) else {}
         if done.returncode != 0 or error.get("status") == "error":
-            raise SourcesError(signed_out="nlm login" in str(error.get("hint", "")) or "nlm login" in done.stderr)
+            signed_out = "nlm login" in str(error.get("hint", "")) or "nlm login" in done.stderr
+            raise SourcesError(signed_out, not_found=not signed_out and NOT_FOUND in str(error.get("error", "")))
         return cast("Any", parsed)
 
     def find_notebook(self, title: str) -> str | None:

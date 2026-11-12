@@ -6,6 +6,11 @@ the root (`ScopedDrive.open_root`, no listing), compares each living file's `bui
 the owner last read, and reads only the sources that differ or await their confirming read: with
 nothing changed it calls no `nlm` and writes nothing. It never adds, removes or renames a source (FR-011).
 
+A source someone deleted from its notebook answers the read with "not found" (measured 2026-11-12,
+julioarguello/alfabeta#235). The pass counts it as `gone`, tells the family once, on the Mac, which
+living file it was, and the Mac's sync shows an agenda line while it lasts; `notebook prepare` on that
+topic adds the file again (FR-009a, FR-018a), and its new source is read on the next pass.
+
 Unattended, a failing session is renewed once, with `nlm auth refresh --http-only`, which needs no
 browser. The renewal through `nlm`'s own browser profile runs only when a person at the Mac asks for it
 (`browser`), never from the launchd agent: no run may make a browser ask anything mid-run. A session that
@@ -13,7 +18,8 @@ still fails stops the pass: FR-019's notice goes out when the record's `session`
 the Mac's sync shows an agenda line while it stays so.
 
 The record, `notebook-refresh.json` in the student's data folder, is readable by its user alone and
-written only when it changes. It holds source ids and checksums: nothing here prints or logs it.
+written only when it changes. It holds source ids, checksums and the titles of the living files whose
+source is gone: nothing here prints or logs it, and only the family's notice and agenda show a title.
 """
 
 from __future__ import annotations
@@ -23,7 +29,7 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
-from alfabeta.notes.model import Health, LivingKind, RefreshRecord, Session, SourceRead
+from alfabeta.notes.model import Health, LivingKind, RefreshRecord, Session, SourceRead, Topic
 from alfabeta.notes.run import living_of
 from alfabeta.notes.sources import NlmMissingError, SourcesError
 from alfabeta.state import write_atomic
@@ -45,6 +51,14 @@ NOTICE = (
 AGENDA_LINE = (
     "**Aviso**: los cuadernos no reciben las páginas nuevas porque la sesión de nlm de la cuenta propietaria "
     "no funciona en el Mac; vuelve a iniciarla con «nlm login --profile <perfil>»."
+)
+# FR-018a. Each takes the living file's title, «Apuntes · <tema>» or «Classroom · <tema>»: no id, no account.
+GONE_NOTICE = (
+    "al cuaderno le falta la fuente «{title}», que alguien borró; vuelve a añadirla con «notebook prepare» en ese tema"
+)
+GONE_AGENDA_LINE = (
+    "**Aviso**: el cuaderno ya no tiene la fuente «{title}» (alguien la borró), así que no recibe sus "
+    "páginas nuevas; vuelve a añadirla con «python -m alfabeta notebook prepare» en ese tema."
 )
 
 
@@ -79,11 +93,12 @@ def record_of(data: Mapping[str, Any]) -> RefreshRecord:
         for source, read in cast("dict[str, dict[str, Any]]", data.get("sources", {})).items()
     }
     session = Session(data["session"]) if data.get("session") else None
-    return RefreshRecord(sources, session, _when(data.get("session_since")))
+    gone = {str(source): str(title) for source, title in cast("dict[str, Any]", data.get("gone", {})).items()}
+    return RefreshRecord(sources, session, _when(data.get("session_since")), gone)
 
 
 def record_json(record: RefreshRecord) -> dict[str, Any]:
-    """A record as JSON; `session` only once a pass has checked it."""
+    """A record as JSON; `session` only once a pass has checked it, `gone` only while a source is."""
     sources: dict[str, Any] = {}
     for source, read in record.sources.items():
         entry: dict[str, Any] = {"read_md5": read.read_md5, "reads": read.reads}
@@ -94,6 +109,8 @@ def record_json(record: RefreshRecord) -> dict[str, Any]:
     if record.session is not None:
         data["session"] = str(record.session)
         data["session_since"] = record.session_since.isoformat() if record.session_since else None
+    if record.gone:
+        data["gone"] = dict(record.gone)
     return data
 
 
@@ -138,6 +155,7 @@ class RefreshDeps:
 class _Built:
     source_id: str
     built_md5: str
+    title: str  # the living file's, for the family's notice when its source is gone (FR-018a)
 
 
 def _living(state: Mapping[str, Any]) -> tuple[list[_Built], int]:
@@ -154,7 +172,8 @@ def _living(state: Mapping[str, Any]) -> tuple[list[_Built], int]:
             if Health(record.get("health", Health.OK)) != Health.OK:
                 missing += 1  # not read; FR-011's report covers it
             elif living.built_md5 is not None and living.source_id not in built:
-                built[living.source_id] = _Built(living.source_id, living.built_md5)
+                title = Topic(topic, str(data.get("name", ""))).living_file_name(kind).removesuffix(".pdf")
+                built[living.source_id] = _Built(living.source_id, living.built_md5, title)
     return list(built.values()), missing
 
 
@@ -178,10 +197,13 @@ def _signed_out(deps: RefreshDeps, record: RefreshRecord, report: dict[str, Any]
 
 
 def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, Any]:
-    """One pass: `{ok, read, unchanged, missing, renewed, session}` (contracts/cli.md).
+    """One pass: `{ok, read, unchanged, missing, gone, renewed, session}` (contracts/cli.md).
 
     `session` is the last one a pass measured, None before any did: an idle pass does not check it.
     `NlmMissingError` propagates: `nlm` that cannot be run is `no_nlm`, never a signed-out owner.
+    `gone` counts the sources this pass asked for and their notebook no longer holds (FR-018a): each is
+    asked for again on every pass, since its record does not move, until `notebook prepare` records the
+    new source in its place.
     """
     living, missing = _living(deps.state.load())
     record = deps.record.load()
@@ -191,6 +213,7 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
         "read": 0,
         "unchanged": len(living) - len(due),
         "missing": missing,
+        "gone": 0,
         "renewed": False,
         "session": str(record.session) if record.session else None,
     }
@@ -202,6 +225,7 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
         return _signed_out(deps, record, report, now)
     record, _ = record.with_session(Session.OK, now)
     report["session"] = str(Session.OK)
+    gone: dict[str, str] = {}
     for built in due:
         try:
             deps.sources.read_source(built.source_id)
@@ -211,13 +235,24 @@ def refresh_sources(deps: RefreshDeps, *, browser: bool = False) -> dict[str, An
             if err.signed_out:
                 return _signed_out(deps, record, report, now)
             report["ok"] = False  # read again on the next pass: its record did not move
+            # A read that fails otherwise says nothing: a source known gone stays so, and is not told again.
+            if err.not_found or built.source_id in record.gone:
+                gone[built.source_id] = built.title
             continue
         record = record.after_read(built.source_id, built.built_md5, now)
         report["read"] += 1
+    # A gone source stays due, so this pass asked for each one the state still names: `gone` is the
+    # whole list, and a source the setup replaced drops out of it.
+    report["gone"] = len(gone)
+    record, new = record.with_gone(gone)
     deps.record.save(record)
+    for title in new:  # once per source: a pass that finds it gone again says nothing
+        deps.notifier.notify(GONE_NOTICE.format(title=title))
     return report
 
 
 def agenda_notices(data_dir: Path) -> tuple[str, ...]:
-    """FR-019's agenda line while the record says the owner's session is `signed_out`, else nothing."""
-    return (AGENDA_LINE,) if LocalRefreshStore(data_dir).load().session == Session.SIGNED_OUT else ()
+    """The agenda's lines: FR-019's while the session is `signed_out`, FR-018a's per source that is gone."""
+    record = LocalRefreshStore(data_dir).load()
+    session = (AGENDA_LINE,) if record.session == Session.SIGNED_OUT else ()
+    return session + tuple(GONE_AGENDA_LINE.format(title=title) for title in sorted(record.gone.values()))
