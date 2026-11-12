@@ -863,7 +863,9 @@ and cannot judge what the notebook writes.
 - **FR-047**: A shared notebook MUST reach the student through its link, not through the share
   alone (measured 2026-10-31: not listed for a viewer until opened once by its link). The Science
   Bits skill's notebook step (spec 001 FR-011b), on every run that finds the notebook shared with
-  an account of `notebook.share_with`, now or before, MUST leave in the topic's `notebook/` folder
+  an account of `notebook.share_with`, now or before, and since 2026-11-12 this skill's own share
+  step and the sweep after a sync on the Mac for each topic it shared (spec 001 FR-011c), MUST
+  leave in the topic's `notebook/` folder
   a one-page PDF, «Abrir el cuaderno.pdf», with the notebook's title and its link; and the printed topic MUST carry the same link under its title, on the first
   page (FR-017). The link is the one `nlm notebook get` returns; alfabeta never builds it. The
   file is written only when it is absent or does not carry that link; otherwise the folder receives no write (spec 001 FR-025). A PDF and not a shortcut file (`.url`, `.webloc`),

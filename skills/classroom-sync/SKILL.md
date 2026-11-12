@@ -158,10 +158,13 @@ Below, `alfabeta <command>` stands for that line.
     unattended runner skips it), `alfabeta notebook share --student <student>` once: it makes every
     account of `notebook.share_with` an editor of every topic's notebook, whoever made the notebook
     (spec 001 FR-011c), and its line goes in the summary as it prints it («cuadernos compartidos
-    como editor: N revisado(s), …»). For each topic in its `changed`, leave the notebook's link in
-    that topic's `notebook/` folder as the study-pack skill says («Abrir el cuaderno.pdf»,
-    `print_pack.py link`; spec 002 FR-047): an invited account does not list the notebook until it
-    opens it once by that link. A failed account or a signed-out `nlm` (exit 5) stops nothing: say
+    como editor: N revisado(s), …»). For each topic in its `changed`, and each topic in its
+    `failed` (an invite may have taken without being read back), leave the notebook's link in that
+    topic's `notebook/` folder when «Abrir el cuaderno.pdf» is not there, as the study-pack skill
+    says (`print_pack.py link <notebook id> …`; spec 002 FR-047): an invited account does not list
+    the notebook until it opens it once by that link. The command prints no id: the notebook is the
+    one whose title is `notebook.title_pattern` for that topic, in `nlm notebook list --profile
+    <notebook.nlm_profile> --json`. A failed account or a signed-out `nlm` (exit 5) stops nothing: say
     it and go on. Every
     apply also rewrites the school year's `agenda.md` and `agenda.json` if they changed; after a
     correction alone, `alfabeta agenda build`, inside a run (`lock take`), does the same without
