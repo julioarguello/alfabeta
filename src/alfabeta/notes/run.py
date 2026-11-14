@@ -585,7 +585,8 @@ def _corrections(deps: NotesDeps, work: Pass) -> None:
 
     Read from this run's listing, which `ScopedDrive.open` makes afresh, not from the feed: an edit whose
     change the cursor already passed is still found, and the next pass reads an echo. A page whose photo
-    waits to be transcribed again is left to `_photo`, which writes both files from the new photo.
+    waits to be transcribed again is left to `_photo`, which writes both files from the new photo; one
+    whose new photo could not be transcribed (`unsupported`, `unreadable`) takes no correction either.
     """
     for photo_id, page in sorted(work.pages.items()):
         md_id = cast("str | None", page.get("markdown_id"))
@@ -610,8 +611,9 @@ def _correct(deps: NotesDeps, work: Pass, topic: str, photo_id: str, md_id: str)
     the edit from the next pass, so a pass Drive stops halfway finds the edit again. The Markdown is
     written back by its id, wherever the family keeps it, and always, so `alfabeta_written` names the
     corrected text: the page's `markdown_version`, the file's record and Drive end on one version, and a
-    restore from Drive's history is the next correction. The page is automatic again: the edit is the
-    latest event.
+    restore from Drive's history is the next correction. A save the family makes between the download
+    and the write-back is written over: the window is the PDF's write. The page is automatic again: the
+    edit is the latest event.
     """
     page = work.pages[photo_id]
     edited = deps.drive.content(md_id).decode()
