@@ -363,6 +363,53 @@ def test_after_a_correction_the_next_pass_reads_an_echo():
     assert drive.updates[len(writes) :] == ["last-run.json"]
 
 
+def test_a_correction_drive_stops_halfway_is_found_again_and_done_by_the_next_pass():
+    drive = MemoryDrive.topic()
+    living, md, tr = transcribed(drive)
+    (pdf,) = drive.named("IMG_0001.jpg · transcripción.pdf")
+    edited = "texto corregido\n"
+    edit(drive, md, edited)
+    drive.refuses_updates.add(pdf)
+    assert run_notes(reading(drive, tr))["topics"][0]["failed"] == 1
+    assert state_of(drive)["pages"]["foto-1"]["markdown"] != edited  # nothing recorded
+    drive.refuses_updates.clear()
+    report = run_notes(reading(drive, tr))
+    assert report["topics"] == [{"topic": 0, **dict.fromkeys(COUNTS, 0), "corrections": 1}]
+    assert drive.bodies[pdf] == f"page:foto-1:{edited}".encode()
+    assert drive.bodies[living].decode().endswith(edited)
+
+
+def test_a_markdown_the_family_moved_is_corrected_where_it_is_and_once():
+    drive = MemoryDrive.topic()
+    _, md, tr = transcribed(drive)
+    edit(drive, md, "texto corregido sin salto final")  # the lines' rewrite adds one: a write-back
+    drive.files[md] = replace(drive.files[md], parents=(TOPIC,))
+    assert run_notes(reading(drive, tr))["topics"][0]["corrections"] == 1
+    assert drive.bodies[md].decode() == "texto corregido sin salto final\n"
+    assert len(drive.named("IMG_0001.jpg · transcripción.md")) == 1  # updated where it is, never a second
+    assert run_notes(reading(drive, tr))["topics"] == []
+
+
+def test_a_restore_from_drives_history_is_the_next_correction():
+    drive = MemoryDrive.topic()
+    _, md, tr = transcribed(drive)
+    original = drive.bodies[md].decode()
+    edit(drive, md, "texto corregido\n")
+    run_notes(reading(drive, tr))
+    edit(drive, md, original)  # Drive's history brings alfabeta's first text back
+    assert run_notes(reading(drive, tr))["topics"][0]["corrections"] == 1
+    assert state_of(drive)["pages"]["foto-1"]["markdown"] == original
+
+
+def test_a_page_whose_photo_changed_is_transcribed_again_never_corrected_first():
+    drive = MemoryDrive.topic()
+    _, md, tr = transcribed(drive)
+    edit(drive, md, "texto corregido\n")
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno, otra vez")
+    report = run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1"]]), tr), pdf=ReadingPdf()))
+    assert (tr.calls, report["topics"][0]["corrections"], report["topics"][0]["pages_added"]) == (2, 0, 1)
+
+
 def test_alfabetas_own_write_is_never_a_correction():
     drive = MemoryDrive.topic()
     _, md, tr = transcribed(drive)
