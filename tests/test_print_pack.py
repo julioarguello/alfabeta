@@ -424,4 +424,25 @@ def test_a_quiz_with_open_questions_prints_their_answers_in_the_key():
     assert "| 1 | a | Bai. |" in md
     assert "| 2 | homeostasia | Oreka. |" in md
     assert "| 3 | Gibelean. | Hala da. |" in md
-    assert md.count("______") >= 2
+    script = load_script()
+    assert md.count(script.BLANK) == 2
+
+
+def test_an_open_answer_line_prints_as_underscores_not_as_a_rule():
+    """Pandoc reads a bare run of `_` as a thematic break; the blank must reach the page as text."""
+    if shutil.which("pandoc") is None:
+        pytest.skip("pandoc is not installed")
+    html = subprocess.run(
+        ["pandoc", "-f", "markdown-fancy_lists+tex_math_dollars", "-t", "html"],
+        input=load_script().BLANK,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert "<hr" not in html
+    assert "____" in html
+
+
+def test_a_question_with_an_empty_options_list_is_an_open_question():
+    md = load_script().quiz_md({"questions": [{"question": "Azaldu.", "answerOptions": None, "bestAnswer": "Bai."}]})
+    assert "| 1 | Bai. |  |" in md
