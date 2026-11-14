@@ -148,14 +148,27 @@ def card_text(side: dict) -> str:
     return " ".join(b.get("content", "") for b in side.get("flashcardContentBlock", []))
 
 
+# The line to write an open answer on. Escaped: pandoc reads a bare run of `_` as a thematic break.
+BLANK = "- " + "\\_" * 30
+
+
 def quiz_md(data: dict) -> str:
     lines, key = [], []
     for n, q in enumerate(data["questions"], 1):
         lines += ["::: question", f"**{n}.** {q['question']}", ""]
-        for letter, opt in zip("abcdefgh", q["answerOptions"]):
+        # Studio also asks open questions (measured 2026-11-14): `fill_in_the_blank` carries its
+        # answer in `bestAnswer`, `short_answer` in `grading.modelAnswer`; neither has options.
+        options = q.get("answerOptions") or []
+        for letter, opt in zip("abcdefgh", options):
             lines.append(f"- {letter}) {opt['text']}")
             if opt.get("isCorrect"):
                 key.append(f"| {n} | {letter} | {cell(opt.get('rationale', ''))} |")
+        if not options:
+            grading = q.get("grading") or {}
+            answer = q.get("bestAnswer") or grading.get("modelAnswer") or ""
+            why = q.get("rationale") or grading.get("rationale") or ""
+            lines.append(BLANK)
+            key.append(f"| {n} | {cell(answer)} | {cell(why)} |")
         lines += [":::", ""]
     return "\n".join(lines + ["### Erantzunak", "", "| # | | |", "|---|---|---|", *key, ""])
 
@@ -311,7 +324,9 @@ def topic(args: argparse.Namespace, work: Path) -> None:
         index.append(f"| ✎ | {name} | en este documento |")
         body += ['<div class="newpage"></div>', "", f"## {name}", ""]
         if kind == "report":
-            body.append(demote(fix_rules(fix_lists(download(args.profile, "report", args.notebook, a["id"], work).read_text()))))
+            body.append(
+                demote(fix_rules(fix_lists(download(args.profile, "report", args.notebook, a["id"], work).read_text())))
+            )
         elif kind == "quiz":
             body.append(
                 quiz_md(
