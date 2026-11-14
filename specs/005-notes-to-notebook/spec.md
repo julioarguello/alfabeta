@@ -187,8 +187,9 @@ implementation.
 - Q: Writing a match changes the transcription. Does that undo the student's « (revisada)»? → A: No.
   The mark says the handwriting was read well, and that reading has not changed. Writing a match keeps
   the page's mark and its PDF's name, and the run records the version it wrote, so its write is never
-  read as the student's correction. A Markdown the family edited is not written over: the match goes
-  to the living file and the report, and its Markdown waits for T031.
+  read as the student's correction. A Markdown the family edited while a run asked Claude is not written over: the match goes
+  to the living file and the report, and the next run takes the edit as a correction (User Story 2),
+  which keeps the match and writes it into the edited Markdown.
 - Q: A statement can arrive later: the teacher posts the sheet, or another language is captured. →
   A: A problem reported as missing is searched again, once, whenever a source is new or changed, in
   that source only, unless a new page of the topic searches every source in the same call, which then

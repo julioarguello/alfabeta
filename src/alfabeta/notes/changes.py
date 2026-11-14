@@ -104,6 +104,15 @@ def own_write(item: DriveFile) -> bool:
     return item.prop(WRITTEN) == item.version
 
 
+def family_edit(item: DriveFile, recorded: str | None) -> bool:
+    """Whether a transcription Markdown alfabeta wrote now holds someone else's text (research R7, R15).
+
+    Only a Markdown that carries `alfabeta_written` is judged: without it, an edit cannot be told from a
+    write older than research R15, or from a Markdown rewritten into Tema 01's form.
+    """
+    return item.prop(WRITTEN) is not None and item.version != recorded and not own_write(item)
+
+
 def _is_living(item: DriveFile, kind: LivingKind) -> bool:
     """Whether a file directly in `notes/` or `classroom/` carries that folder's living file name."""
     stem = item.name.rsplit(".", 1)[0]

@@ -553,26 +553,53 @@ def test_the_same_exercise_said_twice_is_not_a_doubt():
     assert block_of(drive)["problems"][0]["status"] == statements.MATCHED
 
 
-def test_the_familys_edit_of_the_markdown_is_never_written_over():
-    drive = page_drive()
-    with_book(drive)
-    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
-    md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
+def family_edit(drive: MemoryDrive, md_id: str, edited: str) -> None:
+    """The family edits the Markdown in place: a new checksum, alfabeta's properties kept."""
     properties = drive.files[md_id].properties
-    edited = "Texto corregido por la familia\n"
     drive.put(md_id, drive.files[md_id].name, "text/markdown", edited.encode())
     drive.files[md_id] = DriveFile(
         md_id, drive.files[md_id].name, "text/markdown", (NOTES,), md5=drive.files[md_id].md5, properties=properties
     )
+
+
+def test_the_familys_edit_of_the_markdown_is_the_page_and_its_match_is_written_into_it():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
+    edited = "Texto corregido por la familia\n"
+    family_edit(drive, md_id, edited)
+    drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
+    later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
+    body = drive.bodies[md_id].decode()
+    assert body.startswith(edited) and "[enunciado del problema 3" in body  # the correction, then its match
+    page = state_of(drive)["pages"][PHOTO]
+    assert page["markdown"] == body and page["markdown_version"] == drive.files[md_id].version
+    assert "edited" not in block_of(drive)
+
+
+def test_an_edit_made_while_the_run_asks_claude_is_never_written_over_and_is_the_next_runs_correction():
+    drive = page_drive()
+    with_book(drive)
+    first_run(drive, listed(PROBLEM), found({"problem": "P1", "candidates": []}))
+    md_id = state_of(drive)["pages"][PHOTO]["markdown_id"]
+    drive.stale[md_id] = drive.files[md_id]  # the run's listing is older than the edit
+    edited = "Texto corregido por la familia\n"
+    family_edit(drive, md_id, edited)
     drive.put("hoja", "Tema01_EN.md", "text/markdown", b"Exercise 3. Find the force on a body of two.", parent="sb")
     later_run(drive, found({"problem": "P1", "candidates": [candidate(exercise="Exercise 3", quote=ENGLISH)]}))
     assert drive.bodies[md_id].decode() == edited
     assert "[enunciado del problema 3" in state_of(drive)["pages"][PHOTO]["markdown"]  # the living file holds it
     assert block_of(drive)["edited"] is True
     assert statements.EDITED in section_of(reports(drive)[-1])
-    # The family's edit stays visible to the feed as the correction it is.
+    # The family's edit stays visible to the feed as the correction it is, and the next run applies it.
     drive.touch(md_id)
     assert [c.file_id for c in DriveChangeFeed(drive).read("c0", known(state_of(drive))).corrections] == [md_id]
+    drive.stale.clear()
+    later_run(drive)
+    body = drive.bodies[md_id].decode()
+    assert body.startswith(edited) and "[enunciado del problema 3" in body
+    assert "edited" not in block_of(drive)
 
 
 # --- what may stop it -----------------------------------------------------------------------------------

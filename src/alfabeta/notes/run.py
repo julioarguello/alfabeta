@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta.google.drive import DriveError, OutsideFolderError
 from alfabeta.notes import statements
-from alfabeta.notes.changes import LIVING_FOLDERS, WRITTEN, Known, own_write
+from alfabeta.notes.changes import LIVING_FOLDERS, WRITTEN, Known, family_edit, own_write
 from alfabeta.notes.model import (
     OFFICE_TYPES,
     Arrival,
@@ -91,6 +91,7 @@ COUNTS = (
     "unreadable",
     "gone",
     "marks",
+    "corrections",
     "unexpected",
     "waiting_setup",
     "missing_living_files",
@@ -345,6 +346,7 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
         _gone(work, gone)
     for arrival in result.arrivals:
         _record(deps, work, arrival)
+    _corrections(deps, work)  # before any write of this pass: the listing is older than those writes
     for photo_id in _pending(work):
         try:
             _photo(deps, work, photo_id)
@@ -576,6 +578,67 @@ def _write(
     if found is not None:
         return deps.drive.update(found.id, content, mime, properties)
     return deps.drive.upload(folder, name, content, mime, properties)
+
+
+def _corrections(deps: NotesDeps, work: Pass) -> None:
+    """User Story 2: a page whose Markdown the family edited is rendered again from the edit (research R7).
+
+    Read from this run's listing, which `ScopedDrive.open` makes afresh, not from the feed: an edit whose
+    change the cursor already passed is still found, and the next pass reads an echo. A page whose photo
+    waits to be transcribed again is left to `_photo`, which writes both files from the new photo; one
+    whose new photo could not be transcribed (`unsupported`, `unreadable`) takes no correction either.
+    """
+    for photo_id, page in sorted(work.pages.items()):
+        md_id = cast("str | None", page.get("markdown_id"))
+        if not md_id or not deps.drive.contains(md_id) or not deps.drive.contains(photo_id):
+            continue  # a page whose photo is gone keeps its text: the PDF needs the photo
+        if work.files[photo_id]["state"] not in (PhotoState.TRANSCRIBED, PhotoState.IN_LIVING_FILE):
+            continue
+        if not family_edit(deps.drive.listed(md_id), page.get("markdown_version")):
+            continue
+        topic = str(work.files[photo_id]["topic"])
+        try:
+            _correct(deps, work, topic, photo_id, md_id)
+        except DriveError:
+            work.write_failed = True
+            work.count(topic, "failed")
+
+
+def _correct(deps: NotesDeps, work: Pass, topic: str, photo_id: str, md_id: str) -> None:
+    """The edited text becomes the page, with no Claude call; its statement lines are kept (FR-016d).
+
+    Nothing is recorded until both files are written, and the Markdown goes last: its write is what hides
+    the edit from the next pass, so a pass Drive stops halfway finds the edit again. The Markdown is
+    written back by its id, wherever the family keeps it, and always, so `alfabeta_written` names the
+    corrected text: the page's `markdown_version`, the file's record and Drive end on one version, and a
+    restore from Drive's history is the next correction. A save the family makes between the download
+    and the write-back is written over: the window is the PDF's write. The page is automatic again: the
+    edit is the latest event.
+    """
+    page = work.pages[photo_id]
+    edited = deps.drive.content(md_id).decode()
+    block = cast("dict[str, Any] | None", page.get("statements"))
+    markdown = statements.with_statements(edited, block["problems"], block["searched"]) if block else edited
+    corrected = page | {"markdown": markdown, "review": str(Review.AUTOMATIC)}
+    item = deps.drive.listed(photo_id)
+    image = deps.drive.content(photo_id)
+    folder, version = item.parents[0], str(page["photo_version"])
+    pdf = deps.pdf.page(page_of(photo_id, corrected), image)
+    pdf_file = _write(deps, folder, f"{item.name} · transcripción.pdf", pdf, PDF, photo_id, version, "pdf")
+    content = markdown.encode()
+    properties = {FOR: photo_id, ROLE: "markdown", VERSION: version, WRITTEN: hashlib.md5(content).hexdigest()}
+    md_file = deps.drive.update(md_id, content, MARKDOWN, properties)
+    page |= corrected | {"markdown_version": md_file.version, "pdf_id": pdf_file.id}
+    work.files.setdefault(md_id, {"kind": str(Kind.NOTES_TEXT), "topic": topic, "own": True, "for": photo_id})
+    work.files[md_id]["version"] = md_file.version
+    named = {"kind": str(Kind.NOTES_TRANSCRIPT), "topic": topic, "own": True, "for": photo_id, "name": pdf_file.name}
+    work.files.setdefault(pdf_file.id, named)["version"] = pdf_file.version
+    if block is not None:
+        block.pop("edited", None)
+        block.pop(statements.UNWRITTEN, None)  # the lines are in the Markdown now
+        block[statements.UNBUILT] = True  # until the living file holds the corrected page
+    work.dirty.add(topic)
+    work.count(topic, "corrections")
 
 
 def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
