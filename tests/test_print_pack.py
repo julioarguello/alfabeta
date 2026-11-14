@@ -392,3 +392,36 @@ def test_a_pdf_for_a_folder_not_yet_made_lists_studio_alone(tmp_path: Path, monk
     rendered = capture(script, monkeypatch)
     script.topic(script.parse(["topic", "nb-1", str(tmp_path / "nuevo" / "T.pdf"), "--profile", "familia"]), tmp_path)
     assert index_of(rendered[0]) == ["| ▶ | 1 · Vídeo | en la carpeta del tema (Drive) |"]
+
+
+def test_a_quiz_with_open_questions_prints_their_answers_in_the_key():
+    """Studio's quiz also asks fill-in and short-answer questions, with no options (2026-11-14)."""
+    md = load_script().quiz_md(
+        {
+            "questions": [
+                {
+                    "question": "Zein da giltzurruna?",
+                    "answerOptions": [
+                        {"text": "Organo bat", "isCorrect": True, "rationale": "Bai."},
+                        {"text": "Hodi bat", "isCorrect": False},
+                    ],
+                },
+                {
+                    "type": "fill_in_the_blank",
+                    "question": "___ deitzen zaio.",
+                    "bestAnswer": "homeostasia",
+                    "rationale": "Oreka.",
+                },
+                {
+                    "type": "short_answer",
+                    "question": "Azaldu.",
+                    "grading": {"modelAnswer": "Gibelean.", "rationale": "Hala da."},
+                },
+            ]
+        }
+    )
+    assert "- a) Organo bat" in md
+    assert "| 1 | a | Bai. |" in md
+    assert "| 2 | homeostasia | Oreka. |" in md
+    assert "| 3 | Gibelean. | Hala da. |" in md
+    assert md.count("______") >= 2
