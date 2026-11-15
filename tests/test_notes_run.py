@@ -631,6 +631,12 @@ def test_the_photo_a_correction_replaced_is_never_transcribed_again():
     assert (tr.calls, report["topics"]) == (3, [])
     assert sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
     assert len(drive.named("IMG_0001.jpg · transcripción.md")) == 1
+    store = DriveNotesStateStore(drive)
+    loaded = store.load()
+    loaded["files"]["foto-1"]["state"] = "failed"  # a new version of it failed in the pass the correction won
+    store.save(loaded)
+    run_notes(reading(drive, tr))
+    assert tr.calls == 3 and sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
 
 
 def test_statement_lines_owed_by_a_page_a_stopped_correction_took_wait_for_it():

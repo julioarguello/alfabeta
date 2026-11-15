@@ -463,8 +463,8 @@ def _pending(work: Pass) -> list[str]:
     """Photos to transcribe now: new, failed under the cap, or waiting for the budget since another day."""
     due: list[tuple[int, str]] = []
     for fid, r in work.files.items():
-        if r["kind"] != Kind.NOTES_PHOTO:
-            continue
+        if r["kind"] != Kind.NOTES_PHOTO or r.get("replaced_by"):
+            continue  # a photo a « (corregida)» replaced, whatever state it was left in, has no page to make
         waiting = r["state"] == PhotoState.BUDGET_WAIT and r.get("tried_on") != work.today
         if r["state"] in (PhotoState.SEEN, PhotoState.FAILED) or waiting:
             due.append((int(r.get("seq", 0)), fid))
