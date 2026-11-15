@@ -42,7 +42,10 @@ class Known:
 
 @dataclass(frozen=True)
 class Mark:
-    """The student renamed a transcription PDF (research R7)."""
+    """The student renamed a transcription PDF (research R7).
+
+    `run_notes` reads marks from its listing, not from here, since the cursor moves past them (#241).
+    """
 
     file_id: str
     name: str

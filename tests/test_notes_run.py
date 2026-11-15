@@ -303,11 +303,11 @@ def test_with_no_key_no_photo_is_downloaded():
 
 
 class ReadingPdf(CountingPdf):
-    """A `CountingPdf` whose notes file also carries each page's text, to see a correction reach it."""
+    """A `CountingPdf` whose notes file also carries each page's heading and text, to see a mark or a correction."""
 
     def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
         data, count = super().notes(topic, pages)
-        return data + b"|" + b"|".join(p.markdown.encode() for p, _ in pages), count
+        return data + b"|" + b"|".join(f"{p.heading}: {p.markdown}".encode() for p, _ in pages), count
 
 
 def reading(drive: MemoryDrive, transcriber: ScriptedTranscriber) -> NotesDeps:
@@ -349,7 +349,7 @@ def test_a_familys_edit_of_the_markdown_replaces_the_page_in_place_with_no_claud
     assert drive.bodies[pdf] == f"page:foto-1:{edited}".encode()
     assert drive.bodies[living].decode().count("|") == 1 and drive.bodies[living].decode().endswith(edited)
     (informe,) = [f for f in drive.files.values() if f.name.startswith("Informe ")]
-    assert "1 página corregida por la familia" in drive.bodies[informe.id].decode()
+    assert "1 página corregida" in drive.bodies[informe.id].decode()
 
 
 def test_after_a_correction_the_next_pass_reads_an_echo():
@@ -427,6 +427,258 @@ def test_a_markdown_older_than_alfabeta_written_is_never_taken_as_a_correction()
     )
     assert run_notes(reading(drive, tr))["topics"] == []
     assert "Tema 01" not in state_of(drive)["pages"]["foto-1"]["markdown"]
+
+
+# --- the student marks a transcription, or corrects it with a new photo (User Story 2, #241) -----------
+
+PAGE_PDF = "IMG_0001.jpg · transcripción.pdf"
+
+
+def rename(drive: MemoryDrive, fid: str, name: str) -> None:
+    """A rename from the Drive app on a phone: same id, same content, a new name."""
+    drive.files[fid] = replace(drive.files[fid], name=name)
+
+
+def informe(drive: MemoryDrive) -> str:
+    """The latest report's text."""
+    latest = max(f.name for f in drive.files.values() if f.name.startswith("Informe "))
+    (fid,) = drive.named(latest)
+    return drive.bodies[fid].decode()
+
+
+@pytest.mark.parametrize(
+    ("mark", "review", "heading", "said"),
+    [
+        (" (mal)", "wrong", "En corrección", "1 transcripción marcada como mal por el alumno: «IMG_0001.jpg»"),
+        (
+            " (revisada)",
+            "checked",
+            "Revisada por el alumno",
+            "1 transcripción marcada como revisada por el alumno: «IMG_0001.jpg»",
+        ),
+    ],
+)
+def test_a_mark_sets_the_review_and_the_heading_and_the_family_is_told_the_page(
+    mark: str, review: str, heading: str, said: str
+):
+    drive = MemoryDrive.topic()
+    living, _, tr = transcribed(drive)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, f"IMG_0001.jpg · transcripción{mark}.pdf")
+    report = run_notes(reading(drive, tr))  # the feed says nothing: its cursor is past the rename
+    assert report["topics"] == [{"topic": 0, **dict.fromkeys(COUNTS, 0), "marks": 1}]
+    assert state_of(drive)["pages"]["foto-1"]["review"] == review
+    assert f"|{heading}: " in drive.bodies[living].decode()
+    assert drive.files[pdf].name == f"IMG_0001.jpg · transcripción{mark}.pdf"  # the student's name is kept
+    text = informe(drive)
+    assert "Tema 01 - Materia inventada" in text and said in text
+    writes = list(drive.updates)
+    assert run_notes(reading(drive, tr))["topics"] == []
+    assert drive.updates[len(writes) :] == ["last-run.json"]
+
+
+def test_a_mark_taken_off_again_makes_the_page_automatic():
+    drive = MemoryDrive.topic()
+    living, _, tr = transcribed(drive)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    run_notes(reading(drive, tr))
+    rename(drive, pdf, PAGE_PDF)
+    assert run_notes(reading(drive, tr))["topics"][0]["marks"] == 1
+    assert state_of(drive)["pages"]["foto-1"]["review"] == "automatic"
+    assert "|Transcripción automática: " in drive.bodies[living].decode()
+
+
+def test_a_mark_the_living_file_could_not_take_reaches_it_on_the_next_pass():
+    drive = MemoryDrive.topic()
+    living, _, tr = transcribed(drive)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    drive.refuses_updates.add(living)
+    assert run_notes(reading(drive, tr))["ok"] is False
+    assert "En corrección" not in drive.bodies[living].decode()
+    drive.refuses_updates.clear()
+    run_notes(reading(drive, tr))  # the mark was read; the page still owes its heading to the file
+    assert "|En corrección: " in drive.bodies[living].decode()
+
+
+@pytest.mark.parametrize("same_pass", [False, True])
+def test_a_familys_edit_after_a_mark_takes_the_mark_off_the_pdf_and_the_page(same_pass: bool):
+    drive = MemoryDrive.topic()
+    living, md, tr = transcribed(drive)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    if not same_pass:
+        run_notes(reading(drive, tr))
+    edit(drive, md, "texto corregido\n")
+    report = run_notes(reading(drive, tr))
+    assert report["topics"][0]["corrections"] == 1
+    assert (drive.files[pdf].name, len(drive.named(PAGE_PDF))) == (PAGE_PDF, 1)  # the same PDF, renamed
+    assert state_of(drive)["files"][pdf]["name"] == PAGE_PDF
+    assert state_of(drive)["pages"]["foto-1"]["review"] == "automatic"
+    assert drive.bodies[living].decode().endswith("|Transcripción automática: texto corregido\n")
+    writes = list(drive.updates)
+    assert run_notes(reading(drive, tr))["topics"] == []  # alfabeta's own rename is no mark
+    assert drive.updates[len(writes) :] == ["last-run.json"]
+
+
+def test_a_mark_on_a_page_whose_photo_is_gone_waits_for_the_photo():
+    drive = MemoryDrive.topic()
+    living, _, tr = transcribed(drive)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    del drive.files["foto-1"]  # the living file is built with each page's photo, which Drive no longer has
+    report = run_notes(reading(drive, tr))
+    assert report["ok"] and report["topics"] == []
+    assert state_of(drive)["pages"]["foto-1"]["review"] == "automatic"
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")  # restored from the trash
+    assert run_notes(reading(drive, tr))["topics"][0]["marks"] == 1
+    assert "|En corrección: " in drive.bodies[living].decode()
+
+
+def test_a_photo_gone_from_drive_stops_its_topics_file_not_the_pass_and_the_mark_is_kept():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")
+    drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
+    living = set_up(drive)
+    tr = ScriptedTranscriber()
+    run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1", "foto-2"]]), tr), pdf=ReadingPdf()))
+    del drive.files["foto-2"]  # its page stays (constitution V), and the living file cannot draw it (#242)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    report = run_notes(reading(drive, tr))
+    assert (report["ok"], report["topics"][0]["marks"], report["topics"][0]["failed"]) == (False, 1, 1)
+    assert state_of(drive)["pages"]["foto-1"]["review"] == "wrong"  # saved: the next pass does not read it again
+    drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
+    assert run_notes(reading(drive, tr))["ok"]
+    assert "|En corrección: " in drive.bodies[living].decode()
+
+
+def two_pages(drive: MemoryDrive) -> tuple[str, ScriptedTranscriber]:
+    """`foto-1` and `foto-2`, one page each in a set-up topic, the first marked as wrong."""
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")
+    drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
+    living = set_up(drive)
+    tr = ScriptedTranscriber()
+    run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1", "foto-2"]]), tr), pdf=ReadingPdf()))
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    run_notes(reading(drive, tr))
+    return living, tr
+
+
+def corrected(drive: MemoryDrive, tr: ScriptedTranscriber, name: str = "IMG_0001 (corregida).jpg") -> dict[str, Any]:
+    """The student uploads the page again; the pass that sees it."""
+    drive.put("foto-3", name, "image/jpeg", b"foto uno, bien hecha")
+    return run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-3"]]), tr), pdf=ReadingPdf()))
+
+
+def test_a_corrected_photo_replaces_its_page_once_in_place_and_the_pdf_loses_its_mark():
+    drive = MemoryDrive.topic()
+    living, tr = two_pages(drive)
+    record = state_of(drive)
+    page = record["pages"]["foto-1"]
+    md, pdf = page["markdown_id"], page["pdf_id"]
+    report = corrected(drive, tr)
+    assert report["topics"] == [{"topic": 0, **dict.fromkeys(COUNTS, 0), "corrections": 1}]
+    assert tr.calls == 3  # the corrected photo is transcribed, once
+    record = state_of(drive)
+    assert sorted(record["pages"]) == ["foto-2", "foto-3"]
+    new = record["pages"]["foto-3"]
+    assert (new["order"], new["review"], new["markdown_id"], new["pdf_id"]) == (1, "automatic", md, pdf)
+    assert new["statements"]["state"] == "pending"  # its search starts again (research R15)
+    assert record["files"]["foto-1"]["replaced_by"] == "foto-3"
+    # The page's own two files are written over, never a second pair, and the PDF has its name back.
+    assert drive.bodies[md].decode() == "## Página\n\nTexto de foto uno, bien hecha\n"
+    assert drive.files[pdf].name == PAGE_PDF and record["files"][pdf]["name"] == PAGE_PDF
+    assert drive.files[pdf].prop("alfabeta_for") == drive.files[md].prop("alfabeta_for") == "foto-3"
+    assert not [f for f in drive.files.values() if f.name.startswith("IMG_0001 (corregida).jpg · ")]
+    built = drive.bodies[living].decode()
+    assert built.startswith("notes:Tema 01 - Materia inventada:foto-3/automatic,foto-2/automatic|")
+    assert "foto uno, bien hecha" in built and "Texto de foto uno\n" not in built
+    text = informe(drive)
+    assert "1 página corregida" in text and "página nueva" not in text
+    writes = list(drive.updates)
+    assert run_notes(reading(drive, tr))["topics"] == []
+    assert drive.updates[len(writes) :] == ["last-run.json"]
+
+
+def test_a_second_correction_replaces_the_corrected_page():
+    drive = MemoryDrive.topic()
+    living, tr = two_pages(drive)
+    corrected(drive, tr)
+    drive.put("foto-4", "IMG_0001 (corregida) (corregida).jpg", "image/jpeg", b"foto uno, por fin")
+    run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-4"]]), tr), pdf=ReadingPdf()))
+    record = state_of(drive)
+    assert sorted(record["pages"]) == ["foto-2", "foto-4"] and record["pages"]["foto-4"]["order"] == 1
+    assert drive.bodies[living].decode().startswith("notes:Tema 01 - Materia inventada:foto-4/automatic,foto-2/")
+
+
+def test_a_corrected_photo_of_a_page_whose_photo_was_removed_still_replaces_it():
+    drive = MemoryDrive.topic()
+    _, tr = two_pages(drive)
+    del drive.files["foto-1"]  # the student removed the wrong photo before uploading the right one
+    assert corrected(drive, tr)["topics"][0]["corrections"] == 1
+    assert sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
+
+
+def test_the_photo_a_correction_replaced_is_never_transcribed_again():
+    drive = MemoryDrive.topic()
+    _, tr = two_pages(drive)
+    corrected(drive, tr)
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno, otra version")
+    report = run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1"]]), tr), pdf=ReadingPdf()))
+    assert (tr.calls, report["topics"]) == (3, [])
+    assert sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
+    assert len(drive.named("IMG_0001.jpg · transcripción.md")) == 1
+    store = DriveNotesStateStore(drive)
+    loaded = store.load()
+    loaded["files"]["foto-1"]["state"] = "failed"  # a new version of it failed in the pass the correction won
+    store.save(loaded)
+    run_notes(reading(drive, tr))
+    assert tr.calls == 3 and sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
+
+
+def test_statement_lines_owed_by_a_page_a_stopped_correction_took_wait_for_it():
+    drive = MemoryDrive.topic()
+    _, tr = two_pages(drive)
+    drive.refuses_updates.add(state_of(drive)["pages"]["foto-1"]["pdf_id"])
+    corrected(drive, tr)  # the Markdown is the new photo's now, the PDF is not, and nothing is recorded
+    store = DriveNotesStateStore(drive)
+    loaded = store.load()
+    block = loaded["pages"]["foto-1"]["statements"]
+    block |= {"state": "settled", "unwritten": True}  # lines an earlier pass could not write
+    store.save(loaded)
+    run_notes(reading(drive, tr))  # Drive still refuses the PDF: the old page must not take the Markdown back
+    drive.refuses_updates.clear()
+    report = run_notes(reading(drive, tr))
+    assert report["topics"][0]["corrections"] == 1 and tr.calls == 3  # the transcription is recovered
+    assert len(drive.named("IMG_0001.jpg · transcripción.md")) == 1  # the old page wrote no second one
+    (md,) = drive.named("IMG_0001.jpg · transcripción.md")
+    assert drive.bodies[md].decode() == "## Página\n\nTexto de foto uno, bien hecha\n"
+
+
+def test_a_photo_named_like_no_page_plus_corregida_is_a_new_page():
+    drive = MemoryDrive.topic()
+    _, tr = two_pages(drive)
+    report = corrected(drive, tr, "IMG_0009 (corregida).jpg")
+    assert (report["topics"][0]["pages_added"], report["topics"][0]["corrections"]) == (1, 0)
+    assert state_of(drive)["pages"]["foto-3"]["order"] == 3
+
+
+def test_a_corrected_photo_drive_stops_halfway_is_finished_by_the_next_pass_with_no_second_call():
+    drive = MemoryDrive.topic()
+    living, tr = two_pages(drive)
+    pdf = state_of(drive)["pages"]["foto-1"]["pdf_id"]
+    drive.refuses_updates.add(pdf)
+    assert corrected(drive, tr)["topics"][0]["failed"] == 1
+    assert sorted(state_of(drive)["pages"]) == ["foto-1", "foto-2"]  # nothing recorded
+    drive.refuses_updates.clear()
+    report = run_notes(reading(drive, tr))
+    assert report["topics"] == [{"topic": 0, **dict.fromkeys(COUNTS, 0), "corrections": 1}]
+    assert tr.calls == 3  # the first try's transcription is recovered from its Markdown
+    assert len(drive.named(PAGE_PDF)) == 1 and len(drive.named("IMG_0001.jpg · transcripción.md")) == 1
+    assert drive.bodies[living].decode().startswith("notes:Tema 01 - Materia inventada:foto-3/automatic,")
 
 
 # --- Classroom items (spec 005 T028, T029) ---------------------------------------------------------

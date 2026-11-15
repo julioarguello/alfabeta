@@ -67,10 +67,13 @@ One per transcribed photo.
 | `source` | `claude` or `adopted` (an existing Markdown, research R2) |
 | `model`, `usage` | The model and its token counts, for the report; empty when adopted |
 | `statements` | The search for the statements of the page's solved problems (FR-016d), below. Absent on a page recorded before it was built, which is never searched on its own |
+| `unbuilt` | A mark or a correction changed the page and its living file does not hold it yet; the first build that does clears it |
 
 A correction (research R7) keeps the page's `order`: a photo named like `photo_id`'s plus
 « (corregida)» replaces `photo_id` and its transcription; a new `markdown_version` re-renders the
-page from the Markdown. Either sets `review` back to `automatic`.
+page from the Markdown. Either sets `review` back to `automatic` and writes the PDF under its name
+without the mark. The page is then keyed by the new photo, whose record says `replaces`, and the old
+photo's record says `replaced_by`; the old photo's states are no longer reported.
 
 ### `statements` (on a page's record)
 

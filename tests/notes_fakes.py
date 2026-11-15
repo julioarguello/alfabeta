@@ -120,6 +120,8 @@ class MemoryDrive:
         return item_id in self.files or item_id == self.root.id
 
     def content(self, file_id: str) -> bytes:
+        if not self.contains(file_id):
+            raise OutsideFolderError  # as ScopedDrive: a file gone from the listing is refused
         self.downloads.append(file_id)
         self._readable(file_id)
         return self.bodies[file_id]
@@ -207,13 +209,20 @@ class MemoryDrive:
         return self._store(fid, content)
 
     def update(
-        self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
+        self,
+        file_id: str,
+        content: bytes,
+        mime_type: str,
+        properties: dict[str, str] | None = None,
+        name: str | None = None,
     ) -> DriveFile:
         if self.fail_writes or file_id in self.refuses_updates:
             raise DriveError("Drive API returned 500", 500)
         current = self.files[file_id]
         if properties:
-            self.files[file_id] = replace(current, properties=tuple(sorted(properties.items())))
+            self.files[file_id] = replace(self.files[file_id], properties=tuple(sorted(properties.items())))
+        if name is not None:
+            self.files[file_id] = replace(self.files[file_id], name=name)
         self.updates.append(current.name)
         return self._store(file_id, content)
 
