@@ -215,6 +215,8 @@ own table is the subset the requirements rest on; this one is the full list.
   recorded. `review` follows the name: « (revisada)» is `checked`, « (mal)» is `wrong`, and a name
   without a mark is `automatic` again. The name is then recorded, and the report names the topic and
   the page's photo. The mark may sit before the extension or after it, as a phone types it, in any case.
+  A page whose photo is gone from Drive is not marked, since its living file could not be built again;
+  its mark is read once the photo is back.
 - **Order in a pass**: marks first, then corrections: a Markdown edit, a new version of the photo, or
   a « (corregida)» photo. So a correction seen in the same pass as a mark is taken as the later event.
   Drive's `modifiedTime` does not order a rename against an edit, because no one has measured whether a
@@ -233,7 +235,8 @@ own table is the subset the requirements rest on; this one is the full list.
   - The old photo's record says `replaced_by`. The report says nothing more of it, nor a new page for
     the corrected one: the line «página corregida» says it.
   - If Drive stops a pass halfway, the next pass takes the transcription back from the tagged Markdown
-    and makes no second call.
+    and makes no second call. The cost: until a pass finishes it, the page's Markdown already holds the
+    new photo's text while the page's record holds the old one.
   - A name that matches no page is a new page.
 - **Owed to the living file**: a mark or a correction sets the page's `unbuilt` until a build of its
   living file holds it, so a missing living file or a Drive failure does not lose the heading.

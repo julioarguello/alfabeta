@@ -662,8 +662,8 @@ def _marks(deps: NotesDeps, work: Pass) -> None:
     for photo_id, page in sorted(work.pages.items()):
         pdf_id = page.get("pdf_id")
         record = work.files.get(pdf_id) if isinstance(pdf_id, str) else None
-        if record is None or not deps.drive.contains(str(pdf_id)):
-            continue
+        if record is None or not deps.drive.contains(str(pdf_id)) or not deps.drive.contains(photo_id):
+            continue  # a page whose photo is gone cannot be built again: its mark waits, unread, for it
         name = deps.drive.listed(str(pdf_id)).name
         if name == record.get("name"):
             continue

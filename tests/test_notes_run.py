@@ -522,6 +522,17 @@ def test_a_familys_edit_after_a_mark_takes_the_mark_off_the_pdf_and_the_page(sam
     assert drive.updates[len(writes) :] == ["last-run.json"]
 
 
+def test_a_mark_on_a_page_whose_photo_is_gone_waits_for_the_photo():
+    drive = MemoryDrive.topic()
+    living, _, tr = transcribed(drive)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    del drive.files["foto-1"]  # the living file is built with each page's photo, which Drive no longer has
+    report = run_notes(reading(drive, tr))
+    assert report["ok"] and report["topics"] == []
+    assert state_of(drive)["pages"]["foto-1"]["review"] == "automatic"
+
+
 def two_pages(drive: MemoryDrive) -> tuple[str, ScriptedTranscriber]:
     """`foto-1` and `foto-2`, one page each in a set-up topic, the first marked as wrong."""
     drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")

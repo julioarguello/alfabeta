@@ -120,6 +120,8 @@ class MemoryDrive:
         return item_id in self.files or item_id == self.root.id
 
     def content(self, file_id: str) -> bytes:
+        if not self.contains(file_id):
+            raise OutsideFolderError  # as ScopedDrive: a file gone from the listing is refused
         self.downloads.append(file_id)
         self._readable(file_id)
         return self.bodies[file_id]
