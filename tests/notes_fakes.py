@@ -207,13 +207,20 @@ class MemoryDrive:
         return self._store(fid, content)
 
     def update(
-        self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
+        self,
+        file_id: str,
+        content: bytes,
+        mime_type: str,
+        properties: dict[str, str] | None = None,
+        name: str | None = None,
     ) -> DriveFile:
         if self.fail_writes or file_id in self.refuses_updates:
             raise DriveError("Drive API returned 500", 500)
         current = self.files[file_id]
         if properties:
-            self.files[file_id] = replace(current, properties=tuple(sorted(properties.items())))
+            self.files[file_id] = replace(self.files[file_id], properties=tuple(sorted(properties.items())))
+        if name is not None:
+            self.files[file_id] = replace(self.files[file_id], name=name)
         self.updates.append(current.name)
         return self._store(file_id, content)
 

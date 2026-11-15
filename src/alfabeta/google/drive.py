@@ -458,15 +458,24 @@ class ScopedDrive:
         return "raised" if own else "added"
 
     def update(
-        self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
+        self,
+        file_id: str,
+        content: bytes,
+        mime_type: str,
+        properties: dict[str, str] | None = None,
+        name: str | None = None,
     ) -> DriveFile:
-        """New content on the same Drive id, never a second file; confirmed like an upload."""
+        """New content on the same Drive id, never a second file; confirmed like an upload.
+
+        `name`, when given, renames the file in the same request, so content and name never part.
+        """
         self._inside(file_id)
         if self._tree[file_id].is_folder:
             raise DriveError("a folder has no content to update")
-        made = self._send(
-            "PATCH", f"{UPLOAD}/{file_id}", {"properties": properties} if properties else {}, content, mime_type
-        )
+        metadata: dict[str, Any] = {"properties": properties} if properties else {}
+        if name is not None:
+            metadata["name"] = name
+        made = self._send("PATCH", f"{UPLOAD}/{file_id}", metadata, content, mime_type)
         self._tree[file_id] = made
         return made
 

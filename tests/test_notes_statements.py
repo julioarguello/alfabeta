@@ -493,8 +493,8 @@ def test_writing_a_match_keeps_the_students_mark_and_its_pdfs_name():
     assert record["review"] == "checked"
     assert drive.files[pdf_id].name == "a.jpg · transcripción (revisada).pdf"
     assert b"[enunciado del problema 3" in drive.bodies[pdf_id]
-    # A mark the feed has not delivered yet is still seen: the recorded name is the one before it.
-    assert state_of(drive)["files"][pdf_id]["name"] == "a.jpg · transcripción.pdf"
+    # The pass read the mark from its listing (#241) and records the name; the lines' write renamed nothing.
+    assert state_of(drive)["files"][pdf_id]["name"] == "a.jpg · transcripción (revisada).pdf"
 
 
 def test_the_feed_reads_alfabetas_write_as_an_echo_never_as_a_correction():

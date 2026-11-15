@@ -47,10 +47,14 @@ from alfabeta.notes.model import (
     Topic,
     Usage,
     addresses,
+    corrected_base,
     is_announcement,
     is_part,
+    mark_of,
+    page_base,
     part_kind,
     posted_title,
+    unmarked,
 )
 from alfabeta.notes.pdf import RenderedPart
 from alfabeta.notes.report import answer_json, baseline, book_sources, charge, read_pdf, write_report
@@ -82,6 +86,9 @@ _LINKS = "enlaces.md"
 _FILED = frozenset({ItemState.SEEN, ItemState.IN_LIVING_FILE, ItemState.FAILED})
 _DUE = frozenset({ItemState.SEEN, ItemState.FAILED})
 _HEADING = re.compile(r"^#{1,6} ", re.MULTILINE)
+# On a page's record: its text or heading changed and the living file does not hold it yet, whatever
+# stopped the rebuild (a missing living file, Drive failing); the first pass that builds the file clears it.
+UNBUILT = "unbuilt"
 # What a report counts per topic (contracts/cli.md); a topic is an opaque index, never a name or id.
 COUNTS = (
     "pages_added",
@@ -172,9 +179,14 @@ class NotesDrive(Protocol):
         ...
 
     def update(
-        self, file_id: str, content: bytes, mime_type: str, properties: dict[str, str] | None = None
+        self,
+        file_id: str,
+        content: bytes,
+        mime_type: str,
+        properties: dict[str, str] | None = None,
+        name: str | None = None,
     ) -> DriveFile:
-        """New content on the same id, confirmed."""
+        """New content on the same id, confirmed; renamed in the same request when `name` is given."""
         ...
 
     def children(self, folder_id: str) -> list[DriveFile]:
@@ -346,7 +358,10 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
         _gone(work, gone)
     for arrival in result.arrivals:
         _record(deps, work, arrival)
-    _corrections(deps, work)  # before any write of this pass: the listing is older than those writes
+    # Before any write of this pass, since the listing is older than those writes; the marks first, so a
+    # correction seen in the same pass is the latest event (research R7).
+    _marks(deps, work)
+    _corrections(deps, work)
     for photo_id in _pending(work):
         try:
             _photo(deps, work, photo_id)
@@ -401,7 +416,8 @@ def _gone(work: Pass, file_id: str) -> None:
         return
     if record["kind"] == Kind.NOTES_PHOTO:
         record["state"] = str(PhotoState.GONE)  # its page stays (constitution V)
-        work.count(record["topic"], "gone")
+        if not record.get("replaced_by"):  # a photo a « (corregida)» replaced has no page to keep
+            work.count(record["topic"], "gone")
     elif record["kind"] == Kind.CLASSROOM_ITEM:
         _item_gone(work, file_id, record)
 
@@ -505,34 +521,47 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
                 return
             markdown, usage = done.markdown, done.usage
     image = deps.drive.content(photo_id)
+    replaced = None if photo_id in work.pages else _replaced(work, topic, photo_id, item.name)
+    old = work.pages[replaced] if replaced is not None else {}
     if photo_id in work.pages:
         order = int(work.pages[photo_id]["order"])  # a new version keeps the page's place (research R7)
+    elif replaced is not None:
+        order = int(old["order"])  # a « (corregida)» takes the place of the page it corrects
     else:
         order = max((p["order"] for f, p in work.pages.items() if work.files[f]["topic"] == topic), default=0) + 1
     page = NotesPage(
         photo_id, record["version"], markdown, order, source=source, model=deps.model if usage else None, usage=usage
     )
+    # A correction is written over the page's own files, which keep the first photo's name.
+    named = str(work.files[replaced].get("name") or item.name) if replaced is not None else item.name
     md_file = _write(
         deps,
         folder,
-        f"{item.name} · transcripción.md",
+        f"{named} · transcripción.md",
         markdown.encode(),
         MARKDOWN,
         photo_id,
         record["version"],
         "markdown",
+        into=_listed_id(deps, old.get("markdown_id")),
     )
     pdf_file = _write(
         deps,
         folder,
-        f"{item.name} · transcripción.pdf",
+        f"{named} · transcripción.pdf",
         deps.pdf.page(page, image),
         PDF,
         photo_id,
         record["version"],
         "pdf",
+        into=_listed_id(deps, old.get("pdf_id")),
+        unmark=True,
     )
     page = replace(page, pdf_id=pdf_file.id, markdown_id=md_file.id, markdown_version=md_file.version)
+    if replaced is not None:
+        del work.pages[replaced]
+        work.files[replaced]["replaced_by"] = photo_id
+        record["replaces"] = replaced
     work.pages[photo_id] = {**page_record(page), "statements": statements.new_block()}
     work.files[md_file.id] = {
         "kind": str(Kind.NOTES_TEXT),
@@ -551,7 +580,31 @@ def _photo(deps: NotesDeps, work: Pass, photo_id: str) -> None:
     }
     record |= {"state": str(photo.moved_to(PhotoState.TRANSCRIBED).state), "retries": 0}
     work.dirty.add(topic)
-    work.count(topic, "pages_added")
+    work.count(topic, "pages_added" if replaced is None else "corrections")
+
+
+def _replaced(work: Pass, topic: str, photo_id: str, photo_name: str) -> str | None:
+    """The page a photo named `<photo> (corregida).<ext>` corrects in its topic, by its photo's name (research R7).
+
+    The photo it corrects may be gone from Drive: its page stays until a correction replaces it. A page
+    already corrected is matched as well, by the first photo's name, so a second correction finds it.
+    """
+    base = corrected_base(photo_name)
+    if base is None:
+        return None
+    found = [
+        (int(page["order"]), fid)
+        for fid, page in work.pages.items()
+        if fid != photo_id
+        and work.files[fid]["topic"] == topic
+        and page_base(str(work.files[fid].get("name", ""))) == base
+    ]
+    return min(found)[1] if found else None
+
+
+def _listed_id(deps: NotesDeps, file_id: object) -> str | None:
+    """A recorded file's id while this run's listing holds it."""
+    return file_id if isinstance(file_id, str) and deps.drive.contains(file_id) else None
 
 
 def _adopted(deps: NotesDeps, work: Pass, topic: str, folder: str, photo_name: str) -> str | None:
@@ -568,16 +621,60 @@ def _adopted(deps: NotesDeps, work: Pass, topic: str, folder: str, photo_name: s
 
 
 def _write(
-    deps: NotesDeps, folder: str, name: str, content: bytes, mime: str, made_for: str, version: str, role: str
+    deps: NotesDeps,
+    folder: str,
+    name: str,
+    content: bytes,
+    mime: str,
+    made_for: str,
+    version: str,
+    role: str,
+    *,
+    into: str | None = None,
+    unmark: bool = False,
 ) -> DriveFile:
-    """Look up before create (research R4): a crashed or overlapping pass leaves one file, updated."""
-    found = deps.drive.made_for(folder, {FOR: made_for, ROLE: role})
+    """Look up before create (research R4): a crashed or overlapping pass leaves one file, updated.
+
+    `into` is a page's file that another photo made, written over and tagged with `made_for`: a
+    « (corregida)» takes the page's files. `unmark` drops the student's mark from a PDF's name in the
+    same request, because the text it shows is new (FR-008); a write that adds only statement lines
+    keeps it. The name is Drive's now, not the listing's.
+    """
+    found = deps.drive.get(into) if into is not None else deps.drive.made_for(folder, {FOR: made_for, ROLE: role})
     properties = {FOR: made_for, ROLE: role, VERSION: version}
     if role == "markdown":
         properties[WRITTEN] = hashlib.md5(content).hexdigest()
     if found is not None:
-        return deps.drive.update(found.id, content, mime, properties)
+        renamed = unmarked(found.name) if unmark else found.name
+        return deps.drive.update(found.id, content, mime, properties, name=renamed if renamed != found.name else None)
     return deps.drive.upload(folder, name, content, mime, properties)
+
+
+def _marks(deps: NotesDeps, work: Pass) -> None:
+    """FR-008: a page whose PDF the student renamed takes the review its name says, and its heading follows.
+
+    Read from this run's listing, as the corrections are: the feed's cursor may already have passed the
+    rename, so `FeedResult.marks` is not what is read. The event is a name that is not the recorded one:
+    alfabeta records each name it writes, so its own rename is no mark, and a name the student takes the
+    mark off again makes the page automatic again. The page owes its living file the new heading until a
+    build holds it.
+    """
+    for photo_id, page in sorted(work.pages.items()):
+        pdf_id = page.get("pdf_id")
+        record = work.files.get(pdf_id) if isinstance(pdf_id, str) else None
+        if record is None or not deps.drive.contains(str(pdf_id)):
+            continue
+        name = deps.drive.listed(str(pdf_id)).name
+        if name == record.get("name"):
+            continue
+        record["name"] = name
+        review = mark_of(name)
+        if review == Review(page.get("review", Review.AUTOMATIC)):
+            continue
+        topic = str(work.files[photo_id]["topic"])
+        page |= {"review": str(review), UNBUILT: True}
+        work.dirty.add(topic)
+        work.count(topic, "marks")
 
 
 def _corrections(deps: NotesDeps, work: Pass) -> None:
@@ -612,8 +709,8 @@ def _correct(deps: NotesDeps, work: Pass, topic: str, photo_id: str, md_id: str)
     written back by its id, wherever the family keeps it, and always, so `alfabeta_written` names the
     corrected text: the page's `markdown_version`, the file's record and Drive end on one version, and a
     restore from Drive's history is the next correction. A save the family makes between the download
-    and the write-back is written over: the window is the PDF's write. The page is automatic again: the
-    edit is the latest event.
+    and the write-back is written over: the window is the PDF's write. The page is automatic again and
+    its PDF loses the student's mark: the edit is the latest event (research R7).
     """
     page = work.pages[photo_id]
     edited = deps.drive.content(md_id).decode()
@@ -624,15 +721,16 @@ def _correct(deps: NotesDeps, work: Pass, topic: str, photo_id: str, md_id: str)
     image = deps.drive.content(photo_id)
     folder, version = item.parents[0], str(page["photo_version"])
     pdf = deps.pdf.page(page_of(photo_id, corrected), image)
-    pdf_file = _write(deps, folder, f"{item.name} · transcripción.pdf", pdf, PDF, photo_id, version, "pdf")
+    pdf_file = _write(deps, folder, f"{item.name} · transcripción.pdf", pdf, PDF, photo_id, version, "pdf", unmark=True)
     content = markdown.encode()
     properties = {FOR: photo_id, ROLE: "markdown", VERSION: version, WRITTEN: hashlib.md5(content).hexdigest()}
     md_file = deps.drive.update(md_id, content, MARKDOWN, properties)
-    page |= corrected | {"markdown_version": md_file.version, "pdf_id": pdf_file.id}
+    page |= corrected | {"markdown_version": md_file.version, "pdf_id": pdf_file.id, UNBUILT: True}
     work.files.setdefault(md_id, {"kind": str(Kind.NOTES_TEXT), "topic": topic, "own": True, "for": photo_id})
     work.files[md_id]["version"] = md_file.version
-    named = {"kind": str(Kind.NOTES_TRANSCRIPT), "topic": topic, "own": True, "for": photo_id, "name": pdf_file.name}
-    work.files.setdefault(pdf_file.id, named)["version"] = pdf_file.version
+    named = {"kind": str(Kind.NOTES_TRANSCRIPT), "topic": topic, "own": True, "for": photo_id}
+    # The name without the mark is recorded, so the next pass does not read alfabeta's rename as a mark.
+    work.files.setdefault(pdf_file.id, named).update(version=pdf_file.version, name=pdf_file.name)
     if block is not None:
         block.pop("edited", None)
         block.pop(statements.UNWRITTEN, None)  # the lines are in the Markdown now
@@ -663,6 +761,7 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
     # So do the statement lines of a page: a page's own write and the file's are not one step.
     waiting = any(
         work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED
+        or work.pages[p.photo_id].get(UNBUILT)
         or work.pages[p.photo_id].get("statements", {}).get(statements.UNBUILT)
         for p in pages
     )
@@ -675,6 +774,7 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
     if upload:
         deps.drive.update(living.file_id, data, PDF)
     for p in pages:
+        work.pages[p.photo_id].pop(UNBUILT, None)
         work.pages[p.photo_id].get("statements", {}).pop(statements.UNBUILT, None)
         if work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED:
             work.files[p.photo_id]["state"] = str(PhotoState.IN_LIVING_FILE)

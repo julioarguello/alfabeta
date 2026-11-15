@@ -36,6 +36,11 @@ _ANNOUNCEMENT = re.compile(r"^\d{8} - aviso - ")
 _POSTED = re.compile(r"^(\d{8}) - (.+)$")
 # A link of `enlaces.md`, `[title](address)` (spec 001 FR-017).
 _LINK = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
+# The student's mark on a transcription PDF, before the extension or, typed on a phone, after it (FR-008).
+_MARKED = re.compile(r"(?P<head>.*?)\s*\((?P<mark>revisada|mal)\)\s*(?P<ext>\.pdf)?\s*", re.IGNORECASE | re.DOTALL)
+# A photo of a page taken again, « (corregida)» before the extension, or after it on a phone (research R7).
+_CORRECTED = re.compile(r"\s*\(corregida\)", re.IGNORECASE)
+_EXTENSION = re.compile(r"\.[A-Za-z0-9]{1,5}$")
 
 PDF_TYPE = "application/pdf"
 DOC = "application/vnd.google-apps.document"
@@ -165,6 +170,30 @@ class Review(StrEnum):
     AUTOMATIC = "automatic"
     CHECKED = "checked"
     WRONG = "wrong"
+
+
+def mark_of(pdf_name: str) -> Review:
+    """What a transcription PDF's name says: « (revisada)», « (mal)», or no mark (FR-008)."""
+    marked = _MARKED.fullmatch(pdf_name)
+    if marked is None:
+        return Review.AUTOMATIC
+    return Review.CHECKED if marked.group("mark").casefold() == "revisada" else Review.WRONG
+
+
+def unmarked(pdf_name: str) -> str:
+    """The transcription PDF's name without the student's mark, as alfabeta writes it after a correction."""
+    marked = _MARKED.fullmatch(pdf_name)
+    return pdf_name if marked is None else marked.group("head") + (marked.group("ext") or "")
+
+
+def corrected_base(photo_name: str) -> str | None:
+    """The page a photo named `<photo> (corregida).<ext>` corrects, as `page_base` names it; None for any other."""
+    return page_base(photo_name) if _CORRECTED.search(photo_name) else None
+
+
+def page_base(photo_name: str) -> str:
+    """A photo's name without its extension and any « (corregida)»: what a correction is matched by."""
+    return _EXTENSION.sub("", _CORRECTED.sub("", photo_name).strip()).strip()
 
 
 class PageSource(StrEnum):

@@ -209,6 +209,34 @@ own table is the subset the requirements rest on; this one is the full list.
   transcription in place, or an edit of the page's Markdown in Drive (its checksum changes), which
   re-renders the page from the edited text without calling Claude. After a correction alfabeta
   writes the new PDF under the name without a mark; the latest event wins.
+- **Reading them** (julioarguello/alfabeta#239, #241): the pass reads the marks and the Markdown edits
+  from the run's listing, which is made afresh every run, not from the feed, because the cursor moves
+  past a rename or an edit and would never deliver it again. A mark is a PDF name that is not the one
+  recorded. `review` follows the name: « (revisada)» is `checked`, « (mal)» is `wrong`, and a name
+  without a mark is `automatic` again. The name is then recorded, and the report names the topic and
+  the page's photo. The mark may sit before the extension or after it, as a phone types it, in any case.
+- **Order in a pass**: marks first, then corrections: a Markdown edit, a new version of the photo, or
+  a « (corregida)» photo. So a correction seen in the same pass as a mark is taken as the later event.
+  Drive's `modifiedTime` does not order a rename against an edit, because no one has measured whether a
+  rename moves it.
+- **The PDF's name**: every write of a page's text renames its PDF to the name without the mark, in the
+  same request as the content, and records that name, so the next pass does not read alfabeta's rename
+  as a mark. A write of a new version of the photo, a « (corregida)» or a family edit is such a write.
+  A write that only adds statement lines keeps the name (R15).
+- **« (corregida)»**: a photo whose name carries « (corregida)», before or after the extension,
+  corrects the page of its topic whose photo has the same name once the extension and any
+  « (corregida)» are taken off. The first such page in order wins, and the photo it corrects may be
+  gone from Drive.
+  - The transcription is paid once. It is written over the page's own Markdown and PDF, which keep the
+    first photo's name and are tagged with the new photo, and the PDF loses its mark.
+  - The page moves to the new photo, keeps its `order` and starts its statement search again (R15).
+  - The old photo's record says `replaced_by`. The report says nothing more of it, nor a new page for
+    the corrected one: the line «página corregida» says it.
+  - If Drive stops a pass halfway, the next pass takes the transcription back from the tagged Markdown
+    and makes no second call.
+  - A name that matches no page is a new page.
+- **Owed to the living file**: a mark or a correction sets the page's `unbuilt` until a build of its
+  living file holds it, so a missing living file or a Drive failure does not lose the heading.
 - **Rationale**: the Drive phone app renames and uploads; nothing else to install (FR-008).
 
 ## R8 — The report and "what it adds"
@@ -424,8 +452,8 @@ own table is the subset the requirements rest on; this one is the full list.
   survives in the PDF's name; `review` is not touched; the recorded `version` of the Markdown and
   `markdown_version` become what was written, so the feed reads an echo, not a correction. For a pass
   that stops before saving, the file's property `alfabeta_written` says the same, which is why the feed
-  asks Drive for `properties`. A recorded PDF `name` is left alone, so a mark the feed has not delivered
-  yet is still seen. An edit by the family (a checksum that is neither) is never written over; Drive is
+  asks Drive for `properties`. A recorded PDF `name` is left alone; the pass reads marks from its listing
+  before it writes any line (R7). An edit by the family (a checksum that is neither) is never written over; Drive is
   asked for the file just before writing, since the run's listing is older than its calls to Claude.
 - **Two steps**: a page's lines and the living file are written apart, so `unbuilt` keeps a page's lines
   owed to the file across runs, as a transcribed page's state does.

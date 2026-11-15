@@ -347,7 +347,7 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
             changes.topics[topic] = TopicChanges(str(topics.get(topic, {}).get("name", "tema")))
         return changes.topics[topic]
 
-    counted: dict[str, Counter[str]] = {}  # per topic: `photo:<state>`, `item:<state>`, `review:<review>`, a count
+    counted: dict[str, Counter[str]] = {}  # per topic: `photo:<state>`, `item:<state>`, `count:<what>`
     old_files = cast("dict[str, str]", before.get("files", {}))
     for fid, after in cast("dict[str, str]", now["files"]).items():
         if not reportable(old_files.get(fid), after):
@@ -357,6 +357,8 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
         if record["kind"] == Kind.NOTES_PHOTO:
             state_now = PhotoState(after)
             paged = (PhotoState.TRANSCRIBED, PhotoState.IN_LIVING_FILE)
+            if record.get("replaced_by") or (record.get("replaces") and state_now in paged):
+                continue  # a « (corregida)» took the page: the correction's line says it, not a new page
             if state_now in paged and old_files.get(fid) not in paged:
                 section(topic).new_pages.append(fid)  # once: not again when a waiting page reaches its file
             if state_now in _PHOTO_LINES:
@@ -364,9 +366,11 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
         elif record["kind"] == Kind.CLASSROOM_ITEM and ItemState(after) in _ITEM_LINES:
             counted.setdefault(topic, Counter())[f"item:{after}"] += 1
     old_pages = cast("dict[str, str]", before.get("pages", {}))
+    marked: dict[tuple[str, str], list[str]] = {}  # (topic, review): the pages, named for the family (US2)
     for fid, review in cast("dict[str, str]", now["pages"]).items():
         if reportable(old_pages.get(fid), review) and Review(review) in _REVIEW_LINES and fid in files:
-            counted.setdefault(str(files[fid]["topic"]), Counter())[f"review:{review}"] += 1
+            name = str(files[fid].get("name") or "página sin nombre")
+            marked.setdefault((str(files[fid]["topic"]), review), []).append(f"«{name}»")
     for topic, counts in work.counts.items():
         for what in _COUNT_LINES:
             if counts.get(what):
@@ -379,10 +383,10 @@ def diff(state: dict[str, Any], work: Pass, before: dict[str, Any], now: dict[st
                 lines.append(_plural(n, _PHOTO_LINES[PhotoState(value)]))
             elif kind == "item":
                 lines.append(_plural(n, _ITEM_LINES[ItemState(value)]))
-            elif kind == "review":
-                lines.append(_plural(n, _REVIEW_LINES[Review(value)]))
             else:
                 lines.append(_plural(n, _COUNT_LINES[value]))
+    for (topic, review), names in sorted(marked.items()):
+        section(topic).lines.append(f"{_plural(len(names), _REVIEW_LINES[Review(review)])}: {', '.join(sorted(names))}")
     old_living = cast("dict[str, dict[str, str]]", before.get("living", {}))
     for topic, kinds in cast("dict[str, dict[str, str]]", now["living"]).items():
         for kind, condition in kinds.items():

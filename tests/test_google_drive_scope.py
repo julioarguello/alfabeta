@@ -355,3 +355,23 @@ def test_listing_one_folder_asks_one_query_and_joins_the_allowlist(tmp_path: Pat
     assert len(t.calls) == 3 and drive.contains("inf-1")
     q = urllib.parse.parse_qs(urllib.parse.urlparse(t.calls[-1][1]).query)["q"][0]
     assert q == "'informes' in parents and trashed = false"
+
+
+def sent_metadata(body: bytes | None) -> object:
+    """The JSON part of a multipart upload."""
+    assert body is not None
+    return json.loads(body.split(b"\r\n\r\n", 1)[1].split(b"\r\n--", 1)[0])
+
+
+def test_an_update_renames_in_the_same_request_as_its_content(tmp_path: Path):
+    # A page's PDF loses the student's mark when alfabeta writes a correction (spec 005 FR-008, #241).
+    drive, t = opened(tmp_path)
+    done = {**file("ficha-1", "tema-1", "ficha.pdf"), "md5Checksum": "900150983cd24fb0d6963f7d28e17f72"}
+    t.responses += [json_response(200, done), json_response(200, done)]
+    made = drive.update("ficha-1", b"abc", "application/pdf", {"alfabeta_for": "foto-1"}, name="ficha.pdf")
+    assert made.name == "ficha.pdf" and drive.listed("ficha-1").name == "ficha.pdf"
+    method, url, _, body = t.calls[-1]
+    assert method == "PATCH" and "/upload/" in url
+    assert sent_metadata(body) == {"properties": {"alfabeta_for": "foto-1"}, "name": "ficha.pdf"}
+    drive.update("ficha-1", b"abc", "application/pdf")
+    assert sent_metadata(t.calls[-1][3]) == {}  # no name: the file keeps the one it has
