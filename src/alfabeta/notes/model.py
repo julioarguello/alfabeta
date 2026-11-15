@@ -182,8 +182,10 @@ def mark_of(pdf_name: str) -> Review:
 
 def unmarked(pdf_name: str) -> str:
     """The transcription PDF's name without the student's mark, as alfabeta writes it after a correction."""
-    marked = _MARKED.fullmatch(pdf_name)
-    return pdf_name if marked is None else marked.group("head") + (marked.group("ext") or "")
+    name = pdf_name
+    while (marked := _MARKED.fullmatch(name)) is not None:
+        name = marked.group("head") + (marked.group("ext") or "")
+    return name
 
 
 def corrected_base(photo_name: str) -> str | None:

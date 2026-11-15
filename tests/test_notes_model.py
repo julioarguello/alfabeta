@@ -29,11 +29,15 @@ from alfabeta.notes.model import (
     Topic,
     Usage,
     addresses,
+    corrected_base,
     is_announcement,
     is_part,
+    mark_of,
+    page_base,
     part_kind,
     posted_title,
     reportable,
+    unmarked,
 )
 
 MADRID = ZoneInfo("Europe/Madrid")
@@ -252,3 +256,32 @@ def test_a_classroom_item_failing_is_capped_then_final_and_a_new_version_starts_
         item.moved_to(ItemState.IN_LIVING_FILE)
     assert item.moved_to(ItemState.SEEN) == ClassroomItem(item.arrival)
     assert item.moved_to(ItemState.LEFT_OUT).state == ItemState.LEFT_OUT
+
+
+@pytest.mark.parametrize(
+    ("name", "review", "plain"),
+    [
+        ("IMG_1.jpg · transcripción.pdf", Review.AUTOMATIC, "IMG_1.jpg · transcripción.pdf"),
+        ("IMG_1.jpg · transcripción (mal).pdf", Review.WRONG, "IMG_1.jpg · transcripción.pdf"),
+        ("IMG_1.jpg · transcripción (Revisada).pdf", Review.CHECKED, "IMG_1.jpg · transcripción.pdf"),
+        ("IMG_1.jpg · transcripción.pdf (MAL)", Review.WRONG, "IMG_1.jpg · transcripción.pdf"),  # typed after
+        ("IMG_1.jpg · transcripción (mal) (revisada).pdf", Review.CHECKED, "IMG_1.jpg · transcripción.pdf"),
+    ],
+)
+def test_a_transcription_pdfs_name_says_its_mark_and_loses_every_one(name: str, review: Review, plain: str):
+    assert (mark_of(name), unmarked(name)) == (review, plain)
+
+
+@pytest.mark.parametrize(
+    ("name", "corrects"),
+    [
+        ("IMG_1.jpg", None),
+        ("IMG_1 (corregida).jpg", "IMG_1"),
+        ("IMG_1 (Corregida).png", "IMG_1"),  # another format, another case
+        ("IMG_1.jpg (corregida)", "IMG_1"),  # typed after the extension
+        ("IMG_1 (corregida) (corregida).jpg", "IMG_1"),
+    ],
+)
+def test_a_corrected_photo_names_the_page_it_corrects(name: str, corrects: str | None):
+    assert corrected_base(name) == corrects
+    assert page_base(name) == "IMG_1"

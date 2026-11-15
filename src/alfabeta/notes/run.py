@@ -376,6 +376,10 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
                 rebuild(deps, work, topic)
             except DriveError:
                 work.write_failed = True
+            except OutsideFolderError:
+                # A page whose photo left Drive cannot be drawn: the file waits, what it owes is kept, and
+                # every other topic is still built (#242).
+                work.count(topic, "failed")
     try:
         write_report(deps, work, started)  # before the save: its calls' usage and its snapshot go with it
     except DriveError:
@@ -431,7 +435,9 @@ def _record(deps: NotesDeps, work: Pass, arrival: Arrival) -> None:
     if was == Kind.CLASSROOM_ITEM and arrival.kind != Kind.CLASSROOM_ITEM and record.get("state") != ItemState.GONE:
         _item_gone(work, arrival.file_id, record)  # out of `classroom/`, into another part of a topic
     record |= {"kind": str(arrival.kind), "topic": arrival.topic, "version": arrival.version, "own": False}
-    if arrival.kind == Kind.NOTES_PHOTO:
+    if arrival.kind == Kind.NOTES_PHOTO and record.get("replaced_by"):
+        record["name"] = deps.drive.listed(arrival.file_id).name  # its page is the correction's now (research R7)
+    elif arrival.kind == Kind.NOTES_PHOTO:
         record |= {"name": deps.drive.listed(arrival.file_id).name, "state": str(PhotoState.SEEN), "retries": 0}
         record.setdefault("seq", _next(work.state, "seq"))
     elif arrival.kind == Kind.NOTES_TEXT:
@@ -721,7 +727,18 @@ def _correct(deps: NotesDeps, work: Pass, topic: str, photo_id: str, md_id: str)
     image = deps.drive.content(photo_id)
     folder, version = item.parents[0], str(page["photo_version"])
     pdf = deps.pdf.page(page_of(photo_id, corrected), image)
-    pdf_file = _write(deps, folder, f"{item.name} · transcripción.pdf", pdf, PDF, photo_id, version, "pdf", unmark=True)
+    pdf_file = _write(
+        deps,
+        folder,
+        f"{item.name} · transcripción.pdf",
+        pdf,
+        PDF,
+        photo_id,
+        version,
+        "pdf",
+        into=_listed_id(deps, page.get("pdf_id")),
+        unmark=True,
+    )
     content = markdown.encode()
     properties = {FOR: photo_id, ROLE: "markdown", VERSION: version, WRITTEN: hashlib.md5(content).hexdigest()}
     md_file = deps.drive.update(md_id, content, MARKDOWN, properties)
@@ -1019,16 +1036,20 @@ def _source_text(deps: NotesDeps, source: _Source) -> tuple[str, str | None]:
 def _write_lines(deps: NotesDeps, work: Pass, topic: str, photo_id: str) -> None:
     """The record's lines, into the page's Markdown and its PDF.
 
-    `_write` updates by id and renames nothing, and `review` is not touched: a mark says the handwriting
-    was read well, and it was (research R15). The recorded versions become what was written, so the feed
-    reads an echo. The recorded PDF name stays, so a mark not delivered yet is still seen. A Markdown the
-    family edited is not written over: the living file and the report still hold the match. Drive is asked
-    now, since this run's listing is older than the calls to Claude this pass made.
+    The page's own files are written by id and nothing is renamed, and `review` is not touched: a mark
+    says the handwriting was read well, and it was (research R15). The recorded versions become what was
+    written, so the feed reads an echo; the recorded PDF name stays, since the pass read the marks first.
+    A Markdown the family edited is not written over: the living file and the report still hold the
+    match. One a « (corregida)» already took, which a stopped pass left tagged with its photo, waits:
+    the correction replaces the page. Drive is asked now, since this run's listing is older than the
+    calls to Claude this pass made.
     """
     page = work.pages[photo_id]
     block = page["statements"]
     md_id = cast("str | None", page.get("markdown_id"))
     current = deps.drive.get(md_id) if md_id and deps.drive.contains(md_id) else None
+    if current is not None and current.prop(FOR) not in (None, photo_id):
+        return  # still unwritten: the page is about to be replaced
     if current is not None and current.version != page.get("markdown_version") and not own_write(current):
         block["edited"] = True
         del block[statements.UNWRITTEN]
@@ -1037,12 +1058,32 @@ def _write_lines(deps: NotesDeps, work: Pass, topic: str, photo_id: str) -> None
     image = deps.drive.content(photo_id)  # before the first write: a page half written is never left
     folder, version = item.parents[0], str(page["photo_version"])
     markdown = str(page["markdown"]).encode()
-    md_file = _write(deps, folder, f"{item.name} · transcripción.md", markdown, MARKDOWN, photo_id, version, "markdown")
+    md_file = _write(
+        deps,
+        folder,
+        f"{item.name} · transcripción.md",
+        markdown,
+        MARKDOWN,
+        photo_id,
+        version,
+        "markdown",
+        into=current.id if current is not None else None,
+    )
     page |= {"markdown_id": md_file.id, "markdown_version": md_file.version}
     work.files.setdefault(md_file.id, {"kind": str(Kind.NOTES_TEXT), "topic": topic, "own": True, "for": photo_id})
     work.files[md_file.id]["version"] = md_file.version
     pdf = deps.pdf.page(page_of(photo_id, page), image)
-    pdf_file = _write(deps, folder, f"{item.name} · transcripción.pdf", pdf, PDF, photo_id, version, "pdf")
+    pdf_file = _write(
+        deps,
+        folder,
+        f"{item.name} · transcripción.pdf",
+        pdf,
+        PDF,
+        photo_id,
+        version,
+        "pdf",
+        into=_listed_id(deps, page.get("pdf_id")),
+    )
     page["pdf_id"] = pdf_file.id
     named = {"kind": str(Kind.NOTES_TRANSCRIPT), "topic": topic, "own": True, "for": photo_id, "name": pdf_file.name}
     work.files.setdefault(pdf_file.id, named)["version"] = pdf_file.version

@@ -173,7 +173,7 @@ _REVIEW_LINES = {
     Review.WRONG: ("transcripción marcada como mal por el alumno", "transcripciones marcadas como mal por el alumno"),
 }
 _COUNT_LINES = {
-    "corrections": ("página corregida por la familia", "páginas corregidas por la familia"),
+    "corrections": ("página corregida", "páginas corregidas"),  # by the family's edit or the student's photo
     "unexpected": ("fichero fuera de sitio en la carpeta del tema", "ficheros fuera de sitio en la carpeta del tema"),
 }
 # Conditions that last: said once when they start and once when they clear (scenario 3).

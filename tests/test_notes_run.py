@@ -349,7 +349,7 @@ def test_a_familys_edit_of_the_markdown_replaces_the_page_in_place_with_no_claud
     assert drive.bodies[pdf] == f"page:foto-1:{edited}".encode()
     assert drive.bodies[living].decode().count("|") == 1 and drive.bodies[living].decode().endswith(edited)
     (informe,) = [f for f in drive.files.values() if f.name.startswith("Informe ")]
-    assert "1 página corregida por la familia" in drive.bodies[informe.id].decode()
+    assert "1 página corregida" in drive.bodies[informe.id].decode()
 
 
 def test_after_a_correction_the_next_pass_reads_an_echo():
@@ -531,6 +531,27 @@ def test_a_mark_on_a_page_whose_photo_is_gone_waits_for_the_photo():
     report = run_notes(reading(drive, tr))
     assert report["ok"] and report["topics"] == []
     assert state_of(drive)["pages"]["foto-1"]["review"] == "automatic"
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")  # restored from the trash
+    assert run_notes(reading(drive, tr))["topics"][0]["marks"] == 1
+    assert "|En corrección: " in drive.bodies[living].decode()
+
+
+def test_a_photo_gone_from_drive_stops_its_topics_file_not_the_pass_and_the_mark_is_kept():
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")
+    drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
+    living = set_up(drive)
+    tr = ScriptedTranscriber()
+    run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1", "foto-2"]]), tr), pdf=ReadingPdf()))
+    del drive.files["foto-2"]  # its page stays (constitution V), and the living file cannot draw it (#242)
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    report = run_notes(reading(drive, tr))
+    assert (report["ok"], report["topics"][0]["marks"], report["topics"][0]["failed"]) == (False, 1, 1)
+    assert state_of(drive)["pages"]["foto-1"]["review"] == "wrong"  # saved: the next pass does not read it again
+    drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
+    assert run_notes(reading(drive, tr))["ok"]
+    assert "|En corrección: " in drive.bodies[living].decode()
 
 
 def two_pages(drive: MemoryDrive) -> tuple[str, ScriptedTranscriber]:
@@ -576,7 +597,7 @@ def test_a_corrected_photo_replaces_its_page_once_in_place_and_the_pdf_loses_its
     assert built.startswith("notes:Tema 01 - Materia inventada:foto-3/automatic,foto-2/automatic|")
     assert "foto uno, bien hecha" in built and "Texto de foto uno\n" not in built
     text = informe(drive)
-    assert "1 página corregida por la familia" in text and "página nueva" not in text
+    assert "1 página corregida" in text and "página nueva" not in text
     writes = list(drive.updates)
     assert run_notes(reading(drive, tr))["topics"] == []
     assert drive.updates[len(writes) :] == ["last-run.json"]
@@ -599,6 +620,36 @@ def test_a_corrected_photo_of_a_page_whose_photo_was_removed_still_replaces_it()
     del drive.files["foto-1"]  # the student removed the wrong photo before uploading the right one
     assert corrected(drive, tr)["topics"][0]["corrections"] == 1
     assert sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
+
+
+def test_the_photo_a_correction_replaced_is_never_transcribed_again():
+    drive = MemoryDrive.topic()
+    _, tr = two_pages(drive)
+    corrected(drive, tr)
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno, otra version")
+    report = run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1"]]), tr), pdf=ReadingPdf()))
+    assert (tr.calls, report["topics"]) == (3, [])
+    assert sorted(state_of(drive)["pages"]) == ["foto-2", "foto-3"]
+    assert len(drive.named("IMG_0001.jpg · transcripción.md")) == 1
+
+
+def test_statement_lines_owed_by_a_page_a_stopped_correction_took_wait_for_it():
+    drive = MemoryDrive.topic()
+    _, tr = two_pages(drive)
+    drive.refuses_updates.add(state_of(drive)["pages"]["foto-1"]["pdf_id"])
+    corrected(drive, tr)  # the Markdown is the new photo's now, the PDF is not, and nothing is recorded
+    store = DriveNotesStateStore(drive)
+    loaded = store.load()
+    block = loaded["pages"]["foto-1"]["statements"]
+    block |= {"state": "settled", "unwritten": True}  # lines an earlier pass could not write
+    store.save(loaded)
+    run_notes(reading(drive, tr))  # Drive still refuses the PDF: the old page must not take the Markdown back
+    drive.refuses_updates.clear()
+    report = run_notes(reading(drive, tr))
+    assert report["topics"][0]["corrections"] == 1 and tr.calls == 3  # the transcription is recovered
+    assert len(drive.named("IMG_0001.jpg · transcripción.md")) == 1  # the old page wrote no second one
+    (md,) = drive.named("IMG_0001.jpg · transcripción.md")
+    assert drive.bodies[md].decode() == "## Página\n\nTexto de foto uno, bien hecha\n"
 
 
 def test_a_photo_named_like_no_page_plus_corregida_is_a_new_page():
