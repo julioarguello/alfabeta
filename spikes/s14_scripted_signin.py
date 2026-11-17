@@ -223,6 +223,9 @@ def launch(p, headless: bool):
         channel=None if FAKE and not os.environ.get("S14_CHANNEL") else os.environ.get("S14_CHANNEL", "chrome"),
         headless=headless,
         locale="es-ES",
+        # Classroom writes every date and time in the browser's zone: a container runs in UTC, and its
+        # «Fecha de entrega: 3 nov, 7:00» was the family's 8:00 (measured 2026-11-17).
+        timezone_id=os.environ.get("S14_TIMEZONE", "Europe/Madrid"),
         ignore_default_args=["--use-mock-keychain", "--password-store=basic"],
     )
 

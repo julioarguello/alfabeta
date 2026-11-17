@@ -45,8 +45,12 @@ case "${1:-}" in
     docker run --rm --platform linux/amd64 -e S14_ACCOUNT -e S14_PASSWORD "$IMAGE"
     ;;
   capture)
-    run="$(alfabeta lock take --mode interactive | python3 -c 'import json, sys; d = json.load(sys.stdin); print(d.get("run", ""))')"
-    [[ -n "$run" ]] || { print -u2 "lock not taken (another run holds the student?)"; exit 1; }
+    taken="$(alfabeta lock take --mode interactive 2>&1)"
+    run="$(print -r -- "$taken" | python3 -c 'import json, sys
+for line in sys.stdin:
+    if line.startswith("{"): print(json.loads(line).get("run", "")); break')"
+    [[ -n "$run" ]] || { print -u2 "lock not taken: $taken"; exit 1; }
+    print "lock taken: run $run"
     export ALFABETA_RUN="$run" S14_ONLY="${2:-}"
     out="$DATA/spike-166/out-$run"
     mkdir -p -m 700 "$out"
