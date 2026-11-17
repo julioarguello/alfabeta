@@ -53,8 +53,8 @@ SIGN_IN = (
     else "https://accounts.google.com/ServiceLogin?service=classroom&continue=" + CLASSROOM
 )
 
-EMAIL_FIELD = "input[type=email]"
-PASSWORD_FIELD = "input[type=password][name=Passwd]"
+EMAIL_FIELD = "#identifierId, input[name=identifier], input[type=email]"
+PASSWORD_FIELD = "input[name=Passwd], input[type=password]"
 CHALLENGE_MARKS = (
     "verifica que eres",
     "demuestra que eres",
@@ -213,6 +213,11 @@ def guard_factory(counts: dict, blocked: dict):
     return guard
 
 
+def field(page, selector: str):
+    """The first visible element of `selector`: Google's pages keep hidden inputs beside the real one."""
+    return page.locator(selector).filter(visible=True).first
+
+
 def wait_for(page, selector: str, seconds: int) -> str:
     """Waits until `selector` shows or the page stops being one the script may fill."""
     end = time.monotonic() + seconds
@@ -228,7 +233,7 @@ def wait_for(page, selector: str, seconds: int) -> str:
         if reason:
             return "stop:" + reason
         try:
-            if page.is_visible(selector):
+            if field(page, selector).count():
                 return "field"
         except Exception:  # noqa: BLE001
             pass
@@ -256,12 +261,12 @@ def do_signin(headed: bool, settle_seconds: int) -> int:
 
         step = wait_for(page, EMAIL_FIELD, 30)
         if step == "field":
-            page.fill(EMAIL_FIELD, who)
+            field(page, EMAIL_FIELD).fill(who)
             page.keyboard.press("Enter")  # Google's «Siguiente»
             log("TYPED", "identifier")
             step = wait_for(page, PASSWORD_FIELD, 45)
             if step == "field":
-                page.fill(PASSWORD_FIELD, secret)
+                field(page, PASSWORD_FIELD).fill(secret)
                 page.keyboard.press("Enter")
                 log("TYPED", "password")
                 step = wait_for(page, "#never-shown", 60)
