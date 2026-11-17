@@ -14,10 +14,11 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 ## Slice 0 — shared vocabulary
 
 - [ ] T001 [0] Extend `StopReason` (`src/alfabeta/model.py`) with `rejected`, `second_factor`,
-  `other_sign_in`, `wrong_password`, `no_password`, `docker_unavailable` and `disabled`
+  `other_sign_in`, `wrong_password`, `no_password`, `docker_unavailable`, `unreachable` and `disabled`
   (`challenge`, `session_expired`, `unexpected_ui`, `lock_busy` exist); update
   `contracts/cli.md` (the password commands, `refresh`'s codes and `--trigger`) and
-  `data-model.md` (the stored password, the `wrong_password` mark, the read container).
+  `data-model.md` (the stored password, the `wrong_password` mark, the read container; the profile
+  spelled `data/classroom-profile/`, the student's data folder, as in the plan).
 
 ## Slice A — `classroom password set|delete` (FR-031)
 
@@ -62,11 +63,13 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
     and counted; no press beyond the two Enters;
   - `Intl.DateTimeFormat().resolvedOptions().timeZone` is `Europe/Madrid`, `navigator.language` is
     `es-ES`, and both rendered due dates read as in Madrid;
-  - neither the password nor the account appears in stdout, the captures or any JSON line.
+  - neither the password nor the account appears in stdout, the captures or any JSON line; the
+    sign-in's host-and-path lines carry no query.
 - [ ] T006 [B] Implement `docker/classroom/read.py` (stdin JSON `{account, password, signin}`, the
   account check, the cookie clearing, the scripted sign-in and its guard, the extractor injected
   unchanged and its calls per class, captures returned through the page and written to `/out`, one
-  JSON line per event, the browser zone and locale) and `docker/classroom/Dockerfile` (python 3.12
+  JSON line per event — for each sign-in page load its host and path, never a query — the browser
+  zone and locale) and `docker/classroom/Dockerfile` (python 3.12
   slim, `playwright==1.64.1`, Google Chrome, `linux/amd64`, built from the repository root with
   `-f docker/classroom/Dockerfile` so `skills/classroom-sync/scripts/extract.js` is copied
   unchanged).
@@ -89,19 +92,19 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
   - a full read → captures collected, plan and apply once, the lock renewed while the container
     runs, one log line with `--trigger`, counts and blocked counts;
   - neither the account nor the password in any log line or notification.
-- [ ] T009 [P] [C] Write the `DockerReadContainer` tests with a fake process runner (as
+- [ ] T009 [P] [C] Write `tests/test_classroom_container.py`, the `DockerReadContainer` tests with a fake process runner (as
   `src/alfabeta/google/keychain.py`'s `Runner`): `docker run --rm -i`, the profile and out folders
   mounted with mode 0700, the stdin line written once, the password absent from argv, every
   `-e`/`--env`, the build arguments and the build context; the image rebuilt only when its inputs'
-  hash changes.
+  hash changes; a failed build → `docker_unavailable`.
 - [ ] T010 [C] Implement `src/alfabeta/classroom/container.py` (`ReadContainer`,
   `DockerReadContainer`) and `src/alfabeta/classroom/refresh.py` with
   `classroom refresh [--trigger schedule|command]`; declare `[classroom] profile_read` in
-  `config/template.toml` (`changeme`); drop `refresh` from `PLANNED`.
+  `config/template.toml` (`false`, as `contracts/config-template.toml`); drop `refresh` from `PLANNED`.
 - [ ] T011 [C] Write `tests/test_classroom_image.py` (marked `docker`, run on the Mac before the pull
   request and recorded in it): the image builds; `docker image inspect` shows no `ENV` or label
   holding a secret; `docker run --rm -i --network none` with an invented account and password on
-  stdin ends with a JSON stop line, never echoes stdin, and leaves no container behind.
+  stdin ends with a JSON stop line with code `unreachable`, never echoes stdin, and leaves no container behind.
 
 ## Slice D — attachments in the container (FR-028, FR-030; spec 001 research R4)
 
@@ -123,8 +126,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 ## The family's steps (not Claude's)
 
 - [ ] T016 `classroom password set --student <id>` at the Mac, then the first real
-  `classroom refresh --student <id>` from a terminal; the pull request of T010 records its stop
-  code and counts.
+  `classroom refresh --student <id>` from a terminal; its stop code and counts recorded in #166.
 - [ ] T017 After T016, a pull request narrows `read.py`'s sign-in allowlist to the hosts and paths
   the first real run logged (no queries) (FR-027).
 - [ ] T018 `classroom agent install --student <id>`; one scheduled read with the screen locked

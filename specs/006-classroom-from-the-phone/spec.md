@@ -449,7 +449,8 @@ arrives.
   reports it. The family installs the launchd agent that runs those times with
   `classroom agent install --student <id>` and removes it with `classroom agent uninstall --student <id>`,
   as spec 005's `notebook agent` (plan, 2026-11-02).
-- **FR-016**: The family MUST be able to start a read at any time with `classroom refresh`, and by opening
+- **FR-016**: *(Amendment 2026-11-17: the launcher is not built with the container read; the family
+  starts a read with `classroom refresh`.)* The family MUST be able to start a read at any time with `classroom refresh`, and by opening
   a launcher on the Mac that runs it, which the notice's link and the remote view can open.
   `classroom agent install` also puts the launcher in place, and `classroom agent uninstall` removes it.
 - **FR-017**: A launch while a read for that student is running or waiting for its sign-in MUST NOT
@@ -539,7 +540,8 @@ arrives.
   fields (Google's «Siguiente»), and waits for Classroom. Only `classroom refresh` started by the
   launchd agent (FR-015) or by the family (FR-016) runs it; `classroom capture` never signs in
   (FR-023), `classroom sign-in` keeps its meaning (the hand window, which types nothing), and
-  Claude MUST NOT start it (spec 001 research R15): `classroom refresh` MUST refuse the scripted
+  Claude MUST NOT start it (spec 001 research R15; the rule is about a sign-in with the stored
+  password against Google — tests against local fakes with invented values are not sign-ins): `classroom refresh` MUST refuse the scripted
   sign-in when it runs inside a Claude Code session (the `CLAUDECODE` variable set): the container
   is started with the account only and the sign-in forbidden, never the password; it reads only
   with a session already alive, or stops with `session_expired`, with no notification. A read the family launches signs in the same way as a scheduled one:
@@ -560,7 +562,8 @@ arrives.
     session with no stored password reads normally.
   - **The password is tried once.** After `wrong_password` the read MUST NOT try the script again,
     in that read or any later one, until `classroom password set` stores a password again; until
-    then every read stops with `wrong_password` at once, so the school account is not locked.
+    then every read that needs a sign-in stops with `wrong_password` at once, so the school
+    account is not locked.
   - **The sign-in's guard** (constitution IV): document loads in the main frame only on Google's
     sign-in host (`accounts.google.com`), the account-cookie pages Google redirects through
     (`accounts.youtube.com`, `www.google.com`, `www.google.es`) and Classroom; any other main-frame load stops with
@@ -577,8 +580,9 @@ arrives.
   the session lives between the capture and the attachments within its life. The account and the
   password MUST reach the container on its standard input, read once, never as an environment
   variable (Docker shows those in the container's configuration), on a command line, in the image
-  or in a file; the container MUST be removed when the read ends. Docker not running stops the
-  read with `docker_unavailable`, notified as FR-032 says. `classroom plan` and
+  or in a file; the container MUST be removed when the read ends. Docker not running, or the image
+  failing to build, stops the read with `docker_unavailable`; no network from the container stops
+  it with `unreachable`; both are notified as FR-032 says. `classroom plan` and
   `classroom apply` stay on the Mac, where the Google links are.
 - **FR-029**: The read browser MUST run in the `Europe/Madrid` zone (constitution VIII): Classroom
   writes every date in the browser's zone, and a container in UTC moved every due time 1–2 hours
