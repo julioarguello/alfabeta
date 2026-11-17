@@ -6,6 +6,11 @@
 
 **Status**: Draft
 
+**Amended**: 2026-11-17 — the read signs in by itself: a deterministic script types the school
+account's password, stored in the Mac's keychain, inside a container on the Mac (FR-027 to FR-031,
+constitution 2.11.0). The hand sign-in and its notice (User Story 2) become the fallback when the
+script meets a check. Measured first: spike S14 in research.md.
+
 **Input**: Operator's request (translated from Spanish): "Why the Mac? I would like it to be a web
 page or an app I could launch from the Mac or the phone" («me gustaría que fuera una web o app que
 pudiera lanzar desde el mac o el movil»); "Copy classroom-advisor: after all they went through the
@@ -74,8 +79,12 @@ other two, and the need to be at the Mac for the third.
 
 ### Out of this spec
 
-- **Reading with nobody signing in** (spec 001 User Story 7, #2). R15 and R20 leave no route that
-  keeps the session alive; User Story 7 stays as specified and gated on its spikes.
+- **Reading from the cloud** (spec 001 User Story 7, #2). The session cannot be kept alive (R15,
+  R20), and on 2026-11-17 the scripted sign-in from a Cloud Run job met Google's image captcha right
+  after the account, where the same script from the home address got straight in (research S14).
+  User Story 7's web route is measured closed; its token route was closed by S4.
+  *(Until 2026-11-17 this item was «Reading with nobody signing in»: the amendment of that date
+  brings it in, on the Mac, with a scripted sign-in — FR-027.)*
 - **Running the read on the phone, or on a machine other than the Mac.** The session lives in the
   browser where the family signs in, and the read and Drive are on the Mac; the phone
   is a remote view, not where the read runs. A dedicated always-on machine at home, as the peer
@@ -112,6 +121,11 @@ names and response shapes are a starting point, not a measurement of this accoun
 - **Amendment of 2026-11-02 (commands, portability, credentials)**: `tests/test_cli_naming.py` lists
   the four `classroom` commands as planned and adds the verbs `capture` and `sign-in`;
   `classroom refresh` uses the existing `refresh`, and `sync` keeps its one meaning.
+- **Amendment of 2026-11-17 (scripted sign-in, container)**: constitution 2.10.0 → 2.11.0 (MINOR),
+  Technical constraints: spec 006's read may sign in with alfabeta's deterministic script and the
+  password the family stored in the keychain, inside a container on the Mac; the session and the
+  password never leave the Mac. Spec 001 research R17 records the cloud web route measured closed.
+  FR-026 gains the password's row; FR-027 to FR-031 are new; User Story 2 becomes the fallback.
 - **Plan of 2026-11-02**: FR-015 and FR-016 name `classroom agent install|uninstall`, which installs
   the launchd agent and the launcher; `tests/test_cli_naming.py` lists them as planned.
 
@@ -152,6 +166,26 @@ names and response shapes are a starting point, not a measurement of this accoun
   also close it themselves. (First wording: only the family closing it, or the end of the wait,
   ended it; the independent review found the session could die while the read waited.)
 
+### Session 2026-11-17
+
+- Q: The operator (2026-11-16): «quiero que esto suceda en un browser que abras tú con playwright
+  … de momento lees user / pass de un fichero o un secreto … todo funcione desatendido. No me importa
+  compartir user / pass. Es la mejor forma» — then «podemos hacerlo de momento local, pero
+  desatendido». → A: A scripted sign-in on the Mac, under constitution III's conditions: the
+  password in the keychain (a vault, II), typed by alfabeta's deterministic script, never by Claude
+  and never shown; no evasion; any check stops the read and falls back to the hand sign-in. The
+  family accepts custody of a secret as sensitive as the account (III): «No me importa compartir
+  user / pass».
+- Q: Does the school account ask for a second factor? → A: The operator: «Solo contraseña». So
+  the keychain holds the password alone; a second-factor page stops the script (FR-027).
+- Q: Can it run in the cloud instead? → A: Measured no (spike S14, 2026-11-17): from Cloud Run in
+  `europe-southwest1` Google showed an image captcha after the account, twice; from the home
+  address the same script and browser signed in within seconds, also inside Docker. Getting past
+  the captcha is evasion (IV), so the read stays at home.
+- Q: The operator: «Vamos a generar un docker y se ejecuta donde se pueda. Por el momento en
+  local». → A: The read runs in a container on the Mac (FR-028): the same image would run on any
+  machine whose address Google accepts, which is what «donde se pueda» needs; today that is the Mac.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures alfabeta and signs the student's school
@@ -190,6 +224,9 @@ capture of the same classes by the current extractor on the same day, and apply 
 ---
 
 ### User Story 2 - A notice with a link, and the sign-in from the phone (Priority: P1)
+
+*Since the amendment of 2026-11-17 this story is the fallback: it runs when the scripted sign-in
+(FR-027) stops on a check, a changed password or no stored password.*
 
 A read that finds the session expired opens the Google sign-in for the school account in a browser
 window on the Mac and emails the family one link. The family clicks it on the phone, which opens a
@@ -434,9 +471,48 @@ arrives.
   | Credential | Arrives by | Lives on the Mac | On another machine |
   |---|---|---|---|
   | The school session | `classroom sign-in`: the family signs in by hand | the read profile, in the student's data folder | signed in again there with `classroom sign-in`: the session never leaves the Mac (constitution, Technical constraints) |
+  | The school account's password (amendment 2026-11-17) | `classroom password set`: the family types it at a prompt that does not echo it (FR-031) | the keychain | not moved: a machine that runs the read stores it again with the same command, and only one whose address Google accepts (FR-028) |
   | The Google links (the student's and the `family` account) | `google account link` (spec 004) | the keychain | linked again there with `google account link`; where they may be stored is for the amendment of constitution II that moving needs (FR-025) |
 
-  alfabeta never stores the school account's password, its second factor or the Mac's password.
+  alfabeta stores the school account's password only in the keychain, from the family's prompt
+  (FR-031), and never its second factor or the Mac's password. *(Until 2026-11-17 this sentence
+  said the school account's password is never stored; the amendment of that date allows the
+  keychain, under constitution III.)*
+
+**The scripted sign-in and the container (amendment 2026-11-17)**
+
+- **FR-027**: When a read (`classroom refresh`, `classroom capture`) finds no live session in the
+  read profile, it MUST first sign in with alfabeta's deterministic script (`classroom sign-in`
+  keeps its meaning: the hand sign-in window, which types nothing): it opens Google's sign-in page in the read browser, types
+  the school account and the keychain's password, presses only Google's own «Siguiente», and waits
+  for Classroom. Any other page MUST stop it at once and be named in the log by category, never by
+  address or content: Google's rejection of the browser, a challenge (an image captcha included), a
+  second-factor page, the school's own sign-in, or a wrong password — tried once, never again in that
+  read, so the account is not locked. After a stop, the read MUST fall back to User Story 2: the
+  notice and the hand sign-in. Claude MUST NOT launch the script; the launchd agent or the family
+  does (constitution III).
+- **FR-028**: The read — sign-in, capture and attachments — MUST run in a container on the Mac
+  (Docker, `linux/amd64`, the installed Google Chrome and a pinned Playwright), so the same image can
+  run on another machine whose address Google accepts, without a rewrite (FR-025). The read profile
+  MUST be a folder of the student's data folder with user-only permissions, mounted into the
+  container, so the session lives between the capture and the attachments within its life. The
+  account and the password MUST reach the container as variables passed by name, never on a command
+  line, in the image or in a file; the container keeps nothing else. `classroom plan` and
+  `classroom apply` stay on the Mac, where the Google links are.
+- **FR-029**: The read browser MUST run in the `Europe/Madrid` zone and the `es-ES` locale
+  (constitution VIII): Classroom writes every date in the browser's zone, and a container in UTC
+  moved every due time 1–2 hours earlier (research S14).
+- **FR-030**: Inside the container the read MUST use alfabeta's own extractor unchanged
+  (`skills/classroom-sync/scripts/extract.js`), as the classroom-sync skill does in Chrome, behind
+  the guard of FR-005 with a document allowlist of Classroom's own pages instead of the spike's
+  allowlist of hosts. Measured: 12 of 12 classes complete in 14 min 20 s, the same items as the
+  Chrome read (research S14). The read by Classroom's own calls (R1) stays planned, as a faster
+  read of the same captures.
+- **FR-031**: `classroom password set` MUST ask for the school account's password at a prompt
+  that does not echo it and store it in the keychain under the student; `classroom password
+  delete` MUST remove it. Neither MUST print it, log it, or take it as an option or a variable.
+  Changing the password at Google stops the next scripted sign-in with `wrong_password`, and the
+  family sets it again.
 
 ### Key Entities
 

@@ -250,12 +250,15 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
   also run from a launchd agent in the family's user session, with no app open, when a spec names
   the need (spec 005: the notebook owner's refresh, FR-018; spec 006: the Classroom read the family
   signs in to); such an agent uses the secrets already on the Mac and adds only those its spec
-  names — for spec 006, the read profile's session and the link of the `family` account that sends
-  its notices (spec 004). Spec 006's read
-  uses a browser profile alfabeta keeps for the student in the data folder (II): the family signs it
-  in by hand in a window alfabeta starts and does not drive, and alfabeta reads with that session
-  only through the browser guard of IV, never storing or typing a credential. That session is a
-  secret on the Mac like the browser session above, and never leaves it. Python 3.12 for the
+  names — for spec 006, the read profile's session, the school account's password and the link of
+  the `family` account that sends its notices (spec 004). Spec 006's read
+  uses a browser profile alfabeta keeps for the student in the data folder (II), and may run inside a
+  container on the Mac (Docker) that mounts it. The profile is signed in by alfabeta's deterministic
+  script with the password the family stored in the keychain, under III's conditions; when the
+  script meets a check it must not get past (IV), the family signs it in by hand in a window
+  alfabeta starts and does not drive. alfabeta reads with that session only through the browser
+  guard of IV. The session and the password are secrets on the Mac like the browser session above,
+  and never leave it: the password reaches the container only as a variable passed by name. Python 3.12 for the
   scripts; JavaScript only inside the browser, to extract pages and to guard them.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,
@@ -345,4 +348,4 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.10.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-10
+**Version**: 2.11.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-17

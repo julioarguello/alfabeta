@@ -53,6 +53,7 @@ SUBGROUPS = {
     "account": "a linked Google account",
     "agent": "a launchd agent that runs a command with no app open (`notebook refresh`, `classroom refresh`)",
     "probe": "a test calendar event",
+    "password": "the school account's password in the Mac's keychain, for the scripted sign-in",
 }
 # Verbs: one meaning each, CLI-wide. A leaf is a verb, or `<verb>-<object>` when the group has
 # only that one action on the object (`google set-client`, as `google.setClient()`).
@@ -125,6 +126,8 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("classroom", "status"): "spec 006 FR-024",
     ("classroom", "agent", "install"): "spec 006 FR-015, plan",
     ("classroom", "agent", "uninstall"): "spec 006 FR-015, plan",
+    ("classroom", "password", "set"): "spec 006 FR-031 (amendment 2026-11-17)",
+    ("classroom", "password", "delete"): "spec 006 FR-031 (amendment 2026-11-17)",
     ("exam", "create"): "spec 007 FR-001",
 }
 # Options a spec designs on a built command and no code adds yet.
