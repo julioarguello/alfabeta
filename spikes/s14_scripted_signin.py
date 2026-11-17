@@ -64,6 +64,8 @@ CHALLENGE_MARKS = (
     "unusual",
     "tráfico inusual",
     "captcha",
+    "escribe el texto que escuches o veas",
+    "type the text you hear or see",
     "no es seguro",
     "may not be secure",
 )
