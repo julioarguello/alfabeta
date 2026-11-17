@@ -245,7 +245,10 @@ tests/
 │                             #   synthetic Classroom pages of tests/fixtures/classroom/pages, <base> stripped
 ├── test_classroom_password.py
 ├── test_classroom_refresh.py # with a fake ReadContainer, a fake TokenStore and a fake Notifier
-└── test_classroom_read.py    # docker/classroom/read.py run directly with Playwright's Chromium against the fake
+├── test_classroom_read.py    # docker/classroom/read.py run as a module with Playwright's Chromium against the fake
+├── test_classroom_container.py # DockerReadContainer's argv and build, with a fake process runner
+├── test_classroom_image.py   # the built image offline: no secret in its configuration, stdin never echoed
+└── test_classroom_agent.py   # classroom agent install|uninstall with spec 005's fake Launchctl
 ```
 
 `docker/classroom/read.py` is a program of its own, copied into the image with the extractor
