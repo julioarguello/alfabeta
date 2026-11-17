@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import json
 import os
 import pathlib
 import subprocess
@@ -181,6 +182,33 @@ def shot(page, name: str) -> None:
         log("SCREENSHOT_FAILED", type(err).__name__)
 
 
+def diagnose(page, who: str) -> None:
+    """On a stop, what the page shows, for a run whose screenshot cannot be kept (the cloud).
+
+    Flags for Google's checks, and the page's visible lines with every e-mail address replaced: the
+    account never reaches the log. The lines are Google's own wording, not the student's data.
+    """
+    import re
+
+    flags = page.evaluate(
+        """() => ({
+          captcha_img: !!document.querySelector('img#captchaimg, img[src*="Captcha"]'),
+          recaptcha: !!document.querySelector('iframe[src*="recaptcha"], iframe[title*="reCAPTCHA" i]'),
+          password_field: !!document.querySelector('input[type=password]'),
+        })"""
+    )
+    log("DIAG_FLAGS", json.dumps(flags, sort_keys=True))
+    try:
+        text = page.inner_text("main, [role=main], body", timeout=3000)
+    except Exception:  # noqa: BLE001
+        text = ""
+    lines = [line.strip() for line in text.splitlines() if line.strip()][:20]
+    for line in lines:
+        line = line.replace(who, "<account>")
+        line = re.sub(r"[\w.+-]+@[\w-]+(\.[\w-]+)+", "<email>", line)
+        log("DIAG_TEXT", line[:160])
+
+
 def launch(p, headless: bool):
     PROFILE.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(PROFILE, 0o700)
@@ -287,6 +315,7 @@ def do_signin(headed: bool, settle_seconds: int) -> int:
         else:
             outcome = step.removeprefix("stop:")
             shot(page, outcome.replace(":", "-"))
+            diagnose(page, who)
         ctx.close()  # Playwright's orderly close, which writes the cookie store
     log(
         "SIGNIN_END",
