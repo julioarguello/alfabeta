@@ -39,7 +39,8 @@ from urllib.parse import urlsplit
 STUDENT = os.environ.get("S14_STUDENT", "s1")
 HOME = pathlib.Path.home() / ".alfabeta" / STUDENT
 DATA = HOME / "data"
-PROFILE = DATA / "classroom-profile-s14"
+# A run that must sign in from scratch names a profile of its own (S14_PROFILE=<name>).
+PROFILE = DATA / os.environ.get("S14_PROFILE", "classroom-profile-s14")
 OUT = DATA / "spike-166"
 LOG = OUT / "s14.log"
 KEYCHAIN_SERVICE = os.environ.get("S14_KEYCHAIN_SERVICE", "alfabeta-classroom")
