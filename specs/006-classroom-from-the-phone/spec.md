@@ -540,7 +540,8 @@ arrives.
   launchd agent (FR-015) or by the family (FR-016) runs it; `classroom capture` never signs in
   (FR-023), `classroom sign-in` keeps its meaning (the hand window, which types nothing), and
   Claude MUST NOT start it (spec 001 research R15): `classroom refresh` MUST refuse the scripted
-  sign-in when it runs inside a Claude Code session (the `CLAUDECODE` variable set): it reads only
+  sign-in when it runs inside a Claude Code session (the `CLAUDECODE` variable set): the container
+  is started with the account only and the sign-in forbidden, never the password; it reads only
   with a session already alive, or stops with `session_expired`, with no notification. A read the family launches signs in the same way as a scheduled one:
   the family is present and the sign-in is done on their command, under III. The first scripted sign-in is launched by the
   family after `classroom password set` (FR-031): that is the family's first sign-in under
@@ -552,6 +553,11 @@ arrives.
     included), `second_factor`, `other_sign_in` (the school's own sign-in, or any other site),
     `wrong_password`, and `no_password` when the keychain holds none. Nothing is typed to get past a
     stop (constitution IV); FR-032 follows.
+  - **From a clean start.** Before signing in, the script MUST clear the read profile's Google
+    cookies, so Google shows the account page and then the password page — the sequence S14
+    measured, always from a fresh profile — and not an account chooser or a re-authentication page
+    of a used profile. The password is read from the keychain only when a sign-in is needed: a live
+    session with no stored password reads normally.
   - **The password is tried once.** After `wrong_password` the read MUST NOT try the script again,
     in that read or any later one, until `classroom password set` stores a password again; until
     then every read stops with `wrong_password` at once, so the school account is not locked.
@@ -571,7 +577,8 @@ arrives.
   the session lives between the capture and the attachments within its life. The account and the
   password MUST reach the container on its standard input, read once, never as an environment
   variable (Docker shows those in the container's configuration), on a command line, in the image
-  or in a file; the container MUST be removed when the read ends. `classroom plan` and
+  or in a file; the container MUST be removed when the read ends. Docker not running stops the
+  read with `docker_unavailable`, notified as FR-032 says. `classroom plan` and
   `classroom apply` stay on the Mac, where the Google links are.
 - **FR-029**: The read browser MUST run in the `Europe/Madrid` zone (constitution VIII): Classroom
   writes every date in the browser's zone, and a container in UTC moved every due time 1–2 hours
@@ -584,17 +591,21 @@ arrives.
   Classroom, every press, every document load outside spec 001 FR-007's pages (home, classwork,
   stream, item details), and every request to a form, quiz or download host; it has no call
   allowlist, which belongs to the read by calls (FR-004), and R4's session-upkeep rule does not
-  apply to it — spec 001 research R18's weaker guarantee, which IV's wording allows. Measured (research S14): 12 of 12
+  apply to it — spec 001 research R18's weaker guarantee, which IV's wording allows. The one
+  exception to the download hosts: the attachments listed in this run's captures, fetched by spec
+  001 research R4's routes through the page's request context, each checked against that list
+  before its request and counted; any other file or host is refused and counted. Measured (research S14): 12 of 12
   classes complete in 14 min 20 s, in UTC, with the items, posts and attachment counts of the
   previous day's Chrome read; two classes re-read in `Europe/Madrid` identical, times included.
   The read by Classroom's own calls (FR-003, FR-004, R1) stays planned, as a faster read of the
   same captures.
 - **FR-031**: `classroom password set` MUST ask for the school account's password at a prompt
-  that does not echo it and store it in the keychain under the student, clearing a
-  `wrong_password` stop (FR-027); `classroom password delete` MUST remove it. Neither MAY print it,
+  that does not echo it and store it in the keychain under the student, clearing the
+  `wrong_password` mark (FR-027); `classroom password delete` MUST remove it. Neither MAY print it,
   log it, or take it as an option, an argument or an environment variable. Changing the password
   at Google stops the next scripted sign-in with `wrong_password`, and the family sets it again.
-- **FR-032**: When the scripted sign-in stops (FR-027), the read MUST stop with that code before
+- **FR-032**: When the scripted sign-in stops (FR-027), or Docker is not running (FR-028), the read
+  MUST stop with that code before
   reading anything, write nothing to the student's folder, show the macOS notification of spec 001
   FR-021a in Spanish naming the code and what to do (for `wrong_password` and `no_password`: run
   `classroom password set`), and leave its log line (FR-020). That day's read is then the family's
