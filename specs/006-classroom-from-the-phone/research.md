@@ -63,6 +63,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   slowest part of today's read, and a DOM made for the eye (collapsed sections, localised labels);
   the extension route — needs the Claude app and a window, the two needs this spec removes; reading
   Classroom's per-event emails — behind the same session (spec 001 R20).
+- **Revised 2026-11-17 (amendment, FR-030)**: the DOM extractor headless was measured working inside
+  the container: 12 of 12 classes complete in 14 min 20 s, the same items as the Chrome read
+  (S14). It ships first, unchanged, because it already produces the captures spec 001 applies; the
+  read by calls stays the planned optimisation of the same captures, not a precondition.
 
 ### R2. The browser: Playwright for Python driving the installed Google Chrome
 
@@ -323,6 +327,8 @@ Vertical slices).
 
 Note on S13: loading a page every 5 minutes is a measurement, not a route. Keeping the session
 alive between reads is out of this spec (reading with nobody signing in, spec 001 User Story 7).
+*(Since the amendment of 2026-11-17 a read with nobody signing in is in this spec, by the scripted
+sign-in of FR-027; keeping the session alive between reads still is not.)*
 
 ## Spike results
 
@@ -372,3 +378,53 @@ What it changed or left open:
   family that closes the window is seen only when the pipe closes or at `wait_minutes`.
 - Not measured here: whether the peer's claim holds that Playwright's keychain flags break the read
   (S7 ran only with them removed).
+
+### S14 · The scripted sign-in and the read in a container — passed at home, stopped in the cloud
+
+Measured 2026-11-16/17 on the school account (password only, no second factor) with Playwright
+1.64.1 and the installed Google Chrome, headless, a fresh profile, Playwright's own flags kept
+(`navigator.webdriver` true) but the two keychain flags removed as in S7. Code on branch
+`spike/166-s14-scripted-signin` (`spikes/s14_*`), kept off `main`. The real sign-ins were launched
+by the operator, except two reads of 2026-11-17 that Claude launched on the operator's standing
+permission to run tests: the 12-class read and the 2-class re-read below. Each signed in by script
+in a fresh profile, which breaches spec 001 research R15's first limit («Claude never runs a
+sign-in»); it was stopped there and is not repeated (FR-027). The log kept
+instants, categories and Google's sign-in paths; never the account, the password, a title or a
+cookie. Results also in julioarguello/alfabeta#166.
+
+| Where | Result |
+|---|---|
+| Mac, home address, Chrome on the host | Identifier → password → Classroom in 5 s; no rejection, challenge or second factor; reopened headless: session alive, class list present |
+| Google Cloud Run job, `europe-southwest1`, same script and Chrome (linux/amd64 image), account and password from Secret Manager | Stopped twice: after the account, the identifier page came back with an image captcha («Escribe el texto que escuches o veas»); the password page never showed |
+| Mac, home address, the same image in Docker (amd64 under emulation), launched by the operator | Identifier → password → Classroom in 6 s; session alive |
+| Mac, Docker, the whole read with alfabeta's extractor (`classroom-sync`'s calls, unchanged), launched by Claude | 12 of 12 classes `complete` in 14 min 20 s (13–164 s each); 0 presses on Classroom pages; the guard blocked 128 `drive.google.com` and 5 `ogs.google.com` frame loads; `download collect` took all 12 |
+| Same read compared with the Chrome read of the day before (2026-11-16) | Same item identifiers, posts and attachment counts in all 12 classes (statuses not compared), but every due time 1–2 h early: the container ran in UTC and Classroom writes dates in the browser's zone |
+| After setting the browser zone to `Europe/Madrid`, 2 classes (34 items), launched by Claude | Identical to the Chrome read of the day before (titles, types, attachment counts, due and posting texts), times included |
+
+What it settles and leaves open:
+
+- **The captcha met twice from Cloud Run `europe-southwest1`**, while the same image signed in from
+  home: not Linux, the container, the emulation or the automation flag. The address is the likely
+  cause, but it is not isolated from Cloud Run's own environment (its sandbox, native amd64).
+  Getting past the captcha is evasion (constitution IV), so the read stays where Google accepts it
+  (FR-028).
+- **The spike's guard departs from the rule of these spikes** (document allowlist, zero presses):
+  it allowed document loads by host, pressed Enter twice on Google's sign-in pages, and counted
+  presses on Classroom pages only. FR-027 and FR-030 set the build's guard.
+- **Zone and locale are requirements** (FR-029), not defaults: UTC silently shifts every date.
+- **The account index differs**: in the container's fresh profile the school account is `/u/0`;
+  in the family's Chrome it is another number. Attachment addresses carry it, so the design fetches
+  attachments inside the container's session (FR-028), not by the family's Chrome — a design
+  choice, not measured.
+- **Captures from the first, UTC-shifted read** were moved to the data folder's quarantine, so the
+  plan does not take them as the newest of each class.
+- **Not measured**: the sign-in from the launchd agent with the screen locked (S10's question for
+  this route); signing in again into a mounted, used profile whose session expired (the daily case:
+  every S14 run used a fresh profile); fetching attachments inside the container; the read behind
+  the build's guard (FR-030: S14's guard let every request that was not a document through); how many daily
+  scripted sign-ins Google tolerates before a check; and the session's life inside the container
+  beyond the read (S13).
+- **The cloud copy of the password** (account and password in Secret Manager of the alfabeta
+  project, with the job, its image and its service account) was deleted on 2026-11-17 with the
+  operator's yes, as S4's token was.
+

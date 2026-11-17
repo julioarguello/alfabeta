@@ -664,6 +664,13 @@ interface in Spanish), read-only, with no title, name or identifier printed (spi
   lives in an organisation the operator administers for work. Moving the runner to a project owned
   by a family account changes nothing else in this design.
 
+- **2026-11-17: the web route from the cloud, measured closed** (spec 006 research S14). A
+  scripted sign-in from a Cloud Run job of the alfabeta project (`europe-southwest1`, installed
+  Google Chrome, headless) met Google's image captcha right after the account, twice; the same
+  script and image from the home address signed in within seconds. With the token route closed by
+  S4 (R15), User Story 7 has no route in the cloud without evasion. The scripted sign-in now runs
+  on the Mac, in spec 006 as amended on that date.
+
 ### R18. Read-only as a property of the web route's browser (the token route uses scope)
 
 - **Today (the Mac route)**: the extractor only reads, Claude follows `SKILL.md`, and a `jsdom` test

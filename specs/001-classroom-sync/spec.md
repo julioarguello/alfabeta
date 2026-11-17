@@ -10,6 +10,10 @@
 browser (User Story 7, julioarguello/alfabeta#2): a token route (primary) or a scripted web sign-in
 (fallback), using a vault; constitution 2.0.0 (principle III redefined).
 
+**Amended**: 2026-11-17 — User Story 7 has no route in the cloud without evasion: the token route
+failed (S4) and the scripted web sign-in met Google's captcha from Cloud Run (research R17, spec 006
+research S14). The scripted sign-in runs on the Mac instead, in spec 006 as amended on that date.
+
 **Amended**: 2026-11-05 — what completes or corrects Classroom's material, its `patches/` subfolder and a
 task lacking its statement are spec 008 (julioarguello/alfabeta#184). Classroom's replicas stay as this spec
 says. FR-039 to FR-044, briefly used for the same, are free.

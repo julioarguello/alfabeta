@@ -1,5 +1,12 @@
 # Implementation Plan: Classroom read on the Mac with no app open, signed in from the phone
 
+> **Amendment of 2026-11-17.** This plan was written before spec 006's amendment of that date (spec
+> FR-027 to FR-032, constitution 2.11.0): a scripted sign-in with the password in the keychain, the
+> read in a Docker container on the Mac with alfabeta's extractor, and no email notices or remote
+> view in that build. Its Constitution Check rows for III, IV and IX, its dependencies (Docker,
+> Google Chrome in the image) and its slices are redone before that build; until then they describe
+> the read on the Mac's own Chrome.
+
 **Branch**: `docs/166-spec-006-plan` | **Date**: 2026-11-02 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/006-classroom-from-the-phone/spec.md`
@@ -79,7 +86,7 @@ constitution 2.6.0, amended by the spec.
 |---|---|---|
 | I. The student is configuration | The school account, the switch and the notice account are configuration; the profile lives in the student's data folder; two students have two profiles and run one at a time under the browser lock | Pass |
 | II. Three layers | Two template keys with `changeme`; the session in the data folder (user-only); the family's token in the keychain; nothing in a file beside the configuration; nothing copied off the Mac | Pass |
-| III. Minors' data | The family types the sign-in; alfabeta stores no password or second factor; emails and logs carry the student's id and counts only, tested (SC-006); the sign-in address never logged; data goes to Google (the family's account sends the email) and nowhere else; fixtures invented, not the peer's | Pass |
+| III. Minors' data | *(Written before the amendment of 2026-11-17, which stores the password in the keychain and signs in by script, spec FR-027 to FR-032; this plan is redone before that build.)* The family types the sign-in; alfabeta stores no password or second factor; emails and logs carry the student's id and counts only, tested (SC-006); the sign-in address never logged; data goes to Google (the family's account sends the email) and nowhere else; fixtures invented, not the peer's | Pass |
 | IV. Read-only on the school's platforms | The guard of research R4 in the browser before any page script: presses cancelled, document loads and calls allowlisted by name, form hosts blocked; the allowlist from read-only loads only (R3), and no write is sent to test it; a challenge stops the run; no stealth flags, no proxy: only the keychain flags Chrome needs to read its own cookies are changed | Pass, conditional on S8 (if reads cannot be told from writes by name, the read is not built) |
 | V. Idempotent, incremental | Captures keep today's ids (base64 of the decimal id, R7); apply unchanged; an unchanged item's materials are copied from the last capture, and a periodic full read asks again (R1) | Pass |
 | VI. One isolated, tested provider | The read is a second capture route of the Classroom provider behind the same capture contract; one class's failure stops only that class (FR-008); tests against fake answers and a fake Classroom, never the real one | Pass |
