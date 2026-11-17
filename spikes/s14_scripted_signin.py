@@ -139,14 +139,20 @@ def stop_reason(category: str, body: str) -> str | None:
 
 
 def account() -> str:
+    """The school account: in the cloud from its secret (S14_ACCOUNT), on the Mac from the config."""
     override = os.environ.get("S14_FAKE_ACCOUNT")
     if FAKE and override:
         return override
+    if os.environ.get("S14_ACCOUNT"):
+        return os.environ["S14_ACCOUNT"].strip()
     with (HOME / "config.toml").open("rb") as handle:
         return tomllib.load(handle)["classroom"]["account"].strip()
 
 
 def password() -> str:
+    """The password: in the cloud Cloud Run injects it from Secret Manager; on the Mac, the keychain."""
+    if os.environ.get("S14_PASSWORD"):
+        return os.environ.pop("S14_PASSWORD").rstrip("\n")
     done = subprocess.run(
         ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", STUDENT, "-w"],
         capture_output=True,
@@ -180,7 +186,8 @@ def launch(p, headless: bool):
     os.chmod(PROFILE, 0o700)
     return p.chromium.launch_persistent_context(
         str(PROFILE),
-        channel=None if FAKE else "chrome",
+        # The installed Google Chrome, as on the Mac; the bundled Chromium only for the local fake.
+        channel=None if FAKE and not os.environ.get("S14_CHANNEL") else os.environ.get("S14_CHANNEL", "chrome"),
         headless=headless,
         locale="es-ES",
         ignore_default_args=["--use-mock-keychain", "--password-store=basic"],
