@@ -434,7 +434,8 @@ arrives.
   Spanish, names the student only by its id, says until when the sign-in waits, and carries one
   link: opened on the Mac, it brings the sign-in window to the front; opened on the phone, it opens
   the remote view of the Mac's screen. The macOS notification of FR-021a is shown as well.
-- **FR-014**: When a read ends, it MUST send one result email the same way, with counts only: classes
+- **FR-014**: When a read ends, it MUST send one result email the same way *(read on the Mac's own
+  Chrome; the container read sends none, FR-022)*, with counts only: classes
   read, new and changed items, attachments brought and not brought, decisions left pending, items
   the guard blocked, and the stop reason if any. No email, log line or URL MAY carry a name, an email
   address or the title of anything in Classroom (constitution III).
@@ -539,8 +540,8 @@ arrives.
   launchd agent (FR-015) or by the family (FR-016) runs it; `classroom capture` never signs in
   (FR-023), `classroom sign-in` keeps its meaning (the hand window, which types nothing), and
   Claude MUST NOT start it (spec 001 research R15): `classroom refresh` MUST refuse the scripted
-  sign-in, stopping with `session_expired`, when it runs inside a Claude Code session (the
-  `CLAUDECODE` variable set). A read the family launches signs in the same way as a scheduled one:
+  sign-in when it runs inside a Claude Code session (the `CLAUDECODE` variable set): it reads only
+  with a session already alive, or stops with `session_expired`, with no notification. A read the family launches signs in the same way as a scheduled one:
   the family is present and the sign-in is done on their command, under III. The first scripted sign-in is launched by the
   family after `classroom password set` (FR-031): that is the family's first sign-in under
   constitution III.
