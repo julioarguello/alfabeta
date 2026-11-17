@@ -420,7 +420,8 @@ What it settles and leaves open:
   plan does not take them as the newest of each class.
 - **Not measured**: the sign-in from the launchd agent with the screen locked (S10's question for
   this route); signing in again into a mounted, used profile whose session expired (the daily case:
-  every S14 run used a fresh profile); fetching attachments inside the container; how many daily
+  every S14 run used a fresh profile); fetching attachments inside the container; the read behind
+  the build's guard (FR-030: S14's guard let every request that was not a document through); how many daily
   scripted sign-ins Google tolerates before a check; and the session's life inside the container
   beyond the read (S13).
 - **The cloud copy of the password** (account and password in Secret Manager of the alfabeta

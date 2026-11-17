@@ -255,10 +255,13 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
   uses a browser profile alfabeta keeps for the student in the data folder (II), and may run inside a
   container on the Mac (Docker) that mounts it. The profile is signed in by alfabeta's deterministic
   script with the password the family stored in the keychain, under III's conditions; when the
-  script meets a check it must not get past (IV), the family signs it in by hand in a window
-  alfabeta starts and does not drive. alfabeta reads with that session only through the browser
-  guard of IV. The session and the password are secrets on the Mac like the browser session above,
-  and never leave it: the password reaches the container only as a variable passed by name. Python 3.12 for the
+  script stops (IV), the read stops and the family is told, and that day's read is the family's
+  usual sync (spec 006 FR-032). A read on the Mac's own Chrome, which spec 006 also specifies, is
+  signed in by the family by hand in a window alfabeta starts and does not drive. alfabeta reads
+  with either session only through the browser guard of IV. The session and the password are
+  secrets on the Mac like the browser session above, and never leave it: the password reaches the
+  container only on its standard input, never as an environment variable, an argument or a
+  file. Python 3.12 for the
   scripts; JavaScript only inside the browser, to extract pages and to guard them.
 - **Configuration**: the `*-env` pattern with *template mirroring* (`template.*` → the student's
   configuration), or its equivalent in a structured format (TOML, which allows a comment per key,

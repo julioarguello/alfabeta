@@ -1,5 +1,12 @@
 # Implementation Plan: Classroom read on the Mac with no app open, signed in from the phone
 
+> **Amendment of 2026-11-17.** This plan was written before spec 006's amendment of that date (spec
+> FR-027 to FR-032, constitution 2.11.0): a scripted sign-in with the password in the keychain, the
+> read in a Docker container on the Mac with alfabeta's extractor, and no email notices or remote
+> view in that build. Its Constitution Check rows for III, IV and IX, its dependencies (Docker,
+> Google Chrome in the image) and its slices are redone before that build; until then they describe
+> the read on the Mac's own Chrome.
+
 **Branch**: `docs/166-spec-006-plan` | **Date**: 2026-11-02 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/006-classroom-from-the-phone/spec.md`

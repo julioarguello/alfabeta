@@ -13,7 +13,8 @@ read stops and tells the family why, and that day's read is the family's usual s
 (FR-032). The hand sign-in window, the remote view, the email notices and the read by calls
 (User Story 2, FR-003, FR-004, FR-010 to FR-013) stay specified for a read on the Mac's own Chrome,
 which the amendment does not build: a session signed in by hand in the Mac's Chrome cannot be read
-by the container (macOS encrypts that profile's cookies with a key in its keychain, R2). Where an
+by the container (inferred, not measured: macOS encrypts that profile's cookies with a key in its
+keychain, R2). Where an
 older sentence of this spec conflicts with FR-027 to FR-032, those win. Measured first: spike S14
 in research.md.
 
@@ -85,7 +86,8 @@ the script stops, FR-032.)*
   gets an email with one link. On the Mac the link brings the sign-in window to the front; on the
   phone it opens a remote view of the Mac's screen with that window. The family signs in; alfabeta
   closes the window and the read goes on alone.
-- **Launching when the family wants**, from the Mac or, through the remote view, from the phone.
+- **Launching when the family wants**, from the Mac or, through the remote view (read on the Mac's
+  own Chrome), from the phone.
 - **Commands that do not assume the Mac.** `classroom sign-in`, `capture`, `refresh` and `status`,
   and since 2026-11-17 `classroom password set|delete`;
   what differs between machines sits behind five named seams, and each credential arrives by its
@@ -189,7 +191,7 @@ names and response shapes are a starting point, not a measurement of this accoun
   compartir user / pass. Es la mejor forma» — then «podemos hacerlo de momento local, pero
   desatendido». → A: A scripted sign-in on the Mac, under constitution III's conditions: the
   password in the keychain (a vault, II), typed by alfabeta's deterministic script, never by Claude
-  and never shown; no evasion; any check stops the read and falls back to the hand sign-in. The
+  and never shown; no evasion; any check stops the read and tells the family (FR-032). The
   family accepts custody of a secret as sensitive as the account (III): «No me importa compartir
   user / pass».
 - Q: Does the school account ask for a second factor? → A: The operator: «Solo contraseña». So
@@ -294,6 +296,10 @@ arrived.
 
 ### User Story 3 - A read is launched when the family wants (Priority: P2)
 
+*Amendment of 2026-11-17: in the container read the launcher and `classroom refresh` sign in by
+script (FR-027); the remote view and the window of its Independent Test belong to the read on the
+Mac's own Chrome.*
+
 Besides the scheduled times, the family can start a read whenever they want: on the Mac with one
 command or by opening a launcher, and from the phone by opening that launcher through the remote
 view. The read asks for the sign-in only if the session is not alive.
@@ -376,7 +382,9 @@ arrives.
   lets the full sync load, every
   call not on the allowlist, and every request to a form or quiz host. Downloads are allowed only
   for the attachments this read listed in this run, through the routes of spec 001 research R4.
-  Every blocked item is counted, and the counts go into the log.
+  Every blocked item is counted, and the counts go into the log. *(Amendment 2026-11-17: the
+  container read's guard is FR-030's, without a call allowlist, which belongs to the read by
+  calls.)*
 - **FR-006**: Before any call, the read MUST check that the account signed in to the profile is the
   student's configured school account. Another account counts as no session: the read stops with
   `session_expired`, with nothing read, and the result email says another account was signed in,
@@ -466,25 +474,29 @@ arrives.
   FR-010 says, send the notice of FR-013, and end with `signed_in`, `session_expired` or
   `challenge` (FR-011). It reads nothing but the one session check. `classroom refresh` runs it when
   it needs a sign-in on the read in the Mac's own Chrome (the container read signs in by FR-027
-  instead), and the family runs it to start the session on a machine the first time — once
+  instead), and, for that read on the Mac's own Chrome, the family runs it to start the session on a machine the first time — once
   the `family` account is linked there, since the notice goes through it (spec 004 as amended).
 - **FR-022**: `classroom refresh --student <id>` MUST be the whole read: when the session is not
   alive, the scripted sign-in of FR-027 (and FR-032 if it stops) — or `classroom sign-in` on the
   read in the Mac's own Chrome — then `classroom capture`, then spec 001's `classroom plan` and
   `classroom apply` (which regenerates the agenda), under one lock, with one result email (FR-014)
-  and one log line (FR-020). It is what the schedule (FR-015), the launcher and the notice's link
+  and one log line (FR-020). *(Amendment 2026-11-17: the container read sends no email — the
+  `family` account's link is not built with it — and reports by its log line and, on a stop, FR-032's
+  notification.)* It is what the schedule (FR-015), the launcher and the notice's link
   run. Its verb is `refresh` — re-read the source so the copy that depends on it is current — and
   not `sync`, which alfabeta keeps for writing its state out to an outside copy (spec 003's
   `calendar sync`) and which spec 001 uses for the full sync launched with Claude (FR-018).
 - **FR-023**: `classroom capture --student <id> [--subject <folder>]…` MUST be the guarded read of
-  FR-003 to FR-009 alone: it leaves the capture and the attachments it listed, records in the lock
+  FR-003 to FR-009 alone (in the container read, FR-005 to FR-009 with FR-028 to FR-030): it leaves the capture and the attachments it listed, records in the lock
   the classes it captured (as spec 001's `download collect` does, so `classroom plan` without
   `--subject` finds them), and when the session is not alive it stops with `session_expired` without
   opening a window. It never signs in, by script or by window (FR-027).
 - **FR-024**: `classroom status --student <id>` MUST say whether the profile's session is alive (one
-  guarded load of a Classroom page), when the last read ran and how it ended, writing nothing in the
+  guarded load of a Classroom page, in the browser that holds that session: the container's, in the
+  container read), when the last read ran and how it ended, writing nothing in the
   student's Drive folder or the run log (its only write is the lock of FR-024a, under `data/`). When the lock is held it says a read is under way and loads no page.
-- **FR-024a**: All four commands, and `classroom password set|delete` (FR-031), MUST take the student's lock and the Mac's browser lock (spec 001
+- **FR-024a**: All four commands, and `classroom password set|delete` (FR-031, so the password never
+  changes under a running read), MUST take the student's lock and the Mac's browser lock (spec 001
   FR-021a) before they touch the read profile, so the profile is never open twice (FR-002); a
   command that finds them held by another run stops with `lock_busy`, except `classroom status`
   (FR-024); the same run (`ALFABETA_RUN`, as spec 001's commands check) goes on, so
@@ -509,7 +521,7 @@ arrives.
 
   | Credential | Arrives by | Lives on the Mac | On another machine |
   |---|---|---|---|
-  | The school session | the script of FR-027, from the stored password; or `classroom sign-in`, by hand, for the read in the Mac's own Chrome | the read profile, in the student's data folder | signed in again there with `classroom sign-in`: the session never leaves the Mac (constitution, Technical constraints) |
+  | The school session | the script of FR-027, from the stored password; or `classroom sign-in`, by hand, for the read in the Mac's own Chrome | the read profile, in the student's data folder | signed in again there, by the same means: the session never leaves the Mac (constitution, Technical constraints) |
   | The school account's password (amendment 2026-11-17) | `classroom password set`: the family types it at a prompt that does not echo it (FR-031) | the keychain | not moved: the password never leaves the Mac (constitution, Technical constraints); another machine would need constitution II and IX amended first, then the same command there |
   | The Google links (the student's and the `family` account) | `google account link` (spec 004) | the keychain | linked again there with `google account link`; where they may be stored is for the amendment of constitution II that moving needs (FR-025) |
 
@@ -526,10 +538,14 @@ arrives.
   fields (Google's «Siguiente»), and waits for Classroom. Only `classroom refresh` started by the
   launchd agent (FR-015) or by the family (FR-016) runs it; `classroom capture` never signs in
   (FR-023), `classroom sign-in` keeps its meaning (the hand window, which types nothing), and
-  Claude MUST NOT start it (spec 001 research R15). The first scripted sign-in is launched by the
+  Claude MUST NOT start it (spec 001 research R15): `classroom refresh` MUST refuse the scripted
+  sign-in, stopping with `session_expired`, when it runs inside a Claude Code session (the
+  `CLAUDECODE` variable set). A read the family launches signs in the same way as a scheduled one:
+  the family is present and the sign-in is done on their command, under III. The first scripted sign-in is launched by the
   family after `classroom password set` (FR-031): that is the family's first sign-in under
   constitution III.
-  - **Stops.** Any page other than Google's account and password pages, or Classroom, MUST stop it
+  - **Stops.** Any page other than Google's account and password pages, the redirect pages the
+    sign-in's guard allows, or Classroom, MUST stop it
     at once with one of these codes, logged by code, never by address or content: `rejected`
     (Google refuses the browser), `challenge` (a check a human must clear, an image captcha
     included), `second_factor`, `other_sign_in` (the school's own sign-in, or any other site),
@@ -540,13 +556,13 @@ arrives.
     then every read stops with `wrong_password` at once, so the school account is not locked.
   - **The sign-in's guard** (constitution IV): document loads in the main frame only on Google's
     sign-in host (`accounts.google.com`), the account-cookie pages Google redirects through
-    (`accounts.youtube.com`, `www.google.com`) and Classroom; any other main-frame load stops with
+    (`accounts.youtube.com`, `www.google.com`, `www.google.es`) and Classroom; any other main-frame load stops with
     `other_sign_in`; any other frame load is blocked and counted; no press beyond the two Enters.
-    These hosts are those S14 measured; the build records the paths seen in its first real run and
-    narrows the allowlist to them.
+    These are the hosts S14's guard allowed (it saw six such loads, not logged by host); the build
+    records the hosts and paths seen in its first real run and narrows the allowlist to them.
 - **FR-028**: The read — sign-in, capture and attachments — MUST run in a container on the Mac:
-  Docker, `linux/amd64` because Google ships Chrome for Linux only for that platform, Google Chrome
-  installed in the image and a pinned Playwright. The container is the operator's requirement of
+  Docker, `linux/amd64` (the platform S14 measured, under emulation on the Mac; another one only
+  after measuring it), Google Chrome installed in the image and a pinned Playwright. The container is the operator's requirement of
   portability («se ejecuta donde se pueda»): the host's Chrome also signed in by script (S14), so
   it is not needed to sign in; it makes the same read run unchanged on another machine whose
   address Google accepts, once constitution II and IX allow that machine. The read profile MUST be a
@@ -561,9 +577,13 @@ arrives.
   earlier (research S14). Its locale MUST be `es-ES`, the language the extractor's labels are
   written for.
 - **FR-030**: Inside the container the read MUST use alfabeta's own extractor unchanged
-  (`skills/classroom-sync/scripts/extract.js`), as the classroom-sync skill does in Chrome, behind
-  the guard of FR-005 with spec 001 FR-007's pages (classwork, stream, item details) as its
-  document allowlist, not the spike's allowlist of hosts. Measured (research S14): 12 of 12
+  (`skills/classroom-sync/scripts/extract.js`), with the same calls the classroom-sync skill makes
+  in Chrome; each capture is returned to the read through the page, not saved by the extractor's
+  download click. Its guard (constitution IV: page loads and presses) MUST block, before they reach
+  Classroom, every press, every document load outside spec 001 FR-007's pages (home, classwork,
+  stream, item details), and every request to a form, quiz or download host; it has no call
+  allowlist, which belongs to the read by calls (FR-004), and R4's session-upkeep rule does not
+  apply to it — spec 001 research R18's weaker guarantee, which IV's wording allows. Measured (research S14): 12 of 12
   classes complete in 14 min 20 s, in UTC, with the items, posts and attachment counts of the
   previous day's Chrome read; two classes re-read in `Europe/Madrid` identical, times included.
   The read by Classroom's own calls (FR-003, FR-004, R1) stays planned, as a faster read of the
@@ -583,7 +603,7 @@ arrives.
 ### Key Entities
 
 - **Read profile**: the browser profile kept for one student's read; holds the school session after
-  the family signs in; lives in the student's data folder.
+  the script (FR-027) or the family signs in; lives in the student's data folder.
 - **Sign-in window**: the browser window alfabeta opens on Google's sign-in in the read profile and
   does not drive; the family signs in in it, and alfabeta closes it when its address reaches
   Classroom (or the family closes it).
@@ -607,6 +627,8 @@ arrives.
 
 ### Measurable Outcomes
 
+- *SC-001 and SC-002 measure the read on the Mac's own Chrome with the phone sign-in, which the
+  amendment of 2026-11-17 does not build; SC-008 is the container read's.*
 - **SC-001**: Over 10 consecutive school days, at least 9 scheduled reads that the family signs in
   to from the phone update the topic folders with nobody at the Mac and the Claude app closed.
 - **SC-002**: Over the reads of SC-001, with the remote view set up and the Mac awake, the median
@@ -616,7 +638,9 @@ arrives.
   not guaranteed: one cut short is applied as `partial` (FR-009).
 - **SC-004**: Over those reads, nothing is pressed, no form or quiz is opened, and every call outside
   the allowlist is blocked and counted; in the offline test, a planted press, a planted form link and
-  a planted write call are all blocked and never reach the fake server.
+  a planted write call are all blocked and never reach the fake server. *(For the container read,
+  amendment 2026-11-17: the planted press, form link and page outside FR-007's pages; the planted
+  write call belongs to the read by calls.)*
 - **SC-005**: For the same classes on the same day, this read and the current extractor give the
   same items, identifiers, statuses, attachments, stream posts and, where built, submissions and
   gradings; a second apply writes nothing.
@@ -643,6 +667,8 @@ arrives.
   2026-11-17; not measured from the agent yet).
 - Google keeps accepting a daily scripted sign-in from the home address; how many it tolerates
   before a check is not measured (S14).
+- *(Amendment 2026-11-17: the read built is the extractor, measured at 14 min 20 s for 12 classes
+  under emulation, S14, inside SC-003's 30 minutes.)*
 - Reading through calls is faster than the hidden-iframe extractor, which took 14 minutes for eleven
   classes (spec 001 research R4), so a whole read fits inside the session's life.
 
