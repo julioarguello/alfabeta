@@ -48,7 +48,10 @@ KEYCHAIN_SERVICE = os.environ.get("S14_KEYCHAIN_SERVICE", "alfabeta-classroom")
 
 # A local fake (tests only) serves /accounts/... and /classroom/... on one origin.
 FAKE = os.environ.get("S14_FAKE", "").rstrip("/")
-CLASSROOM = f"{FAKE}/classroom/u/0/h" if FAKE else "https://classroom.google.com/u/0/h"
+# The fake serves the repository's synthetic Classroom pages at their own paths (/u/5/...).
+CLASSROOM = (
+    f"{FAKE}{os.environ.get('S14_FAKE_HOME', '/classroom/u/0/h')}" if FAKE else "https://classroom.google.com/u/0/h"
+)
 SIGN_IN = (
     f"{FAKE}/accounts/v3/signin/identifier?continue={CLASSROOM}"
     if FAKE
@@ -105,7 +108,7 @@ def kind(url: str) -> str:
     """A page's address as a category; for Google's sign-in, its path (which holds no account)."""
     if FAKE and url.startswith(FAKE):
         path = url[len(FAKE) :].split("?", 1)[0]
-        if path.startswith("/classroom"):
+        if path.startswith(("/classroom", "/u/")):
             return "classroom"
         if path.startswith("/accounts"):
             return "accounts:" + path[len("/accounts") :]
@@ -228,8 +231,12 @@ def guard_factory(counts: dict, blocked: dict):
     def guard(route, request) -> None:
         parts = urlsplit(request.url)
         host = parts.hostname or ""
-        if FAKE and request.url.startswith(FAKE):
-            route.continue_()
+        if FAKE:  # a test never reaches Google: only the fake answers
+            if request.url.startswith(FAKE):
+                route.continue_()
+            else:
+                counts["requests_blocked"] += 1
+                route.abort()
             return
         if request.resource_type == "document":
             if host in SIGN_IN_HOSTS:
