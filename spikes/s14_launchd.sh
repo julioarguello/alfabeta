@@ -63,6 +63,10 @@ EOF
       read_exit=$?
     fi
     note "LAUNCHD_END	screen=$(screen_state)	signin_exit=$signin	read_exit=$read_exit"
+    # One shot: StartCalendarInterval would fire every day, so the agent removes itself (last, as
+    # bootout ends this very process).
+    rm -f "$PLIST"
+    launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null
     ;;
   *)
     print -u2 "usage: $0 install HH:MM | uninstall | run"; exit 2;;
