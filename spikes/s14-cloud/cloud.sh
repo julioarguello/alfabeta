@@ -10,7 +10,7 @@
 #
 # Claude wrote this; the family runs it (constitution III: Claude never starts the real sign-in, and
 # the secrets go from the family's keyboard to Secret Manager without touching the Mac's disk, II).
-# Uses the gcloud configuration S14_GCLOUD_CONFIG (default: losfueros) without changing the active one.
+# Uses the gcloud configuration S14_GCLOUD_CONFIG (default: alfabeta) without changing the active one.
 set -eu
 
 PROJECT="${2:-}"
@@ -21,7 +21,7 @@ SA="$JOB@$PROJECT.iam.gserviceaccount.com"
 REPO="$REGION-docker.pkg.dev/$PROJECT/alfabeta-spikes"
 IMAGE="$REPO/s14:poc"
 HERE="${0:A:h}"
-g() { gcloud --configuration="${S14_GCLOUD_CONFIG:-losfueros}" --project="$PROJECT" --quiet "$@"; }
+g() { gcloud --configuration="${S14_GCLOUD_CONFIG:-alfabeta}" --project="$PROJECT" --quiet "$@"; }
 
 secret() {  # $1 secret name, $2 prompt; the value is read silently and piped straight to Secret Manager
   local value
