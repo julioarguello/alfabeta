@@ -248,8 +248,8 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
   reads either as a first-party client with a token, or with a headless browser whose session the
   family started by hand — using a secret in the vault (II). On the Mac, alfabeta's own commands may
   also run from a launchd agent in the family's user session, with no app open, when a spec names
-  the need (spec 005: the notebook owner's refresh, FR-018; spec 006: the Classroom read the family
-  signs in to); such an agent uses the secrets already on the Mac and adds only those its spec
+  the need (spec 005: the notebook owner's refresh, FR-018; spec 006: the Classroom read, signed in
+  by script or by the family); such an agent uses the secrets already on the Mac and adds only those its spec
   names — for spec 006, the read profile's session, the school account's password and the link of
   the `family` account that sends its notices (spec 004). Spec 006's read
   uses a browser profile alfabeta keeps for the student in the data folder (II), and may run inside a
