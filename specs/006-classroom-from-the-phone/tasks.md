@@ -121,10 +121,13 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 
 ## Slice E — `classroom agent install|uninstall` (FR-015)
 
-- [ ] T014 [P] [E] Write `tests/test_classroom_agent.py` with spec 005's fake `Launchctl`: the plist
+- [x] T014 [P] [E] Write `tests/test_classroom_agent.py` with spec 005's fake `Launchctl`: the plist
   runs `classroom refresh` with `ALFABETA_STARTED_BY=schedule` at the `[schedule]` times; uninstall removes it;
-  `config check` reports the switch on together with spec 001's runner (FR-015).
-- [ ] T015 [E] Implement `src/alfabeta/classroom/agent.py` and the two commands; drop them from
+  `classroom refresh` started by the agent outside `[schedule] wait_minutes` after its time ends
+  `skipped`/`outside_hours` (FR-015). *(The exclusivity check with spec 001's runner has nothing to
+  read: that runner was never built — its cloud routes closed, spec 001 research R17 — and no
+  configuration key switches it on. It is added with the runner's key, if it is ever built.)*
+- [x] T015 [E] Implement `src/alfabeta/classroom/agent.py` and the two commands; drop them from
   `PLANNED`.
 
 ## The family's steps (not Claude's)

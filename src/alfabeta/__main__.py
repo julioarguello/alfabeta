@@ -40,6 +40,7 @@ from alfabeta.classification import CANDIDATE, Classifier
 from alfabeta.classroom import cli as classroom_cli
 from alfabeta.classroom import password as classroom_password
 from alfabeta.classroom import refresh as classroom_refresh
+from alfabeta.classroom.agent import ClassroomAgentSpec
 from alfabeta.classroom.container import DockerReadContainer
 from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar, gmail
@@ -81,6 +82,23 @@ TABLES = {
 AGENT_TABLES = ("tools", "notebook")
 # `notebook share` reads the topic folders on this Mac and the notebooks; no Google link (spec 001 FR-011b).
 SHARE_TABLES = ("student", "storage", "notebook")
+
+
+def _refresh_config(home: Path, student: str, started_by: str) -> classroom_refresh.RefreshConfig:
+    """`classroom refresh`'s configuration; `[schedule]` is read only when the agent started it (FR-015)."""
+    scheduled = started_by == "schedule"
+    tables = ("classroom", "downloads", "sync", *(("schedule",) if scheduled else ()))
+    cfg = config.load(home, student, tables)
+    return classroom_refresh.RefreshConfig(
+        student=student,
+        account=cfg.school_account,
+        profile_read=cfg.profile_read,
+        data_dir=cfg.data_dir,
+        downloads=Path(cfg.downloads_folder).expanduser(),
+        idle_minutes=cfg.lock_idle_minutes,
+        times=cfg.schedule_times if scheduled else {},
+        wait_minutes=cfg.schedule_wait_minutes if scheduled else 0,
+    )
 
 
 def _cmd_config_check(home: Path, student: str) -> int:
@@ -822,6 +840,13 @@ def build_parser() -> argparse.ArgumentParser:
         "set", help="ask for the password at a prompt that does not echo it, and store it"
     )
     password_delete = password.add_parser("delete", help="remove the stored password and its wrong_password mark")
+    classroom_agent = classroom.add_parser(
+        "agent", help="the launchd agent that runs `classroom refresh` at the [schedule] times (spec 006)"
+    ).add_subparsers(dest="action", required=True)
+    classroom_agent_install = classroom_agent.add_parser(
+        "install", help="write the agent in ~/Library/LaunchAgents and load it"
+    )
+    classroom_agent_remove = classroom_agent.add_parser("uninstall", help="unload the agent and delete it")
     agenda = groups.add_parser("agenda", help="the student's agenda").add_subparsers(dest="verb", required=True)
     agenda_cmd = agenda.add_parser("build", help="regenerate agenda.json and agenda.md, only if they change")
     drive = groups.add_parser("drive", help="the student's Drive folders").add_subparsers(dest="verb", required=True)
@@ -1003,6 +1028,8 @@ def build_parser() -> argparse.ArgumentParser:
         notebook_refresh,
         agent_install,
         agent_remove,
+        classroom_agent_install,
+        classroom_agent_remove,
         password_set,
         password_delete,
         refresh_cmd,
@@ -1050,17 +1077,23 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_drive_share(args, home, store)
         if args.group == "decision":
             return _cmd_decisions(args, home)
+        if args.group == "classroom" and args.verb == "agent":
+            if args.action == "uninstall":  # whatever the configuration says, or if the folder is gone
+                gone = ClassroomAgentSpec(args.student, home.resolve(), Path(), home / args.student / "data", {})
+                return classroom_cli.cmd_agent("uninstall", gone, profile_read=False)
+            agent_cfg = config.load(home, args.student, ("tools", "classroom", "schedule"))
+            spec = ClassroomAgentSpec(
+                args.student,
+                home.resolve(),
+                agent_cfg.tools_repository,
+                agent_cfg.data_dir.resolve(),
+                agent_cfg.schedule_times,
+            )
+            return classroom_cli.cmd_agent("install", spec, profile_read=agent_cfg.profile_read)
         if args.group == "classroom" and args.verb == "refresh":
-            cfg = config.load(home, args.student, ("classroom", "downloads", "sync"))
+            started_by = os.environ.get("ALFABETA_STARTED_BY", "command")
             return classroom_cli.cmd_refresh(
-                classroom_refresh.RefreshConfig(
-                    student=args.student,
-                    account=cfg.school_account,
-                    profile_read=cfg.profile_read,
-                    data_dir=cfg.data_dir,
-                    downloads=Path(cfg.downloads_folder).expanduser(),
-                    idle_minutes=cfg.lock_idle_minutes,
-                ),
+                _refresh_config(home, args.student, started_by),
                 _lock(home, args.student),
                 classroom_refresh.Deps(
                     container=DockerReadContainer(),
@@ -1069,7 +1102,8 @@ def main(argv: list[str] | None = None) -> int:
                     steps=classroom_cli.run_step(home, args.student),
                     today=dt.date.today(),
                     inside_claude=bool(os.environ.get("CLAUDECODE")),
-                    started_by=os.environ.get("ALFABETA_STARTED_BY", "command"),
+                    started_by=started_by,
+                    now=dt.datetime.now(),
                 ),
             )
         if args.group == "classroom" and args.verb == "password":

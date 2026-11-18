@@ -263,8 +263,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   `classroom agent uninstall` removes both. Same pattern and adapter as spec 005's `notebook agent`
   (`notes/agent.py`'s `Launchctl` port).
 - **Asleep**: launchd runs a missed `StartCalendarInterval` at the next wake; `classroom refresh`
-  started outside the configured hours (more than `wait_minutes` after its time) logs the miss and
-  ends (FR-015 «not made up»).
+  started outside the configured hours (more than `wait_minutes` after its time, at least 10
+  minutes since launchd starts a few seconds late; a window past midnight belongs to the day it
+  started) logs the miss and ends (FR-015 «not made up»). A refresh started by hand reads no
+  `[schedule]`.
 - **Exclusivity**: `config check` reports `[classroom] profile_read = true` together with spec 001's
   unattended runner switched on for the same student (FR-015).
 - **Second launch** (FR-017): the student's lock is held: the command says a read is under way and,
