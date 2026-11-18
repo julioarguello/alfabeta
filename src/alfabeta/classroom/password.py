@@ -64,13 +64,20 @@ class PasswordStore:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.mark_path.write_text(today.isoformat() + "\n")
 
-    def set(self, prompt: Prompt, is_tty: bool) -> None:
-        """Ask for the password and store it; clears the mark."""
+    def ask(self, prompt: Prompt, is_tty: bool) -> str:
+        """Ask for the password, from a terminal only; holds no lock while the family types."""
         if not is_tty:
             raise PasswordError("invalid_config", "the password is asked only from a terminal")
-        value = prompt("Contraseña de la cuenta del colegio (no se muestra): ")
+        try:
+            value = prompt("Contraseña de la cuenta del colegio (no se muestra): ")
+        except (EOFError, KeyboardInterrupt):
+            raise PasswordError("invalid_config", "no password typed; nothing stored") from None
         if not value:
             raise PasswordError("invalid_config", "no password typed; nothing stored")
+        return value
+
+    def store_password(self, value: str) -> None:
+        """Store an answer of `ask` and clear the mark."""
         self.store.set(self.student, value)
         self.mark_path.unlink(missing_ok=True)
 

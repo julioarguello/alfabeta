@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import sys
@@ -18,7 +19,8 @@ if TYPE_CHECKING:
 
 EXIT_OK = 0
 EXIT_INVALID = 1
-# A password command touches no profile and runs for seconds: it holds the lock only while it runs.
+# A password command touches no profile and writes for a moment: it holds the lock only while it
+# writes, never while the family types (`set` asks first).
 _IDLE_MINUTES = 5
 
 
@@ -26,8 +28,12 @@ def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False))
 
 
-def _fail(reason: str, message: str) -> int:
+def _say(message: str) -> None:
     print(f"alfabeta: {message}", file=sys.stderr)
+
+
+def _fail(reason: str, message: str) -> int:
+    _say(message)
     _emit({"ok": False, "reason": reason})
     return EXIT_INVALID
 
@@ -45,7 +51,8 @@ def _locked(lock: state.Lock, body: Callable[[], int]) -> int:
     try:
         return body()
     finally:
-        lock.release(taken)
+        with contextlib.suppress(state.LockError):  # a watcher that idled out has released it already
+            lock.release(taken)
 
 
 def cmd_password(
@@ -59,18 +66,22 @@ def cmd_password(
 ) -> int:
     """`classroom password set|delete` (FR-031). Never prints the password."""
     passwords = PasswordStore(store, data_dir, student)
+    answer = ""
+    if action == "set":
+        try:
+            answer = passwords.ask(prompt, is_tty)
+        except PasswordError as err:
+            return _fail(err.reason, str(err))
 
     def body() -> int:
         try:
             if action == "set":
-                passwords.set(prompt, is_tty)
-                print("alfabeta: contraseña guardada en el llavero.", file=sys.stderr)
+                passwords.store_password(answer)
+                _say("contraseña guardada en el llavero")
                 _emit({"ok": True, "stored": True})
             else:
                 removed = passwords.delete()
                 _emit({"ok": True, "removed": removed})
-        except PasswordError as err:
-            return _fail(err.reason, str(err))
         except KeychainError as err:
             return _fail(str(StopReason.INVALID_CONFIG), str(err))
         return EXIT_OK

@@ -110,7 +110,8 @@ def test_a_held_lock_stops_with_lock_busy(tmp_path: Path, capsys: pytest.Capture
         prompt, asked = _prompt(INVENTED)
         code = cli.cmd_password("set", STUDENT, data, lock, store, prompt, True)
         assert code == 1 and json.loads(capsys.readouterr().out)["reason"] == "lock_busy"
-        assert asked == [] and store.secrets == {}
+        # Asked first (no lock while typing), then refused at the lock: nothing stored.
+        assert len(asked) == 1 and store.secrets == {}
     finally:
         lock.release(run)
 
@@ -150,3 +151,105 @@ def test_the_commands_take_no_password_option_and_ignore_the_environment(
     # No terminal: refused before asking; neither stdin nor the environment's planted value is used.
     assert code == 1 and json.loads(out.out)["reason"] == "invalid_config"
     assert INVENTED not in out.out + out.err
+
+
+def test_the_service_literal_is_its_own() -> None:
+    assert SERVICE == "alfabeta.classroom" and GOOGLE_SERVICE == "alfabeta.google"
+
+
+def test_main_stores_in_the_classroom_service(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import alfabeta.__main__ as entry
+
+    services: list[str] = []
+
+    class Recording(FakeStore):
+        def __init__(self, service: str = GOOGLE_SERVICE) -> None:
+            super().__init__()
+            services.append(service)
+
+    monkeypatch.setattr(entry, "KeychainStore", Recording)
+    home = tmp_path / "home"
+    (home / STUDENT).mkdir(parents=True)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+    entry.main(["--home", str(home), "classroom", "password", "delete", "--student", STUDENT])
+    assert json.loads(capsys.readouterr().out.splitlines()[-1]) == {"ok": True, "removed": False}
+    assert SERVICE in services
+
+
+def test_the_stored_value_is_the_prompts_never_the_environments(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("ALFABETA_PASSWORD", "plantada-en-el-entorno")
+    store = FakeStore()
+    code, _ = _run(tmp_path, "set", store, answer=INVENTED, tty=True)
+    assert code == 0 and store.secrets == {STUDENT: INVENTED}
+    capsys.readouterr()
+
+
+def test_a_google_link_of_the_same_student_is_untouched(tmp_path: Path) -> None:
+    google, classroom = FakeStore(), FakeStore()
+    google.set(STUDENT, "token-de-google-inventado")
+    _run(tmp_path, "set", classroom)
+    assert google.secrets == {STUDENT: "token-de-google-inventado"} and classroom.secrets == {STUDENT: INVENTED}
+
+
+def test_the_lock_is_released_after_each_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    home = tmp_path / "home"
+    data = home / STUDENT / "data"
+    for action in ("set", "delete"):
+        _run(tmp_path, action, FakeStore())
+        assert not state.Lock(home, data).held()
+    capsys.readouterr()
+
+
+def test_inside_the_run_that_holds_the_lock_it_goes_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = tmp_path / "home"
+    data = home / STUDENT / "data"
+    lock = state.Lock(home, data)
+    run = lock.take(RunMode.INTERACTIVE, 5)
+    try:
+        monkeypatch.setenv(state.RUN_ENV, run)
+        store = FakeStore()
+        prompt, _ = _prompt(INVENTED)
+        code = cli.cmd_password("set", STUDENT, data, lock, store, prompt, True)
+        assert code == 0 and store.secrets == {STUDENT: INVENTED}
+        assert lock.held()  # still the run's: the command neither took nor released it
+    finally:
+        lock.release(run)
+    capsys.readouterr()
+
+
+def test_the_lock_is_not_held_while_the_family_types(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    home = tmp_path / "home"
+    data = home / STUDENT / "data"
+    data.mkdir(parents=True)
+    lock = state.Lock(home, data)
+    seen: list[bool] = []
+
+    def ask(prompt: str) -> str:
+        seen.append(lock.held())
+        return INVENTED
+
+    assert cli.cmd_password("set", STUDENT, data, lock, FakeStore(), ask, True) == 0
+    assert seen == [False]
+    capsys.readouterr()
+
+
+@pytest.mark.parametrize("raised", [EOFError, KeyboardInterrupt])
+def test_a_cancelled_prompt_is_invalid_config(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], raised: type[BaseException]
+) -> None:
+    home = tmp_path / "home"
+    data = home / STUDENT / "data"
+    data.mkdir(parents=True)
+
+    def ask(prompt: str) -> str:
+        raise raised
+
+    store = FakeStore()
+    code = cli.cmd_password("set", STUDENT, data, state.Lock(home, data), store, ask, True)
+    assert code == 1 and json.loads(capsys.readouterr().out)["reason"] == "invalid_config" and store.secrets == {}
