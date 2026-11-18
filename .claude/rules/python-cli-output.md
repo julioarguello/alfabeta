@@ -85,7 +85,7 @@ justifies (constitution IX). If colour is ever added:
 
 ## 4. Vocabulary — house rule, extending PRIMER (`✓ - ✗ + !`)
 
-Guidance for human-facing stderr lines; a contract's wording (a Spanish line it quotes) wins.
+Guidance for human-facing stderr lines; a contract's wording (a line it quotes) wins.
 
 | Glyph | Meaning |
 |:--|:--|
@@ -126,7 +126,7 @@ Boundary announcements **not gated** — a review item.
 
 ## 7. Errors — standard (GNU 4.4); hints, items and pipes house rules
 
-- **One shape for every failure:** `alfabeta: <message>` on stderr and
+- **One shape for every failure:** `alfabeta: <time> <message>` on stderr (§6) and
   `{"ok": false, "reason": "<reason>"}` on stdout, through `_fail()`. `reason` is a stable
   snake_case word from the contract (`invalid_config`, `lock_not_held`); the message is for people.
 - **Label: GNU's non-interactive form `program: message`** — alfabeta's commands are run by
@@ -158,7 +158,7 @@ contract already assigns it, the contract wins; a new code avoids `2`.
 - Machine output is the JSON on stdout: no colour, no truncation, exact dates (ISO 8601,
   `Europe/Madrid`, principle VIII), state as a word.
 - **Counts carry nouns** in human lines. Not gated.
-- **An empty result is a result:** «sin cambios» on stderr, an empty list in the JSON, exit 0 —
+- **An empty result is a result:** `no changes` on stderr, an empty list in the JSON, exit 0 —
   neither a warning nor an error.
 
 ## 10. Anti-patterns

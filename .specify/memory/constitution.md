@@ -299,7 +299,8 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
   (`YYYY-MM-DDTHH:MM:SS`), so a run can be followed and placed in time (the operator, 2026-11-18).
   What the student and the family read where alfabeta writes for them is in Spanish: the names of
   the files alfabeta writes in their folder, the agenda, Google Tasks, the calendar and the Mac's
-  notifications; Claude's own report of a sync, in the conversation, is in Spanish as well. A name alfabeta takes from elsewhere keeps its own language: a topic's title
+  notifications; Claude's own report of a sync, in the conversation, is in Spanish as well. A
+  name alfabeta takes from elsewhere keeps its own language: a topic's title
   (the teacher's or the textbook's), a Classroom item's title, and a subject's folder (the
   family's configuration).
 

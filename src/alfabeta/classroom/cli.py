@@ -14,6 +14,7 @@ from alfabeta import state
 from alfabeta.classroom import refresh
 from alfabeta.classroom.agent import ClassroomAgent, ClassroomAgentSpec, system_agent
 from alfabeta.classroom.password import PasswordError, PasswordStore, Prompt
+from alfabeta.dates import MADRID  # principle VIII: local time is always Madrid
 from alfabeta.google.keychain import KeychainError, TokenStore
 from alfabeta.model import RunMode, StopReason
 from alfabeta.notes.agent import AgentError
@@ -37,7 +38,7 @@ def _emit(payload: dict[str, Any]) -> None:
 
 def _say(message: str) -> None:
     """One line for people on stderr: English, with the local time (constitution 2.12.0, Language)."""
-    print(f"alfabeta: {dt.datetime.now():%Y-%m-%dT%H:%M:%S} {message}", file=sys.stderr)
+    print(f"alfabeta: {dt.datetime.now(MADRID):%Y-%m-%dT%H:%M:%S} {message}", file=sys.stderr)
 
 
 def say(message: str) -> None:
