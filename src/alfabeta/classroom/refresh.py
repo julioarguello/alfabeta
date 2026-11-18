@@ -3,6 +3,12 @@
 One run under the student's and the browser lock: Docker, the image, the container (which signs in
 when it must and may, and captures every class), then spec 001's own steps — `download collect`,
 `classroom plan`, `classroom apply` — as the classroom-sync skill runs them, with `ALFABETA_RUN`.
+Between plan and apply, the attachments the plan asks for (spec 001 research R4's rule: new,
+modified, renamed or the periodic review, out of this run's captures) are fetched by a second pass
+of the container in the same session, which never signs in; each file lands at its exact
+`data/inbox/<item>__<attachment>/<name>`, where `classroom apply` takes it. The pass is skipped
+when the plan asks for nothing or the first pass found the session gone; what is not brought,
+apply notes «no traído».
 
 - Inside Claude Code (`CLAUDECODE` set) the container gets the account and `signin: false`, never
   the password, and no notification is shown (FR-027): Claude never starts the scripted sign-in.
@@ -19,14 +25,16 @@ when it must and may, and captures every class), then spec 001's own steps — `
 from __future__ import annotations
 
 import contextlib
+import re
 import shutil
 import threading
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta import state
 from alfabeta.classroom.container import ContainerError
 from alfabeta.classroom.password import PasswordStore
+from alfabeta.downloads import inbox_path
 from alfabeta.google.keychain import KeychainError
 from alfabeta.model import RunMode, StopReason
 
@@ -39,6 +47,9 @@ if TYPE_CHECKING:
     from alfabeta.google.notify import Notifier
 
 RENEW_SECONDS = 60
+SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,200}$")
+# A first pass that ended so says the session is gone or the read was breached: no second pass.
+NO_SESSION = ("session_expired", "challenge")
 STARTED_BY = ("schedule", "command")
 # What the notification tells the family to do, by stop code (FR-032).
 ADVICE = {
@@ -197,6 +208,10 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: d
     _hand_over(out, cfg.downloads, run)
     collected = deps.steps(["download", "collect", "--wait", "10"], run)
     planned = {} if _failed(collected) else deps.steps(["classroom", "plan"], run)
+    attachments: dict[str, int] = {"brought": 0, "not_brought": 0, "refused": 0}
+    if not _failed(collected) and not _failed(planned):
+        session = reason not in NO_SESSION and not blocked.get("redirects")
+        attachments = _attachments(cfg, lock, deps, run, image, planned, session)
     applied = {} if _failed(collected) or _failed(planned) else deps.steps(["classroom", "apply"], run)
     failed = next((step for step in (collected, planned, applied) if _failed(step)), None)
     if failed is not None:
@@ -207,11 +222,71 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: d
         "ok": True,
         "outcome": outcome,
         "reason": reason,
-        "capture": capture | {"collected": len(collected.get("classes", []))},
+        "capture": capture | {"collected": len(collected.get("classes", [])), "attachments": attachments},
         "apply": {k: applied.get(k) for k in ("added", "changed") if k in applied}
         | {"pending_decisions": len(planned.get("pending_decisions", []))},
         "blocked": blocked,
     }
+
+
+def _wanted(planned: dict[str, Any]) -> list[dict[str, Any]]:
+    """The plan's downloads as the attachments pass takes them: item, attachment, R4 address, name."""
+    keys = ("item", "attachment", "url", "expected_name")
+    listed = planned.get("downloads", [])
+    entries: list[Any] = cast("list[Any]", listed) if isinstance(listed, list) else []
+    downloads = [cast("dict[str, Any]", d) for d in entries if isinstance(d, dict)]
+    return [{k: d[k] for k in keys} for d in downloads if all(isinstance(d.get(k), str) for k in keys)]
+
+
+def _safe(download: dict[str, Any]) -> bool:
+    """Ids and name as single path components (they come from the page): no way out of the inbox."""
+    name = download["expected_name"]
+    return bool(
+        SAFE_ID.match(download["item"])
+        and SAFE_ID.match(download["attachment"])
+        and 0 < len(name) <= 255
+        and name not in (".", "..")
+        and not any(c in name for c in ("/", "\\", "\0"))
+    )
+
+
+def _attachments(
+    cfg: RefreshConfig,
+    lock: state.Lock,
+    deps: Deps,
+    run: str,
+    image: str,
+    planned: dict[str, Any],
+    session: bool,
+) -> dict[str, int]:
+    """The second pass: fetch what the plan asks for, place each file at its exact inbox path."""
+    wanted = _wanted(planned)
+    counts = {"brought": 0, "not_brought": len(wanted), "refused": 0}
+    if not wanted or not session:
+        return counts
+    request: dict[str, Any] = {"run": run, "account": cfg.account, "password": None, "signin": False, "fetch": wanted}
+    out = cfg.data_dir / f"classroom-out-{run}-attachments"
+    try:
+        with _Renewer(lock, run):
+            end = deps.container.run(image, request, cfg.data_dir / "classroom-profile", out, lambda event: None)
+    except ContainerError:
+        shutil.rmtree(out, ignore_errors=True)
+        return counts
+    finally:
+        request.clear()
+    placed = 0
+    for download in wanted:
+        if not _safe(download):
+            continue
+        source = out / "inbox" / f"{download['item']}__{download['attachment']}" / download["expected_name"]
+        if source.is_file() and not source.is_symlink():
+            destination = inbox_path(cfg.data_dir, download)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source), destination)
+            placed += 1
+    shutil.rmtree(out, ignore_errors=True)
+    refused = int(end.get("attachments", {}).get("refused", 0))
+    return {"brought": placed, "not_brought": len(wanted) - placed - refused, "refused": refused}
 
 
 def _hand_over(out: Path, downloads: Path, run: str) -> None:

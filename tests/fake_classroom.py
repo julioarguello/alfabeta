@@ -10,6 +10,11 @@ redirects outside), `captcha` (an image captcha after the account), `rejected`, 
 account), `expire_mid` (the third class's pages leave for another origin, as an expired session
 does). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
 prove the read clears the cookies first. Class `synth-73` is unreadable (`unexpected_ui`).
+
+Attachments (R4's routes, served for any mode at `other_origin`, so the download host is not the
+sign-in's): `/download?id=<id>&export=download` and `/document/d/<id>/export`. Without the session
+cookie they redirect to the sign-in at `origin`. By id: `f-pdf` a PDF, `f-hop` a redirect to
+`f-pdf` on the same host, `f-away` a redirect to another host, `f-html` an HTML page, `f-gone` 404.
 """
 
 from __future__ import annotations
@@ -44,6 +49,8 @@ PLANTED = """<button id=planted>x</button><form id=plantedform></form>
 <div aria-label="Cuenta de Google: Persona Inventada ({email})"></div>
 <script>window.addEventListener('load', () => {{ document.getElementById('planted').click();
 document.getElementById('plantedform').submit(); }});</script>"""
+PDF = b"%PDF-1.4 fichero inventado\n"
+
 ROUTES = [
     (r"^/u/5/w/[^/]+/t/all$", "classwork.html"),
     (r"^/u/5/c/[^/]+/a/[^/]+/details$", "assignment-detail.html"),
@@ -94,23 +101,49 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def fake(self) -> FakeGoogle:
         return cast("FakeGoogle", self.server)
 
-    def _send(self, body: str | bytes, code: int = 200, location: str | None = None, cookie: str | None = None) -> None:
+    def _send(
+        self,
+        body: str | bytes,
+        code: int = 200,
+        location: str | None = None,
+        cookie: str | None = None,
+        content_type: str = "text/html; charset=utf-8",
+    ) -> None:
         self.send_response(code)
         if location:
             self.send_header("Location", location)
         if cookie:
             self.send_header("Set-Cookie", cookie)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body.encode() if isinstance(body, str) else body)))
         self.end_headers()
         self.wfile.write(body.encode() if isinstance(body, str) else body)
 
     def _signed_in(self) -> bool:
         return "fakesid=ok" in (self.headers.get("Cookie") or "")
 
+    def _attachment(self, file_id: str) -> None:
+        if not self._signed_in():
+            return self._send("", 302, f"{self.fake.origin}/v3/signin/identifier")
+        if file_id in ("f-pdf", "doc-1"):
+            return self._send(PDF, content_type="application/pdf")
+        if file_id == "f-hop":
+            return self._send("", 302, "/download?id=f-pdf&export=download&authuser=5")
+        if file_id == "f-away":
+            return self._send("", 302, "http://third.invalid/file")
+        if file_id == "f-html":
+            return self._send(GENERIC.format(title="No se ha podido analizar el archivo"))
+        return self._send("no", 404)
+
     def do_GET(self) -> None:
         url = urlsplit(self.path)
         mode = self.fake.mode
         self.fake.served.append(url.path)
+        if url.path == "/download":
+            return self._attachment(parse_qs(url.query).get("id", [""])[0])
+        exported = re.match(r"^/document/d/([\w-]+)/export$", url.path)
+        if exported:
+            return self._attachment(exported.group(1))
         if url.path == "/v3/signin/identifier":
             if "fakestale=1" in (self.headers.get("Cookie") or ""):
                 return self._send("", 302, "/v3/signin/accountchooser")

@@ -93,9 +93,9 @@ def inputs_hash(paths: tuple[Path, ...] = INPUTS) -> str:
     return digest.hexdigest()[:16]
 
 
-def container_name(run: str) -> str:
-    """The container's name: the run id, which is no secret."""
-    return f"{IMAGE}-{run}"
+def container_name(run: str, attachments: bool = False) -> str:
+    """The container's name: the run id, which is no secret; the attachments pass has its own."""
+    return f"{IMAGE}-{run}" + ("-attachments" if attachments else "")
 
 
 def run_argv(image: str, profile: Path, out: Path, name: str) -> list[str]:
@@ -159,7 +159,7 @@ class DockerReadContainer:
         """
         profile.mkdir(mode=0o700, parents=True, exist_ok=True)
         out.mkdir(mode=0o700, parents=True, exist_ok=True)
-        name = container_name(str(request["run"]))
+        name = container_name(str(request["run"]), attachments="fetch" in request)
         proc = self._streaming(run_argv(image, profile, out, name))
         assert proc.stdin is not None and proc.stdout is not None
         expired = threading.Event()

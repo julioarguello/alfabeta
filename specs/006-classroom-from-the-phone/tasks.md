@@ -110,12 +110,14 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 
 ## Slice D — attachments in the container (FR-028, FR-030; spec 001 research R4)
 
-- [ ] T012 [P] [D] Extend `tests/test_classroom_read.py`: an attachment listed by this run's
-  captures is fetched by R4's routes through the request context into
-  `/out/inbox/<item>__<attachment>/<name>` and counted; an unlisted file, a non-R4 host and a form
-  or quiz link are refused and counted; a file that does not arrive is reported, not retried.
-- [ ] T013 [D] Implement the attachments in `read.py` and their hand-over to `download collect` in
-  `refresh.py`.
+- [x] T012 [P] [D] Extend `tests/test_classroom_read.py`: an attachment the plan asked for out of
+  this run's captures is fetched, on the second pass, by R4's routes through the request context
+  into `/out/inbox/<item>__<attachment>/<name>` and counted; an unlisted file, a non-R4 host and a
+  form or quiz link are refused and counted; a file that does not arrive is reported, not retried;
+  the pass never signs in; an expired session ends it; `refresh` places what the real `read.py`
+  fetched (plan, run flow step 6, amended 2026-11-18).
+- [x] T013 [D] Implement the attachments pass in `read.py` and its hand-over to `data/inbox/` in
+  `refresh.py`, between `classroom plan` and `classroom apply`.
 
 ## Slice E — `classroom agent install|uninstall` (FR-015)
 

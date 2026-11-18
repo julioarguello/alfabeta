@@ -63,9 +63,11 @@ class FakeContainer:
         dies: bool = False,
         takes: float = 0.0,
         events: list[dict[str, Any]] | None = None,
+        brings: frozenset[str] = frozenset(),
     ) -> None:
         self.end = end
         self.events = events or []
+        self.brings = brings
         self.up = up
         self.builds = builds
         self.dies = dies
@@ -85,8 +87,18 @@ class FakeContainer:
         self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Callable[[dict[str, Any]], None]
     ) -> dict[str, Any]:
         self.requests.append(dict(request))
-        self.out = out
         out.mkdir(parents=True, exist_ok=True)
+        if "fetch" in request:
+            # The attachments pass: write what it "brings" where read.py would, by the given name.
+            for d in request["fetch"]:
+                if d["attachment"] in self.brings:
+                    path = out / "inbox" / f"{d['item']}__{d['attachment']}" / d["expected_name"]
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(b"%PDF")
+            brought = sum(d["attachment"] in self.brings for d in request["fetch"])
+            counts = {"brought": brought, "not_brought": len(request["fetch"]) - brought, "refused": 0}
+            return {"event": "end", "outcome": "ok", "reason": None, "attachments": counts}
+        self.out = out
         if self.dies:
             raise ContainerError("died")
         time.sleep(self.takes)
@@ -98,9 +110,10 @@ class FakeContainer:
 
 
 class FakeSteps:
-    def __init__(self, fail: str | None = None) -> None:
+    def __init__(self, fail: str | None = None, downloads: list[dict[str, Any]] | None = None) -> None:
         self.calls: list[tuple[list[str], str]] = []
         self.fail = fail
+        self.downloads = downloads or []
 
     def __call__(self, args: list[str], run: str) -> dict[str, Any]:
         self.calls.append((args, run))
@@ -109,7 +122,7 @@ class FakeSteps:
         if args[:2] == ["download", "collect"]:
             return {"collected": [], "pending": [], "classes": ["c0"]}
         if args[:2] == ["classroom", "plan"]:
-            return {"classes": ["c0"], "pending_decisions": [{"type": "class_link"}]}
+            return {"classes": ["c0"], "pending_decisions": [{"type": "class_link"}], "downloads": self.downloads}
         if args[:2] == ["classroom", "apply"]:
             return {"result": "ok", "added": 2, "changed": 0}
         return {}
@@ -428,3 +441,46 @@ def test_a_step_answers_its_json_or_a_failure(
     monkeypatch.setattr(cli.subprocess, "run", run)
     assert cli.run_step(tmp_path, STUDENT)(["download", "collect"], "run1") == answer
     assert seen[0]["env"][state.RUN_ENV] == "run1" and seen[0]["argv"][-2:] == ["--student", STUDENT]
+
+
+def _download(item: str, attachment: str, name: str) -> dict[str, Any]:
+    url = f"https://drive.usercontent.google.com/download?id={attachment}&export=download&authuser=5"
+    return {"item": item, "attachment": attachment, "url": url, "expected_name": name, "batch": 0, "why": "new"}
+
+
+def test_the_plans_downloads_are_fetched_and_placed_before_apply(tmp_path: Path) -> None:
+    steps = FakeSteps(downloads=[_download("i1", "f1", "Tema 3.pdf"), _download("i2", "f2", "b.pdf")])
+    container = FakeContainer(OK, brings=frozenset({"f1"}))
+    result, _, _, data = _go(tmp_path, container, steps=steps)
+    assert result["capture"]["attachments"] == {"brought": 1, "not_brought": 1, "refused": 0}
+    assert (data / "inbox" / "i1__f1" / "Tema 3.pdf").read_bytes() == b"%PDF"
+    assert not (data / "inbox" / "i2__f2").exists()
+    second = container.requests[1]
+    assert second["signin"] is False and second["password"] is None and second["run"] == container.requests[0]["run"]
+    assert [d["attachment"] for d in second["fetch"]] == ["f1", "f2"] and "batch" not in second["fetch"][0]
+    assert [c[0][1] for c in steps.calls] == ["collect", "plan", "apply"]
+    assert not list(data.glob("classroom-out-*"))
+
+
+def test_nothing_to_fetch_starts_no_second_pass(tmp_path: Path) -> None:
+    container = FakeContainer(OK)
+    result, _, _, _ = _go(tmp_path, container)
+    assert len(container.requests) == 1 and result["capture"]["attachments"]["not_brought"] == 0
+
+
+def test_a_session_gone_in_the_first_pass_skips_the_second(tmp_path: Path) -> None:
+    end = {"event": "end", "outcome": "partial", "reason": "session_expired", "classes": {"read": 1, "failed": 1}}
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    container = FakeContainer(end, brings=frozenset({"f1"}))
+    result, _, steps, _ = _go(tmp_path, container, steps=steps)
+    assert len(container.requests) == 1 and result["capture"]["attachments"]["not_brought"] == 1
+    assert [c[0][1] for c in steps.calls] == ["collect", "plan", "apply"]
+
+
+def test_a_name_with_a_way_out_is_never_moved(tmp_path: Path) -> None:
+    # The fake writes it at out/inbox/fuera.pdf; a host that trusted the name would move it to data/inbox/.
+    steps = FakeSteps(downloads=[_download("i1", "f1", "../fuera.pdf")])
+    container = FakeContainer(OK, brings=frozenset({"f1"}))
+    result, _, _, data = _go(tmp_path, container, steps=steps)
+    assert result["capture"]["attachments"]["brought"] == 0
+    assert not list(data.rglob("fuera.pdf")) and not (data / "inbox").exists()

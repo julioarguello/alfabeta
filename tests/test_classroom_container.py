@@ -186,3 +186,17 @@ def test_a_genuine_end_is_never_relabelled(tmp_path: Path) -> None:
     popen = FakePopen([{"event": "class", "id": "a", "type": "class"}, stop])
     reader = container.DockerReadContainer(process=Ran({}), streaming=lambda argv: popen)  # type: ignore[arg-type,return-value]
     assert reader.run("img:tag", {"run": "r5"}, tmp_path / "p", tmp_path / "o", lambda e: None) == stop
+
+
+def test_the_attachments_pass_has_its_own_container_name(tmp_path: Path) -> None:
+    started: list[list[str]] = []
+    popen = FakePopen([{"event": "end", "outcome": "ok", "attachments": {"brought": 0}}])
+
+    def streaming(argv: list[str]) -> Any:
+        started.append(argv)
+        return popen
+
+    reader = container.DockerReadContainer(process=Ran({}), streaming=streaming)
+    reader.run("img:tag", {"run": "r6", "fetch": []}, tmp_path / "p", tmp_path / "o", lambda e: None)
+    name = started[0][started[0].index("--name") + 1]
+    assert name == container.container_name("r6", attachments=True) != container.container_name("r6")

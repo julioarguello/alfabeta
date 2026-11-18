@@ -7,18 +7,19 @@ own Chromium plays Google Chrome. No real account, keychain value or Google host
 
 from __future__ import annotations
 
+import datetime as dt
 import importlib.util
 import io
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import jsonschema
 import playwright.sync_api as playwright  # dev dependency; CI installs its Chromium (T007), never skipped
 import pytest
 
-from tests.fake_classroom import ACCOUNT, PASSWORD, UNREADABLE, FakeGoogle
+from tests.fake_classroom import ACCOUNT, PASSWORD, PDF, UNREADABLE, FakeGoogle
 
 ROOT = Path(__file__).resolve().parents[1]
 READ = ROOT / "docker" / "classroom" / "read.py"
@@ -43,6 +44,8 @@ def _load(fake: FakeGoogle, tmp_path: Path, only: frozenset[str]) -> tuple[Any, 
     module.PACE = 0.0
     module.ONLY = only
     module.FORM_HOSTS = frozenset({"forms.invalid"})
+    module.DRIVE_DOWNLOAD = f"{fake.other_origin}/download"
+    module.DOCS_ORIGIN = fake.other_origin
     events: list[dict[str, Any]] = []
     module.emit = events.append
     return module, events
@@ -231,3 +234,148 @@ def test_a_redirect_during_a_class_drops_it_and_stops_the_read(tmp_path: Path) -
     assert not list((tmp_path / "out").glob("*-synth-71-*.json"))  # the breaching class is not kept
     redirects = [e for e in events if e["event"] == "redirect"]
     assert redirects and all("?" not in e["path"] for e in redirects)
+
+
+def _live(*origins: str) -> Any:
+    """A seed that leaves a live session in the profile, its cookie on each origin named."""
+
+    def seed(module: Any, fake: FakeGoogle) -> None:
+        with playwright.sync_playwright() as p:
+            ctx = p.chromium.launch_persistent_context(str(module.PROFILE), headless=True)
+            for origin in origins:
+                url = getattr(fake, origin)
+                ctx.add_cookies([{"name": "fakesid", "value": "ok", "url": url, "expires": time.time() + 3600}])
+            ctx.close()
+
+    return seed
+
+
+def _want(item: str, file_id: str, name: str, url: str | None = None) -> dict[str, Any]:
+    return {
+        "item": item,
+        "attachment": file_id,
+        "url": url or f"{{drive}}?id={file_id}&export=download&authuser=5",
+        "expected_name": name,
+    }
+
+
+def _fetch(
+    tmp_path: Path, wanted: list[dict[str, Any]], seed: Any = None, request: dict[str, Any] | None = None
+) -> tuple[dict[str, Any], list[dict[str, Any]], FakeGoogle]:
+    with FakeGoogle("ok") as fake:
+        module, events = _load(fake, tmp_path, frozenset({"none"}))
+        (seed or _live("origin", "other_origin"))(module, fake)
+        for w in wanted:
+            w["url"] = w["url"].replace("{drive}", module.DRIVE_DOWNLOAD).replace("{docs}", module.DOCS_ORIGIN)
+        base = {"run": "run0000000000001", "account": ACCOUNT, "password": None, "signin": False}
+        end: dict[str, Any] = module.run(base | (request or {}) | {"fetch": wanted})
+        return end, events, fake
+
+
+def _inbox(tmp_path: Path, item: str, file_id: str, name: str) -> Path:
+    return tmp_path / "out" / "inbox" / f"{item}__{file_id}" / name
+
+
+def test_listed_attachments_are_fetched_into_the_inbox(tmp_path: Path) -> None:
+    wanted = [
+        _want("i1", "f-pdf", "Tema 3.pdf"),
+        _want("i2", "f-hop", "Ejercicios.pdf"),  # a redirect within R4's host is followed
+        _want("i3", "doc-1", "Apuntes.pdf", "{docs}/document/d/doc-1/export?format=pdf&authuser=5"),
+    ]
+    end, events, fake = _fetch(tmp_path, wanted)
+    assert end["outcome"] == "ok" and end["attachments"] == {"brought": 3, "not_brought": 0, "refused": 0}, end
+    assert _inbox(tmp_path, "i1", "f-pdf", "Tema 3.pdf").read_bytes() == PDF
+    assert _inbox(tmp_path, "i2", "f-hop", "Ejercicios.pdf").read_bytes() == PDF
+    assert _inbox(tmp_path, "i3", "doc-1", "Apuntes.pdf").read_bytes() == PDF
+    assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
+    _no_secret(events, end, tmp_path)
+
+
+def test_an_unlisted_file_a_non_r4_route_or_a_bad_name_is_refused_before_its_request(tmp_path: Path) -> None:
+    wanted = [
+        _want("i1", "f-pdf", "a.pdf", "{drive}?id=f-other&export=download&authuser=5"),  # not its own id
+        _want("i2", "f-pdf", "a.pdf", "http://third.invalid/download?id=f-pdf&export=download"),
+        _want("i3", "f-pdf", "a.pdf", "https://docs.google.com/forms/d/f-pdf/viewform"),
+        _want("i4", "quiz", "a.pdf", "{docs}/forms/d/quiz/export"),
+        _want("i5", "f-pdf", "../fuera.pdf"),
+        _want("i/6", "f-pdf", "a.pdf"),
+    ]
+    end, events, fake = _fetch(tmp_path, wanted)
+    assert end["attachments"] == {"brought": 0, "not_brought": 0, "refused": 6}, end
+    assert "/download" not in fake.served and not any("/forms/" in path for path in fake.served)
+    assert not (tmp_path / "out" / "inbox").exists() and not (tmp_path / "fuera.pdf").exists()
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["route"] * 4 + ["name"] * 2
+
+
+def test_a_redirect_to_another_host_is_refused_and_logged_by_host_only(tmp_path: Path) -> None:
+    end, events, _ = _fetch(tmp_path, [_want("i1", "f-away", "a.pdf")])
+    assert end["attachments"]["refused"] == 1
+    assert {"event": "attachment", "result": "refused", "why": "host", "host": "third.invalid"} in events
+
+
+def test_a_page_or_a_missing_file_is_not_brought_and_not_retried(tmp_path: Path) -> None:
+    end, events, fake = _fetch(tmp_path, [_want("i1", "f-html", "a.pdf"), _want("i2", "f-gone", "b.pdf")])
+    assert end["outcome"] == "ok" and end["attachments"] == {"brought": 0, "not_brought": 2, "refused": 0}
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["html", "status_404"]
+    assert fake.served.count("/download") == 2
+
+
+def test_an_expired_session_stops_the_pass_and_brings_nothing_more(tmp_path: Path) -> None:
+    # Classroom still opens, but the download host has no session: its sign-in redirect ends the pass.
+    wanted = [_want("i1", "f-pdf", "a.pdf"), _want("i2", "f-pdf", "b.pdf")]
+    end, _, fake = _fetch(tmp_path, wanted, seed=_live("origin"))
+    assert end["outcome"] == "stopped" and end["reason"] == "session_expired"
+    assert end["attachments"] == {"brought": 0, "not_brought": 2, "refused": 0}
+    assert fake.served.count("/download") == 1
+
+
+def test_the_attachments_pass_never_signs_in(tmp_path: Path) -> None:
+    def no_session(module: Any, fake: FakeGoogle) -> None:
+        pass
+
+    end, events, fake = _fetch(tmp_path, [_want("i1", "f-pdf", "a.pdf")], seed=no_session, request=SIGN_IN)
+    assert end["reason"] == "session_expired" and fake.password_attempts == 0
+    assert not [e for e in events if e["event"] == "typed"] and "/download" not in fake.served
+
+
+class ModuleContainer:
+    """`ReadContainer` that runs this very `read.py` in-process against the fake, both passes."""
+
+    def __init__(self, module: Any) -> None:
+        self.module = module
+        self.requests: list[dict[str, Any]] = []
+
+    def available(self) -> bool:
+        return True
+
+    def ensure_image(self) -> str:
+        return "in-process"
+
+    def run(self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Any) -> dict[str, Any]:
+        self.requests.append({k: v for k, v in request.items() if k != "password"})
+        self.module.PROFILE, self.module.OUT, self.module.emit = profile, out, on_event
+        return cast("dict[str, Any]", self.module.run(dict(request)))
+
+
+def test_refresh_places_what_the_real_read_fetched(tmp_path: Path) -> None:
+    from alfabeta import state
+    from alfabeta.classroom import refresh
+    from tests.test_classroom_refresh import FakeNotifier, FakeSteps, FakeStore
+
+    with FakeGoogle("ok") as fake:
+        module, _ = _load(fake, tmp_path, frozenset({"none"}))  # the class list alone: fast
+        data = tmp_path / "home" / "s9" / "data"
+        module.PROFILE = data / "classroom-profile"
+        _live("origin", "other_origin")(module, fake)
+        url = f"{module.DRIVE_DOWNLOAD}?id=f-pdf&export=download&authuser=5"
+        wanted = {"item": "synth-71-i1", "attachment": "f-pdf", "url": url, "expected_name": "Tema 3.pdf"}
+        steps = FakeSteps(downloads=[wanted | {"batch": 0, "why": "new"}])
+        reader = ModuleContainer(module)
+        cfg = refresh.RefreshConfig("s9", ACCOUNT, True, data, tmp_path / "downloads", 5)
+        deps = refresh.Deps(reader, FakeStore(), FakeNotifier(), steps, dt.date(2026, 11, 18), False, "command")
+        result = refresh.refresh(cfg, state.Lock(tmp_path / "home", data), deps, None)
+    assert result["outcome"] == "ok", result
+    assert result["capture"]["attachments"] == {"brought": 1, "not_brought": 0, "refused": 0}
+    assert (data / "inbox" / "synth-71-i1__f-pdf" / "Tema 3.pdf").read_bytes() == PDF
+    assert [r.get("fetch") is not None for r in reader.requests] == [False, True]
+    assert sorted(p.name for p in (tmp_path / "downloads").iterdir())[0].startswith("alfabeta-capture-")

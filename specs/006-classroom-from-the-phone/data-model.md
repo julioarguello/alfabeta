@@ -38,7 +38,7 @@ and `classroom password delete`. While it exists the container is started with `
 | Field | Rule |
 |---|---|
 | image | built from the repository root with `-f docker/classroom/Dockerfile`, labelled with the hash of its inputs (`Dockerfile`, `read.py`, the extractor); rebuilt when the hash changes |
-| mounts | the read profile `data/classroom-profile/` (the student's data folder, `0700`), which stays between reads, and an out folder under `data/`; the container itself is removed at the end (`--rm`) |
+| mounts | the read profile `data/classroom-profile/` (the student's data folder, `0700`), which stays between reads, and an out folder under `data/` (`classroom-out-<run>/`, and `classroom-out-<run>-attachments/` for the attachments pass, whose files the host moves to `data/inbox/`); the container itself is removed at the end (`--rm`) |
 | stdin | one JSON line `{account, password, signin}`; `password` is `null` when none is needed or stored |
 | stdout | one JSON line per event: sign-in page loads by host and path (no query), each class captured, each attachment, the final counts and stop code; never the account or the password |
 | stop codes | `rejected`, `challenge`, `second_factor`, `other_sign_in`, `wrong_password`, `no_password`, `session_expired`, `unexpected_ui`, `unreachable`; `docker_unavailable` from the host |
