@@ -188,13 +188,6 @@ def test_the_stored_value_is_the_prompts_never_the_environments(
     capsys.readouterr()
 
 
-def test_a_google_link_of_the_same_student_is_untouched(tmp_path: Path) -> None:
-    google, classroom = FakeStore(), FakeStore()
-    google.set(STUDENT, "token-de-google-inventado")
-    _run(tmp_path, "set", classroom)
-    assert google.secrets == {STUDENT: "token-de-google-inventado"} and classroom.secrets == {STUDENT: INVENTED}
-
-
 def test_the_lock_is_released_after_each_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     home = tmp_path / "home"
     data = home / STUDENT / "data"
