@@ -49,14 +49,15 @@ def run_command(argv: list[str], stdin: str | None) -> subprocess.CompletedProce
 
 
 class KeychainStore:
-    """`TokenStore` over the login keychain."""
+    """`TokenStore` over the login keychain, in one service (spec 004's by default)."""
 
-    def __init__(self, runner: Runner = run_command) -> None:
+    def __init__(self, runner: Runner = run_command, service: str = SERVICE) -> None:
         self._run = runner
+        self._service = service
 
     def get(self, account: str) -> str | None:
         """Read a secret; None when there is none."""
-        done = self._run(["security", "find-generic-password", "-s", SERVICE, "-a", account, "-w"], None)
+        done = self._run(["security", "find-generic-password", "-s", self._service, "-a", account, "-w"], None)
         if done.returncode == _NOT_FOUND:
             return None
         if done.returncode != 0:
@@ -66,13 +67,13 @@ class KeychainStore:
     def set(self, account: str, secret: str) -> None:
         """Write a secret through `security -i`, never through argv."""
         encoded = base64.urlsafe_b64encode(secret.encode()).decode()
-        command = f"add-generic-password -U -s {SERVICE} -a {account} -w {encoded}\n"
+        command = f"add-generic-password -U -s {self._service} -a {account} -w {encoded}\n"
         done = self._run(["security", "-i"], command)
         if done.returncode != 0 or "error" in done.stderr.lower():
             raise KeychainError("add-generic-password failed")
 
     def delete(self, account: str) -> None:
         """Remove a secret; absent is fine."""
-        done = self._run(["security", "delete-generic-password", "-s", SERVICE, "-a", account], None)
+        done = self._run(["security", "delete-generic-password", "-s", self._service, "-a", account], None)
         if done.returncode not in (0, _NOT_FOUND):
             raise KeychainError(f"delete-generic-password exited {done.returncode}")

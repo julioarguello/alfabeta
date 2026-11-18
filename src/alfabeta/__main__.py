@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import getpass
 import json
 import os
 import sys
@@ -36,6 +37,8 @@ from alfabeta import (
     state,
 )
 from alfabeta.classification import CANDIDATE, Classifier
+from alfabeta.classroom import cli as classroom_cli
+from alfabeta.classroom import password as classroom_password
 from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar, gmail
 from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, cache_path
@@ -797,6 +800,13 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument(
         "--stopped", choices=["timeout"], help="a scheduled run's wait ended midway with no stop capture (FR-021a)"
     )
+    password = classroom.add_parser(
+        "password", help="the school account's password in the keychain, for the scripted sign-in (spec 006)"
+    ).add_subparsers(dest="action", required=True)
+    password_set = password.add_parser(
+        "set", help="ask for the password at a prompt that does not echo it, and store it"
+    )
+    password_delete = password.add_parser("delete", help="remove the stored password and its wrong_password mark")
     agenda = groups.add_parser("agenda", help="the student's agenda").add_subparsers(dest="verb", required=True)
     agenda_cmd = agenda.add_parser("build", help="regenerate agenda.json and agenda.md, only if they change")
     drive = groups.add_parser("drive", help="the student's Drive folders").add_subparsers(dest="verb", required=True)
@@ -978,6 +988,8 @@ def build_parser() -> argparse.ArgumentParser:
         notebook_refresh,
         agent_install,
         agent_remove,
+        password_set,
+        password_delete,
         exam_prep,
         claude_set,
         signin,
@@ -1022,6 +1034,17 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_drive_share(args, home, store)
         if args.group == "decision":
             return _cmd_decisions(args, home)
+        if args.group == "classroom" and args.verb == "password":
+            data_dir = config.student_root(home, args.student) / "data"
+            return classroom_cli.cmd_password(
+                args.action,
+                args.student,
+                data_dir,
+                _lock(home, args.student),
+                KeychainStore(service=classroom_password.SERVICE),
+                getpass.getpass,
+                sys.stdin.isatty(),
+            )
         if args.group == "classroom" and args.verb == "plan":
             return _cmd_plan(args, home)
         if args.group == "classroom":
