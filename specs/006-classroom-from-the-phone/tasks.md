@@ -13,10 +13,10 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 
 ## Slice 0 — shared vocabulary
 
-- [ ] T001 [0] Extend `StopReason` (`src/alfabeta/model.py`) with `rejected`, `second_factor`,
+- [x] T001 [0] Extend `StopReason` (`src/alfabeta/model.py`) with `rejected`, `second_factor`,
   `other_sign_in`, `wrong_password`, `no_password`, `docker_unavailable`, `unreachable` and `disabled`
   (`challenge`, `session_expired`, `unexpected_ui`, `lock_busy` exist); update
-  `contracts/cli.md` (the password commands, `refresh`'s codes and `--trigger`) and
+  `contracts/cli.md` (the password commands, `refresh`'s codes and `started_by`) and
   `data-model.md` (the stored password, the `wrong_password` mark, the read container; the profile
   spelled `data/classroom-profile/`, the student's data folder, as in the plan).
 
@@ -90,7 +90,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
     `wrong_password` and `no_password`, `classroom password set`), the mark set for
     `wrong_password`, nothing written to the student's folder;
   - a full read → captures collected, plan and apply once, the lock renewed while the container
-    runs, one log line with `--trigger`, counts and blocked counts;
+    runs, one log line with `started_by` (`ALFABETA_STARTED_BY`), counts and blocked counts;
   - neither the account nor the password in any log line or notification.
 - [ ] T009 [P] [C] Write `tests/test_classroom_container.py`, the `DockerReadContainer` tests with a fake process runner (as
   `src/alfabeta/google/keychain.py`'s `Runner`): `docker run --rm -i`, the profile and out folders
@@ -99,7 +99,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
   hash changes; a failed build → `docker_unavailable`.
 - [ ] T010 [C] Implement `src/alfabeta/classroom/container.py` (`ReadContainer`,
   `DockerReadContainer`) and `src/alfabeta/classroom/refresh.py` with
-  `classroom refresh [--trigger schedule|command]`; declare `[classroom] profile_read` in
+  `classroom refresh` (`started_by` from `ALFABETA_STARTED_BY`, as `contracts/cli.md` says); declare `[classroom] profile_read` in
   `config/template.toml` (`false`, as `contracts/config-template.toml`); drop `refresh` from `PLANNED`.
 - [ ] T011 [C] Write `tests/test_classroom_image.py` (marked `docker`, run on the Mac before the pull
   request and recorded in it): the image builds; `docker image inspect` shows no `ENV` or label
@@ -118,7 +118,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 ## Slice E — `classroom agent install|uninstall` (FR-015)
 
 - [ ] T014 [P] [E] Write `tests/test_classroom_agent.py` with spec 005's fake `Launchctl`: the plist
-  runs `classroom refresh --trigger schedule` at the `[schedule]` times; uninstall removes it;
+  runs `classroom refresh` with `ALFABETA_STARTED_BY=schedule` at the `[schedule]` times; uninstall removes it;
   `config check` reports the switch on together with spec 001's runner (FR-015).
 - [ ] T015 [E] Implement `src/alfabeta/classroom/agent.py` and the two commands; drop them from
   `PLANNED`.

@@ -21,6 +21,19 @@ profile_read = true` and otherwise end with `disabled` (1); `classroom status` t
 | `classroom agent install --student <id>` | Writes the launchd agent that runs `classroom refresh --student <id>` at each `[schedule]` time, and the launcher (research R11); loads the agent | `~/Library/LaunchAgents/`, the launcher bundle | JSON `{ok, times, launcher}` (counts and states, no path) | 0 · 1 `invalid_config` (no `[schedule]` time, or spec 001's runner on for this student) |
 | `classroom agent uninstall --student <id>` | Unloads and removes both | the same | JSON `{ok, removed}` | 0 |
 
+### The container read (amendment of 2026-11-17)
+
+| Subcommand | What it does | Writes to | Output | Codes |
+|---|---|---|---|---|
+| `classroom password set --student <id>` | Asks for the school account's password at a prompt that does not echo it (a terminal only) and stores it in the keychain; clears the `wrong_password` mark (FR-031) | the keychain, the mark | JSON `{ok, stored}` | 0 · 1 `invalid_config` (no terminal, or an empty answer) · 1 `lock_busy` |
+| `classroom password delete --student <id>` | Removes the password and the mark | the keychain, the mark | JSON `{ok, removed}` | 0 · 1 `lock_busy` |
+| `classroom refresh --student <id>` (container read) | The container read (plan, run flow of the amendment): Docker, the scripted sign-in when needed, the capture, `download collect`, `classroom plan`, `classroom apply`; sends no email | as above, plus the `wrong_password` mark | JSON `{ok, started_by, outcome, reason, capture:{…}, apply:{…}, blocked:{…}}`, never the account | 0 `ok` · 3 `partial` · 1 `stopped` with `reason` `rejected`, `challenge`, `second_factor`, `other_sign_in`, `wrong_password`, `no_password`, `session_expired`, `unexpected_ui`, `unreachable`, `docker_unavailable`, `lock_busy` or `disabled` |
+
+Inside Claude Code (`CLAUDECODE` set) `classroom refresh` never passes the password: it reads with a
+live session or stops with `session_expired`, with no notification (FR-027). On a stop it shows the
+macOS notification of FR-032. `started_by` is read from `ALFABETA_STARTED_BY` as above (`schedule`
+or absent = `command`; the launcher is not built with the container read).
+
 Stop reasons are spec 001's (`session_expired`, `challenge`, `unexpected_ui`, `timeout`,
 `lock_busy`), plus `disabled` and `outside_hours` here. Codes follow `.claude/rules/python-cli-output.md` §8: 0 success, 1 failure with its `reason`, 3 partial as in spec 005; 2 stays argparse's. `--started-by` is not an option: `classroom
 refresh` reads `ALFABETA_STARTED_BY` (`schedule` from the agent's plist, `launcher` from the
