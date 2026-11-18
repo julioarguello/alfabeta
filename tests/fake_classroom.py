@@ -39,7 +39,7 @@ CAPTCHA = """<html><body><h1>Inicia sesión</h1><input type=email id=identifierI
 GENERIC = "<html><body><h1>{title}</h1></body></html>"
 # Planted on the home page: a press, a form submit, a form host and a page outside FR-007's pages.
 PLANTED = """<button id=planted>x</button><form id=plantedform></form>
-<img src="http://forms.invalid/planted"><iframe src="/u/5/outside"></iframe><iframe src="{other}/third-party"></iframe>
+<img src="http://forms.invalid/planted"><iframe src="/u/5/outside"></iframe><iframe src="http://third.invalid/frame"></iframe>
 <a href="http://forms.invalid/quiz">quiz</a>{redirect}
 <div aria-label="Cuenta de Google: Persona Inventada ({email})"></div>
 <script>window.addEventListener('load', () => {{ document.getElementById('planted').click();
@@ -117,7 +117,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             nxt = {
                 "captcha": "/v3/signin/identifier/captcha",
                 "rejected": "/signin/rejected",
-                "other_sign_in": f"{self.fake.other_origin}/school-sign-in",
+                "other_sign_in": "http://school.invalid/sign-in",
             }.get(mode, "/v3/signin/challenge/pwd")
             return self._send(IDENTIFIER.format(next=nxt))
         if url.path == "/v3/signin/identifier/captcha":
@@ -154,6 +154,10 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             )
         if mode == "expire_mid" and EXPIRING in url.path:
             return self._send("", 302, f"{self.fake.other_origin}/v3/signin/identifier")
+        if mode == "redirect_in_class" and url.path.endswith("/details"):
+            return self._send("", 302, url.path.replace("/c/", "/zz/", 1))
+        if url.path.startswith("/u/5/zz/"):
+            return self._send(_page("assignment-detail.html"))
         for pattern, name in ROUTES:
             if re.match(pattern, url.path):
                 return self._send(_page(name))

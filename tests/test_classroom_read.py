@@ -32,7 +32,7 @@ def _load(fake: FakeGoogle, tmp_path: Path, only: frozenset[str]) -> tuple[Any, 
     spec.loader.exec_module(module)
     module.CLASSROOM_HOME = f"{fake.origin}/u/5/h"
     module.SIGN_IN_URL = f"{fake.origin}/v3/signin/identifier"
-    module.ACCOUNT_HOSTS = frozenset({"127.0.0.1"})
+    module.ACCOUNT_HOSTS = frozenset({"127.0.0.1", "localhost"})  # localhost: where an expired session lands
     module.CLASSROOM_HOSTS = frozenset({"127.0.0.1"})
     module.REDIRECT_HOSTS = frozenset()
     module.EXTRACTOR = ROOT / "skills" / "classroom-sync" / "scripts" / "extract.js"
@@ -222,3 +222,12 @@ def test_main_refuses_a_bad_request_without_a_traceback(
     stopped = {"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
     assert code == 1 and events[-1] == stopped
     assert "Traceback" not in capsys.readouterr().err
+
+
+def test_a_redirect_during_a_class_drops_it_and_stops_the_read(tmp_path: Path) -> None:
+    end, events, _ = _read("redirect_in_class", tmp_path, SIGN_IN, only=frozenset({"synth-71", "synth-75"}))
+    assert end["outcome"] == "stopped" and end["reason"] == "unexpected_ui", end
+    assert end["classes"]["read"] == 0 and end["blocked"].get("redirects", 0) >= 1
+    assert not list((tmp_path / "out").glob("*-synth-71-*.json"))  # the breaching class is not kept
+    redirects = [e for e in events if e["event"] == "redirect"]
+    assert redirects and all("?" not in e["path"] for e in redirects)

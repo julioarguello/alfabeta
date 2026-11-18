@@ -194,6 +194,10 @@ class Guard:
             return
         self._count("redirects")
         self.breached = True
+        target = kind(request.url)
+        # Where it went, by category; a Classroom or Google path holds no account and no query.
+        path = urlsplit(request.url).path if target.startswith(("accounts:", "classroom", "redirect")) else ""
+        emit({"event": "redirect", "to": target.split(":")[0], "path": path, "main_frame": main_frame})
 
     def bump(self, kind: str) -> None:
         """A count from the page's guard script (presses, form submits), whatever document or frame."""
@@ -372,6 +376,11 @@ def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
             reason = reason or "unexpected_ui"
             emit({"event": "class", "id": cls["id"], "type": "stop", "reason": "unexpected_ui", "complete": False})
             continue
+        if guard.breached:  # a redirect outside the allowance during this class: not kept, read stops (FR-030)
+            failed += 1
+            reason = "unexpected_ui"
+            emit({"event": "class", "id": cls["id"], "type": "stop", "reason": "unexpected_ui", "complete": False})
+            break
         (out / got["name"]).write_text(json.dumps(got["capture"], ensure_ascii=False))
         c = got["capture"]
         emit(

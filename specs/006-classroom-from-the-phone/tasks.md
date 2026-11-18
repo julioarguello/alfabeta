@@ -75,7 +75,9 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
   unchanged).
 - [x] T007 [B] Add `playwright==1.64.1` to the dev group, the CI step that installs its Chromium,
   and make `test_classroom_read.py` required in CI; note its cost per
-  `.claude/rules/python-test-cost.md`.
+  `.claude/rules/python-test-cost.md`. *(Recorded on #255: the file runs about 143–175 s locally; only
+  the cases that read a class pay ~35 s each, the extractor's fixed settle per page; the Chromium
+  install is not cached.)*
 
 ## Slice C — `classroom refresh`, container read (FR-019, FR-020, FR-022, FR-024a, FR-027, FR-028, FR-032; SC-008, SC-009)
 
