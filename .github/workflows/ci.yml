@@ -38,5 +38,9 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      # Spec 006's container read is tested with Playwright's own Chromium against a local fake
+      # (tests/test_classroom_read.py); never skipped, so the browser is installed here.
+      - name: playwright chromium
+        run: uv run --locked playwright install --with-deps chromium
       - name: make setup-python setup-node ci
         run: make setup-python setup-node ci

@@ -1,0 +1,4 @@
+# Only what the container read needs reaches the build (BuildKit reads <Dockerfile>.dockerignore).
+*
+!docker/classroom/read.py
+!skills/classroom-sync/scripts/extract.js

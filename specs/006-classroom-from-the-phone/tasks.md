@@ -37,7 +37,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 
 ## Slice B — `read.py` against the fake (FR-006, FR-008, FR-009, FR-027, FR-029, FR-030; SC-004, SC-009)
 
-- [ ] T004 [P] [B] Write `tests/fake_classroom.py`: a local HTTP server with a fake Google sign-in in
+- [x] T004 [P] [B] Write `tests/fake_classroom.py`: a local HTTP server with a fake Google sign-in in
   modes ok, image captcha after the account, rejected browser, wrong password, second factor,
   the school's own sign-in (`other_sign_in`), an account chooser, and an «other account» session;
   the synthetic pages of `tests/fixtures/classroom/pages` at their paths with `<base>` removed; one
@@ -45,7 +45,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
   third-party frame, one class page that cannot be interpreted, and one page that ends the session
   mid-read; one page that renders a due date from an instant with `Intl.DateTimeFormat` on a date
   where UTC and Europe/Madrid differ, and one across a DST change.
-- [ ] T005 [P] [B] Write `tests/test_classroom_read.py`, running `docker/classroom/read.py` as a
+- [x] T005 [P] [B] Write `tests/test_classroom_read.py`, running `docker/classroom/read.py` as a
   module with Playwright's Chromium against the fake; the test overrides `read.py`'s host constants
   in the module object (never an environment variable or a production option). It never skips in
   CI (T007). Cases:
@@ -65,7 +65,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
     `es-ES`, and both rendered due dates read as in Madrid;
   - neither the password nor the account appears in stdout, the captures or any JSON line; the
     sign-in's host-and-path lines carry no query.
-- [ ] T006 [B] Implement `docker/classroom/read.py` (stdin JSON `{account, password, signin}`, the
+- [x] T006 [B] Implement `docker/classroom/read.py` (stdin JSON `{account, password, signin}`, the
   account check, the cookie clearing, the scripted sign-in and its guard, the extractor injected
   unchanged and its calls per class, captures returned through the page and written to `/out`, one
   JSON line per event — for each sign-in page load its host and path, never a query — the browser
@@ -73,9 +73,11 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
   slim, `playwright==1.64.1`, Google Chrome, `linux/amd64`, built from the repository root with
   `-f docker/classroom/Dockerfile` so `skills/classroom-sync/scripts/extract.js` is copied
   unchanged).
-- [ ] T007 [B] Add `playwright==1.64.1` to the dev group, the CI step that installs its Chromium,
+- [x] T007 [B] Add `playwright==1.64.1` to the dev group, the CI step that installs its Chromium,
   and make `test_classroom_read.py` required in CI; note its cost per
-  `.claude/rules/python-test-cost.md`.
+  `.claude/rules/python-test-cost.md`. *(Recorded on #255: the file runs about 143–175 s locally; only
+  the cases that read a class pay ~35 s each, the extractor's fixed settle per page; the Chromium
+  install is not cached.)*
 
 ## Slice C — `classroom refresh`, container read (FR-019, FR-020, FR-022, FR-024a, FR-027, FR-028, FR-032; SC-008, SC-009)
 

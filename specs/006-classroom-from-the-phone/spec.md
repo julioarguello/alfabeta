@@ -598,7 +598,11 @@ arrives.
   apply to it — spec 001 research R18's weaker guarantee, which IV's wording allows. The one
   exception to the download hosts: the attachments listed in this run's captures, fetched by spec
   001 research R4's routes through the page's request context, each checked against that list
-  before its request and counted; any other file or host is refused and counted. Measured (research S14): 12 of 12
+  before its request and counted; any other file or host is refused and counted. A page the guard
+  allows may be redirected by the server: Playwright routes only the first address of a redirect
+  chain, so a document redirected outside what the guard allows is fetched before it is seen. It
+  MUST then be counted and MUST stop the read before its next step (`unexpected_ui`) — part of R18's
+  weaker guarantee, never silent; a redirect to Google's sign-in is the expired session's signal. Measured (research S14): 12 of 12
   classes complete in 14 min 20 s, in UTC, with the items, posts and attachment counts of the
   previous day's Chrome read; two classes re-read in `Europe/Madrid` identical, times included.
   The read by Classroom's own calls (FR-003, FR-004, R1) stays planned, as a faster read of the
