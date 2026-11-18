@@ -107,7 +107,7 @@ class Deps:
 OK, FAIL, WARN = "✓", "✗", "⚠"  # python-cli-output §4: done, failed, a run that stays partial
 
 
-def _count(n: int, one: str, many: str) -> str:
+def _counted(n: int, one: str, many: str) -> str:
     """A count with its noun (python-cli-output §9)."""
     return f"{n} {one if n == 1 else many}"
 
@@ -143,7 +143,7 @@ class Progress:
         if kind == "classes":
             if "stop" in event:
                 return f"{FAIL} la lista de clases no se pudo leer: {event['stop']}"
-            return f"{OK} {_count(int(event.get('to_read', 0)), 'clase', 'clases')} que leer"
+            return f"{OK} {_counted(int(event.get('to_read', 0)), 'clase', 'clases')} que leer"
         if kind == "class_start":
             self.index, self.total = int(event.get("index", 0)), int(event.get("total", 0))
             return None
@@ -400,7 +400,7 @@ def _attachments(
     counts = {"brought": 0, "not_brought": len(wanted), "refused": 0}
     if not wanted or not session:
         return counts
-    _say(deps, f"bajando {_count(len(wanted), 'adjunto', 'adjuntos')} …")
+    _say(deps, f"bajando {_counted(len(wanted), 'adjunto', 'adjuntos')} …")
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": None, "signin": False, "fetch": wanted}
     out = cfg.data_dir / f"classroom-out-{run}-attachments"
     events: list[dict[str, Any]] = []
