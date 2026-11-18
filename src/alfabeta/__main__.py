@@ -39,6 +39,8 @@ from alfabeta import (
 from alfabeta.classification import CANDIDATE, Classifier
 from alfabeta.classroom import cli as classroom_cli
 from alfabeta.classroom import password as classroom_password
+from alfabeta.classroom import refresh as classroom_refresh
+from alfabeta.classroom.container import DockerReadContainer
 from alfabeta.exam import cli as exam_cli
 from alfabeta.google import accounts, calendar, gmail
 from alfabeta.google.drive import DriveError, OutsideFolderError, ScopedDrive, cache_path
@@ -810,6 +812,9 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument(
         "--stopped", choices=["timeout"], help="a scheduled run's wait ended midway with no stop capture (FR-021a)"
     )
+    refresh_cmd = classroom.add_parser(
+        "refresh", help="spec 006's container read: sign in if needed and allowed, capture, plan and apply"
+    )
     password = classroom.add_parser(
         "password", help="the school account's password in the keychain, for the scripted sign-in (spec 006)"
     ).add_subparsers(dest="action", required=True)
@@ -1000,6 +1005,7 @@ def build_parser() -> argparse.ArgumentParser:
         agent_remove,
         password_set,
         password_delete,
+        refresh_cmd,
         exam_prep,
         claude_set,
         signin,
@@ -1044,6 +1050,28 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_drive_share(args, home, store)
         if args.group == "decision":
             return _cmd_decisions(args, home)
+        if args.group == "classroom" and args.verb == "refresh":
+            cfg = config.load(home, args.student, ("classroom", "downloads", "sync"))
+            return classroom_cli.cmd_refresh(
+                classroom_refresh.RefreshConfig(
+                    student=args.student,
+                    account=cfg.school_account,
+                    profile_read=cfg.profile_read,
+                    data_dir=cfg.data_dir,
+                    downloads=Path(cfg.downloads_folder).expanduser(),
+                    idle_minutes=cfg.lock_idle_minutes,
+                ),
+                _lock(home, args.student),
+                classroom_refresh.Deps(
+                    container=DockerReadContainer(),
+                    store=KeychainStore(service=classroom_password.SERVICE),
+                    notifier=MacNotifier(),
+                    steps=classroom_cli.run_step(home, args.student),
+                    today=dt.date.today(),
+                    inside_claude=bool(os.environ.get("CLAUDECODE")),
+                    started_by=os.environ.get("ALFABETA_STARTED_BY", "command"),
+                ),
+            )
         if args.group == "classroom" and args.verb == "password":
             data_dir = config.student_root(home, args.student) / "data"
             return classroom_cli.cmd_password(

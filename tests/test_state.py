@@ -27,6 +27,7 @@ CONFIG = f"""
 display_name = "{NAME}"
 [classroom]
 account = "{ADDRESS}"
+profile_read = false
 [drive]
 root = 5
 [sync]

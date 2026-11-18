@@ -121,7 +121,6 @@ PLANNED: dict[tuple[str, ...], str] = {
     ("drive", "push"): "spec 004 contracts/cli.md",
     ("drive", "pull"): "spec 004 contracts/cli.md",
     ("classroom", "sign-in"): "spec 006 FR-021",
-    ("classroom", "refresh"): "spec 006 FR-022",
     ("classroom", "capture"): "spec 006 FR-023",
     ("classroom", "status"): "spec 006 FR-024",
     ("classroom", "agent", "install"): "spec 006 FR-015, plan",

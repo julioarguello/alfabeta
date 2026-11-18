@@ -81,7 +81,7 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 
 ## Slice C — `classroom refresh`, container read (FR-019, FR-020, FR-022, FR-024a, FR-027, FR-028, FR-032; SC-008, SC-009)
 
-- [ ] T008 [P] [C] Write `tests/test_classroom_refresh.py` with a fake `ReadContainer`, a fake
+- [x] T008 [P] [C] Write `tests/test_classroom_refresh.py` with a fake `ReadContainer`, a fake
   `TokenStore`, a fake `Notifier` and a fake clock:
   - `profile_read` off → `disabled`, nothing started;
   - `CLAUDECODE` set → stdin `{account, signin: false}`, no password, no notification;
@@ -94,16 +94,16 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
   - a full read → captures collected, plan and apply once, the lock renewed while the container
     runs, one log line with `started_by` (`ALFABETA_STARTED_BY`), counts and blocked counts;
   - neither the account nor the password in any log line or notification.
-- [ ] T009 [P] [C] Write `tests/test_classroom_container.py`, the `DockerReadContainer` tests with a fake process runner (as
+- [x] T009 [P] [C] Write `tests/test_classroom_container.py`, the `DockerReadContainer` tests with a fake process runner (as
   `src/alfabeta/google/keychain.py`'s `Runner`): `docker run --rm -i`, the profile and out folders
   mounted with mode 0700, the stdin line written once, the password absent from argv, every
   `-e`/`--env`, the build arguments and the build context; the image rebuilt only when its inputs'
   hash changes; a failed build → `docker_unavailable`.
-- [ ] T010 [C] Implement `src/alfabeta/classroom/container.py` (`ReadContainer`,
+- [x] T010 [C] Implement `src/alfabeta/classroom/container.py` (`ReadContainer`,
   `DockerReadContainer`) and `src/alfabeta/classroom/refresh.py` with
   `classroom refresh` (`started_by` from `ALFABETA_STARTED_BY`, as `contracts/cli.md` says); declare `[classroom] profile_read` in
   `config/template.toml` (`false`, as `contracts/config-template.toml`); drop `refresh` from `PLANNED`.
-- [ ] T011 [C] Write `tests/test_classroom_image.py` (marked `docker`, run on the Mac before the pull
+- [x] T011 [C] Write `tests/test_classroom_image.py` (marked `docker`, run on the Mac before the pull
   request and recorded in it): the image builds; `docker image inspect` shows no `ENV` or label
   holding a secret; `docker run --rm -i --network none` with an invented account and password on
   stdin ends with a JSON stop line with code `unreachable`, never echoes stdin, and leaves no container behind.

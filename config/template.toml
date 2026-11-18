@@ -29,6 +29,8 @@ rules_theory = "changeme"           # e.g. '''Cierra cada sección con una defin
 [classroom]
 # Email address of the school account. Compared locally with the account button; never goes in a URL.
 account = "changeme@example.org"
+# Spec 006's container read: `classroom refresh` runs only when this is true (FR-019).
+profile_read = false
 
 [storage]
 # The student's base folder on the Mac, outside the Google Drive for desktop mount (spec 004 R7):

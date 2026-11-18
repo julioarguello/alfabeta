@@ -21,6 +21,7 @@ CALENDAR_ID = "familia-inventada@calendar.example.org"
 CONFIG = f"""
 [classroom]
 account = "{SCHOOL_ADDRESS}"
+profile_read = false
 
 [calendar]
 id = "{CALENDAR_ID}"
