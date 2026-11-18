@@ -1104,6 +1104,7 @@ def main(argv: list[str] | None = None) -> int:
                     inside_claude=bool(os.environ.get("CLAUDECODE")),
                     started_by=started_by,
                     now=dt.datetime.now(),
+                    say=classroom_cli.say,
                 ),
             )
         if args.group == "classroom" and args.verb == "password":
