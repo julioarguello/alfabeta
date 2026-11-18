@@ -168,7 +168,7 @@ class RunResult(StrEnum):
 
 
 class StopReason(StrEnum):
-    """Why a run stopped or was partial (contracts/cli.md, `log write-stop`)."""
+    """Why a run stopped or was partial: spec 001's (contracts/cli.md, `log write-stop` takes only those) and spec 006's container read."""
 
     SESSION_EXPIRED = "session_expired"
     CHALLENGE = "challenge"
@@ -179,6 +179,15 @@ class StopReason(StrEnum):
     LOCK_NOT_HELD = "lock_not_held"
     INVALID_CONFIG = "invalid_config"
     IDLE = "idle"
+    # Spec 006's container read (amendment of 2026-11-17, FR-027, FR-028, FR-019).
+    REJECTED = "rejected"
+    SECOND_FACTOR = "second_factor"
+    OTHER_SIGN_IN = "other_sign_in"
+    WRONG_PASSWORD = "wrong_password"
+    NO_PASSWORD = "no_password"
+    DOCKER_UNAVAILABLE = "docker_unavailable"
+    UNREACHABLE = "unreachable"
+    DISABLED = "disabled"
 
 
 @dataclass(frozen=True)
