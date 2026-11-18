@@ -270,12 +270,27 @@ image needs no copy of the package. The host never runs a browser.
    folder under `data/` mounted; write the stdin line and close it. Renew the lock while it runs.
 5. `read.py`: the account check (FR-006); alive → read; else, if allowed, clear the profile's Google
    cookies and sign in (stops by code, the sign-in's guard); capture the class list and each class
-   with the extractor (FR-008 `unexpected_ui`, FR-009 `partial`); fetch the listed attachments by
-   R4's routes through the request context into `/out/inbox/…`; one JSON line per event and a final
-   line with counts and stop code. No line carries the account or the password.
+   with the extractor (FR-008 `unexpected_ui`, FR-009 `partial`); one JSON line per event and a
+   final line with counts and stop code. No line carries the account or the password.
 6. Host: a sign-in stop → the `wrong_password` mark if that is the code; else move the captures to
-   the downloads folder, `download collect`, `classroom plan`, the fetched attachments to the inbox
-   `download collect` reads, `classroom apply`.
+   the downloads folder, `download collect`, `classroom plan`. Then the attachments pass (amended
+   2026-11-18, slice D): which attachments to fetch is spec 001 research R4's rule (new, modified,
+   renamed, or the periodic full review), and only `classroom plan` knows it, on the host, after the
+   capture — fetching every attachment the captures list would download the whole course every day
+   (principle V). So the plan's `downloads` (out of this run's captures) go to a second
+   `docker run` of the same image, same run id, same profile, its own container name, with
+   `"signin": false` and no password: it never signs in (one scripted sign-in per run at most).
+   It checks the account, then fetches each one by R4's routes through the page's request
+   context, checked against its listed attachment id before the request, redirects followed by
+   hand within R4's hosts and scheme (a hop to the sign-in ends the pass as the expired session;
+   another host is refused, and the run's log line lists it by host only in `refused_hosts`, so a
+   real run shows what to allow; an HTML page, a wrong length or an oversized body is not a file),
+   written to a temporary name and renamed into `/out/inbox/<item>__<attachment>/<name>`. The host
+   moves only each download's exact `data/inbox/<item>__<attachment>/<name>` (ids and name checked
+   as single path components, every part a real folder of the out folder, no symlink), and
+   runs `classroom apply` without planning again; what was not brought apply notes «no traído».
+   The pass is skipped when the plan asks for nothing or the first pass ended `session_expired`,
+   `challenge` or breached.
 7. On a stop, the macOS notification in Spanish (FR-032), except under `CLAUDECODE`; one log line
    with what started it (`ALFABETA_STARTED_BY`: `schedule`, or `command`; FR-020); release the locks.
 
@@ -291,7 +306,8 @@ B. **`read.py` against the fake** — FR-006, FR-008, FR-009, FR-027, FR-029, FR
 C. **`classroom refresh`** — FR-019, FR-020, FR-022, FR-024a, FR-028, FR-032, with a fake
    `ReadContainer`, the real adapter's argv tested with a fake runner, and the built image checked
    offline (`--network none`). Claude alone; the first real run is the family's.
-D. **Attachments in the container** — FR-028, FR-030's exception, against the fake.
+D. **Attachments in the container** — FR-028, FR-030's exception, against the fake: a second pass
+   of the container over the plan's downloads (run flow, step 6).
 E. **`classroom agent install|uninstall`** — FR-015. The family installs it.
 
 0 first; A and B in parallel; C after both; D after B and C; E after C.

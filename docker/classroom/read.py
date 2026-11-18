@@ -2,9 +2,9 @@
 """The container read (spec 006, amendment of 2026-11-17): sign in if needed, then capture Classroom.
 
 Runs inside the image of `docker/classroom/Dockerfile`; imports nothing from `alfabeta`. It reads one
-JSON line on stdin — `{"run", "account", "password", "signin"}` — and writes one JSON line per event
-on stdout, the last one `{"event": "end", ...}` with its outcome and stop code. No line carries the
-account or the password.
+JSON line on stdin — `{"run", "account", "password", "signin"}`, plus `fetch` on the attachments
+pass — and writes one JSON line per event on stdout, the last one `{"event": "end", ...}` with its
+outcome and stop code. No line carries the account or the password.
 
 - **Sign-in** (FR-027): only when the profile has no live session and `signin` is true. It clears
   the profile's cookies, opens Google's sign-in, types the account and the password, presses only
@@ -19,6 +19,14 @@ account or the password.
   frame document loads only on the pages the phase allows; form, quiz and download hosts refused.
   Every block is counted.
 - **Browser zone and locale** (FR-029): `Europe/Madrid`, `es-ES`.
+- **Attachments** (FR-030's exception, the run's second pass): with `fetch` — the attachments the
+  host's `classroom plan` asked for out of this run's captures — the read never signs in; after the
+  account check it fetches each one through the page's request context (the session's cookies),
+  only by spec 001 research R4's routes and only for the attachment id it is listed under, into
+  `out/inbox/<item>__<attachment>/<name>`. The request context does not go through the guard's
+  route, so each hop is checked here: redirects are followed by hand within the R4 hosts; a hop to
+  Google's sign-in is the expired session (the rest is not brought); any other host is refused and
+  logged by host only. An HTML page, a wrong length or an oversized body is not a file: not brought.
 
 The tests run this module directly with Playwright's Chromium against a local fake, setting the
 host constants below in the module object; nothing here reads them from the environment.
@@ -27,12 +35,13 @@ host constants below in the module object; nothing here reads them from the envi
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 CLASSROOM_HOME = "https://classroom.google.com/u/0/h"
 SIGN_IN_URL = "https://accounts.google.com/ServiceLogin?service=classroom&continue=" + CLASSROOM_HOME
@@ -42,6 +51,17 @@ REDIRECT_HOSTS = frozenset({"accounts.youtube.com", "www.google.com", "www.googl
 CLASSROOM_HOSTS = frozenset({"classroom.google.com"})
 FORM_HOSTS = frozenset({"forms.gle", "forms.google.com"})
 DOWNLOAD_HOSTS = frozenset({"drive.usercontent.google.com"})
+# Spec 001 research R4's routes, by origin, for the attachments pass (plan.py builds the addresses).
+DRIVE_DOWNLOAD = "https://drive.usercontent.google.com/download"
+DOCS_ORIGIN = "https://docs.google.com"
+DOCS_EXPORT = re.compile(r"^/(document|spreadsheets|presentation)/d/([A-Za-z0-9_-]+)/export(/pdf)?$")
+# Hosts a fetch may be redirected to besides R4's own: none measured yet. Each refused host reaches
+# the run's log line (`refused_hosts`), and only a measured one is added here.
+FETCH_REDIRECT_NETLOCS: frozenset[str] = frozenset()
+FETCH_MAX_HOPS = 5
+FETCH_MAX_BYTES = 200 * 1024 * 1024
+FETCH_TIMEOUT_MS = 120_000
+SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,200}$")
 # Spec 001 FR-007's pages: home, classwork, stream, item details.
 CLASSROOM_PAGES = re.compile(r"^/u/\d+/(h(/[^/]*)?|w/[^/]+/t/all|c/[^/]+(/(a|m|mc)/[^/]+/details)?)$")
 EXTRACTOR = Path("/app/extract.js")
@@ -405,6 +425,109 @@ def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
     return {"outcome": outcome, "reason": reason, "classes": {"read": read, "failed": failed}}
 
 
+def r4_id(url: str) -> str | None:
+    """The Drive id an R4 address fetches, or None if it is not one of R4's routes."""
+    parts = urlsplit(url)
+    origin = f"{parts.scheme}://{parts.netloc}"
+    query = parse_qs(parts.query)
+    if f"{origin}{parts.path}" == DRIVE_DOWNLOAD:
+        ids = query.get("id", [])
+        if len(ids) == 1 and query.get("export") == ["download"] and SAFE_ID.match(ids[0]):
+            return ids[0]
+        return None
+    if origin == DOCS_ORIGIN:
+        match = DOCS_EXPORT.match(parts.path)
+        return match.group(2) if match else None
+    return None
+
+
+def safe_name(name: object) -> bool:
+    """One path component: the teacher's file name, never a way out of the inbox folder."""
+    return (
+        isinstance(name, str)
+        and 0 < len(name) <= 255
+        and name not in (".", "..")
+        and not any(c in name for c in ("/", "\\", "\0"))
+    )
+
+
+def fetch_netlocs() -> set[str]:
+    """Where a fetch may go: R4's two origins and the measured redirect hosts."""
+    return {urlsplit(DRIVE_DOWNLOAD).netloc, urlsplit(DOCS_ORIGIN).netloc} | set(FETCH_REDIRECT_NETLOCS)
+
+
+def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | None, str | None]:
+    """Fetch one listed attachment: (`brought`|`not_brought`|`refused`|`expired`, why, refused host)."""
+    item, attachment, url, name = (wanted.get(k) for k in ("item", "attachment", "url", "expected_name"))
+    if not (isinstance(item, str) and SAFE_ID.match(item) and isinstance(attachment, str) and safe_name(name)):
+        return "refused", "name", None
+    if not isinstance(url, str) or r4_id(url) != attachment or not SAFE_ID.match(attachment):
+        return "refused", "route", None
+    current = url
+    scheme = urlsplit(url).scheme
+    for _ in range(FETCH_MAX_HOPS + 1):
+        try:
+            response = page.request.get(current, max_redirects=0, timeout=FETCH_TIMEOUT_MS, fail_on_status_code=False)
+        except Exception:
+            return "not_brought", "error", None
+        if 300 <= response.status < 400:
+            location = response.headers.get("location")
+            response.dispose()
+            if not location:
+                return "not_brought", "redirect", None
+            following = urljoin(current, location)
+            parts = urlsplit(following)
+            if parts.netloc in fetch_netlocs() and parts.scheme == scheme:
+                current = following
+                continue
+            if (parts.hostname or "") in ACCOUNT_HOSTS:
+                return "expired", None, None
+            return "refused", "host", parts.hostname or ""
+        if response.status != 200:
+            return "not_brought", f"status_{response.status}", None
+        headers = response.headers
+        html = headers.get("content-type", "").split(";")[0].strip().lower() == "text/html"
+        if html and not str(name).lower().endswith((".html", ".htm")):
+            return "not_brought", "html", None
+        declared = headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > FETCH_MAX_BYTES:
+            return "not_brought", "too_large", None
+        body = response.body()
+        if len(body) > FETCH_MAX_BYTES:
+            return "not_brought", "too_large", None
+        # The request context unpacks a compressed body; its Content-Length is then the packed size.
+        if declared and declared.isdigit() and not headers.get("content-encoding") and int(declared) != len(body):
+            return "not_brought", "length", None
+        folder = out / "inbox" / f"{item}__{attachment}"
+        folder.mkdir(parents=True, exist_ok=True)
+        # Written beside the attachments' folders, never inside one: a read killed mid-write leaves a
+        # file no download's path names, so the host never moves it, whatever the teacher's file name.
+        part = out / "inbox" / f".part-{item}__{attachment}"
+        part.write_bytes(body)
+        os.replace(part, folder / str(name))
+        return "brought", None, None
+    return "not_brought", "redirect", None
+
+
+def fetch(page: Any, wanted: list[Any], out: Path) -> dict[str, Any]:
+    """The attachments pass: each listed attachment once, never retried; an expired session ends it."""
+    counts = {"brought": 0, "not_brought": 0, "refused": 0}
+    reason = None
+    for index, entry in enumerate(wanted):
+        result, why, host = fetch_one(page, entry if isinstance(entry, dict) else {}, out)
+        if result == "expired":
+            reason = "session_expired"
+            counts["not_brought"] += len(wanted) - index
+            emit({"event": "attachment", "result": "not_brought", "why": "session_expired"})
+            break
+        counts[result] += 1
+        event: dict[str, Any] = {"event": "attachment", "result": result, "why": why}
+        if host is not None:
+            event["host"] = host
+        emit(event)
+    return {"outcome": "stopped" if reason else "ok", "reason": reason, "attachments": counts}
+
+
 def run(request: dict[str, Any]) -> dict[str, Any]:
     """The whole read; returns the end event."""
     from playwright.sync_api import sync_playwright
@@ -440,8 +563,9 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
             if state == "unreachable":
                 end["reason"] = "unreachable"
                 return end
+            fetching = "fetch" in request
             if state == "expired":
-                if not request.get("signin"):
+                if not request.get("signin") or fetching:  # the attachments pass never signs in
                     end["reason"] = "session_expired"
                     return end
                 code = sign_in(ctx, page, guard, account, request.get("password"))
@@ -463,6 +587,9 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
             if guard.breached:
                 end["reason"] = "unexpected_ui"
                 return end
+            if fetching:
+                end.update(fetch(page, list(request["fetch"]), OUT))
+                return end
             end.update(capture(page, guard, str(request["run"]), OUT))
             return end
         finally:
@@ -480,7 +607,12 @@ def main() -> int:
     except ValueError:
         emit({"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}})
         return 1
-    if not isinstance(request, dict) or not request.get("account") or not request.get("run"):
+    if (
+        not isinstance(request, dict)
+        or not request.get("account")
+        or not request.get("run")
+        or ("fetch" in request and not isinstance(request["fetch"], list))
+    ):
         emit({"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}})
         return 1
     try:
