@@ -566,10 +566,12 @@ arrives.
     account is not locked.
   - **The sign-in's guard** (constitution IV): document loads in the main frame only on Google's
     sign-in host (`accounts.google.com`), the account-cookie pages Google redirects through
-    (`accounts.youtube.com`, `www.google.com`, `www.google.es`) and Classroom; any other main-frame load stops with
+    (`accounts.youtube.com`, `accounts.google.es`, `www.google.com`, `www.google.es`) and Classroom; any other main-frame load stops with
     `other_sign_in`; any other frame load is blocked and counted; no press beyond the two Enters.
-    These are the hosts S14's guard allowed (it saw six such loads, not logged by host); the build
-    records the hosts and paths seen in its first real run and narrows the allowlist to them.
+    These are the hosts S14's guard allowed (it saw six such loads, not logged by host), plus
+    `accounts.google.es`, measured 2026-11-18 in the first real container read (CheckCookie →
+    `accounts.google.es/accounts/SetSID` → Classroom); the run's log line keeps the sign-in pages and
+    redirects by host and path, and the allowlist is narrowed to what real runs show.
 - **FR-028**: The read — sign-in, capture and attachments — MUST run in a container on the Mac:
   Docker, `linux/amd64` (the platform S14 measured, under emulation on the Mac; another one only
   after measuring it), Google Chrome installed in the image and a pinned Playwright. The container is the operator's requirement of

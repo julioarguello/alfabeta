@@ -619,6 +619,7 @@ def test_the_hours_window(times: dict[str, str], wait: int, now: dt.datetime, in
 def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> None:
     end = {"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
     events = [
+        {"event": "signin_page", "host": "accounts.google.com", "path": "/v3/signin/identifier"},
         {"event": "signin", "result": "signed_in"},
         {"event": "redirect", "to": "other", "path": "", "main_frame": True, "host": "accounts.google.de"},
         {"event": "typed", "field": "password"},
@@ -626,5 +627,21 @@ def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> N
     _, _, _, data = _go(tmp_path, FakeContainer(end, events=events))
     line = _log(data)[-1]
     assert line["signin"] == "signed_in"
+    assert line["signin_pages"] == [{"host": "accounts.google.com", "path": "/v3/signin/identifier"}]
     assert line["redirects"] == [{"to": "other", "host": "accounts.google.de", "path": "", "main_frame": True}]
     assert "first_pass" not in line and "typed" not in json.dumps(line)
+
+
+class _DyingAfterEvents(FakeContainer):
+    def run(
+        self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Callable[[dict[str, Any]], None]
+    ) -> dict[str, Any]:
+        self.out = out
+        out.mkdir(parents=True, exist_ok=True)
+        on_event({"event": "signin", "result": "signed_in"})
+        raise ContainerError("died")
+
+
+def test_a_first_pass_that_dies_still_logs_what_it_said(tmp_path: Path) -> None:
+    result, _, _, data = _go(tmp_path, _DyingAfterEvents(OK))
+    assert result["reason"] == "docker_unavailable" and _log(data)[-1]["signin"] == "signed_in"
