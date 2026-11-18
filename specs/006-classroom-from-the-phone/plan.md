@@ -216,6 +216,103 @@ Slices 3 and 5 can run in parallel with 2 once S7 has passed; 6 needs 4.
 
 No step needs the student's phone.
 
+## Amendment of 2026-11-17 — the container read
+
+What the amendment builds (spec FR-027 to FR-032), on spec 001's lock, captures, plan and apply,
+spec 004's keychain and macOS notifier, and spec 005's launchd agent. The read on the Mac's own
+Chrome above (window, remote view, notices, read by calls) is not built here.
+
+### Source code
+
+```text
+src/alfabeta/classroom/
+├── __init__.py
+├── password.py     # PasswordStore over spec 004's TokenStore: set (getpass), delete, get; the wrong_password mark
+├── container.py    # ReadContainer port + DockerReadContainer: build the image, run it with the profile and an
+│                   #   out folder mounted, the account and password on stdin, --rm; parse its JSON log lines
+├── refresh.py      # classroom refresh: locks, CLAUDECODE refusal, password checks, container, collect, plan,
+│                   #   apply, the stop notification, the log line
+├── agent.py        # classroom agent install|uninstall: launchd plist from [schedule] (spec 005's Launchctl)
+└── cli.py          # classroom password set|delete, classroom refresh, classroom agent install|uninstall
+docker/classroom/
+├── Dockerfile      # python:3.12-slim, playwright==1.64.1, Google Chrome (linux/amd64); built from the repo root
+└── read.py         # in the container: the scripted sign-in (FR-027), the guard (FR-030), the extractor's calls
+                    #   per class, attachments through the page's request context; writes captures and
+                    #   attachments to /out, one JSON line per event on stdout
+tests/
+├── fake_classroom.py         # local server: fake Google sign-in (ok, captcha, rejected, wrong password, second
+│                             #   factor, other sign-in, account chooser) and the
+│                             #   synthetic Classroom pages of tests/fixtures/classroom/pages, <base> stripped
+├── test_classroom_password.py
+├── test_classroom_refresh.py # with a fake ReadContainer, a fake TokenStore and a fake Notifier
+├── test_classroom_read.py    # docker/classroom/read.py run as a module with Playwright's Chromium against the fake
+├── test_classroom_container.py # DockerReadContainer's argv and build, with a fake process runner
+├── test_classroom_image.py   # the built image offline: no secret in its configuration, stdin never echoed
+└── test_classroom_agent.py   # classroom agent install|uninstall with spec 005's fake Launchctl
+```
+
+`docker/classroom/read.py` is a program of its own, copied into the image with the extractor
+(`skills/classroom-sync/scripts/extract.js`, unchanged): it imports nothing from `alfabeta`, so the
+image needs no copy of the package. The host never runs a browser.
+
+### Run flow (`classroom refresh`, container read)
+
+1. Read `[classroom] profile_read` (FR-019); off → `disabled`. Take the student's lock and the
+   browser lock (FR-024a).
+2. Docker not running → stop `docker_unavailable` (FR-028) → step 7.
+3. Inside Claude Code (`CLAUDECODE` set): stdin carries the account and `"signin": false`, never the
+   password (FR-027). Else, the `wrong_password` mark → `"signin": false` as well, so a dead
+   session stops with `wrong_password`; otherwise `"signin": true` with the keychain's password, or
+   none if it holds none (`read.py` stops `no_password` only if a sign-in is needed).
+4. Build the image if its inputs changed (`docker build -f docker/classroom/Dockerfile` from the
+   repository root, so the extractor is copied unchanged; the image labelled with the inputs' hash),
+   then `docker run --rm -i` with the read profile `data/classroom-profile/` (0700) and an out
+   folder under `data/` mounted; write the stdin line and close it. Renew the lock while it runs.
+5. `read.py`: the account check (FR-006); alive → read; else, if allowed, clear the profile's Google
+   cookies and sign in (stops by code, the sign-in's guard); capture the class list and each class
+   with the extractor (FR-008 `unexpected_ui`, FR-009 `partial`); fetch the listed attachments by
+   R4's routes through the request context into `/out/inbox/…`; one JSON line per event and a final
+   line with counts and stop code. No line carries the account or the password.
+6. Host: a sign-in stop → the `wrong_password` mark if that is the code; else move the captures to
+   the downloads folder, `download collect`, `classroom plan`, the fetched attachments to the inbox
+   `download collect` reads, `classroom apply`.
+7. On a stop, the macOS notification in Spanish (FR-032), except under `CLAUDECODE`; one log line
+   with what started it (`--trigger schedule|command`, FR-020); release the locks.
+
+### Slices
+
+Tasks in [tasks.md](tasks.md). No test reaches a real account, a keychain value or a Google host,
+and none needs `CLAUDECODE` lifted.
+
+0. **Shared vocabulary** — the new stop codes, `contracts/cli.md`, `data-model.md`.
+A. **`classroom password set|delete`** — FR-031, the mark, its own keychain service. Claude alone.
+B. **`read.py` against the fake** — FR-006, FR-008, FR-009, FR-027, FR-029, FR-030, SC-004, SC-009,
+   run as a module with Playwright's Chromium in CI, the fake's hosts set in the test. Claude alone.
+C. **`classroom refresh`** — FR-019, FR-020, FR-022, FR-024a, FR-028, FR-032, with a fake
+   `ReadContainer`, the real adapter's argv tested with a fake runner, and the built image checked
+   offline (`--network none`). Claude alone; the first real run is the family's.
+D. **Attachments in the container** — FR-028, FR-030's exception, against the fake.
+E. **`classroom agent install|uninstall`** — FR-015. The family installs it.
+
+0 first; A and B in parallel; C after both; D after B and C; E after C.
+
+### Constitution Check (amendment)
+
+| Principle | How | Status |
+|---|---|---|
+| II | The password in the keychain (spec 004's store); the profile under `data/` with mode 0700; stdin only into the container; `--rm`; nothing beside the configuration | Pass |
+| III | The deterministic script types; Claude never starts it (`CLAUDECODE` refusal, R15); one try of a wrong password; the family's acceptance quoted in the spec; ids only in logs and notifications | Pass |
+| IV | `read.py`'s guard: presses, page loads outside FR-007's pages, form, quiz and download hosts blocked before they reach Classroom; attachments only from this run's list by R4's routes, checked before each request; any check stops the read; nothing typed past it; no guard setting comes from the environment | Pass |
+| VIII | `read.py` sets the browser zone to Europe/Madrid and the locale to es-ES; a test renders a due date from an instant where UTC differs, and across a DST change | Pass |
+| IX | On the Mac; Docker and Chrome in the image justified below | Pass with the rows below |
+
+### Complexity Tracking (amendment)
+
+| Departure | Why it is needed | Simpler alternative rejected because |
+|---|---|---|
+| Docker Desktop on the Mac and an image with Google Chrome and Playwright | The operator's requirement of portability («se ejecuta donde se pueda», spec FR-028): the same read runs unchanged wherever Google accepts the sign-in | The host's Chrome also signed in (S14); rejected by the operator's requirement, not by a measurement |
+| Google Chrome in the image instead of Playwright's Chromium | The measured sign-ins used Google Chrome (S14); Chromium was not measured against Google | Chromium: one less download, but an unmeasured browser on the one step Google judges |
+
 ## Credit
 
 The read's pattern — a profile kept for the read, the hand sign-in in the plain browser, Classroom's
@@ -227,7 +324,7 @@ ported from it keeps its copyright notice and is listed in `THIRD_PARTY_NOTICES.
 
 | Departure | Why it is needed | Simpler alternative rejected because |
 |---|---|---|
-| `playwright` for Python at runtime on the Mac (IX), and its headless browser in the CI job for the guard test | The read must start a browser with no person at it, on a given profile, with a guard on every request before any page script (constitution IV); the standard library cannot drive a browser (research R2). Spec 001 already justified it for the runner's image | The Claude extension and the built-in browser need the app and a window, the two needs this spec removes; Chrome's DevTools protocol by hand needs a WebSocket client the standard library lacks and rewrites Playwright's tested routing; Selenium has no interception before page scripts |
+| `playwright` for Python at runtime on the Mac (IX) — *amendment 2026-11-17: in the container read, pinned in the image (1.64.1) and in the dev group for `test_classroom_read.py`; the host runs no browser* — and its headless browser in the CI job for the guard test | The read must start a browser with no person at it, on a given profile, with a guard on every request before any page script (constitution IV); the standard library cannot drive a browser (research R2). Spec 001 already justified it for the runner's image | The Claude extension and the built-in browser need the app and a window, the two needs this spec removes; Chrome's DevTools protocol by hand needs a WebSocket client the standard library lacks and rewrites Playwright's tested routing; Selenium has no interception before page scripts |
 | A launchd agent and a launcher for `classroom refresh` (Technical constraints, 2.6.0) | The read must start at the scheduled times and from the phone with no app open (FR-001, FR-015, FR-016) | The desktop app's scheduled task: needs the app open, which the spec removes |
 | A read by Classroom's undocumented internal calls (VI: a second capture route) | One page load instead of 126, and no stall when no window is on screen (research R1) | The DOM extractor headless: the same 126 loads; the Classroom API: refused for this account (spec 001 R20) |
 | Optional structured fields in spec 001's capture | The calls give instants and enums, not the Spanish texts; inventing those texts would test an invention (research R7) | A second capture format with its own apply: doubles spec 001's apply |
