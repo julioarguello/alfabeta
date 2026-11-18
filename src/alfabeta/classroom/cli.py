@@ -11,9 +11,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 from alfabeta import state
 from alfabeta.classroom import refresh
+from alfabeta.classroom.agent import ClassroomAgent, ClassroomAgentSpec, system_agent
 from alfabeta.classroom.password import PasswordError, PasswordStore, Prompt
 from alfabeta.google.keychain import KeychainError, TokenStore
 from alfabeta.model import RunMode, StopReason
+from alfabeta.notes.agent import AgentError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -96,7 +98,7 @@ def cmd_refresh(cfg: refresh.RefreshConfig, lock: state.Lock, deps: refresh.Deps
     """`classroom refresh`, the container read (contracts/cli.md, amendment of 2026-11-17)."""
     result = refresh.refresh(cfg, lock, deps, os.environ.get(state.RUN_ENV))
     _emit(result)
-    if result["outcome"] == "ok":
+    if result["outcome"] in ("ok", "skipped"):
         return EXIT_OK
     if result["outcome"] == "partial":
         return EXIT_PARTIAL
@@ -136,3 +138,30 @@ def cmd_password(
         return EXIT_OK
 
     return _locked(lock, body)
+
+
+_AGENT_REFUSALS = {
+    "invalid_config": "[schedule] sets no time on any day: nothing to run",
+    "disabled": "[classroom] profile_read is false: switch it on before installing the agent",
+    "no_uv": "uv was not found on this PATH: install it, then install the agent again",
+    "docker_unavailable": "docker was not found on this PATH: install Docker Desktop, then install the agent again",
+    "no_repository": "[tools] repository is not a folder on this Mac",
+    "launchctl_failed": "launchd did not load the agent; nothing was left installed",
+}
+
+
+def cmd_agent(action: str, spec: ClassroomAgentSpec, profile_read: bool, agent: ClassroomAgent | None = None) -> int:
+    """`classroom agent install|uninstall` (FR-015, research R11). Uninstall works whatever the switch."""
+    made = agent or system_agent()
+    try:
+        if action == "install":
+            if not profile_read:
+                raise AgentError("disabled")
+            out = made.install(spec)
+        else:
+            out = made.remove(spec.student)
+    except AgentError as err:
+        return _fail(err.reason, _AGENT_REFUSALS[err.reason])
+    _say(f"classroom agent {out['agent']}")
+    _emit(out)
+    return EXIT_OK

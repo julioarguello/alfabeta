@@ -27,6 +27,7 @@ TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "template.toml"
 # A template table whose only child is this table holds one table per name the operator chooses.
 DYNAMIC = "changeme"
 READERS = frozenset({"_str", "_strs", "_int", "_float", "_bool", "_names", "_count"})
+_HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 _NAME = re.compile(r"[a-z][a-z0-9_-]*")
 # Google Drive for desktop mounts every account under this folder (spec 004 R7).
@@ -273,6 +274,23 @@ class StudentConfig:
     def nlm_profile(self) -> str:
         """The `nlm` profile of the account that owns the notebooks."""
         return _str(self.data, "notebook.nlm_profile")
+
+    @property
+    def schedule_times(self) -> dict[str, str]:
+        """`[schedule]`'s time each weekday, "HH:MM" or "" for none (spec 001 FR-021a, spec 006 FR-015)."""
+        times = {
+            "monday": _str(self.data, "schedule.monday", allow_empty=True),
+            "tuesday": _str(self.data, "schedule.tuesday", allow_empty=True),
+            "wednesday": _str(self.data, "schedule.wednesday", allow_empty=True),
+            "thursday": _str(self.data, "schedule.thursday", allow_empty=True),
+            "friday": _str(self.data, "schedule.friday", allow_empty=True),
+            "saturday": _str(self.data, "schedule.saturday", allow_empty=True),
+            "sunday": _str(self.data, "schedule.sunday", allow_empty=True),
+        }
+        for day, value in times.items():
+            if value and not _HHMM.match(value):
+                raise ConfigError(f"key schedule.{day} is not a time HH:MM")
+        return times
 
     @property
     def schedule_wait_minutes(self) -> int:

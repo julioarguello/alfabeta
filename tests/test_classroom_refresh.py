@@ -24,7 +24,12 @@ if TYPE_CHECKING:
 STUDENT = "s9"
 ACCOUNT = "alumno@example.test"
 PASSWORD = "contraseña-inventada-123"
-TODAY = dt.date(2026, 11, 18)
+TODAY = dt.date(2026, 11, 18)  # a Wednesday
+NOW = dt.datetime(2026, 11, 18, 8, 10)  # ten minutes after the schedule's time
+TIMES = dict.fromkeys(("monday", "tuesday", "wednesday", "thursday", "friday"), "08:00") | {
+    "saturday": "",
+    "sunday": "",
+}
 
 
 class FakeStore:
@@ -152,6 +157,8 @@ def _cfg(tmp_path: Path, profile_read: bool = True) -> refresh.RefreshConfig:
         data_dir=tmp_path / "home" / STUDENT / "data",
         downloads=tmp_path / "downloads",
         idle_minutes=5,
+        times=TIMES,
+        wait_minutes=60,
     )
 
 
@@ -161,6 +168,7 @@ def _deps(
     inside: bool = False,
     started_by: str = "command",
     steps: FakeSteps | None = None,
+    now: dt.datetime = NOW,
 ) -> tuple[refresh.Deps, FakeNotifier, FakeSteps]:
     notifier, steps = FakeNotifier(), steps or FakeSteps()
     deps = refresh.Deps(
@@ -171,6 +179,7 @@ def _deps(
         today=TODAY,
         inside_claude=inside,
         started_by=started_by,
+        now=now,
     )
     return deps, notifier, steps
 
@@ -558,3 +567,36 @@ def test_a_symlink_loop_in_out_is_not_brought_and_apply_runs(tmp_path: Path) -> 
     assert result["outcome"] == "ok" and result["capture"]["attachments"]["brought"] == 0
     assert [c[0][1] for c in steps.calls] == ["collect", "plan", "apply"]
     assert not list(data.glob("classroom-out-*"))
+
+
+@pytest.mark.parametrize(
+    ("now", "ran"),
+    [
+        (dt.datetime(2026, 11, 18, 8, 0), True),  # at the time
+        (dt.datetime(2026, 11, 18, 9, 0), True),  # wait_minutes later, still in
+        (dt.datetime(2026, 11, 18, 9, 1), False),  # a Mac that slept through it wakes later
+        (dt.datetime(2026, 11, 18, 7, 59), False),
+        (dt.datetime(2026, 11, 21, 8, 10), False),  # Saturday: no time that day
+    ],
+)
+def test_the_schedule_does_not_make_up_a_missed_time(tmp_path: Path, now: dt.datetime, ran: bool) -> None:
+    container = FakeContainer(OK)
+    result, notifier, _, data = _go(tmp_path, container, started_by="schedule", now=now)
+    assert bool(container.requests) is ran
+    if not ran:
+        assert result == {"ok": True, "started_by": "schedule", "outcome": "skipped", "reason": "outside_hours"}
+        assert _log(data)[-1]["reason"] == "outside_hours" and notifier.texts == []
+        assert not state.Lock(tmp_path / "home", data).held()
+
+
+def test_by_hand_the_hours_do_not_apply(tmp_path: Path) -> None:
+    container = FakeContainer(OK)
+    _go(tmp_path, container, now=dt.datetime(2026, 11, 21, 23, 0))
+    assert container.requests
+
+
+def test_skipped_exits_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(state.RUN_ENV, raising=False)
+    cfg = _cfg(tmp_path)
+    deps, _, _ = _deps(FakeContainer(OK), started_by="schedule", now=dt.datetime(2026, 11, 21, 8, 10))
+    assert cli.cmd_refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps) == 0

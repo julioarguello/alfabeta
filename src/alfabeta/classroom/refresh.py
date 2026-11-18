@@ -16,6 +16,9 @@ apply notes «no traído».
   sets the mark (FR-027, FR-031).
 - With the mark, a read that finds the session gone stops with `wrong_password`, not
   `session_expired`: the notice must keep asking for `classroom password set` (FR-027).
+- Started by the launchd agent (`started_by: schedule`) more than `[schedule] wait_minutes` after
+  today's time, or on a day with none (a Mac that slept through it, FR-015), the read is not made
+  up: `outcome: skipped`, `reason: outside_hours`, one log line, no lock, no notice.
 - A stop before anything was read writes nothing to the student's folder, shows the macOS
   notification in Spanish naming the code (FR-032) and leaves one log line.
 - A step of spec 001 that fails (its JSON says `ok: false`, it leaves no JSON and a non-zero exit,
@@ -25,10 +28,11 @@ apply notes «no traído».
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import re
 import shutil
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta import state
@@ -39,7 +43,7 @@ from alfabeta.google.keychain import KeychainError
 from alfabeta.model import RunMode, StopReason
 
 if TYPE_CHECKING:
-    import datetime as dt
+    from collections.abc import Mapping
     from pathlib import Path
 
     from alfabeta.classroom.container import ReadContainer
@@ -77,6 +81,8 @@ class RefreshConfig:
     data_dir: Path
     downloads: Path
     idle_minutes: int
+    times: Mapping[str, str] = field(default_factory=lambda: {})  # `[schedule]`: day → "HH:MM" or ""
+    wait_minutes: int = 0
 
 
 @dataclass(frozen=True)
@@ -90,6 +96,20 @@ class Deps:
     today: dt.date
     inside_claude: bool
     started_by: str
+    now: dt.datetime | None = None  # the Mac's local time; None = now (the tests fix it)
+
+
+DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def in_hours(times: Mapping[str, str], wait_minutes: int, now: dt.datetime) -> bool:
+    """Whether `now` is within `wait_minutes` after today's `[schedule]` time (FR-015)."""
+    value = times.get(DAYS[now.weekday()], "")
+    if not value:
+        return False
+    hour, minute = (int(part) for part in value.split(":"))
+    start = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return start <= now <= start + dt.timedelta(minutes=wait_minutes)
 
 
 def notification(student: str, code: str) -> str:
@@ -130,6 +150,12 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
     result: dict[str, Any] = {"ok": False, "started_by": started_by, "outcome": "stopped", "reason": None}
     if not cfg.profile_read:
         return result | {"reason": str(StopReason.DISABLED)}
+    if started_by == "schedule" and not in_hours(cfg.times, cfg.wait_minutes, deps.now or dt.datetime.now()):
+        state.StateStore(cfg.data_dir).log(
+            {"type": "classroom_refresh", "run": None, "started_by": started_by, "outcome": "skipped"}
+            | {"reason": "outside_hours"}
+        )
+        return result | {"ok": True, "outcome": "skipped", "reason": "outside_hours"}
     lease = lock.lease()
     own = bool(run_env and lease is not None and lease.get("run") == run_env and lock.held())
     if own:
