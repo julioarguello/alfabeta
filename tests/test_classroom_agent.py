@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import plistlib
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -146,6 +147,8 @@ def _configured(tmp_path: Path, switch: str = "true", monday: str = "16:15") -> 
     schedule = "\n".join(f'{day} = "{monday if day == "monday" else ""}"' for day in TIMES)
     tables = f'\n[tools]\nfolder = "{tmp_path / "tools"}"\nrepository = "{tmp_path / "repo"}"\n'
     tables += f"\n[schedule]\n{schedule}\nwait_minutes = 60\n"
+    tables += f'\n[downloads]\nfolder = "{tmp_path / "downloads"}"\n'
+    tables += "\n[sync]\nfull_review_days = 7\nlock_idle_minutes = 30\nkept_captures = 10\n"
     text = CONFIG.replace("profile_read = false", f"profile_read = {switch}") + tables
     (home / STUDENT / "config.toml").write_text(text)
     return home
@@ -167,12 +170,51 @@ def test_the_cli_reads_the_schedule_and_never_touches_the_real_agents_folder(
 
 
 def test_uninstall_works_whatever_the_configuration_says(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    home = _configured(tmp_path, monday="25:00")  # an invalid time: install would refuse
+    home = _configured(tmp_path)
     made = _bench(tmp_path)
     monkeypatch.setattr(cli, "system_agent", lambda: made)
     argv = ["--home", str(home), "classroom", "agent"]
-    assert __main__.main([*argv, "install", "--student", STUDENT]) == 1
+    assert __main__.main([*argv, "install", "--student", STUDENT]) == 0
+    config_file = home / STUDENT / "config.toml"
+    config_file.write_text(config_file.read_text().replace('monday = "16:15"', 'monday = "25:00"'))
+    assert __main__.main([*argv, "install", "--student", STUDENT]) == 1  # install refuses it now
+    assert list(made.agents_dir.glob("*.plist"))
+    shutil.rmtree(home / STUDENT)  # even with the student's folder gone
     assert __main__.main([*argv, "uninstall", "--student", STUDENT]) == 0
+    assert not list(made.agents_dir.glob("*.plist"))
+
+
+def test_every_day_maps_to_its_launchd_weekday() -> None:
+    every = {day: f"0{i}:3{i}" for i, day in enumerate(agent.WEEKDAYS)}
+    entries = agent.calendar(every)
+    assert [(e["Weekday"], e["Hour"], e["Minute"]) for e in entries] == [
+        (1, 0, 30),
+        (2, 1, 31),
+        (3, 2, 32),
+        (4, 3, 33),
+        (5, 4, 34),
+        (6, 5, 35),
+        (0, 6, 36),
+    ]
+
+
+def test_no_repository_is_refused(tmp_path: Path) -> None:
+    spec = ClassroomAgentSpec(STUDENT, tmp_path / "home", tmp_path / "missing", tmp_path / "data", TIMES)
+    with pytest.raises(agent.AgentError) as raised:
+        _bench(tmp_path).install(spec)
+    assert raised.value.reason == "no_repository"
+
+
+def test_refresh_reads_the_schedule_only_when_the_agent_started_it(tmp_path: Path) -> None:
+    home = _configured(tmp_path)
+    scheduled = __main__._refresh_config(home, STUDENT, "schedule")
+    assert scheduled.times["monday"] == "16:15" and scheduled.wait_minutes == 60
+    config_file = home / STUDENT / "config.toml"
+    config_file.write_text(config_file.read_text().replace('monday = "16:15"', 'monday = "changeme"'))
+    by_hand = __main__._refresh_config(home, STUDENT, "command")  # a template value left: no invalid_config
+    assert by_hand.times == {} and by_hand.wait_minutes == 0
+    with pytest.raises(config.ConfigError):
+        __main__._refresh_config(home, STUDENT, "schedule")
 
 
 def test_a_schedule_time_that_is_not_hh_mm_is_named(tmp_path: Path) -> None:

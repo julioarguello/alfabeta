@@ -84,6 +84,23 @@ AGENT_TABLES = ("tools", "notebook")
 SHARE_TABLES = ("student", "storage", "notebook")
 
 
+def _refresh_config(home: Path, student: str, started_by: str) -> classroom_refresh.RefreshConfig:
+    """`classroom refresh`'s configuration; `[schedule]` is read only when the agent started it (FR-015)."""
+    scheduled = started_by == "schedule"
+    tables = ("classroom", "downloads", "sync", *(("schedule",) if scheduled else ()))
+    cfg = config.load(home, student, tables)
+    return classroom_refresh.RefreshConfig(
+        student=student,
+        account=cfg.school_account,
+        profile_read=cfg.profile_read,
+        data_dir=cfg.data_dir,
+        downloads=Path(cfg.downloads_folder).expanduser(),
+        idle_minutes=cfg.lock_idle_minutes,
+        times=cfg.schedule_times if scheduled else {},
+        wait_minutes=cfg.schedule_wait_minutes if scheduled else 0,
+    )
+
+
 def _cmd_config_check(home: Path, student: str) -> int:
     problems, warnings = config.check(home, student)
     for warning in warnings:
@@ -1061,9 +1078,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.group == "decision":
             return _cmd_decisions(args, home)
         if args.group == "classroom" and args.verb == "agent":
-            if args.action == "uninstall":  # whatever the configuration says (contracts/cli.md)
-                data_dir = config.student_root(home, args.student) / "data"
-                gone = ClassroomAgentSpec(args.student, home.resolve(), Path(), data_dir, {})
+            if args.action == "uninstall":  # whatever the configuration says, or if the folder is gone
+                gone = ClassroomAgentSpec(args.student, home.resolve(), Path(), home / args.student / "data", {})
                 return classroom_cli.cmd_agent("uninstall", gone, profile_read=False)
             agent_cfg = config.load(home, args.student, ("tools", "classroom", "schedule"))
             spec = ClassroomAgentSpec(
@@ -1075,18 +1091,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             return classroom_cli.cmd_agent("install", spec, profile_read=agent_cfg.profile_read)
         if args.group == "classroom" and args.verb == "refresh":
-            cfg = config.load(home, args.student, ("classroom", "downloads", "sync", "schedule"))
+            started_by = os.environ.get("ALFABETA_STARTED_BY", "command")
             return classroom_cli.cmd_refresh(
-                classroom_refresh.RefreshConfig(
-                    student=args.student,
-                    account=cfg.school_account,
-                    profile_read=cfg.profile_read,
-                    data_dir=cfg.data_dir,
-                    downloads=Path(cfg.downloads_folder).expanduser(),
-                    idle_minutes=cfg.lock_idle_minutes,
-                    times=cfg.schedule_times,
-                    wait_minutes=cfg.schedule_wait_minutes,
-                ),
+                _refresh_config(home, args.student, started_by),
                 _lock(home, args.student),
                 classroom_refresh.Deps(
                     container=DockerReadContainer(),
@@ -1095,7 +1102,7 @@ def main(argv: list[str] | None = None) -> int:
                     steps=classroom_cli.run_step(home, args.student),
                     today=dt.date.today(),
                     inside_claude=bool(os.environ.get("CLAUDECODE")),
-                    started_by=os.environ.get("ALFABETA_STARTED_BY", "command"),
+                    started_by=started_by,
                     now=dt.datetime.now(),
                 ),
             )

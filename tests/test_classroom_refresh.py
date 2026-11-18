@@ -600,3 +600,17 @@ def test_skipped_exits_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     cfg = _cfg(tmp_path)
     deps, _, _ = _deps(FakeContainer(OK), started_by="schedule", now=dt.datetime(2026, 11, 21, 8, 10))
     assert cli.cmd_refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps) == 0
+
+
+@pytest.mark.parametrize(
+    ("times", "wait", "now", "inside"),
+    [
+        ({"wednesday": "08:00"}, 0, dt.datetime(2026, 11, 18, 8, 0, 3), True),  # launchd starts a few seconds late
+        ({"wednesday": "08:00"}, 0, dt.datetime(2026, 11, 18, 8, 10, 30), False),  # past the grace
+        ({"wednesday": "23:50"}, 60, dt.datetime(2026, 11, 19, 0, 10), True),  # Thursday, Wednesday's window
+        ({"wednesday": "23:50"}, 60, dt.datetime(2026, 11, 19, 0, 51), False),
+        ({"thursday": "00:05"}, 60, dt.datetime(2026, 11, 18, 23, 59), False),  # not before its time
+    ],
+)
+def test_the_hours_window(times: dict[str, str], wait: int, now: dt.datetime, inside: bool) -> None:
+    assert refresh.in_hours(times, wait, now) is inside
