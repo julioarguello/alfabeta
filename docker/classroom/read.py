@@ -76,11 +76,11 @@ SECOND_FACTOR_PATHS = ("/totp", "/ipp", "/sk", "/az", "/dp", "/iap", "/selection
 GUARD_JS = """
 (() => {
   if (!window.__abClassroom) return;
-  const count = (k) => { window.__abGuard = window.__abGuard || {}; window.__abGuard[k] = (window.__abGuard[k] || 0) + 1; };
+  const count = (k) => { try { window.__abCount(k); } catch (_) {} };
   for (const type of ["click", "submit", "keydown", "pointerdown", "mousedown"]) {
     window.addEventListener(type, (e) => { e.preventDefault(); e.stopImmediatePropagation(); count("presses"); }, true);
   }
-  const block = function () { count("forms"); };
+  const block = function () { count("form_submits"); };
   HTMLFormElement.prototype.submit = block;
   HTMLFormElement.prototype.requestSubmit = block;
 })();
@@ -142,6 +142,7 @@ class Guard:
     def __init__(self) -> None:
         self.phase = "read"
         self.blocked: dict[str, int] = {}
+        self.breached = False
 
     def _count(self, kind: str) -> None:
         self.blocked[kind] = self.blocked.get(kind, 0) + 1
@@ -150,10 +151,10 @@ class Guard:
         """Whether a document load may go on in the current phase."""
         parts = urlsplit(url)
         host = parts.hostname or ""
-        if parts.scheme in ("about", "data", "blob"):
-            return True
-        if host in CLASSROOM_HOSTS and (CLASSROOM_PAGES.match(parts.path) or (self.phase == "signin" and main_frame)):
-            return True
+        if host in CLASSROOM_HOSTS and (host not in ACCOUNT_HOSTS or parts.path.startswith("/u/")):
+            # Classroom's pages keep their own rule in every phase; only the sign-in's landing (a
+            # main frame) may be any Classroom page.
+            return bool(CLASSROOM_PAGES.match(parts.path) or (self.phase == "signin" and main_frame))
         if self.phase == "signin" and main_frame and (host in ACCOUNT_HOSTS or host in REDIRECT_HOSTS):
             return True
         return bool(self.phase == "signin" and not main_frame and host in ACCOUNT_HOSTS | REDIRECT_HOSTS)
@@ -163,7 +164,7 @@ class Guard:
         parts = urlsplit(request.url)
         host = parts.hostname or ""
         if host in FORM_HOSTS or (host == "docs.google.com" and parts.path.startswith("/forms")):
-            self._count("forms")
+            self._count("form_hosts")
             route.abort()
             return
         if host in DOWNLOAD_HOSTS or parts.path.endswith("/export"):
@@ -177,6 +178,26 @@ class Guard:
                 route.abort()
                 return
         route.continue_()
+
+    def watch(self, request: Any) -> None:
+        """Every request, redirects included: Playwright routes only the first URL of a redirect chain.
+
+        A document a server redirected outside what the phase allows has already been fetched when
+        it is seen; it is counted and breaks the read, which stops at the next step (FR-030: a
+        server-chosen redirect from an allowed GET is the guard's weaker guarantee, never silent).
+        Google's own sign-in host in the read phase is the expired session's signal, not a breach.
+        """
+        if request.redirected_from is None or request.resource_type != "document":
+            return
+        main_frame = request.frame.parent_frame is None
+        if self.allows_document(request.url, main_frame) or kind(request.url).startswith("accounts:"):
+            return
+        self._count("redirects")
+        self.breached = True
+
+    def bump(self, kind: str) -> None:
+        """A count from the page's guard script (presses, form submits), whatever document or frame."""
+        self._count(str(kind))
 
 
 def kind(url: str) -> str:
@@ -258,6 +279,20 @@ def wait_for(page: Any, selector: str, seconds: float) -> str:
     return "stop:challenge"
 
 
+def _type(page: Any, selector: str, value: str) -> bool:
+    """Fill one field and press Enter; False if the page moved on.
+
+    Playwright's error for a failed fill quotes the value in its call log, so the exception is
+    dropped here, never printed or chained (constitution III; FR-031).
+    """
+    try:
+        field(page, selector).fill(value, timeout=10000)
+        page.keyboard.press("Enter")
+    except Exception:
+        return False
+    return True
+
+
 def sign_in(ctx: Any, page: Any, guard: Guard, account: str, password: str | None) -> str | None:
     """None when Classroom is reached, else the stop code."""
     if password is None:
@@ -270,13 +305,15 @@ def sign_in(ctx: Any, page: Any, guard: Guard, account: str, password: str | Non
         return "unreachable"
     step = wait_for(page, EMAIL_FIELD, 30)
     if step == "field":
-        field(page, EMAIL_FIELD).fill(account)
-        page.keyboard.press("Enter")
+        if not _type(page, EMAIL_FIELD, account):
+            guard.phase = "read"
+            return "challenge"
         emit({"event": "typed", "field": "account"})
         step = wait_for(page, PASSWORD_FIELD, 45)
         if step == "field":
-            field(page, PASSWORD_FIELD).fill(password)
-            page.keyboard.press("Enter")
+            if not _type(page, PASSWORD_FIELD, password):
+                guard.phase = "read"
+                return "challenge"
             emit({"event": "typed", "field": "password"})
             step = wait_for(page, "#never-shown", 60)
     guard.phase = "read"
@@ -303,7 +340,7 @@ def account_matches(page: Any, account: str) -> bool | None:
     return account.strip().lower() in found
 
 
-def capture(page: Any, run: str, out: Path) -> dict[str, Any]:
+def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
     """The extractor's calls over every class; returns the end event's fields."""
     page.evaluate(EXTRACTOR.read_text())
     listed = page.evaluate(CLASSES_JS, {"run": run})
@@ -316,16 +353,25 @@ def capture(page: Any, run: str, out: Path) -> dict[str, Any]:
     for cls in classes["classes"]:
         if ONLY and cls["id"] not in ONLY:
             continue
-        got = page.evaluate(
-            CLASS_JS,
-            {
-                "run": run,
-                "classId": cls["id"],
-                "title": cls["title"],
-                "account": classes["account_index"],
-                "pace": PACE,
-            },
-        )
+        if guard.breached:
+            reason = "unexpected_ui"
+            break
+        try:
+            got = page.evaluate(
+                CLASS_JS,
+                {
+                    "run": run,
+                    "classId": cls["id"],
+                    "title": cls["title"],
+                    "account": classes["account_index"],
+                    "pace": PACE,
+                },
+            )
+        except Exception:
+            failed += 1
+            reason = reason or "unexpected_ui"
+            emit({"event": "class", "id": cls["id"], "type": "stop", "reason": "unexpected_ui", "complete": False})
+            continue
         (out / got["name"]).write_text(json.dumps(got["capture"], ensure_ascii=False))
         c = got["capture"]
         emit(
@@ -355,7 +401,7 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
     from playwright.sync_api import sync_playwright
 
     started = time.monotonic()
-    account = str(request["account"])
+    account = str(request.get("account") or "")
     guard = Guard()
     end: dict[str, Any] = {"event": "end", "outcome": "stopped", "reason": None, "classes": {"read": 0, "failed": 0}}
     PROFILE.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -367,6 +413,7 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
             locale=LOCALE,
             timezone_id=TIMEZONE,
             ignore_default_args=IGNORE_DEFAULT_ARGS,
+            service_workers="block",  # a worker's requests would not go through the route
         )
         try:
             ctx.add_init_script(
@@ -376,6 +423,8 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
             )
             ctx.add_init_script(GUARD_JS)
             ctx.route("**/*", guard.route)
+            ctx.on("request", guard.watch)
+            ctx.expose_binding("__abCount", lambda _source, kind: guard.bump(kind))
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             emit({"event": "browser", **page.evaluate(BROWSER_CHECK_JS)})
             state = open_home(page)
@@ -402,13 +451,10 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
                 emit({"event": "account", "result": "other_account"})
                 end["reason"] = "session_expired"
                 return end
-            end.update(capture(page, str(request["run"]), OUT))
-            try:
-                presses = page.evaluate("() => window.__abGuard || {}")
-            except Exception:
-                presses = {}
-            for key, value in presses.items():
-                guard.blocked[key] = guard.blocked.get(key, 0) + int(value)
+            if guard.breached:
+                end["reason"] = "unexpected_ui"
+                return end
+            end.update(capture(page, guard, str(request["run"]), OUT))
             return end
         finally:
             end["blocked"] = dict(guard.blocked)
@@ -425,7 +471,13 @@ def main() -> int:
     except ValueError:
         emit({"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}})
         return 1
-    end = run(request)
+    if not isinstance(request, dict) or not request.get("account") or not request.get("run"):
+        emit({"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}})
+        return 1
+    try:
+        end = run(request)
+    except Exception:
+        end = {"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
     del request
     emit(end)
     return 0 if end["outcome"] == "ok" else 3 if end["outcome"] == "partial" else 1

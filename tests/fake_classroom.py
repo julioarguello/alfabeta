@@ -4,7 +4,8 @@ Never Google: one `ThreadingHTTPServer` on 127.0.0.1 serves invented sign-in pag
 synthetic Classroom pages of `tests/fixtures/classroom/pages` (with their `<base>` removed, so no
 link resolves to the real Classroom). The mode chooses what the sign-in answers.
 
-Modes: `ok`, `captcha` (an image captcha after the account), `rejected`, `second_factor`,
+Modes: `ok`, `readonly` (the password field cannot be filled), `redirect` (an allowed page
+redirects outside), `captcha` (an image captcha after the account), `rejected`, `second_factor`,
 `other_sign_in` (the account's own sign-in elsewhere), `other_account` (Classroom shows another
 account), `expire_mid` (the third class's pages leave for another origin, as an expired session
 does). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
@@ -32,13 +33,14 @@ IDENTIFIER = """<html><body><h1>Inicia sesión</h1>
 <script>const NEXT = {next!r};</script></body></html>"""
 PASSWORD_PAGE = """<html><body><h1>Te damos la bienvenida</h1>{error}
 <form onsubmit="event.preventDefault(); location.href = '/v3/signin/check?p=' + encodeURIComponent(document.querySelector('input').value);">
-<input type=password name=Passwd></form></body></html>"""
+<input type=password name=Passwd {readonly}></form></body></html>"""
 CAPTCHA = """<html><body><h1>Inicia sesión</h1><input type=email id=identifierId>
 <img id=captchaimg src="/captcha.png"><p>Escribe el texto que escuches o veas</p></body></html>"""
 GENERIC = "<html><body><h1>{title}</h1></body></html>"
 # Planted on the home page: a press, a form submit, a form host and a page outside FR-007's pages.
 PLANTED = """<button id=planted>x</button><form id=plantedform></form>
-<img src="https://forms.gle/planted"><iframe src="/u/5/outside"></iframe>
+<img src="http://forms.invalid/planted"><iframe src="/u/5/outside"></iframe><iframe src="{other}/third-party"></iframe>
+<a href="http://forms.invalid/quiz">quiz</a>{redirect}
 <div aria-label="Cuenta de Google: Persona Inventada ({email})"></div>
 <script>window.addEventListener('load', () => {{ document.getElementById('planted').click();
 document.getElementById('plantedform').submit(); }});</script>"""
@@ -64,6 +66,7 @@ class FakeGoogle(http.server.ThreadingHTTPServer):
         super().__init__(("127.0.0.1", 0), _Handler)
         self.mode = mode
         self.password_attempts = 0
+        self.served: list[str] = []
         self.thread = threading.Thread(target=self.serve_forever, daemon=True)
 
     @property
@@ -107,23 +110,24 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         url = urlsplit(self.path)
         mode = self.fake.mode
+        self.fake.served.append(url.path)
         if url.path == "/v3/signin/identifier":
             if "fakestale=1" in (self.headers.get("Cookie") or ""):
                 return self._send("", 302, "/v3/signin/accountchooser")
             nxt = {
                 "captcha": "/v3/signin/identifier/captcha",
                 "rejected": "/signin/rejected",
-                "other_sign_in": "http://example.invalid/school-sign-in",
+                "other_sign_in": f"{self.fake.other_origin}/school-sign-in",
             }.get(mode, "/v3/signin/challenge/pwd")
             return self._send(IDENTIFIER.format(next=nxt))
         if url.path == "/v3/signin/identifier/captcha":
             return self._send(CAPTCHA)
         if url.path == "/v3/signin/challenge/pwd":
-            return self._send(PASSWORD_PAGE.format(error=""))
+            return self._send(PASSWORD_PAGE.format(error="", readonly="readonly" if mode == "readonly" else ""))
         if url.path == "/v3/signin/check":
             self.fake.password_attempts += 1
             if parse_qs(url.query).get("p", [""])[0] != PASSWORD:
-                return self._send(PASSWORD_PAGE.format(error="<p>Contraseña incorrecta</p>"))
+                return self._send(PASSWORD_PAGE.format(error="<p>Contraseña incorrecta</p>", readonly=""))
             if mode == "second_factor":
                 return self._send("", 302, "/v3/signin/challenge/totp")
             return self._send("", 302, "/u/5/h", cookie="fakesid=ok; Path=/; Max-Age=3600")
@@ -133,8 +137,12 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             if not self._signed_in():
                 return self._send("", 302, "/v3/signin/identifier")
             email = OTHER if mode == "other_account" else ACCOUNT
-            home = _page("home.html").replace(b"</body>", PLANTED.format(email=email).encode() + b"</body>", 1)
+            redirect = '<iframe src="/u/5/c/redirme"></iframe>' if mode == "redirect" else ""
+            planted = PLANTED.format(email=email, other=self.fake.other_origin, redirect=redirect)
+            home = _page("home.html").replace(b"</body>", planted.encode() + b"</body>", 1)
             return self._send(home)
+        if url.path == "/u/5/c/redirme":
+            return self._send("", 302, "/u/5/outside")
         if url.path == "/u/5/outside":
             return self._send(GENERIC.format(title="fuera"))
         if not self._signed_in():
