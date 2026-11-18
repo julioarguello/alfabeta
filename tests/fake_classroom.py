@@ -7,7 +7,8 @@ link resolves to the real Classroom). The mode chooses what the sign-in answers.
 Modes: `ok`, `readonly` (the password field cannot be filled), `redirect` (an allowed page
 redirects outside), `captcha` (an image captcha after the account), `rejected`, `second_factor`,
 `other_sign_in` (the account's own sign-in elsewhere), `other_account` (Classroom shows another
-account), `expire_mid` (the third class's pages leave for another origin, as an expired session
+account), `no_account` (Classroom names no account), `slow_list` (the class cards appear 1.5 s
+after the page, as right after a sign-in), `expire_mid` (the third class's pages leave for another origin, as an expired session
 does). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
 prove the read clears the cookies first. Class `synth-73` is unreadable (`unexpected_ui`).
 
@@ -21,6 +22,7 @@ the same host, `f-nolen` the PDF with no Content-Length.
 
 from __future__ import annotations
 
+import base64
 import gzip
 import http.server
 import re
@@ -186,7 +188,20 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             email = OTHER if mode == "other_account" else ACCOUNT
             redirect = '<iframe src="/u/5/c/redirme"></iframe>' if mode == "redirect" else ""
             planted = PLANTED.format(email=email, other=self.fake.other_origin, redirect=redirect)
-            home = _page("home.html").replace(b"</body>", planted.encode() + b"</body>", 1)
+            if mode == "no_account":
+                planted = planted.replace(email, "nadie")
+            home = _page("home.html")
+            if mode == "slow_list":  # the cards come 1.5 s after the page; the account is there at once
+                start = home.index(b">", home.index(b"<body")) + 1
+                end = home.index(b"</body>")
+                late = base64.b64encode(home[start:end]).decode()
+                script = (
+                    "<div id=late></div><script>setTimeout(() => { document.getElementById('late').outerHTML = "
+                    f"new TextDecoder().decode(Uint8Array.from(atob('{late}'), (c) => c.charCodeAt(0))); }}, 1500);"
+                    "</script>"
+                )
+                home = home[:start] + script.encode() + home[end:]
+            home = home.replace(b"</body>", planted.encode() + b"</body>", 1)
             return self._send(home)
         if url.path == "/u/5/c/redirme":
             return self._send("", 302, "/u/5/outside")

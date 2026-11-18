@@ -19,6 +19,10 @@ outcome and stop code. No line carries the account or the password.
   frame document loads only on the pages the phase allows; form, quiz and download hosts refused.
   Every block is counted.
 - **Browser zone and locale** (FR-029): `Europe/Madrid`, `es-ES`.
+- **Progress**: one event per step (`home`, `signin_start`, `signin`, `account`, `classes`, each
+  `class` with its index), so the host can say where the read is; the end event names the `step`
+  it stopped in. Right after a sign-in Classroom may still be painting: the account check and the
+  class list are polled for a few seconds before they count as `unexpected_ui`.
 - **Attachments** (FR-030's exception, the run's second pass): with `fetch` — the attachments the
   host's `classroom plan` asked for out of this run's captures — the read never signs in; after the
   account check it fetches each one through the page's request context (the session's cookies),
@@ -80,6 +84,11 @@ IGNORE_DEFAULT_ARGS: list[str] = ["--use-mock-keychain", "--password-store=basic
 PACE = 1.0
 # Class ids to capture; empty = every class (the tests name one or two to stay fast).
 ONLY: frozenset[str] = frozenset()
+# How long the account check waits for the page to name an account, and how many times the class
+# list is read, LIST_PAUSE_MS apart, before it is `unexpected_ui` (the tests shorten both).
+ACCOUNT_WAIT_SECONDS = 15
+LIST_TRIES = 4
+LIST_PAUSE_MS = 5000
 
 EMAIL_FIELD = "#identifierId, input[name=identifier], input[type=email]"
 PASSWORD_FIELD = "input[name=Passwd], input[type=password]"
@@ -375,19 +384,36 @@ def account_matches(page: Any, account: str) -> bool | None:
     return account.strip().lower() in found
 
 
+def wait_account(page: Any, account: str) -> bool | None:
+    """`account_matches`, asked again each second for up to ACCOUNT_WAIT_SECONDS while it names none."""
+    deadline = time.monotonic() + ACCOUNT_WAIT_SECONDS
+    while True:
+        found = account_matches(page, account)
+        if found is not None or time.monotonic() >= deadline:
+            return found
+        page.wait_for_timeout(1000)
+
+
 def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
     """The extractor's calls over every class; returns the end event's fields."""
     page.evaluate(EXTRACTOR.read_text())
     listed = page.evaluate(CLASSES_JS, {"run": run})
+    for _ in range(LIST_TRIES - 1):  # a page still painting after a sign-in lists nothing yet
+        if listed["capture"]["type"] != "stop" or listed["capture"]["reason"] != "unexpected_ui":
+            break
+        page.wait_for_timeout(LIST_PAUSE_MS)
+        listed = page.evaluate(CLASSES_JS, {"run": run})
     out.mkdir(parents=True, exist_ok=True)
     (out / listed["name"]).write_text(json.dumps(listed["capture"], ensure_ascii=False))
     classes = listed["capture"]
     if classes["type"] == "stop":
+        emit({"event": "classes", "stop": classes["reason"]})
         return {"outcome": "stopped", "reason": classes["reason"], "classes": {"read": 0, "failed": 0}}
+    wanted = [c for c in classes["classes"] if not ONLY or c["id"] in ONLY]
+    emit({"event": "classes", "listed": len(classes["classes"]), "to_read": len(wanted)})
     read, failed, reason = 0, 0, None
-    for cls in classes["classes"]:
-        if ONLY and cls["id"] not in ONLY:
-            continue
+    for index, cls in enumerate(wanted, start=1):
+        emit({"event": "class_start", "index": index, "total": len(wanted)})
         if guard.breached:
             reason = "unexpected_ui"
             break
@@ -570,7 +596,9 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
             ctx.expose_binding("__abCount", lambda _source, kind: guard.bump(kind))
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             emit({"event": "browser", **page.evaluate(BROWSER_CHECK_JS)})
+            end["step"] = "home"
             state = open_home(page)
+            emit({"event": "home", "state": state})
             if state == "unreachable":
                 end["reason"] = "unreachable"
                 return end
@@ -579,28 +607,38 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
                 if not request.get("signin") or fetching:  # the attachments pass never signs in
                     end["reason"] = "session_expired"
                     return end
+                end["step"] = "signin"
+                emit({"event": "signin_start"})
                 code = sign_in(ctx, page, guard, account, request.get("password"))
                 emit({"event": "signin", "result": code or "signed_in"})
                 if code:
                     end["reason"] = code
                     return end
-                if open_home(page) != "alive":
+                end["step"] = "home"
+                state = open_home(page)
+                emit({"event": "home", "state": state})
+                if state != "alive":
                     end["reason"] = "session_expired"
                     return end
-            matches = account_matches(page, account)
+            end["step"] = "account"
+            matches = wait_account(page, account)
             if matches is None:
+                emit({"event": "account", "result": "none"})
                 end["reason"] = "unexpected_ui"
                 return end
             if not matches:
                 emit({"event": "account", "result": "other_account"})
                 end["reason"] = "session_expired"
                 return end
+            emit({"event": "account", "result": "ok"})
             if guard.breached:
                 end["reason"] = "unexpected_ui"
                 return end
             if fetching:
+                end["step"] = "attachments"
                 end.update(fetch(page, list(request["fetch"]), OUT))
                 return end
+            end["step"] = "classes"
             end.update(capture(page, guard, str(request["run"]), OUT))
             return end
         finally:

@@ -38,6 +38,11 @@ def _say(message: str) -> None:
     print(f"alfabeta: {message}", file=sys.stderr)
 
 
+def say(message: str) -> None:
+    """One progress line for people, on stderr (python-cli-output §1)."""
+    _say(message)
+
+
 def _fail(reason: str, message: str) -> int:
     _say(message)
     _emit({"ok": False, "reason": reason})
@@ -98,11 +103,21 @@ def cmd_refresh(cfg: refresh.RefreshConfig, lock: state.Lock, deps: refresh.Deps
     """`classroom refresh`, the container read (contracts/cli.md, amendment of 2026-11-17)."""
     result = refresh.refresh(cfg, lock, deps, os.environ.get(state.RUN_ENV))
     _emit(result)
-    if result["outcome"] in ("ok", "skipped"):
+    if result["outcome"] == "skipped":
+        _say("fuera del horario de [schedule]: hoy no se lee")
         return EXIT_OK
-    if result["outcome"] == "partial":
+    if result["outcome"] in ("ok", "partial"):
+        capture, applied = result.get("capture", {}), result.get("apply", {})
+        summary = (
+            f"{capture.get('read', 0)} clases leídas, {applied.get('added', 0)} añadidos, "
+            f"{applied.get('changed', 0)} cambiados, {applied.get('pending_decisions', 0)} decisiones pendientes"
+        )
+        if result["outcome"] == "ok":
+            _say(f"{refresh.OK} lectura terminada: {summary}")
+            return EXIT_OK
+        _say(f"lectura parcial ({result['reason']}): {summary}")
         return EXIT_PARTIAL
-    _say(f"la lectura se ha parado: {result['reason']}")
+    _say(f"{refresh.FAIL} la lectura se ha parado: {result['reason']}")
     return EXIT_INVALID
 
 

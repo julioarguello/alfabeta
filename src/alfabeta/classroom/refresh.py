@@ -22,6 +22,9 @@ apply notes «no traído».
   lock, no notice. A window that crosses midnight belongs to the day it started.
 - A stop before anything was read writes nothing to the student's folder, shows the macOS
   notification in Spanish naming the code (FR-032) and leaves one log line.
+- Progress: one short Spanish line per step on stderr (`Deps.say`), built from the container's
+  events — where the read is, never an address, a name or a password (rule python-cli-output,
+  §1, §4, §6). The log line names the `step` the first pass stopped in.
 - A step of spec 001 that fails (its JSON says `ok: false`, it leaves no JSON and a non-zero exit,
   or it runs out of time) stops the run with that step's reason and the same notification.
 """
@@ -44,7 +47,7 @@ from alfabeta.google.keychain import KeychainError
 from alfabeta.model import RunMode, StopReason
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
     from alfabeta.classroom.container import ReadContainer
@@ -98,6 +101,67 @@ class Deps:
     inside_claude: bool
     started_by: str
     now: dt.datetime | None = None  # the Mac's local time; None = now (the tests fix it)
+    say: Callable[[str], None] | None = None  # one progress line for people (stderr); None = quiet
+
+
+OK, FAIL = "✓", "✗"  # python-cli-output §4: a step done, a step that failed
+
+
+class Progress:
+    """The container's events as one Spanish line per step, or None for an event that says nothing new."""
+
+    def __init__(self) -> None:
+        self.index, self.total = 0, 0
+
+    def line(self, event: dict[str, Any]) -> str | None:
+        """The line an event earns, if any."""
+        kind = event.get("event")
+        if kind == "home":
+            return {"alive": f"{OK} sesión abierta en Classroom", "expired": "la sesión ha caducado"}.get(
+                str(event.get("state"))
+            )
+        if kind == "signin_start":
+            return "iniciando sesión con la contraseña guardada …"
+        if kind == "signin":
+            result = event.get("result")
+            return f"{OK} sesión iniciada" if result == "signed_in" else f"{FAIL} inicio de sesión parado: {result}"
+        if kind == "account":
+            return {
+                "ok": f"{OK} cuenta del colegio comprobada",
+                "other_account": f"{FAIL} el perfil tiene abierta otra cuenta",
+                "none": f"{FAIL} la página no muestra ninguna cuenta",
+            }.get(str(event.get("result")))
+        if kind == "classes":
+            if "stop" in event:
+                return f"{FAIL} la lista de clases no se pudo leer: {event['stop']}"
+            return f"{OK} {event.get('to_read')} clases que leer"
+        if kind == "class_start":
+            self.index, self.total = int(event.get("index", 0)), int(event.get("total", 0))
+            return None
+        if kind == "class":
+            where = f"clase {self.index}/{self.total}"
+            if event.get("type") == "class":
+                return f"{OK} {where}" + ("" if event.get("complete") else " (incompleta: se repite en la próxima)")
+            return f"{FAIL} {where}: {event.get('reason')}"
+        return None
+
+
+def _speaker(deps: Deps, events: list[dict[str, Any]]) -> Callable[[dict[str, Any]], None]:
+    """Keep each event, and say its line."""
+    progress = Progress()
+
+    def on_event(event: dict[str, Any]) -> None:
+        events.append(event)
+        line = progress.line(event)
+        if line:
+            _say(deps, line)
+
+    return on_event
+
+
+def _say(deps: Deps, line: str) -> None:
+    if deps.say is not None:
+        deps.say(line)
 
 
 DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
@@ -186,7 +250,7 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
             {"type": "classroom_refresh", "run": run, "started_by": started_by}
             | {k: result.get(k) for k in ("outcome", "reason", "capture", "blocked")}
             | {"seconds": logged.get("seconds")}
-            | {k: logged[k] for k in ("refused_hosts", "attachments_pass") if k in logged}
+            | {k: logged[k] for k in ("refused_hosts", "attachments_pass", "step") if k in logged}
             | _first_pass(logged.get("first_pass", []))
         )
         if not own:
@@ -221,6 +285,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     if not deps.container.available():
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     try:
+        _say(deps, "preparando el contenedor …")
         image = deps.container.ensure_image()
     except ContainerError:
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
@@ -240,13 +305,15 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     out = cfg.data_dir / f"classroom-out-{run}"
     try:
         with _Renewer(lock, run):
-            end = deps.container.run(image, request, profile, out, events.append)
+            _say(deps, "abriendo Classroom …")
+            end = deps.container.run(image, request, profile, out, _speaker(deps, events))
     except ContainerError:
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     finally:
         request.clear()
     logged["seconds"] = end.get("seconds")
+    logged["step"] = end.get("step")
     capture = end.get("classes", {"read": 0, "failed": 0})
     blocked = end.get("blocked", {})
     reason = end.get("reason")
@@ -259,12 +326,15 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(reason or StopReason.UNEXPECTED_UI)) | {"capture": capture, "blocked": blocked}
     _hand_over(out, cfg.downloads, run)
+    _say(deps, "recogiendo las capturas y planificando …")
     collected = deps.steps(["download", "collect", "--wait", "10"], run)
     planned = {} if _failed(collected) else deps.steps(["classroom", "plan"], run)
     attachments: dict[str, int] = {"brought": 0, "not_brought": 0, "refused": 0}
     if not _failed(collected) and not _failed(planned):
         session = reason not in NO_SESSION and not blocked.get("redirects")
         attachments = _attachments(cfg, lock, deps, run, image, planned, session, logged)
+    if not _failed(collected) and not _failed(planned):
+        _say(deps, "colocando en Drive …")
     applied = {} if _failed(collected) or _failed(planned) else deps.steps(["classroom", "apply"], run)
     failed = next((step for step in (collected, planned, applied) if _failed(step)), None)
     if failed is not None:
@@ -321,6 +391,7 @@ def _attachments(
     counts = {"brought": 0, "not_brought": len(wanted), "refused": 0}
     if not wanted or not session:
         return counts
+    _say(deps, f"bajando {len(wanted)} adjuntos …")
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": None, "signin": False, "fetch": wanted}
     out = cfg.data_dir / f"classroom-out-{run}-attachments"
     events: list[dict[str, Any]] = []
@@ -353,7 +424,9 @@ def _attachments(
             placed += 1
     shutil.rmtree(out, ignore_errors=True)
     refused = int(end.get("attachments", {}).get("refused", 0))
-    return {"brought": placed, "not_brought": len(wanted) - placed - refused, "refused": refused}
+    counts = {"brought": placed, "not_brought": len(wanted) - placed - refused, "refused": refused}
+    _say(deps, f"{OK} adjuntos: {placed} traídos, {counts['not_brought']} no traídos, {refused} rechazados")
+    return counts
 
 
 def _hand_over(out: Path, downloads: Path, run: str) -> None:

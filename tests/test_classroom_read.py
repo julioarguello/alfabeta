@@ -42,6 +42,8 @@ def _load(fake: FakeGoogle, tmp_path: Path, only: frozenset[str]) -> tuple[Any, 
     module.CHANNEL = None
     module.IGNORE_DEFAULT_ARGS = []
     module.PACE = 0.0
+    module.ACCOUNT_WAIT_SECONDS = 0
+    module.LIST_PAUSE_MS = 100
     module.ONLY = only
     module.FORM_HOSTS = frozenset({"forms.invalid"})
     module.DRIVE_DOWNLOAD = f"{fake.other_origin}/download"
@@ -451,3 +453,43 @@ def test_a_redirect_to_an_unknown_host_names_the_host_only() -> None:
     assert events == [
         {"event": "redirect", "to": "other", "path": "", "main_frame": True, "host": "accounts.google.de"}
     ]
+
+
+def test_each_step_says_where_the_read_is(tmp_path: Path) -> None:
+    end, events, _ = _read("ok", tmp_path, SIGN_IN, only=frozenset({"synth-71"}))
+    steps = [e["event"] for e in events if e["event"] in ("home", "signin_start", "signin", "account", "classes")]
+    assert steps == ["home", "signin_start", "signin", "home", "account", "classes"]
+    assert [e.get("state") for e in events if e["event"] == "home"] == ["expired", "alive"]
+    assert {"event": "account", "result": "ok"} in events
+    listed = next(e for e in events if e["event"] == "classes")
+    assert listed["to_read"] == 1 and listed["listed"] >= 1
+    assert [e for e in events if e["event"] == "class_start"] == [{"event": "class_start", "index": 1, "total": 1}]
+    assert end["step"] == "classes"
+
+
+def test_a_stop_names_its_step(tmp_path: Path) -> None:
+    end, _, _ = _read("ok", tmp_path, {"password": None, "signin": False})
+    assert end["reason"] == "session_expired" and end["step"] == "home"
+    end, _, _ = _read("captcha", tmp_path / "c", SIGN_IN)
+    assert end["reason"] == "challenge" and end["step"] == "signin"
+
+
+def test_a_page_that_names_no_account_stops_at_the_account_check(tmp_path: Path) -> None:
+    end, events, _ = _read("no_account", tmp_path, SIGN_IN)
+    assert end["reason"] == "unexpected_ui" and end["step"] == "account"
+    assert {"event": "account", "result": "none"} in events
+
+
+def test_a_class_list_painted_late_is_read_again(tmp_path: Path) -> None:
+    def slow(module: Any, fake: FakeGoogle) -> None:
+        module.LIST_PAUSE_MS = 700  # three more tries: 0.7, 1.4, 2.1 s; the cards come at 1.5 s
+        _live("origin")(module, fake)
+
+    with FakeGoogle("slow_list") as fake:
+        module, events = _load(fake, tmp_path, frozenset({"none"}))
+        slow(module, fake)
+        end: dict[str, Any] = module.run(
+            {"run": "run0000000000001", "account": ACCOUNT, "password": None, "signin": False}
+        )
+    assert end["outcome"] == "ok", end
+    assert next(e for e in events if e["event"] == "classes")["listed"] >= 1

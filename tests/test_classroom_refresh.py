@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import datetime as dt
 import json
 import subprocess
@@ -645,3 +646,67 @@ class _DyingAfterEvents(FakeContainer):
 def test_a_first_pass_that_dies_still_logs_what_it_said(tmp_path: Path) -> None:
     result, _, _, data = _go(tmp_path, _DyingAfterEvents(OK))
     assert result["reason"] == "docker_unavailable" and _log(data)[-1]["signin"] == "signed_in"
+
+
+def test_the_family_sees_one_line_per_step(tmp_path: Path) -> None:
+    events = [
+        {"event": "browser", "timezone": "Europe/Madrid"},
+        {"event": "home", "state": "expired"},
+        {"event": "signin_start"},
+        {"event": "signin_page", "host": "accounts.google.com", "path": "/v3/signin/identifier"},
+        {"event": "typed", "field": "password"},
+        {"event": "signin", "result": "signed_in"},
+        {"event": "home", "state": "alive"},
+        {"event": "account", "result": "ok"},
+        {"event": "classes", "listed": 12, "to_read": 2},
+        {"event": "class_start", "index": 1, "total": 2},
+        {"event": "class", "id": "c1", "type": "class", "complete": True},
+        {"event": "class_start", "index": 2, "total": 2},
+        {"event": "class", "id": "c2", "type": "class", "complete": False},
+    ]
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    container = FakeContainer(OK, events=events, brings=frozenset({"f1"}))
+    cfg = _cfg(tmp_path)
+    lines: list[str] = []
+    deps, _, _ = _deps(container, steps=steps)
+    deps = dataclasses.replace(deps, say=lines.append)
+    refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps, None)
+    assert lines == [
+        "preparando el contenedor …",
+        "abriendo Classroom …",
+        "la sesión ha caducado",
+        "iniciando sesión con la contraseña guardada …",
+        "✓ sesión iniciada",
+        "✓ sesión abierta en Classroom",
+        "✓ cuenta del colegio comprobada",
+        "✓ 2 clases que leer",
+        "✓ clase 1/2",
+        "✓ clase 2/2 (incompleta: se repite en la próxima)",
+        "recogiendo las capturas y planificando …",
+        "bajando 1 adjuntos …",
+        "✓ adjuntos: 1 traídos, 0 no traídos, 0 rechazados",
+        "colocando en Drive …",
+    ]
+    assert not any(ACCOUNT in line or PASSWORD in line for line in lines)
+
+
+def test_a_stop_says_where(tmp_path: Path) -> None:
+    events = [{"event": "home", "state": "alive"}, {"event": "account", "result": "none"}]
+    end = {"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "step": "account"}
+    cfg = _cfg(tmp_path)
+    lines: list[str] = []
+    deps, _, _ = _deps(FakeContainer(end | {"classes": {"read": 0, "failed": 0}}, events=events))
+    refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), dataclasses.replace(deps, say=lines.append), None)
+    assert lines[-1] == "✗ la página no muestra ninguna cuenta"
+    assert _log(cfg.data_dir)[-1]["step"] == "account"
+
+
+def test_the_command_ends_with_a_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.delenv(state.RUN_ENV, raising=False)
+    cfg = _cfg(tmp_path)
+    deps, _, _ = _deps(FakeContainer(OK))
+    assert cli.cmd_refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps) == 0
+    err = capsys.readouterr().err
+    assert "alfabeta: ✓ lectura terminada: 1 clases leídas, 2 añadidos, 0 cambiados, 1 decisiones pendientes" in err
