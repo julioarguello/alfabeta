@@ -614,3 +614,17 @@ def test_skipped_exits_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
 )
 def test_the_hours_window(times: dict[str, str], wait: int, now: dt.datetime, inside: bool) -> None:
     assert refresh.in_hours(times, wait, now) is inside
+
+
+def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> None:
+    end = {"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
+    events = [
+        {"event": "signin", "result": "signed_in"},
+        {"event": "redirect", "to": "other", "path": "", "main_frame": True, "host": "accounts.google.de"},
+        {"event": "typed", "field": "password"},
+    ]
+    _, _, _, data = _go(tmp_path, FakeContainer(end, events=events))
+    line = _log(data)[-1]
+    assert line["signin"] == "signed_in"
+    assert line["redirects"] == [{"to": "other", "host": "accounts.google.de", "path": "", "main_frame": True}]
+    assert "first_pass" not in line and "typed" not in json.dumps(line)
