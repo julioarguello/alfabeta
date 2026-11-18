@@ -192,12 +192,31 @@ def test_a_dead_watcher_leaves_no_lock(home: Path):
     cli(home, "lock", "release", "--student", "s9", run=str(run["run"]))
 
 
-@pytest.mark.parametrize("reason", [r for r in StopReason if r != StopReason.IDLE])
-def test_log_stop_writes_every_listed_reason(home: Path, reason: StopReason):
+# Spec 001 contracts/cli.md, `log write-stop`: the list, by hand, so a new StopReason does not widen it.
+WRITE_STOP_REASONS = [
+    "session_expired",
+    "challenge",
+    "unexpected_ui",
+    "timeout",
+    "drive_not_mounted",
+    "lock_busy",
+    "lock_not_held",
+    "invalid_config",
+]
+
+
+@pytest.mark.parametrize("reason", WRITE_STOP_REASONS)
+def test_log_stop_writes_every_listed_reason(home: Path, reason: str):
     (home / "s9" / "config.toml").write_text("not toml at all [")
-    done = cli(home, "log", "write-stop", "--student", "s9", "--reason", str(reason))
+    done = cli(home, "log", "write-stop", "--student", "s9", "--reason", reason)
     assert done.returncode == 0, done.stderr
-    assert [(line["result"], line["reason"]) for line in log_lines(home)] == [("stopped", str(reason))]
+    assert [(line["result"], line["reason"]) for line in log_lines(home)] == [("stopped", reason)]
+
+
+@pytest.mark.parametrize("reason", sorted({str(r) for r in StopReason} - set(WRITE_STOP_REASONS) - {"idle"}))
+def test_log_stop_refuses_a_reason_outside_its_contract(home: Path, reason: str):
+    done = cli(home, "log", "write-stop", "--student", "s9", "--reason", reason)
+    assert done.returncode == 1 and json.loads(done.stdout)["reason"] == "invalid_reason"
 
 
 @pytest.mark.parametrize("reason", ["idle", "porque_si"])

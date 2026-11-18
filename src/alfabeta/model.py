@@ -168,7 +168,7 @@ class RunResult(StrEnum):
 
 
 class StopReason(StrEnum):
-    """Why a run stopped or was partial (contracts/cli.md, `log write-stop`)."""
+    """Why a run stopped or was partial: spec 001's (contracts/cli.md, `log write-stop` takes only those) and spec 006's container read."""
 
     SESSION_EXPIRED = "session_expired"
     CHALLENGE = "challenge"
