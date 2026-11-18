@@ -22,14 +22,14 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 
 ## Slice A — `classroom password set|delete` (FR-031)
 
-- [ ] T002 [P] [A] Write `tests/test_classroom_password.py` with a fake `TokenStore` and a fake
+- [x] T002 [P] [A] Write `tests/test_classroom_password.py` with a fake `TokenStore` and a fake
   prompt: `set` stores the typed value under the keychain service `alfabeta.classroom`, account
   `<student>`, and clears the `wrong_password` mark; `delete` removes both; an empty answer stores
   nothing; a non-TTY stdin is refused (no echoing fallback); a Google link of the same student in
   `alfabeta.google` is untouched; neither command prints, logs or accepts the password as an option,
   an argument or an environment variable (a planted `ALFABETA_PASSWORD` is ignored); each takes the
   student's lock and the browser lock (FR-024a).
-- [ ] T003 [A] Implement `src/alfabeta/classroom/password.py` (`PasswordStore` over a `KeychainStore`
+- [x] T003 [A] Implement `src/alfabeta/classroom/password.py` (`PasswordStore` over a `KeychainStore`
   with its own service, `getpass` behind a TTY check, the mark as a file under `data/` holding only
   its date) and the two commands in `src/alfabeta/classroom/cli.py`, attached to the existing
   `classroom` subparser of `src/alfabeta/__main__.py`; drop them from `PLANNED` in
