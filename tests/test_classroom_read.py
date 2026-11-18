@@ -400,7 +400,8 @@ def test_a_compressed_body_is_brought_whole(tmp_path: Path) -> None:
     end, _, _ = _fetch(tmp_path, [_want("i1", "f-gzip", "a.pdf")])
     assert end["attachments"]["brought"] == 1, end
     folder = _inbox(tmp_path, "i1", "f-gzip", "a.pdf").parent
-    assert (folder / "a.pdf").read_bytes() == PDF * 50 and not (folder / ".part").exists()
+    assert (folder / "a.pdf").read_bytes() == PDF * 50 and [p.name for p in folder.iterdir()] == ["a.pdf"]
+    assert not list(folder.parent.glob(".part-*"))
 
 
 def test_a_redirect_that_changes_scheme_is_not_followed(tmp_path: Path) -> None:

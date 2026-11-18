@@ -290,7 +290,10 @@ def _attachments(
             continue
         source = out / "inbox" / f"{download['item']}__{download['attachment']}" / download["expected_name"]
         # Every part must be a real folder of `out`: a symlinked file or folder would move another file.
-        inside = source.resolve().parent == root / "inbox" / source.parent.name
+        try:
+            inside = source.resolve().parent == root / "inbox" / source.parent.name
+        except (OSError, RuntimeError):  # a symlink loop (RuntimeError on Python 3.12): not brought
+            continue
         if inside and source.is_file() and not source.is_symlink():
             destination = inbox_path(cfg.data_dir, download)
             destination.parent.mkdir(parents=True, exist_ok=True)

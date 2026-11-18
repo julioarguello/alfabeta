@@ -500,9 +500,11 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
             return "not_brought", "length", None
         folder = out / "inbox" / f"{item}__{attachment}"
         folder.mkdir(parents=True, exist_ok=True)
-        part = folder / ".part"
+        # Written beside the attachments' folders, never inside one: a read killed mid-write leaves a
+        # file no download's path names, so the host never moves it, whatever the teacher's file name.
+        part = out / "inbox" / f".part-{item}__{attachment}"
         part.write_bytes(body)
-        os.replace(part, folder / str(name))  # a read killed mid-write leaves only `.part`, never moved
+        os.replace(part, folder / str(name))
         return "brought", None, None
     return "not_brought", "redirect", None
 

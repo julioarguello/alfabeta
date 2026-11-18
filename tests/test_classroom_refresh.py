@@ -546,3 +546,15 @@ def test_a_symlinked_folder_in_out_moves_nothing(tmp_path: Path) -> None:
     result, _, _, data = _go(tmp_path, FakeContainer(OK, plant=plant), steps=steps)
     assert result["capture"]["attachments"]["brought"] == 0
     assert (elsewhere / "a.pdf").exists() and not (data / "inbox").exists()
+
+
+def test_a_symlink_loop_in_out_is_not_brought_and_apply_runs(tmp_path: Path) -> None:
+    def plant(out: Path) -> None:
+        (out / "inbox").mkdir(parents=True)
+        (out / "inbox" / "i1__f1").symlink_to(out / "inbox" / "i1__f1")
+
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    result, _, steps, data = _go(tmp_path, FakeContainer(OK, plant=plant), steps=steps)
+    assert result["outcome"] == "ok" and result["capture"]["attachments"]["brought"] == 0
+    assert [c[0][1] for c in steps.calls] == ["collect", "plan", "apply"]
+    assert not list(data.glob("classroom-out-*"))
