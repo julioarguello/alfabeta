@@ -121,13 +121,13 @@ def test_the_hash_follows_every_input(tmp_path: Path) -> None:
 class HungPopen(FakePopen):
     """A container that never ends until it is killed."""
 
-    def __init__(self) -> None:
+    def __init__(self, before: list[dict[str, Any]] | None = None) -> None:
         super().__init__([])
         self.killed = threading.Event()
 
         def lines() -> Any:
+            yield from (json.dumps(event) + "\n" for event in before or [])
             self.killed.wait(5)
-            return iter([])
 
         self.stdout = _Lazy(lines)
 
@@ -165,3 +165,24 @@ def test_a_container_that_cannot_take_the_request_is_a_container_error(tmp_path:
     with pytest.raises(container.ContainerError):
         reader.run("img:tag", {"run": "r3", "password": PASSWORD}, tmp_path / "p", tmp_path / "o", lambda e: None)
     assert ["docker", "kill", container.container_name("r3")] in process.calls
+
+
+def test_a_read_killed_midway_keeps_the_classes_it_had_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(container, "RUN_TIMEOUT_SECONDS", 0.05)
+    popen = HungPopen(
+        [
+            {"event": "class", "id": "a", "type": "class", "complete": True},
+            {"event": "class", "id": "b", "type": "class", "complete": True},
+            {"event": "class", "id": "c", "type": "stop", "reason": "unexpected_ui"},
+        ]
+    )
+    reader = container.DockerReadContainer(process=Ran({}), streaming=lambda argv: popen)  # type: ignore[arg-type,return-value]
+    end = reader.run("img:tag", {"run": "r4"}, tmp_path / "p", tmp_path / "o", lambda e: None)
+    assert end == {"event": "end", "outcome": "partial", "reason": "timeout", "classes": {"read": 2, "failed": 1}}
+
+
+def test_a_genuine_end_is_never_relabelled(tmp_path: Path) -> None:
+    stop = {"event": "end", "outcome": "stopped", "reason": "challenge", "classes": {"read": 0, "failed": 0}}
+    popen = FakePopen([{"event": "class", "id": "a", "type": "class"}, stop])
+    reader = container.DockerReadContainer(process=Ran({}), streaming=lambda argv: popen)  # type: ignore[arg-type,return-value]
+    assert reader.run("img:tag", {"run": "r5"}, tmp_path / "p", tmp_path / "o", lambda e: None) == stop

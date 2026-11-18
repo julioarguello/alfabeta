@@ -56,9 +56,16 @@ class FakeContainer:
     """Answers with a scripted end event, writing the captures a read would leave."""
 
     def __init__(
-        self, end: dict[str, Any], up: bool = True, builds: bool = True, dies: bool = False, takes: float = 0.0
+        self,
+        end: dict[str, Any],
+        up: bool = True,
+        builds: bool = True,
+        dies: bool = False,
+        takes: float = 0.0,
+        events: list[dict[str, Any]] | None = None,
     ) -> None:
         self.end = end
+        self.events = events or []
         self.up = up
         self.builds = builds
         self.dies = dies
@@ -83,6 +90,8 @@ class FakeContainer:
         if self.dies:
             raise ContainerError("died")
         time.sleep(self.takes)
+        for event in self.events:
+            on_event(event)
         for i in range(self.end.get("classes", {}).get("read", 0)):
             (out / f"alfabeta-capture-{request['run']}-c{i}-20261118-080000.json").write_text("{}")
         return self.end
@@ -287,6 +296,16 @@ def test_with_the_mark_a_dead_session_is_still_wrong_password(tmp_path: Path) ->
     (data / MARK).write_text("2026-11-17\n")
     result, notifier, _, _ = _go(tmp_path, FakeContainer(SESSION_EXPIRED))
     assert result["reason"] == "wrong_password" and "classroom password set" in notifier.texts[0]
+    assert (data / MARK).read_text() == "2026-11-17\n"  # the mark keeps the day the password failed
+
+
+def test_with_the_mark_another_account_stays_session_expired(tmp_path: Path) -> None:
+    data = _cfg(tmp_path).data_dir
+    data.mkdir(parents=True)
+    (data / MARK).write_text("2026-11-17\n")
+    other = FakeContainer(SESSION_EXPIRED, events=[{"event": "account", "result": "other_account"}])
+    result, _, _, _ = _go(tmp_path, other)
+    assert result["reason"] == "session_expired"
 
 
 def test_inside_claude_code_a_dead_session_stays_session_expired_even_with_the_mark(tmp_path: Path) -> None:

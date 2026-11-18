@@ -181,12 +181,10 @@ class DockerReadContainer:
             except OSError as err:
                 kill()
                 raise ContainerError("the read's container did not take the request") from err
-            end: dict[str, Any] = {
-                "event": "end",
-                "outcome": "stopped",
-                "reason": "unexpected_ui",
-                "classes": {"read": 0, "failed": 0},
-            }
+            end: dict[str, Any] | None = None
+            # What the read said class by class: the captures are already in `out` when the
+            # container is killed before its `end` event, and they still count.
+            counted = {"read": 0, "failed": 0}
             for line in proc.stdout:
                 try:
                     event = json.loads(line)
@@ -194,12 +192,19 @@ class DockerReadContainer:
                     continue
                 if event.get("event") == "end":
                     end = event
-                else:
-                    on_event(event)
+                    continue
+                if event.get("event") == "class":
+                    counted["read" if event.get("type") == "class" else "failed"] += 1
+                on_event(event)
             with contextlib.suppress(subprocess.TimeoutExpired):
                 proc.wait(timeout=INFO_TIMEOUT_SECONDS)
         finally:
             watchdog.cancel()
-        if expired.is_set() and end.get("outcome") != "ok":
-            end = end | {"outcome": "partial" if end.get("classes", {}).get("read") else "stopped", "reason": "timeout"}
-        return end
+        if end is not None:
+            return end
+        return {
+            "event": "end",
+            "outcome": "partial" if counted["read"] else "stopped",
+            "reason": "timeout" if expired.is_set() else "unexpected_ui",
+            "classes": counted,
+        }

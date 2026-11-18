@@ -171,11 +171,12 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: d
         return _stop(cfg, deps, str(StopReason.NO_PASSWORD))
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": password, "signin": signin}
     del password
+    events: list[dict[str, Any]] = []
     profile = cfg.data_dir / "classroom-profile"
     out = cfg.data_dir / f"classroom-out-{run}"
     try:
         with _Renewer(lock, run):
-            end = deps.container.run(image, request, profile, out, lambda event: None)
+            end = deps.container.run(image, request, profile, out, events.append)
     except ContainerError:
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
@@ -186,9 +187,10 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: d
     blocked = end.get("blocked", {})
     reason = end.get("reason")
     if not capture.get("read") and end.get("outcome") != "ok":
-        if marked and not deps.inside_claude and reason == StopReason.SESSION_EXPIRED:
+        other_account = {"event": "account", "result": "other_account"} in events
+        if marked and not deps.inside_claude and reason == StopReason.SESSION_EXPIRED and not other_account:
             reason = str(StopReason.WRONG_PASSWORD)
-        if reason == StopReason.WRONG_PASSWORD:
+        if reason == StopReason.WRONG_PASSWORD and not marked:
             passwords.mark(deps.today)
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(reason or StopReason.UNEXPECTED_UI)) | {"capture": capture, "blocked": blocked}
