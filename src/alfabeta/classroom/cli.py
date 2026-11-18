@@ -104,18 +104,19 @@ def cmd_refresh(cfg: refresh.RefreshConfig, lock: state.Lock, deps: refresh.Deps
     result = refresh.refresh(cfg, lock, deps, os.environ.get(state.RUN_ENV))
     _emit(result)
     if result["outcome"] == "skipped":
-        _say("fuera del horario de [schedule]: hoy no se lee")
+        _say("fuera del horario de lectura: ahora no se lee")
         return EXIT_OK
     if result["outcome"] in ("ok", "partial"):
         capture, applied = result.get("capture", {}), result.get("apply", {})
+        read = int(capture.get("read", 0))
         summary = (
-            f"{capture.get('read', 0)} clases leídas, {applied.get('added', 0)} añadidos, "
+            f"{read} {'clase leída' if read == 1 else 'clases leídas'}, {applied.get('added', 0)} añadidos, "
             f"{applied.get('changed', 0)} cambiados, {applied.get('pending_decisions', 0)} decisiones pendientes"
         )
         if result["outcome"] == "ok":
             _say(f"{refresh.OK} lectura terminada: {summary}")
             return EXIT_OK
-        _say(f"lectura parcial ({result['reason']}): {summary}")
+        _say(f"{refresh.WARN} lectura parcial ({result['reason']}): {summary}")
         return EXIT_PARTIAL
     _say(f"{refresh.FAIL} la lectura se ha parado: {result['reason']}")
     return EXIT_INVALID

@@ -458,7 +458,8 @@ def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
             continue
         reason = c["reason"]  # session_expired (FR-009) or challenge: the rest waits for the next read
         break
-    outcome = "ok" if not failed else ("partial" if read else "stopped")
+    # A stop with nothing failed yet (a breach caught before the first class) is no `ok` (FR-030).
+    outcome = "ok" if not failed and not reason else ("partial" if read else "stopped")
     return {"outcome": outcome, "reason": reason, "classes": {"read": read, "failed": failed}}
 
 
@@ -640,6 +641,9 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
                 return end
             end["step"] = "classes"
             end.update(capture(page, guard, str(request["run"]), OUT))
+            return end
+        except Exception:  # never a traceback (it could carry what was typed); the step is kept
+            end.update({"outcome": "stopped", "reason": "unexpected_ui"})
             return end
         finally:
             end["blocked"] = dict(guard.blocked)

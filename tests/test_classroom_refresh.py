@@ -683,7 +683,7 @@ def test_the_family_sees_one_line_per_step(tmp_path: Path) -> None:
         "✓ clase 1/2",
         "✓ clase 2/2 (incompleta: se repite en la próxima)",
         "recogiendo las capturas y planificando …",
-        "bajando 1 adjuntos …",
+        "bajando 1 adjunto …",
         "✓ adjuntos: 1 traídos, 0 no traídos, 0 rechazados",
         "colocando en Drive …",
     ]
@@ -709,4 +709,4 @@ def test_the_command_ends_with_a_summary(
     deps, _, _ = _deps(FakeContainer(OK))
     assert cli.cmd_refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps) == 0
     err = capsys.readouterr().err
-    assert "alfabeta: ✓ lectura terminada: 1 clases leídas, 2 añadidos, 0 cambiados, 1 decisiones pendientes" in err
+    assert "alfabeta: ✓ lectura terminada: 1 clase leída, 2 añadidos, 0 cambiados, 1 decisiones pendientes" in err

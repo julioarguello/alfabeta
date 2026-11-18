@@ -493,3 +493,43 @@ def test_a_class_list_painted_late_is_read_again(tmp_path: Path) -> None:
         )
     assert end["outcome"] == "ok", end
     assert next(e for e in events if e["event"] == "classes")["listed"] >= 1
+
+
+class _ListingPage:
+    """A page whose class list holds one class: enough for `capture` to reach its loop."""
+
+    def evaluate(self, script: str, arg: Any = None) -> Any:
+        if arg is None:
+            return None  # the extractor's source
+        capture = {"type": "classes", "classes": [{"id": "c1", "title": "t"}], "account_index": 0}
+        return {"name": "alfabeta-capture-r-classes.json", "capture": capture}
+
+    def wait_for_timeout(self, ms: int) -> None:
+        pass
+
+
+def test_a_breach_before_the_first_class_is_a_stop_not_ok(tmp_path: Path) -> None:
+    module = _production()
+    module.EXTRACTOR = ROOT / "skills" / "classroom-sync" / "scripts" / "extract.js"
+    events: list[dict[str, Any]] = []
+    module.emit = events.append
+    guard = module.Guard()
+    guard.breached = True
+    result = module.capture(_ListingPage(), guard, "r", tmp_path)
+    assert result == {"outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
+
+
+def test_an_exception_in_the_read_keeps_its_step(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    with FakeGoogle("ok") as fake:
+        module, _ = _load(fake, tmp_path, frozenset({"none"}))
+        _live("origin")(module, fake)
+
+        def boom(*_: Any) -> Any:
+            raise RuntimeError("x")
+
+        monkeypatch.setattr(module, "capture", boom)
+        end: dict[str, Any] = module.run(
+            {"run": "r0000000000000001", "account": ACCOUNT, "password": None, "signin": False}
+        )
+    assert end["outcome"] == "stopped" and end["reason"] == "unexpected_ui" and end["step"] == "classes"
+    assert "blocked" in end and "seconds" in end

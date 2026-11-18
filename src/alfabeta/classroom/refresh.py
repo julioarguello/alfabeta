@@ -104,7 +104,12 @@ class Deps:
     say: Callable[[str], None] | None = None  # one progress line for people (stderr); None = quiet
 
 
-OK, FAIL = "✓", "✗"  # python-cli-output §4: a step done, a step that failed
+OK, FAIL, WARN = "✓", "✗", "⚠"  # python-cli-output §4: done, failed, a run that stays partial
+
+
+def _count(n: int, one: str, many: str) -> str:
+    """A count with its noun (python-cli-output §9)."""
+    return f"{n} {one if n == 1 else many}"
 
 
 class Progress:
@@ -112,18 +117,22 @@ class Progress:
 
     def __init__(self) -> None:
         self.index, self.total = 0, 0
+        self.signed_in = False
 
     def line(self, event: dict[str, Any]) -> str | None:
         """The line an event earns, if any."""
         kind = event.get("event")
         if kind == "home":
-            return {"alive": f"{OK} sesión abierta en Classroom", "expired": "la sesión ha caducado"}.get(
-                str(event.get("state"))
-            )
+            if event.get("state") == "alive":
+                return f"{OK} sesión abierta en Classroom"
+            if event.get("state") == "expired":
+                return f"{FAIL} Classroom no abre tras iniciar sesión" if self.signed_in else "la sesión ha caducado"
+            return None
         if kind == "signin_start":
             return "iniciando sesión con la contraseña guardada …"
         if kind == "signin":
             result = event.get("result")
+            self.signed_in = result == "signed_in"
             return f"{OK} sesión iniciada" if result == "signed_in" else f"{FAIL} inicio de sesión parado: {result}"
         if kind == "account":
             return {
@@ -134,7 +143,7 @@ class Progress:
         if kind == "classes":
             if "stop" in event:
                 return f"{FAIL} la lista de clases no se pudo leer: {event['stop']}"
-            return f"{OK} {event.get('to_read')} clases que leer"
+            return f"{OK} {_count(int(event.get('to_read', 0)), 'clase', 'clases')} que leer"
         if kind == "class_start":
             self.index, self.total = int(event.get("index", 0)), int(event.get("total", 0))
             return None
@@ -391,7 +400,7 @@ def _attachments(
     counts = {"brought": 0, "not_brought": len(wanted), "refused": 0}
     if not wanted or not session:
         return counts
-    _say(deps, f"bajando {len(wanted)} adjuntos …")
+    _say(deps, f"bajando {_count(len(wanted), 'adjunto', 'adjuntos')} …")
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": None, "signin": False, "fetch": wanted}
     out = cfg.data_dir / f"classroom-out-{run}-attachments"
     events: list[dict[str, Any]] = []
