@@ -64,7 +64,13 @@ class FakeContainer:
         takes: float = 0.0,
         events: list[dict[str, Any]] | None = None,
         brings: frozenset[str] = frozenset(),
+        fetch_dies: bool = False,
+        fetch_events: list[dict[str, Any]] | None = None,
+        plant: Callable[[Path], None] | None = None,
     ) -> None:
+        self.fetch_dies = fetch_dies
+        self.fetch_events = fetch_events or []
+        self.plant = plant
         self.end = end
         self.events = events or []
         self.brings = brings
@@ -90,7 +96,14 @@ class FakeContainer:
         out.mkdir(parents=True, exist_ok=True)
         if "fetch" in request:
             # The attachments pass: write what it "brings" where read.py would, by the given name.
-            for d in request["fetch"]:
+            if self.fetch_dies:
+                raise ContainerError("died")
+            for event in self.fetch_events:
+                on_event(event)
+            if self.plant:
+                self.plant(out)
+            fetched: list[dict[str, Any]] = [] if self.plant else request["fetch"]
+            for d in fetched:
                 if d["attachment"] in self.brings:
                     path = out / "inbox" / f"{d['item']}__{d['attachment']}" / d["expected_name"]
                     path.parent.mkdir(parents=True, exist_ok=True)
@@ -484,3 +497,52 @@ def test_a_name_with_a_way_out_is_never_moved(tmp_path: Path) -> None:
     result, _, _, data = _go(tmp_path, container, steps=steps)
     assert result["capture"]["attachments"]["brought"] == 0
     assert not list(data.rglob("fuera.pdf")) and not (data / "inbox").exists()
+
+
+@pytest.mark.parametrize(
+    "end",
+    [
+        {"event": "end", "outcome": "partial", "reason": "challenge", "classes": {"read": 1, "failed": 1}},
+        {
+            "event": "end",
+            "outcome": "ok",
+            "reason": None,
+            "classes": {"read": 1, "failed": 0},
+            "blocked": {"redirects": 1},
+        },
+    ],
+)
+def test_a_challenge_or_a_breach_skips_the_second_pass(tmp_path: Path, end: dict[str, Any]) -> None:
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    container = FakeContainer(end, brings=frozenset({"f1"}))
+    _go(tmp_path, container, steps=steps)
+    assert len(container.requests) == 1
+
+
+def test_a_second_pass_that_dies_still_applies(tmp_path: Path) -> None:
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    result, _, steps, _ = _go(tmp_path, FakeContainer(OK, fetch_dies=True), steps=steps)
+    assert result["outcome"] == "ok" and result["capture"]["attachments"]["not_brought"] == 1
+    assert [c[0][1] for c in steps.calls] == ["collect", "plan", "apply"]
+
+
+def test_the_refused_hosts_reach_the_log(tmp_path: Path) -> None:
+    refused = {"event": "attachment", "result": "refused", "why": "host", "host": "doc-0s.googleusercontent.com"}
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    _, _, _, data = _go(tmp_path, FakeContainer(OK, fetch_events=[refused]), steps=steps)
+    assert _log(data)[-1]["refused_hosts"] == ["doc-0s.googleusercontent.com"]
+
+
+def test_a_symlinked_folder_in_out_moves_nothing(tmp_path: Path) -> None:
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "a.pdf").write_bytes(b"not the container's")
+
+    def plant(out: Path) -> None:
+        (out / "inbox").mkdir(parents=True)
+        (out / "inbox" / "i1__f1").symlink_to(elsewhere)
+
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    result, _, _, data = _go(tmp_path, FakeContainer(OK, plant=plant), steps=steps)
+    assert result["capture"]["attachments"]["brought"] == 0
+    assert (elsewhere / "a.pdf").exists() and not (data / "inbox").exists()

@@ -260,10 +260,16 @@ def _want(item: str, file_id: str, name: str, url: str | None = None) -> dict[st
 
 
 def _fetch(
-    tmp_path: Path, wanted: list[dict[str, Any]], seed: Any = None, request: dict[str, Any] | None = None
+    tmp_path: Path,
+    wanted: list[dict[str, Any]],
+    seed: Any = None,
+    request: dict[str, Any] | None = None,
+    **constants: Any,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], FakeGoogle]:
     with FakeGoogle("ok") as fake:
         module, events = _load(fake, tmp_path, frozenset({"none"}))
+        for name, value in constants.items():
+            setattr(module, name, value)
         (seed or _live("origin", "other_origin"))(module, fake)
         for w in wanted:
             w["url"] = w["url"].replace("{drive}", module.DRIVE_DOWNLOAD).replace("{docs}", module.DOCS_ORIGIN)
@@ -379,3 +385,25 @@ def test_refresh_places_what_the_real_read_fetched(tmp_path: Path) -> None:
     assert (data / "inbox" / "synth-71-i1__f-pdf" / "Tema 3.pdf").read_bytes() == PDF
     assert [r.get("fetch") is not None for r in reader.requests] == [False, True]
     assert sorted(p.name for p in (tmp_path / "downloads").iterdir())[0].startswith("alfabeta-capture-")
+
+
+def test_a_body_over_the_limit_is_not_brought(tmp_path: Path) -> None:
+    # Declared too large, and too large with nothing declared.
+    wanted = [_want("i1", "f-pdf", "a.pdf"), _want("i2", "f-nolen", "b.pdf")]
+    end, events, _ = _fetch(tmp_path, wanted, FETCH_MAX_BYTES=5)
+    assert end["attachments"]["not_brought"] == 2
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["too_large", "too_large"]
+    assert not (tmp_path / "out" / "inbox").exists() or not list((tmp_path / "out" / "inbox").rglob("*.pdf"))
+
+
+def test_a_compressed_body_is_brought_whole(tmp_path: Path) -> None:
+    end, _, _ = _fetch(tmp_path, [_want("i1", "f-gzip", "a.pdf")])
+    assert end["attachments"]["brought"] == 1, end
+    folder = _inbox(tmp_path, "i1", "f-gzip", "a.pdf").parent
+    assert (folder / "a.pdf").read_bytes() == PDF * 50 and not (folder / ".part").exists()
+
+
+def test_a_redirect_that_changes_scheme_is_not_followed(tmp_path: Path) -> None:
+    end, events, _ = _fetch(tmp_path, [_want("i1", "f-scheme", "a.pdf")], ACCOUNT_HOSTS=frozenset({"127.0.0.1"}))
+    assert end["attachments"]["refused"] == 1
+    assert {"event": "attachment", "result": "refused", "why": "host", "host": "localhost"} in events

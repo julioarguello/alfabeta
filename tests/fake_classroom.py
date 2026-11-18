@@ -14,11 +14,14 @@ prove the read clears the cookies first. Class `synth-73` is unreadable (`unexpe
 Attachments (R4's routes, served for any mode at `other_origin`, so the download host is not the
 sign-in's): `/download?id=<id>&export=download` and `/document/d/<id>/export`. Without the session
 cookie they redirect to the sign-in at `origin`. By id: `f-pdf` a PDF, `f-hop` a redirect to
-`f-pdf` on the same host, `f-away` a redirect to another host, `f-html` an HTML page, `f-gone` 404.
+`f-pdf` on the same host, `f-away` a redirect to another host, `f-html` an HTML page, `f-gone` 404,
+`f-gzip` the PDF compressed (its Content-Length the packed size), `f-scheme` a redirect to `https` on
+the same host, `f-nolen` the PDF with no Content-Length.
 """
 
 from __future__ import annotations
 
+import gzip
 import http.server
 import re
 import threading
@@ -108,14 +111,19 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         location: str | None = None,
         cookie: str | None = None,
         content_type: str = "text/html; charset=utf-8",
+        encoding: str | None = None,
+        length: bool = True,
     ) -> None:
         self.send_response(code)
+        if encoding:
+            self.send_header("Content-Encoding", encoding)
         if location:
             self.send_header("Location", location)
         if cookie:
             self.send_header("Set-Cookie", cookie)
         self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body.encode() if isinstance(body, str) else body)))
+        if length:
+            self.send_header("Content-Length", str(len(body.encode() if isinstance(body, str) else body)))
         self.end_headers()
         self.wfile.write(body.encode() if isinstance(body, str) else body)
 
@@ -129,6 +137,12 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._send(PDF, content_type="application/pdf")
         if file_id == "f-hop":
             return self._send("", 302, "/download?id=f-pdf&export=download&authuser=5")
+        if file_id == "f-gzip":
+            return self._send(gzip.compress(PDF * 50), content_type="application/pdf", encoding="gzip")
+        if file_id == "f-nolen":
+            return self._send(PDF, content_type="application/pdf", length=False)
+        if file_id == "f-scheme":
+            return self._send("", 302, f"https://localhost:{self.fake.server_address[1]}/download?id=f-pdf")
         if file_id == "f-away":
             return self._send("", 302, "http://third.invalid/file")
         if file_id == "f-html":

@@ -35,6 +35,7 @@ host constants below in the module object; nothing here reads them from the envi
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -54,8 +55,8 @@ DOWNLOAD_HOSTS = frozenset({"drive.usercontent.google.com"})
 DRIVE_DOWNLOAD = "https://drive.usercontent.google.com/download"
 DOCS_ORIGIN = "https://docs.google.com"
 DOCS_EXPORT = re.compile(r"^/(document|spreadsheets|presentation)/d/([A-Za-z0-9_-]+)/export(/pdf)?$")
-# Hosts a fetch may be redirected to besides R4's own: none measured yet. The family's first run logs
-# each refused host, and only a measured one is added here.
+# Hosts a fetch may be redirected to besides R4's own: none measured yet. Each refused host reaches
+# the run's log line (`refused_hosts`), and only a measured one is added here.
 FETCH_REDIRECT_NETLOCS: frozenset[str] = frozenset()
 FETCH_MAX_HOPS = 5
 FETCH_MAX_BYTES = 200 * 1024 * 1024
@@ -463,6 +464,7 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
     if not isinstance(url, str) or r4_id(url) != attachment or not SAFE_ID.match(attachment):
         return "refused", "route", None
     current = url
+    scheme = urlsplit(url).scheme
     for _ in range(FETCH_MAX_HOPS + 1):
         try:
             response = page.request.get(current, max_redirects=0, timeout=FETCH_TIMEOUT_MS, fail_on_status_code=False)
@@ -475,7 +477,7 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
                 return "not_brought", "redirect", None
             following = urljoin(current, location)
             parts = urlsplit(following)
-            if parts.netloc in fetch_netlocs():
+            if parts.netloc in fetch_netlocs() and parts.scheme == scheme:
                 current = following
                 continue
             if (parts.hostname or "") in ACCOUNT_HOSTS:
@@ -493,11 +495,14 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
         body = response.body()
         if len(body) > FETCH_MAX_BYTES:
             return "not_brought", "too_large", None
-        if declared and declared.isdigit() and int(declared) != len(body):
+        # The request context unpacks a compressed body; its Content-Length is then the packed size.
+        if declared and declared.isdigit() and not headers.get("content-encoding") and int(declared) != len(body):
             return "not_brought", "length", None
         folder = out / "inbox" / f"{item}__{attachment}"
         folder.mkdir(parents=True, exist_ok=True)
-        (folder / str(name)).write_bytes(body)
+        part = folder / ".part"
+        part.write_bytes(body)
+        os.replace(part, folder / str(name))  # a read killed mid-write leaves only `.part`, never moved
         return "brought", None, None
     return "not_brought", "redirect", None
 

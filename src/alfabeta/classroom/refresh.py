@@ -140,14 +140,15 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
         except state.LockError as err:
             return result | {"reason": str(err.reason)}
     store = state.StateStore(cfg.data_dir)
-    seconds: dict[str, Any] = {}
+    logged: dict[str, Any] = {}  # what the passes add to the log line
     try:
-        result |= _read(cfg, lock, deps, run, seconds)
+        result |= _read(cfg, lock, deps, run, logged)
     finally:
         store.log(
             {"type": "classroom_refresh", "run": run, "started_by": started_by}
             | {k: result.get(k) for k in ("outcome", "reason", "capture", "blocked")}
-            | {"seconds": seconds.get("read")}
+            | {"seconds": logged.get("seconds")}
+            | {k: logged[k] for k in ("refused_hosts", "attachments_pass") if k in logged}
         )
         if not own:
             with contextlib.suppress(state.LockError):
@@ -165,7 +166,7 @@ def _failed(step: dict[str, Any]) -> bool:
     return step.get("ok") is False
 
 
-def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: dict[str, Any]) -> dict[str, Any]:
+def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: dict[str, Any]) -> dict[str, Any]:
     if not deps.container.available():
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     try:
@@ -193,7 +194,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: d
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     finally:
         request.clear()
-    seconds["read"] = end.get("seconds")
+    logged["seconds"] = end.get("seconds")
     capture = end.get("classes", {"read": 0, "failed": 0})
     blocked = end.get("blocked", {})
     reason = end.get("reason")
@@ -211,7 +212,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: d
     attachments: dict[str, int] = {"brought": 0, "not_brought": 0, "refused": 0}
     if not _failed(collected) and not _failed(planned):
         session = reason not in NO_SESSION and not blocked.get("redirects")
-        attachments = _attachments(cfg, lock, deps, run, image, planned, session)
+        attachments = _attachments(cfg, lock, deps, run, image, planned, session, logged)
     applied = {} if _failed(collected) or _failed(planned) else deps.steps(["classroom", "apply"], run)
     failed = next((step for step in (collected, planned, applied) if _failed(step)), None)
     if failed is not None:
@@ -258,28 +259,39 @@ def _attachments(
     image: str,
     planned: dict[str, Any],
     session: bool,
+    logged: dict[str, Any],
 ) -> dict[str, int]:
-    """The second pass: fetch what the plan asks for, place each file at its exact inbox path."""
+    """The second pass: fetch what the plan asks for, place each file at its exact inbox path.
+
+    Its refused hosts, blocks and stop code go to the run's log line through `logged`.
+    """
     wanted = _wanted(planned)
     counts = {"brought": 0, "not_brought": len(wanted), "refused": 0}
     if not wanted or not session:
         return counts
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": None, "signin": False, "fetch": wanted}
     out = cfg.data_dir / f"classroom-out-{run}-attachments"
+    events: list[dict[str, Any]] = []
     try:
         with _Renewer(lock, run):
-            end = deps.container.run(image, request, cfg.data_dir / "classroom-profile", out, lambda event: None)
+            end = deps.container.run(image, request, cfg.data_dir / "classroom-profile", out, events.append)
     except ContainerError:
         shutil.rmtree(out, ignore_errors=True)
         return counts
     finally:
         request.clear()
+        hosts = {str(e.get("host")) for e in events if e.get("event") == "attachment" and e.get("host")}
+        logged["refused_hosts"] = sorted(hosts)
+    logged["attachments_pass"] = {"reason": end.get("reason"), "blocked": end.get("blocked", {})}
     placed = 0
+    root = out.resolve()
     for download in wanted:
         if not _safe(download):
             continue
         source = out / "inbox" / f"{download['item']}__{download['attachment']}" / download["expected_name"]
-        if source.is_file() and not source.is_symlink():
+        # Every part must be a real folder of `out`: a symlinked file or folder would move another file.
+        inside = source.resolve().parent == root / "inbox" / source.parent.name
+        if inside and source.is_file() and not source.is_symlink():
             destination = inbox_path(cfg.data_dir, download)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(source), destination)
