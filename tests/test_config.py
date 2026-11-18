@@ -26,6 +26,7 @@ rules_theory = ""
 
 [classroom]
 account = "alumna@colegio.example"
+profile_read = false
 
 [storage]
 base = "{base}"

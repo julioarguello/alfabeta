@@ -172,6 +172,11 @@ class StudentConfig:
         return _str(self.data, "classroom.account")
 
     @property
+    def profile_read(self) -> bool:
+        """Whether spec 006's container read is on for this student (FR-019)."""
+        return _bool(self.data, "classroom.profile_read")
+
+    @property
     def calendar_id(self) -> str:
         """The family calendar alfabeta writes to."""
         return _str(self.data, "calendar.id")
