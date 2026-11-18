@@ -408,3 +408,46 @@ def test_a_redirect_that_changes_scheme_is_not_followed(tmp_path: Path) -> None:
     end, events, _ = _fetch(tmp_path, [_want("i1", "f-scheme", "a.pdf")], ACCOUNT_HOSTS=frozenset({"127.0.0.1"}))
     assert end["attachments"]["refused"] == 1
     assert {"event": "attachment", "result": "refused", "why": "host", "host": "localhost"} in events
+
+
+def _production() -> Any:
+    """`read.py` with its own constants, as the image runs it (no fake's hosts)."""
+    spec = importlib.util.spec_from_file_location("read_production", READ)
+    assert spec and spec.loader
+    module: Any = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_measured_setsid_redirect_is_allowed_only_while_signing_in() -> None:
+    module = _production()
+    guard = module.Guard()
+    setsid = "https://accounts.google.es/accounts/SetSID"
+    guard.phase = "signin"
+    assert guard.allows_document(setsid, True)
+    guard.phase = "read"
+    assert not guard.allows_document(setsid, True)
+
+
+class _Frame:
+    parent_frame = None
+
+
+class _Request:
+    def __init__(self, url: str) -> None:
+        self.url = url
+        self.redirected_from = object()
+        self.resource_type = "document"
+        self.frame = _Frame()
+
+
+def test_a_redirect_to_an_unknown_host_names_the_host_only() -> None:
+    module = _production()
+    events: list[dict[str, Any]] = []
+    module.emit = events.append
+    guard = module.Guard()
+    guard.watch(_Request("https://accounts.google.de/accounts/SetSID?continue=x&ssdc=1"))
+    assert guard.breached
+    assert events == [
+        {"event": "redirect", "to": "other", "path": "", "main_frame": True, "host": "accounts.google.de"}
+    ]

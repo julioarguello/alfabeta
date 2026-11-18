@@ -47,7 +47,10 @@ CLASSROOM_HOME = "https://classroom.google.com/u/0/h"
 SIGN_IN_URL = "https://accounts.google.com/ServiceLogin?service=classroom&continue=" + CLASSROOM_HOME
 ACCOUNT_HOSTS = frozenset({"accounts.google.com"})
 # Pages Google's sign-in redirects through to set its cookies (research S14's guard).
-REDIRECT_HOSTS = frozenset({"accounts.youtube.com", "www.google.com", "www.google.es"})
+# Measured 2026-11-18 on the first real container read: after the password, CheckCookie →
+# accounts.google.es/accounts/SetSID → Classroom (the profile's history); without it the sign-in
+# succeeded and the guard stopped the read (`redirects: 1`).
+REDIRECT_HOSTS = frozenset({"accounts.youtube.com", "accounts.google.es", "www.google.com", "www.google.es"})
 CLASSROOM_HOSTS = frozenset({"classroom.google.com"})
 FORM_HOSTS = frozenset({"forms.gle", "forms.google.com"})
 DOWNLOAD_HOSTS = frozenset({"drive.usercontent.google.com"})
@@ -217,7 +220,15 @@ class Guard:
         target = kind(request.url)
         # Where it went, by category; a Classroom or Google path holds no account and no query.
         path = urlsplit(request.url).path if target.startswith(("accounts:", "classroom", "redirect")) else ""
-        emit({"event": "redirect", "to": target.split(":")[0], "path": path, "main_frame": main_frame})
+        event: dict[str, Any] = {
+            "event": "redirect",
+            "to": target.split(":")[0],
+            "path": path,
+            "main_frame": main_frame,
+        }
+        if target == "other":
+            event["host"] = urlsplit(request.url).hostname or ""  # the host alone: what to allow, if it is Google's
+        emit(event)
 
     def bump(self, kind: str) -> None:
         """A count from the page's guard script (presses, form submits), whatever document or frame."""
