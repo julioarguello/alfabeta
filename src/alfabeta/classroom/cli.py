@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import json
 import os
 import subprocess
@@ -35,7 +36,8 @@ def _emit(payload: dict[str, Any]) -> None:
 
 
 def _say(message: str) -> None:
-    print(f"alfabeta: {message}", file=sys.stderr)
+    """One line for people on stderr: English, with the local time (constitution 2.12.0, Language)."""
+    print(f"alfabeta: {dt.datetime.now():%Y-%m-%dT%H:%M:%S} {message}", file=sys.stderr)
 
 
 def say(message: str) -> None:
@@ -104,21 +106,21 @@ def cmd_refresh(cfg: refresh.RefreshConfig, lock: state.Lock, deps: refresh.Deps
     result = refresh.refresh(cfg, lock, deps, os.environ.get(state.RUN_ENV))
     _emit(result)
     if result["outcome"] == "skipped":
-        _say("fuera del horario de lectura: ahora no se lee")
+        _say("outside the reading hours: nothing read now")
         return EXIT_OK
     if result["outcome"] in ("ok", "partial"):
         capture, applied = result.get("capture", {}), result.get("apply", {})
         read = int(capture.get("read", 0))
         summary = (
-            f"{read} {'clase leída' if read == 1 else 'clases leídas'}, {applied.get('added', 0)} añadidos, "
-            f"{applied.get('changed', 0)} cambiados, {applied.get('pending_decisions', 0)} decisiones pendientes"
+            f"{read} {'class' if read == 1 else 'classes'} read, {applied.get('added', 0)} added, "
+            f"{applied.get('changed', 0)} changed, {applied.get('pending_decisions', 0)} pending decisions"
         )
         if result["outcome"] == "ok":
-            _say(f"{refresh.OK} lectura terminada: {summary}")
+            _say(f"{refresh.OK} read finished: {summary}")
             return EXIT_OK
-        _say(f"{refresh.WARN} lectura parcial ({result['reason']}): {summary}")
+        _say(f"{refresh.WARN} partial read ({result['reason']}): {summary}")
         return EXIT_PARTIAL
-    _say(f"{refresh.FAIL} la lectura se ha parado: {result['reason']}")
+    _say(f"{refresh.FAIL} the read stopped: {result['reason']}")
     return EXIT_INVALID
 
 
@@ -144,7 +146,7 @@ def cmd_password(
         try:
             if action == "set":
                 passwords.store_password(answer)
-                _say("contraseña guardada en el llavero")
+                _say("password stored in the keychain")
                 _emit({"ok": True, "stored": True})
             else:
                 removed = passwords.delete()

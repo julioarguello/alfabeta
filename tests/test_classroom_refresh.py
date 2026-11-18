@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import datetime as dt
 import json
+import re
 import subprocess
 import time
 from typing import TYPE_CHECKING, Any
@@ -672,20 +673,20 @@ def test_the_family_sees_one_line_per_step(tmp_path: Path) -> None:
     deps = dataclasses.replace(deps, say=lines.append)
     refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps, None)
     assert lines == [
-        "preparando el contenedor …",
-        "abriendo Classroom …",
-        "la sesión ha caducado",
-        "iniciando sesión con la contraseña guardada …",
-        "✓ sesión iniciada",
-        "✓ sesión abierta en Classroom",
-        "✓ cuenta del colegio comprobada",
-        "✓ 2 clases que leer",
-        "✓ clase 1/2",
-        "✓ clase 2/2 (incompleta: se repite en la próxima)",
-        "recogiendo las capturas y planificando …",
-        "bajando 1 adjunto …",
-        "✓ adjuntos: 1 traídos, 0 no traídos, 0 rechazados",
-        "colocando en Drive …",
+        "preparing the container …",
+        "opening Classroom …",
+        "the session has expired",
+        "signing in with the stored password …",
+        "✓ signed in",
+        "✓ Classroom session open",
+        "✓ school account checked",
+        "✓ 2 classes to read",
+        "✓ class 1/2",
+        "✓ class 2/2 (incomplete: read again next time)",
+        "collecting the captures and planning …",
+        "fetching 1 attachment …",
+        "✓ attachments: 1 brought, 0 not brought, 0 refused",
+        "placing in Drive …",
     ]
     assert not any(ACCOUNT in line or PASSWORD in line for line in lines)
 
@@ -697,7 +698,7 @@ def test_a_stop_says_where(tmp_path: Path) -> None:
     lines: list[str] = []
     deps, _, _ = _deps(FakeContainer(end | {"classes": {"read": 0, "failed": 0}}, events=events))
     refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), dataclasses.replace(deps, say=lines.append), None)
-    assert lines[-1] == "✗ la página no muestra ninguna cuenta"
+    assert lines[-1] == "✗ the page names no account"
     assert _log(cfg.data_dir)[-1]["step"] == "account"
 
 
@@ -709,4 +710,10 @@ def test_the_command_ends_with_a_summary(
     deps, _, _ = _deps(FakeContainer(OK))
     assert cli.cmd_refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps) == 0
     err = capsys.readouterr().err
-    assert "alfabeta: ✓ lectura terminada: 1 clase leída, 2 añadidos, 0 cambiados, 1 decisiones pendientes" in err
+    # One line per message, the local time after the program's name (constitution 2.12.0, Language).
+    assert re.search(
+        r"^alfabeta: \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d ✓ read finished: 1 class read, 2 added, 0 changed, "
+        r"1 pending decisions$",
+        err,
+        re.MULTILINE,
+    )

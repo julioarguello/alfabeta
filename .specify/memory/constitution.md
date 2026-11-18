@@ -294,9 +294,12 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
 - **Language**: everything technical is written in English: code, identifiers, CLI, configuration
   keys, data files, documentation, specs, issues, pull requests and commits. A folder name the code
   decides is technical too, so it is in English (`notes`, `submission`, `No topic`…): a constant
-  in the code, not configuration. What the student and the family read is in Spanish: the names
-  of the files alfabeta writes in their folder, the agenda, the summary of each sync, Google Tasks
-  and the calendar. A name alfabeta takes from elsewhere keeps its own language: a topic's title
+  in the code, not configuration. Everything a program prints is English too — progress, results,
+  summaries and errors on the terminal — and each line a person reads carries the local time
+  (`YYYY-MM-DDTHH:MM:SS`), so a run can be followed and placed in time (the operator, 2026-11-18).
+  What the student and the family read where alfabeta writes for them is in Spanish: the names of
+  the files alfabeta writes in their folder, the agenda, Google Tasks, the calendar and the Mac's
+  notifications; Claude's own report of a sync, in the conversation, is in Spanish as well. A name alfabeta takes from elsewhere keeps its own language: a topic's title
   (the teacher's or the textbook's), a Classroom item's title, and a subject's folder (the
   family's configuration).
 
@@ -351,4 +354,4 @@ en euskera y el castellano es una utility»), and noted that he prints in greysc
   MUST verify compliance with this constitution. Complexity that departs from IX MUST be justified
   in writing. The operator may stop, revert or take back any approval at any time.
 
-**Version**: 2.11.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-17
+**Version**: 2.12.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-11-18

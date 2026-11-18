@@ -48,9 +48,10 @@ not an absence.
   primary output and belongs in the JSON.
 - **One producer per stream:** machines through `_emit()`, people through one stderr helper per
   module (`_fail()` and its siblings). A bare `print()` elsewhere in a command module is a defect.
-- **Language:** a line the student or the family reads is in **Spanish** (the `classroom apply` summary,
-  «agenda actualizada», a notification); a line for whoever runs the code, JSON keys and
-  `reason` values are in English (constitution, Technical constraints › Language).
+- **Language:** everything a command prints is in **English** — progress, summaries, errors, JSON
+  keys and `reason` values (constitution 2.12.0, Technical constraints › Language). Spanish stays
+  where alfabeta writes for the family: file names, the agenda, the calendar, a Mac notification.
+  Commands that still print a Spanish line are being moved over (#261).
 
 **Gate:** each spec's CLI tests parse stdout as JSON. **Not gated:** a stray `print()` (ruff
 `T20` is not selected; adopting it with a per-file ignore for the emitters is the gate).
@@ -111,11 +112,15 @@ Guidance for human-facing stderr lines; a contract's wording (a Spanish line it 
 **Gate:** the guardrail and each spec's tests that assert no output carries student data.
 Boundary announcements **not gated** — a review item.
 
-## 6. Brevity and quiet — standard (CLIG)
+## 6. Brevity and quiet — standard (CLIG); the time on each line is a house rule (constitution 2.12.0)
 
 - **One line per step on the happy path.** Detail belongs to a warning.
-- **No timestamps on the terminal**; a timestamp belongs in `data/log.jsonl`. A new line carries
-  no `FAIL`/`ERROR`/`INFO` prefix; the `alfabeta: warning:` lines a contract already prints stay.
+- **Each line for people carries the local time** right after the program's name:
+  `alfabeta: 2026-11-18T17:05:03 ✓ signed in` (constitution 2.12.0) — a run is followed and placed
+  in time from the terminal or an agent's log. One stderr helper per module adds it, never each
+  call. A new line carries no `FAIL`/`ERROR`/`INFO` prefix; the `alfabeta: warning:` lines a
+  contract already prints stay. **Gate:** `classroom refresh`'s summary test; the other commands'
+  helpers follow in #261.
 - **An unattended run is silent on success** where its contract says so (`runner read` on
   `lock_busy`).
 
@@ -162,7 +167,8 @@ contract already assigns it, the contract wins; a new code avoids `2`.
 |:---|:---|
 | a result only on stderr | the JSON on stdout, the summary on stderr |
 | bare `print()` in a command module | `_emit()` for machines; one stderr helper for people |
-| an English line in the family's summary | Spanish, as the constitution says |
+| a Spanish line printed by a command | English; Spanish only where alfabeta writes for the family |
+| a line for people with no time | `alfabeta: <YYYY-MM-DDTHH:MM:SS> <message>` |
 | an absolute path, an address, a `display_name` | relative to the student's root; alias; abbreviated id |
 | `✅`, `❌`, `💡` | `✓`, `✗`, the sentence |
 | `alfabeta: Something went wrong.` | `alfabeta: the configuration folder does not exist` + `reason` |
