@@ -277,7 +277,7 @@ image needs no copy of the package. The host never runs a browser.
    the downloads folder, `download collect`, `classroom plan`, the fetched attachments to the inbox
    `download collect` reads, `classroom apply`.
 7. On a stop, the macOS notification in Spanish (FR-032), except under `CLAUDECODE`; one log line
-   with what started it (`--trigger schedule|command`, FR-020); release the locks.
+   with what started it (`ALFABETA_STARTED_BY`: `schedule`, or `command`; FR-020); release the locks.
 
 ### Slices
 

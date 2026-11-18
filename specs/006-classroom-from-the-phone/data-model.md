@@ -9,13 +9,39 @@ A browser profile kept for one student's read.
 
 | Field | Rule |
 |---|---|
-| path | `<data folder>/<student>/classroom-profile/`, mode `0700`; never inside the Drive mount or the repository |
+| path | `data/classroom-profile/` in the student's data folder, mode `0700`; never inside the Drive mount or the repository |
 | browser | the installed Google Chrome (`BrowserInstall`); the sign-in window and the read use the same one (FR-002) |
 | holder | none, the sign-in window, or the read; never two at once: the browser lock (FR-024a), and Chrome's own `SingletonLock` refused as `lock_busy` |
 
 Holds the school session after the family signs in (a secret, constitution II). alfabeta never
 reads its files; it only passes its path to Chrome or Playwright (the sign-in window's address
 comes over the pipe of research R5, not from a file).
+
+## Stored password (amendment 2026-11-17)
+
+The school account's password, for the scripted sign-in (FR-027, FR-031).
+
+| Field | Rule |
+|---|---|
+| where | the macOS keychain, service `alfabeta.classroom`, account `<student>`: never spec 004's `alfabeta.google` service, so it cannot overwrite a Google link |
+| set by | `classroom password set`, at a prompt that does not echo it, only from a terminal |
+| read by | `classroom refresh`, only when a sign-in is needed and never inside Claude Code; passed to the container on stdin |
+
+## `wrong_password` mark (amendment 2026-11-17)
+
+A file `data/classroom-wrong-password` in the student's data folder holding only the date it was
+set. Set when the container read stops with `wrong_password`; cleared by `classroom password set`
+and `classroom password delete`. While it exists the container is started with `signin: false`.
+
+## Read container (amendment 2026-11-17)
+
+| Field | Rule |
+|---|---|
+| image | built from the repository root with `-f docker/classroom/Dockerfile`, labelled with the hash of its inputs (`Dockerfile`, `read.py`, the extractor); rebuilt when the hash changes |
+| mounts | the read profile `data/classroom-profile/` (the student's data folder, `0700`), which stays between reads, and an out folder under `data/`; the container itself is removed at the end (`--rm`) |
+| stdin | one JSON line `{account, password, signin}`; `password` is `null` when none is needed or stored |
+| stdout | one JSON line per event: sign-in page loads by host and path (no query), each class captured, each attachment, the final counts and stop code; never the account or the password |
+| stop codes | `rejected`, `challenge`, `second_factor`, `other_sign_in`, `wrong_password`, `no_password`, `session_expired`, `unexpected_ui`, `unreachable`; `docker_unavailable` from the host |
 
 ## Sign-in wait
 

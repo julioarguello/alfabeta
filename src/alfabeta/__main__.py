@@ -97,8 +97,18 @@ def _cmd_config_check(home: Path, student: str) -> int:
     return EXIT_INVALID if problems else EXIT_OK
 
 
-# Reasons a skill may give `log write-stop`; `idle` is the watcher's own (contracts/cli.md).
-LOG_STOP_REASONS = tuple(r for r in StopReason if r != StopReason.IDLE)
+# Reasons a skill may give `log write-stop`, exactly spec 001's contracts/cli.md list: `idle` is the
+# watcher's own, and spec 006's container read writes its own log line (FR-020), not through this.
+LOG_STOP_REASONS = (
+    StopReason.SESSION_EXPIRED,
+    StopReason.CHALLENGE,
+    StopReason.UNEXPECTED_UI,
+    StopReason.TIMEOUT,
+    StopReason.DRIVE_NOT_MOUNTED,
+    StopReason.LOCK_BUSY,
+    StopReason.LOCK_NOT_HELD,
+    StopReason.INVALID_CONFIG,
+)
 
 
 def _lock(home: Path, student: str) -> state.Lock:
