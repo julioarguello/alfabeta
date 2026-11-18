@@ -60,23 +60,34 @@ def _locked(lock: state.Lock, body: Callable[[], int]) -> int:
 
 
 def run_step(home: Path, student: str) -> refresh.Steps:
-    """Spec 001's own commands inside the run, as the classroom-sync skill runs them."""
+    """Spec 001's own commands inside the run, as the classroom-sync skill runs them.
+
+    A step that runs out of time, or exits non-zero with no JSON, answers `{"ok": false, "reason"}`;
+    `download collect`'s own exit 1 (an attachment still missing) carries its JSON and is no failure.
+    """
 
     def step(args: list[str], run: str) -> dict[str, Any]:
         env = os.environ | {state.RUN_ENV: run}
-        done = subprocess.run(
-            [sys.executable, "-m", "alfabeta", "--home", str(home), *args, "--student", student],
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=STEP_TIMEOUT_SECONDS,
-            check=False,
-        )
+        try:
+            done = subprocess.run(
+                [sys.executable, "-m", "alfabeta", "--home", str(home), *args, "--student", student],
+                capture_output=True,
+                text=True,
+                env=env,
+                timeout=STEP_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "reason": str(StopReason.TIMEOUT)}
         lines = [line for line in done.stdout.splitlines() if line.startswith("{")]
         try:
-            return cast("dict[str, Any]", json.loads(lines[-1])) if lines else {}
+            result = cast("dict[str, Any]", json.loads(lines[-1])) if lines else {}
         except ValueError:
-            return {}
+            result = {}
+        if not result and done.returncode != 0:
+            # No JSON and a failed exit: a crash, not one of the step's own answers.
+            return {"ok": False, "reason": str(StopReason.UNEXPECTED_UI)}
+        return result
 
     return step
 

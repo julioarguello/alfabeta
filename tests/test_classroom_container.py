@@ -5,7 +5,10 @@ from __future__ import annotations
 import io
 import json
 import subprocess
+import threading
 from typing import TYPE_CHECKING, Any
+
+import pytest
 
 from alfabeta.classroom import container
 
@@ -71,6 +74,7 @@ def test_run_puts_the_request_on_stdin_once_and_nowhere_else(tmp_path: Path) -> 
     assert end["outcome"] == "ok" and [e["event"] for e in events] == ["browser", "class"]
     argv = started[0]
     assert argv[:4] == ["docker", "run", "--rm", "-i"]
+    assert argv[argv.index("--name") + 1] == container.container_name("r1")
     assert not any(a in ("-e", "--env", "--env-file") or a.startswith("--env") for a in argv)
     assert all(PASSWORD not in a and ACCOUNT not in a for a in argv)
     assert popen.closed_stdin and json.loads(popen.written) == request and popen.written.count(PASSWORD) == 1
@@ -112,3 +116,52 @@ def test_the_hash_follows_every_input(tmp_path: Path) -> None:
     before = container.inputs_hash(tuple(files))
     files[1].write_text("changed")
     assert container.inputs_hash(tuple(files)) != before
+
+
+class HungPopen(FakePopen):
+    """A container that never ends until it is killed."""
+
+    def __init__(self) -> None:
+        super().__init__([])
+        self.killed = threading.Event()
+
+        def lines() -> Any:
+            self.killed.wait(5)
+            return iter([])
+
+        self.stdout = _Lazy(lines)
+
+    def kill(self) -> None:
+        self.killed.set()
+
+
+class _Lazy:
+    def __init__(self, make: Any) -> None:
+        self.make = make
+
+    def __iter__(self) -> Any:
+        return self.make()
+
+
+def test_a_hung_read_is_killed_by_name_and_ends_in_timeout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(container, "RUN_TIMEOUT_SECONDS", 0.05)
+    process = Ran({})
+    popen = HungPopen()
+    reader = container.DockerReadContainer(process=process, streaming=lambda argv: popen)  # type: ignore[arg-type,return-value]
+    end = reader.run("img:tag", {"run": "r2", "password": PASSWORD}, tmp_path / "p", tmp_path / "o", lambda e: None)
+    assert end["reason"] == "timeout" and end["outcome"] == "stopped"
+    assert ["docker", "kill", container.container_name("r2")] in process.calls and popen.killed.is_set()
+
+
+def test_a_container_that_cannot_take_the_request_is_a_container_error(tmp_path: Path) -> None:
+    popen = FakePopen([])
+
+    def broken(_: str) -> int:
+        raise BrokenPipeError
+
+    popen.stdin.write = broken  # type: ignore[method-assign]
+    process = Ran({})
+    reader = container.DockerReadContainer(process=process, streaming=lambda argv: popen)  # type: ignore[arg-type,return-value]
+    with pytest.raises(container.ContainerError):
+        reader.run("img:tag", {"run": "r3", "password": PASSWORD}, tmp_path / "p", tmp_path / "o", lambda e: None)
+    assert ["docker", "kill", container.container_name("r3")] in process.calls

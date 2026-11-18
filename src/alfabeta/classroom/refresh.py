@@ -8,8 +8,12 @@ when it must and may, and captures every class), then spec 001's own steps — `
   the password, and no notification is shown (FR-027): Claude never starts the scripted sign-in.
 - With the `wrong_password` mark the container gets `signin: false` too; a `wrong_password` stop
   sets the mark (FR-027, FR-031).
+- With the mark, a read that finds the session gone stops with `wrong_password`, not
+  `session_expired`: the notice must keep asking for `classroom password set` (FR-027).
 - A stop before anything was read writes nothing to the student's folder, shows the macOS
   notification in Spanish naming the code (FR-032) and leaves one log line.
+- A step of spec 001 that fails (its JSON says `ok: false`, it leaves no JSON and a non-zero exit,
+  or it runs out of time) stops the run with that step's reason and the same notification.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 from alfabeta import state
 from alfabeta.classroom.container import ContainerError
 from alfabeta.classroom.password import PasswordStore
+from alfabeta.google.keychain import KeychainError
 from alfabeta.model import RunMode, StopReason
 
 if TYPE_CHECKING:
@@ -124,12 +129,14 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
         except state.LockError as err:
             return result | {"reason": str(err.reason)}
     store = state.StateStore(cfg.data_dir)
+    seconds: dict[str, Any] = {}
     try:
-        result |= _read(cfg, lock, deps, run, store)
+        result |= _read(cfg, lock, deps, run, seconds)
     finally:
         store.log(
             {"type": "classroom_refresh", "run": run, "started_by": started_by}
             | {k: result.get(k) for k in ("outcome", "reason", "capture", "blocked")}
+            | {"seconds": seconds.get("read")}
         )
         if not own:
             with contextlib.suppress(state.LockError):
@@ -143,7 +150,11 @@ def _stop(cfg: RefreshConfig, deps: Deps, code: str) -> dict[str, Any]:
     return {"outcome": "stopped", "reason": code}
 
 
-def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, store: state.StateStore) -> dict[str, Any]:
+def _failed(step: dict[str, Any]) -> bool:
+    return step.get("ok") is False
+
+
+def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, seconds: dict[str, Any]) -> dict[str, Any]:
     if not deps.container.available():
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     try:
@@ -151,39 +162,52 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, store: sta
     except ContainerError:
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     passwords = PasswordStore(deps.store, cfg.data_dir, cfg.student)
-    signin = not deps.inside_claude and not passwords.marked()
-    request: dict[str, Any] = {
-        "run": run,
-        "account": cfg.account,
-        "password": passwords.get() if signin else None,
-        "signin": signin,
-    }
+    marked = passwords.marked()
+    signin = not deps.inside_claude and not marked
+    try:
+        password = passwords.get() if signin else None
+    except KeychainError:
+        # The keychain did not answer (locked, or refused under launchd): the read cannot sign in.
+        return _stop(cfg, deps, str(StopReason.NO_PASSWORD))
+    request: dict[str, Any] = {"run": run, "account": cfg.account, "password": password, "signin": signin}
+    del password
     profile = cfg.data_dir / "classroom-profile"
     out = cfg.data_dir / f"classroom-out-{run}"
     try:
         with _Renewer(lock, run):
             end = deps.container.run(image, request, profile, out, lambda event: None)
+    except ContainerError:
+        shutil.rmtree(out, ignore_errors=True)
+        return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     finally:
         request.clear()
+    seconds["read"] = end.get("seconds")
     capture = end.get("classes", {"read": 0, "failed": 0})
     blocked = end.get("blocked", {})
     reason = end.get("reason")
-    if not capture.get("read"):
-        if reason == "wrong_password":
+    if not capture.get("read") and end.get("outcome") != "ok":
+        if marked and not deps.inside_claude and reason == StopReason.SESSION_EXPIRED:
+            reason = str(StopReason.WRONG_PASSWORD)
+        if reason == StopReason.WRONG_PASSWORD:
             passwords.mark(deps.today)
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(reason or StopReason.UNEXPECTED_UI)) | {"capture": capture, "blocked": blocked}
     _hand_over(out, cfg.downloads, run)
     collected = deps.steps(["download", "collect", "--wait", "10"], run)
-    deps.steps(["classroom", "plan"], run)
-    applied = deps.steps(["classroom", "apply"], run)
+    planned = {} if _failed(collected) else deps.steps(["classroom", "plan"], run)
+    applied = {} if _failed(collected) or _failed(planned) else deps.steps(["classroom", "apply"], run)
+    failed = next((step for step in (collected, planned, applied) if _failed(step)), None)
+    if failed is not None:
+        code = str(failed.get("reason") or StopReason.UNEXPECTED_UI)
+        return _stop(cfg, deps, code) | {"capture": capture, "blocked": blocked}
     outcome = "ok" if end.get("outcome") == "ok" else "partial"
     return {
         "ok": True,
         "outcome": outcome,
         "reason": reason,
         "capture": capture | {"collected": len(collected.get("classes", []))},
-        "apply": {k: applied.get(k) for k in ("added", "changed", "pending_decisions") if k in applied},
+        "apply": {k: applied.get(k) for k in ("added", "changed") if k in applied}
+        | {"pending_decisions": len(planned.get("pending_decisions", []))},
         "blocked": blocked,
     }
 

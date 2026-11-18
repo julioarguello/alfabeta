@@ -3,14 +3,18 @@
 `DockerReadContainer` builds the image from the repository root when its inputs change (the tag is
 their hash), and runs it with `docker run --rm -i`: the read profile and an out folder mounted, the
 request written once on stdin and closed. The account and the password never appear in an argument,
-an environment variable, the image or a file; stdout is read line by line as JSON events.
+an environment variable, the image or a file; stdout is read line by line as JSON events. The
+container is named after the run, so a watchdog can `docker kill` it when the read outlives
+RUN_TIMEOUT_SECONDS (killing the docker client alone would leave the container running).
 """
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import subprocess
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -89,13 +93,20 @@ def inputs_hash(paths: tuple[Path, ...] = INPUTS) -> str:
     return digest.hexdigest()[:16]
 
 
-def run_argv(image: str, profile: Path, out: Path) -> list[str]:
+def container_name(run: str) -> str:
+    """The container's name: the run id, which is no secret."""
+    return f"{IMAGE}-{run}"
+
+
+def run_argv(image: str, profile: Path, out: Path, name: str) -> list[str]:
     """`docker run` for one read: no `-e`, no secret; the profile and out folder mounted."""
     return [
         "docker",
         "run",
         "--rm",
         "-i",
+        "--name",
+        name,
         "--platform",
         PLATFORM,
         "-v",
@@ -142,30 +153,53 @@ class DockerReadContainer:
     def run(
         self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Callable[[dict[str, Any]], None]
     ) -> dict[str, Any]:
-        """Start the container, write the request on stdin once, read the events until `end`."""
+        """Start the container, write the request on stdin once, read the events until `end`.
+
+        ContainerError when the container cannot take the request (it died at start).
+        """
         profile.mkdir(mode=0o700, parents=True, exist_ok=True)
         out.mkdir(mode=0o700, parents=True, exist_ok=True)
-        proc = self._streaming(run_argv(image, profile, out))
+        name = container_name(str(request["run"]))
+        proc = self._streaming(run_argv(image, profile, out, name))
         assert proc.stdin is not None and proc.stdout is not None
-        proc.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
-        proc.stdin.close()
-        end: dict[str, Any] = {
-            "event": "end",
-            "outcome": "stopped",
-            "reason": "unexpected_ui",
-            "classes": {"read": 0, "failed": 0},
-        }
-        for line in proc.stdout:
-            try:
-                event = json.loads(line)
-            except ValueError:
-                continue
-            if event.get("event") == "end":
-                end = event
-            else:
-                on_event(event)
+        expired = threading.Event()
+
+        def kill() -> None:
+            expired.set()
+            with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+                self._process(["docker", "kill", name], INFO_TIMEOUT_SECONDS)
+            with contextlib.suppress(OSError):
+                proc.kill()
+
+        watchdog = threading.Timer(RUN_TIMEOUT_SECONDS, kill)
+        watchdog.daemon = True
+        watchdog.start()
         try:
-            proc.wait(timeout=RUN_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+            try:
+                proc.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
+                proc.stdin.close()
+            except OSError as err:
+                kill()
+                raise ContainerError("the read's container did not take the request") from err
+            end: dict[str, Any] = {
+                "event": "end",
+                "outcome": "stopped",
+                "reason": "unexpected_ui",
+                "classes": {"read": 0, "failed": 0},
+            }
+            for line in proc.stdout:
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if event.get("event") == "end":
+                    end = event
+                else:
+                    on_event(event)
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                proc.wait(timeout=INFO_TIMEOUT_SECONDS)
+        finally:
+            watchdog.cancel()
+        if expired.is_set() and end.get("outcome") != "ok":
+            end = end | {"outcome": "partial" if end.get("classes", {}).get("read") else "stopped", "reason": "timeout"}
         return end
