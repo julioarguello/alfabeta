@@ -434,9 +434,9 @@ What it settles and leaves open:
 
 Asked in julioarguello/alfabeta#263: can `classroom refresh` skip the classes that did not change
 since the last read, with a periodic full read, so a run reads fewer pages at the same pace
-(constitution IV rules out reading classes in parallel)? Measured 2026-11-19, read-only, by Claude on the
-operator's standing permission to run tests, inside spec 001 research R15's limits: no sign-in, no
-password, `signin: false`. Nothing printed or kept names a student, a teacher, an account or a class
+(constitution IV's «no bursts» rules out reading classes in parallel)? Measured 2026-11-19, read-only, by Claude on the
+operator's standing permission to run tests, inside spec 001 research R15's limits: the probe never
+calls the sign-in and is given no password. Nothing printed or kept names a student, a teacher, an account or a class
 title.
 
 **The pass rule, fixed before the numbers.** A change signal is reliable only if, whenever it says
@@ -448,7 +448,7 @@ days (nothing saved).
 
 **What a skipped class costs downstream (code, read).** Nothing breaks: the run's scope is the
 lease's class list, which `download collect` fills from this run's captures, so a class with no
-capture in the run is neither planned, applied nor withdrawn, its earlier captures are kept
+capture in the run is neither planned nor applied and none of its items is withdrawn, its earlier captures are kept
 (`plan.prune_captures` keeps them by class), and the agenda keeps the class's items from the state
 and the instant of its newest earlier capture. Two things go stale with it: the plan's
 periodic attachment review (`[sync] full_review_days`) covers only the classes in scope yet the run
@@ -460,7 +460,9 @@ shown as coming for longer — the safe side).
 that the extractor already reads besides the item details — «Trabajo de clase» (each item's id,
 title, topic, type and its listing date text) and the stream (each post's id, date text, text and
 attachments) — were taken as a fingerprint and compared with what the full capture holds. Over the
-12 classes' captures kept in the data folder from 2026-10-28 to 2026-11-18 (106 class captures; 83 consecutive pairs of the same
+12 classes' captures kept in the data folder from 2026-10-28 to 2026-11-18, as they stood that morning
+before its read (each apply trims the folder to the newest `[sync] kept_captures` per class, so a
+later re-run counts fewer old pairs) (106 class captures; 83 consecutive pairs of the same
 class, 11 pairs with an incomplete capture left out), normalised with `capture.normalize_class`:
 
 | Consecutive pairs | Count |
@@ -489,7 +491,7 @@ changes live.
 
 **The home page `/u/0/h` (live, one page load).** Measured 2026-11-19 at 09:40, right after the
 family's `classroom refresh` of that morning (its own sign-in, 12 of 12 classes), by a diagnostic run of the
-read image (Playwright 1.64.1, Google Chrome, linux/amd64) with `signin: false` and no password: the read profile mounted, `/app/read.py`'s `Guard`
+read image (Playwright 1.64.1, Google Chrome, linux/amd64) that never calls the sign-in and is given no password: the read profile mounted, `/app/read.py`'s `Guard`
 installed as the read installs it, one load of the home page, the account check, then a count of each
 class card's elements, attribute names, `aria-label`s and text pieces — never their text.
 
@@ -511,8 +513,8 @@ could not be watched turning over: the snapshot is of a no-news state, in which 
 when there is news would be absent too.
 
 **Verdict: not feasible.** No page the read may load was seen to say that a class changed in the
-fields alfabeta copies: the listing and the stream hid a real change in 1 in 12 of the classes they
-would skip, two of them to attachments, which are what the read is for; the home page's cards
+fields alfabeta copies: the listing and the stream, as the extractor reads them, hid a real change in
+1 in 12 of their skips, two of them to attachments, which are what the read is for; the home page's cards
 showed no change marker in a no-news state, and the only dated thing on them, the upcoming-work
 preview, cannot see an attachment or a grade. A periodic full read would bound how late such a
 change arrives, not prevent it. The read keeps reading every class. A faster read stays where the
