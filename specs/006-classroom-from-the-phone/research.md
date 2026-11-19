@@ -533,70 +533,90 @@ What it leaves open:
   offline comparison over `data/captures` and the home-page probe run in the read image with
   `--entrypoint python`, which imports `/app/read.py` and installs its `Guard`.
 
-### S8 · The calls of every page — every field behind a tagged query but the attachments
+### S8 · The calls of every page — fails: the attachments only behind a call without a tag
 
 Asked in julioarguello/alfabeta#267, the first step of the read by Classroom's own calls (FR-003,
 FR-004, R1, R3). These are the private calls Classroom's web page makes from the student's
-signed-in page, not Google's Classroom API: no school grant, no OAuth scope. Measured 2026-11-19
-at 14:09 and 14:18, read-only, by Claude on the operator's standing permission to run tests, inside
-spec 001 research R15's limits (the probe never calls the sign-in and is given no password), in the
-session of the family's `classroom refresh` of 13:53 (12 of 12 classes, `ok`).
+signed-in page, not Google's Classroom API: no school grant, no OAuth scope. Measured 2026-11-19,
+read-only, by Claude on the operator's standing permission to run tests, inside spec 001 research
+R15's limits (the probes never call the sign-in and are given no password). Live loads, in order:
 
-**How.** The read image (Playwright 1.64.1, Google Chrome, linux/amd64) with the read's own `Guard`
-installed as the read installs it (zero presses, documents only on FR-030's pages), one load of the
-home page, the account check, then for the two classes with the most kinds of item: «Trabajo de
-clase», the stream, and one assignment's, one material's and (where the class has one) one question's
-detail — 10 pages with the home page,
-loaded in a hidden frame as the extractor loads them, 2–3 s apart, each kept 8 s after it was ready
-so late calls are seen. Recorded per request: method, host, path with ids, dots and `@` masked,
-`batchexecute` call names (`rpcids`) and each answer's protocol tags. In memory only, each call's
-answers were searched for the ids and texts the newest capture of those classes holds (class,
-topic, item, post and attachment ids; item titles, descriptions, attachment names, post texts),
-printing counts. Then, for the one name without tags, the shape of its answer, every string
-replaced by its length. Nothing printed or kept holds a body, a cookie, a name or a title.
+| When | Session | What loaded |
+|---|---|---|
+| about 12:40 | the family's refresh of 12:34, which then failed for lack of memory in Docker (#268) | home, the account check and one «Trabajo de clase»; then the container's Chrome crashed. Nothing kept |
+| 14:09 | the family's refresh of 13:53 (12 of 12 classes, `ok`) | the run below: home and 9 pages of two classes |
+| 14:18 | same | an uncommitted revision of the shape probe: home and two item details; printed the shapes of `Zj93ge`'s and `t51ITc`'s first answers (`t51ITc`'s were empty) |
+| 14:19 | same | the committed shape probe: home and two item details, 2.5 s apart, each kept 4 s |
 
-| Question | Answer |
+Every run used the read's own `Guard` as the read installs it (zero presses, documents only on
+FR-030's pages); none was breached, and the guard blocked only frame loads.
+
+**How (14:09).** The read image (Playwright 1.64.1, Google Chrome, linux/amd64), one load of the home
+page, the account check, then for the two classes with the most kinds of item: «Trabajo de clase»,
+the stream, and one assignment's, one material's and (where the class has one) one question's
+detail — 9 pages, loaded in a hidden frame as the extractor loads them, 2–3 s apart, each kept 8 s
+after it was ready so late calls are seen. Recorded per request: method, host, path with ids, dots
+and `@` masked, `batchexecute` call names (`rpcids`) and, per call name, the short lower-case dotted
+strings in its answers (protocol tags). In memory only, each call's answers were searched, by whole
+string, for the ids and texts the newest capture of those classes holds (class, topic, item, post
+and attachment ids; item titles, descriptions, attachment names, post texts), printing counts. The
+shape probe printed, for the call without tags, its answer's structure with every string replaced by
+its length unless it was a short lower-case dotted string. A file name or a domain could have that
+form; none did: the only such strings printed were protocol tags (`hrq.*`, `hrsi.*`, `hrcw.qr`,
+`hrt.qr`, `hra.laa`, `hrgb.lr`, `rubric.list`, `edu.rt`). Nothing printed or kept holds a body, a
+cookie, a name or a title.
+
+| Question | Answer (14:09) |
 |---|---|
 | `batchexecute` requests | 244, every one with a single name; the names in the body equal `rpcids` in all 244 |
-| Data in the pages' own HTML | none found: each page's HTML has 3 `AF_initDataCallback` and no `AF_dataServiceRequests`, and carries none of the capture's ids |
-| Names seen | 14, all sent by the pages themselves on load, with zero presses |
-| Names whose every answer carries a query, list or get tag | 13 |
-| Names without a tag | 1, `t51ITc`: 23 answers, none with a tag; some empty, the others a list of materials keyed by item id |
+| Data in the pages' own HTML | no id of the capture found in it (ids searched, not texts): each page's HTML has 3 `AF_initDataCallback` and no `AF_dataServiceRequests` |
+| Call names seen | 13, all sent while the pages loaded or sat open, with zero presses (on load and during the 8 s are not told apart, nor the frame from the home page under it) |
+| Names with a protocol tag in their answers | 12 (a name counts as tagged if any tag-shaped string is in its answers; in the shapes printed, a tagged answer has its tag first) |
+| Names without a tag | 1, `t51ITc`: 23 answers, none with a tag; some empty, the others start with `null` where a tagged answer has its tag, then a list of materials keyed by item id |
 
-| Call | Tag | Pages | Carries (from the capture) |
+| Call | Tags | Pages | Carries, by whole-string match against the capture |
 |---|---|---|---|
-| `dpT4Vd` | `hrcw.qr` | classwork | every item (49 of 49), titles, descriptions, topics |
-| `pONvgf` | `hrsi.qr` | home, classwork, stream | items, titles, descriptions, topics, and every post with its text (4 of 4) |
-| `tQShAc` | `hrsi.lr` | item details | the item shown, its title and description |
-| `ZZFlc` | `hrt.qr` | classwork, stream | every topic |
-| `Zj93ge` | `hrq.sub` | classwork, assignment, question | items (36): the student's submissions, by its tag |
-| `cCzVwf` | `hra.laa` | item details, stream | items and posts |
-| `Bypadc` | `rubric.list` | assignment | the assignment's rubric |
+| `dpT4Vd` | `hrcw.qr`, `edu.rt` | classwork | items 49 of 49, titles 47 of 49, descriptions 22 of 27, topics 11 of 11 |
+| `pONvgf` | `hrsi.qr`, `edu.rt` | home, classwork, stream | items 34, titles 33, descriptions 14, topics 10, posts 4 of 4 with their texts |
+| `tQShAc` | `hrsi.lr`, `edu.rt` | item details | items 5, titles 5, topics 3, descriptions 1 |
+| `ZZFlc` | `hrt.qr` | classwork, stream | topics 11 of 11 |
+| `Zj93ge` | `hrq.sub` | classwork, assignment, question | items 36 |
+| `cCzVwf` | `hra.laa` | item details, stream | items 5, posts 4 |
+| `Bypadc` | `rubric.list` | assignment | items 2 |
 | `gkSD8b` | `hrgb.lr` | classwork | the class |
-| `gXtzob`, `O1Xqee`, `UG41I` | `hrq.crs`, `hrq.cus`, `hrq.usr` | every page | the class (the first two); nothing of the capture (the third) |
-| `sLc6hf` | `hrq.cmt` | every page but home | one item; comments, by its tag (97 requests) |
-| **`t51ITc`** | **none** | every page | **the teacher's attachments**: Drive id, name, type, address, keyed by item — the only name whose answers hold attachment ids |
+| `gXtzob`, `O1Xqee` | `hrq.crs`, `hrq.cus` | every page | the class |
+| `UG41I` | `hrq.usr` | every page | nothing of the capture |
+| `sLc6hf` | `hrq.cmt`, `edu.rt` | every page but home | one item (97 requests) |
+| **`t51ITc`** | **none** | every page | **attachment ids 2, attachment names 2** — the only name whose answers hold attachment ids; by the shape, each material also has a type and an address (inferred from lengths) |
 
-Besides these, the pages asked for telemetry (`play.google.com/log`), a push channel
-(`signaler-pa.clients6.google.com`), the Google bar (`ogads-pa`, `ogs.google.com`), one
-`ClassroomUi/browserinfo` POST, scripts, fonts and images; the guard blocked 27 frame loads (Drive's
-viewer, the Google bar's widget, Google's sign-in frames).
+Only 2 of the 51 attachment ids the two classes' captures hold could appear: the run opened one
+item of each kind per class. Dates, statuses and grades were not mapped (numbers and codes, not
+texts the capture holds). Besides these calls, the pages asked for telemetry (`play.google.com/log`),
+a push channel (`signaler-pa.clients6.google.com`), the Google bar (`ogads-pa`, `ogs.google.com`),
+2 other Classroom POSTs (at 14:19, one was `ClassroomUi/browserinfo`), scripts, fonts and images; the
+guard blocked 27 frame loads (7 of Drive's viewer, 10 of the Google bar's widget, 10 of Google's
+sign-in host).
 
 **Against the pass rule** (spike table: every capture field comes from a name whose answers are
-queries): items, titles, descriptions, topics, posts and the student's submissions do; **the
-teacher's attachments do not** — they come only from `t51ITc`, whose answers carry no tag. R3 as
-written admits a name only if every answer carries a query, list or get tag, so FR-004 is not met
-and, by the spike's own rule, the read by calls is not built. Dates, statuses and grades were not
-mapped (numbers and codes, not texts the capture holds).
+queries): the teacher's attachments come only from `t51ITc`, whose answers carry no tag. R3 admits a
+name only if its answers carry a query, list or get tag, so the spike fails by its own rule: FR-004
+not met, the read by calls not built. The other fields seen came from tagged names (reading `.lr`,
+`.laa` and `rubric.list` as list or get tags is this entry's reading); dates, statuses and grades
+were not mapped.
 
 What it leaves open:
 
-- **Whether R3's rule should admit `t51ITc`.** What was seen of it is a read: every page sends it on
-  load with zero presses, the same way it sends the tagged queries, and its answer is the item's
+- **Whether R3 should admit `t51ITc`.** What was seen of it is consistent with a read: the pages send
+  it while they load, with zero presses, alongside the tagged queries, and its answer is the item's
   materials, not an acknowledgement. But R3 chose the tag because no spike may send a write to tell
-  one from the other (constitution IV), and a name without a tag is exactly what R3 said to block.
-  Admitting it is a change to R3 and FR-004 for the family to decide, not a reading of them.
+  one from the other (constitution IV), and a name without a tag is what R3 says to block. Admitting
+  it changes R3 and S8's pass row; whether FR-004 is then met is the family's reading, not this
+  entry's.
+- **The peer project's catalogue** (Observed facts) lists `t51ITc` among names that are «all reads by
+  their response tags»; on this account its answers carry none. R1's «Only what changed» rests on
+  that call.
 - **Not measured**: S8's second half (the pages loaded with every name outside the allowlist, the
-  telemetry and the push channel blocked), the to-do pages (outside the container guard's pages),
-  and S9's whole read.
+  telemetry and the push channel blocked); the exact host and path of the session upkeep R4 asks for
+  (Google's sign-in host was loaded 10 times as frames, paths masked); the to-do pages (outside the
+  container guard's pages); and S9's whole read.
 - **The probes** are on branch `spike/267-s8-calls` (`spikes/s8_*`), kept off `main`.
