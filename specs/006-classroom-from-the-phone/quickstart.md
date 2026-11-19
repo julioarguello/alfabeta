@@ -9,7 +9,8 @@ name, an address or a Classroom title.
 
 - Spikes S7, S8 and S9 passed and recorded ([research.md](research.md#spikes-before-the-build)); S8
   passes under R3 as amended on 2026-11-19 (`t51ITc` admitted by name; its second half, the due
-  dates and its last pieces measured: research «S8, last pieces»).
+  dates and its last pieces measured: research «S8, last pieces»); R4's session-upkeep and
+  `browserinfo` tests are S9's; comments, grades and returned marks stay open.
 - `[classroom] profile_read = true` and `notice_account` set in the student's configuration;
   `config check --student <id>` clean.
 - For the container read: Docker Desktop running, with at least 1536 MB of memory available to
