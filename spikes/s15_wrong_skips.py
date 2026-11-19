@@ -1,5 +1,6 @@
 """For each fingerprint-same pair whose attachments differ, the item's attachment count across ALL captures of its class."""
 import json, glob, collections, sys
+SCHOOL_YEAR = sys.argv[2]  # the student's [student] school_year, e.g. from its config.toml
 by = collections.defaultdict(list)
 for p in glob.glob(f"{sys.argv[1]}/alfabeta-capture-*.json"):
     d = json.load(open(p))
@@ -53,7 +54,7 @@ for cid, caps in by.items():
 print("--- per wrong-skip pair (normalized differs), what differs, by kind")
 from alfabeta import capture as C
 import dataclasses
-def N(d): return {it.id: dataclasses.asdict(it) for it in C.normalize_class(d, "2026-2027").items}
+def N(d): return {it.id: dataclasses.asdict(it) for it in C.normalize_class(d, SCHOOL_YEAR).items}
 for cid, caps in by.items():
     caps.sort(key=lambda d: d["captured_at"])
     for j, (a, b) in enumerate(zip(caps, caps[1:])):

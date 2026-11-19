@@ -2,6 +2,7 @@
 import json, glob, collections, dataclasses, sys
 from alfabeta import capture
 DIR = sys.argv[1]
+SCHOOL_YEAR = sys.argv[2]  # the student's [student] school_year, e.g. from its config.toml
 by = collections.defaultdict(list)
 for p in glob.glob(f"{DIR}/alfabeta-capture-*.json"):
     d = json.load(open(p))
@@ -12,7 +13,7 @@ def F(d):
             tuple((t.get("id"), t.get("title"), t.get("order")) for t in d["topics"]),
             tuple(sorted((s.get("id"), s.get("created_text"), s.get("text"), tuple(att(s.get("attachments")))) for s in d.get("stream", []))))
 def N(d):
-    c = capture.normalize_class(d, "2026-2027")
+    c = capture.normalize_class(d, SCHOOL_YEAR)
     out = {}
     for it in c.items:
         out[it.id] = {k: v for k, v in dataclasses.asdict(it).items()}
