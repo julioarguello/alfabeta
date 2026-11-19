@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { JSDOM } from "jsdom";
+import { JSDOM, ResourceLoader } from "jsdom";
 
 const PAGES = new URL("../fixtures/classroom/pages/", import.meta.url);
 const SOURCE = fs.readFileSync(new URL("../../skills/classroom-sync/scripts/extract.js", import.meta.url), "utf8");
@@ -363,4 +363,198 @@ test("an empty stream is ready", () => {
   doc.body.appendChild(note);
   assert.equal(extract.pageReady("/u/5/c/synth-1", doc), true);
   assert.deepEqual(JSON.parse(JSON.stringify(extract.readStream(doc))), []);
+});
+
+// The loader over real frames: jsdom serves each path a synthetic page, so the test can change it
+// after it is ready, as Classroom does while it paints (#264).
+const DETAIL = "/u/5/c/synth-1/m/synth-2/details";
+const FAST = { timeoutMs: 3000, attempts: 1, settleMs: 200, settleCapMs: 3000, pollMs: 20 };
+
+// The material page with its one attachment taken out; `late` puts it back where it was.
+function lateAttachment() {
+  const dom = page("material-detail");
+  const X = dom.window.alfabetaExtract;
+  const anchor = [...dom.window.document.querySelectorAll("a[href]")].find((a) => X.attachmentOf(a) && X.readDetail(dom.window.document).attachments.some((x) => x.id === X.attachmentOf(a).id));
+  anchor.parentElement.setAttribute("data-late-slot", "");
+  const late = anchor.outerHTML;
+  anchor.remove();
+  return { html: dom.serialize(), late };
+}
+
+function framed(html) {
+  // Only the page asked for: the synthetic page holds frames of its own, which must not load it again.
+  class Serve extends ResourceLoader {
+    fetch(url) { return Promise.resolve(Buffer.from(new URL(url).pathname === DETAIL ? html : "")); }
+  }
+  const dom = new JSDOM("<body></body>", { url: "https://classroom.google.com/u/5/h", runScripts: "outside-only", resources: new Serve() });
+  dom.window.eval(SOURCE);
+  return dom;
+}
+
+// The frame's document once the extractor would call it ready.
+async function whenReady(dom) {
+  const X = dom.window.alfabetaExtract;
+  for (;;) {
+    const frame = dom.window.document.querySelector("iframe");
+    const doc = frame && frame.contentDocument;
+    if (doc && doc.location.href !== "about:blank" && doc.body && X.pageReady(DETAIL, doc)) return doc;
+    await new Promise((r) => setTimeout(r, 2));
+  }
+}
+
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// The description block the extractor reads (the synthetic material has none), painted with `text`.
+function paintDescription(doc, text) {
+  let block = doc.querySelector(".nGi02b");
+  if (!block) {
+    block = doc.createElement("div");
+    block.className = "nGi02b";
+    doc.querySelector("[data-late-slot]").before(block); // inside the item, as Classroom puts it
+  }
+  block.textContent = text;
+}
+
+test("a page that paints at once is taken within a poll of settleMs after it is ready, as before", { timeout: 5000 }, async () => {
+  const dom = framed(page("material-detail").serialize());
+  try {
+    const loading = dom.window.alfabetaExtract.iframeLoader(dom.window, FAST)(DETAIL);
+    await whenReady(dom);
+    const readyAt = Date.now();
+    const { doc } = await loading;
+    const took = Date.now() - readyAt;
+    assert.ok(took >= FAST.settleMs - FAST.pollMs && took < FAST.settleMs + 300, `took ${took} ms`);
+    assert.equal(dom.window.alfabetaExtract.readDetail(doc).attachments.length, 1);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a page still painting after it is ready is read once it holds still: the late attachment is in", { timeout: 5000 }, async () => {
+  const { html, late } = lateAttachment();
+  const dom = framed(html);
+  try {
+    const loading = dom.window.alfabetaExtract.iframeLoader(dom.window, FAST)(DETAIL);
+    const doc = await whenReady(dom);
+    // Three paints, each sooner than settleMs after the one before; the last one, the attachment,
+    // comes later than settleMs after the page was ready — where a fixed wait would have read it.
+    await pause(120);
+    paintDescription(doc, "uno");
+    await pause(120);
+    paintDescription(doc, "uno dos");
+    await pause(120);
+    doc.querySelector("[data-late-slot]").insertAdjacentHTML("beforeend", late);
+    const { doc: read } = await loading;
+    const detail = dom.window.alfabetaExtract.readDetail(read);
+    assert.equal(detail.attachments.length, 1);
+    assert.equal(detail.description, "uno dos");
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("time with the tab hidden does not count towards settling: what paints after it is read", { timeout: 5000 }, async () => {
+  const { html, late } = lateAttachment();
+  const dom = framed(html);
+  const main = dom.window.document;
+  let state = "visible";
+  Object.defineProperty(main, "visibilityState", { get: () => state });
+  try {
+    let done = false;
+    const loading = dom.window.alfabetaExtract.iframeLoader(dom.window, FAST)(DETAIL).then((r) => { done = true; return r; });
+    const doc = await whenReady(dom);
+    state = "hidden"; // Chrome all but stops a hidden tab's frames
+    await pause(FAST.settleMs * 3);
+    assert.equal(done, false);
+    doc.querySelector("[data-late-slot]").insertAdjacentHTML("beforeend", late); // painted once shown
+    state = "visible";
+    const { doc: read } = await loading;
+    assert.equal(dom.window.alfabetaExtract.readDetail(read).attachments.length, 1);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a page that never holds still is unsettled, a failed load", { timeout: 5000 }, async () => {
+  const dom = framed(lateAttachment().html);
+  let changer = null;
+  try {
+    const loading = dom.window.alfabetaExtract.iframeLoader(dom.window, { ...FAST, settleCapMs: 500 })(DETAIL);
+    const outcome = loading.then(() => "loaded", (err) => err.message);
+    const doc = await whenReady(dom);
+    let n = 0;
+    changer = setInterval(() => paintDescription(doc, `cambio ${n++}`), 50);
+    assert.equal(await outcome, "unsettled");
+  } finally {
+    clearInterval(changer);
+    dom.window.close();
+  }
+});
+
+// Chrome barely runs a hidden tab's timers (about once a second, then once a minute), so the poll
+// after the tab is shown again may come long after the last one. That gap is time spent hidden: it
+// must not count as time the page held still. A clock and a scheduler driven by hand show it.
+test("the gap of a throttled hidden tab does not count as holding still", { timeout: 5000 }, async () => {
+  const dom = framed(page("material-detail").serialize());
+  const win = dom.window;
+  let clock = 1_000_000;
+  let tick = null;
+  win.Date.now = () => clock;
+  win.setInterval = (fn) => { tick = fn; return 1; };
+  win.clearInterval = () => { tick = null; };
+  let state = "visible";
+  Object.defineProperty(win.document, "visibilityState", { get: () => state });
+  try {
+    let done = false;
+    const loading = win.alfabetaExtract.iframeLoader(win, { timeoutMs: 120000, attempts: 1, settleMs: 1500, settleCapMs: 10000 })(DETAIL)
+      .then((r) => { done = true; return r; });
+    await whenReady(dom);
+    const poll = async (ms) => { clock += ms; if (tick) tick(); await pause(0); };
+    await poll(300); // ready, on screen
+    state = "hidden";
+    await poll(300);
+    await poll(60000); // one throttled timer a minute later
+    state = "visible"; // shown half a minute after that timer, before the next one
+    await poll(30000); // the first poll on screen: those 30 s were spent hidden, not holding still
+    assert.equal(done, false);
+    for (let i = 0; i < 4; i++) await poll(300);
+    assert.equal(done, false); // 1200 ms on screen
+    await poll(300);
+    assert.equal(done, true); // 1500 ms on screen
+    await loading;
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("stillness before the tab was hidden does not carry over: 1.5 s unbroken once it is shown", { timeout: 5000 }, async () => {
+  const dom = framed(page("material-detail").serialize());
+  const win = dom.window;
+  let clock = 1_000_000;
+  let tick = null;
+  win.Date.now = () => clock;
+  win.setInterval = (fn) => { tick = fn; return 1; };
+  win.clearInterval = () => { tick = null; };
+  let state = "visible";
+  Object.defineProperty(win.document, "visibilityState", { get: () => state });
+  try {
+    let done = false;
+    const loading = win.alfabetaExtract.iframeLoader(win, { timeoutMs: 40000, attempts: 1, settleMs: 1500, settleCapMs: 10000 })(DETAIL)
+      .then(() => { done = true; return "loaded"; }, (err) => err.message);
+    await whenReady(dom);
+    const poll = async (ms) => { clock += ms; if (tick) tick(); await pause(0); };
+    for (let i = 0; i < 5; i++) await poll(300); // ready, then 1200 ms still on screen
+    assert.equal(done, false);
+    state = "hidden";
+    await poll(60000); // a minute hidden: longer than the 40 s timeout
+    state = "visible";
+    await poll(300); // back on screen: neither timed out nor taken at once
+    assert.equal(done, false);
+    for (let i = 0; i < 4; i++) await poll(300);
+    assert.equal(done, false); // 1200 ms on screen since it was shown
+    await poll(300);
+    assert.equal(await loading, "loaded");
+  } finally {
+    dom.window.close();
+  }
 });
