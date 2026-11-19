@@ -107,6 +107,9 @@ measured on this account; they seed the spikes below and replace none of them (F
   family's decision («Admitirla, seguir», the operator, 2026-11-19; spec Clarifications, Session
   2026-11-19), not a measurement. No other untagged name is admitted; a new one stays blocked until a
   recording and a decision of its own.
+- **The to-do lists** (2026-11-19, «S8, last pieces»): not needed for the fields the two classes of
+  S8's second half hold — their statuses came through the ten names, from FR-030's pages — so they
+  leave the list of pages above; S9's whole read confirms it for every class.
 - **A tagged name the page needs** (2026-11-19, S8's second half): a name every answer of which
   carries a query, list or get tag (as recorded in S8's first half) but no field of the capture is
   admitted when a recording shows the page the read loads failing with it blocked — by the same
@@ -142,10 +145,13 @@ measured on this account; they seed the spikes below and replace none of them (F
     `accounts.google.com`, the device-bound session refresh) follow the rule below like any other:
     blocked until S8 records each one's exact host and path; then allowed by that host and path
     and counted, since blocking them could end the session (Observed facts, DBSC). S9 checks the
-    session survives a full read with them;
+    session survives a full read with them. *(2026-11-19, «S8, last pieces»: the only one the pages
+    request is `accounts.google.com/RotateCookiesPage`, a frame; it stays blocked until S9 measures
+    whether the read by calls lets it through, and what it requests then.)*
   - **everything else** a page asks for (telemetry, push channels) is blocked and counted, unless S8
     shows the page cannot load without it, in which case it is allowed by exact host and path and
-    recorded here;
+    recorded here; *(2026-11-19: Classroom's own `ClassroomUi/browserinfo` POST, never blocked in S8,
+    is S9's to test.)*
   - **downloads**: no browser download; the read fetches only the attachments it listed in this run,
     through the session's request context (R8), and the adapter refuses any other id.
 - **Test** (SC-004): offline, in CI, a real headless browser opens a local fake Classroom that serves
@@ -332,8 +338,8 @@ the family's.
 | Spike | Who | Pass | If it fails |
 |---|---|---|---|
 | **S7 · The sign-in window and the profile.** Start the installed Chrome with a fresh profile in the data folder and `--remote-debugging-pipe`; the family signs in by hand; `Target.getTargets` shows the address reach Classroom; alfabeta closes it; Playwright (`channel="chrome"`, keychain flags removed) opens the profile headless and loads one Classroom page with the session; the window can be brought to the front by process id | agent + family sign-in | Google accepts the sign-in with the same steps the R20 probe of 2026-11-01 showed, and no «this browser may not be secure» page; the address change is seen; the headless open reads the session with no keychain dialog | Sign-in refused with the flag: R5's fallback (watch the process only) and FR-010 amended. Session not readable headless: the read is not built |
-| **S8 · The calls of every page** (widens spec 001's S6). Behind the minimal guard (document-load allowlist, zero presses), load once each page kind of R3 for two classes, headless, and record per request: method, host, path, call names, response tag — never bodies or cookies | agent + family sign-in | Every capture field comes from a name whose responses are queries, or from the name R3 admits by name; besides those, only tagged names R3 admits because the page needs them are let through; the pages load with everything outside those names and the session upkeep blocked; the stream's announcements are found | A needed field only behind a non-query name: FR-004 not met, the read is not built, this plan says so. *(2026-11-19: S8 failed this way on `t51ITc` alone; the family admitted it by name in R3, #270. Its second half passed the same day with ten names, research «S8, second half»)* |
-| **S9 · A whole read by calls, compared.** Same day, same classes: the current extractor (the family's usual run) and a throwaway read by S8's names from S7's profile, headless, timed; then fetch every listed attachment through the request context (R8) | agent + family sign-in | All classes read in under 30 minutes of the sign-in with no challenge; the same item ids (base64 of decimals), types, topics, attachments and stream posts; the status table of R7 filled with no contradiction; attachment bytes equal the replicas | A challenge: stop (constitution IV), record it, the read is not built. Differences: recorded per field; a field that cannot be matched is a spec question before building |
+| **S8 · The calls of every page** (widens spec 001's S6). Behind the minimal guard (document-load allowlist, zero presses), load once each page kind of R3 for two classes, headless, and record per request: method, host, path, call names, response tag — never bodies or cookies | agent + family sign-in | Every capture field comes from a name whose responses are queries, or from the name R3 admits by name; besides those, only tagged names R3 admits because the page needs them are let through; the pages load with everything outside those names and the session upkeep blocked; the stream's announcements are found | A needed field only behind a non-query name: FR-004 not met, the read is not built, this plan says so. *(2026-11-19: S8 failed this way on `t51ITc` alone; the family admitted it by name in R3, #270. Its second half passed the same day with ten names, research «S8, second half»; its last pieces: «S8, last pieces»)* |
+| **S9 · A whole read by calls, compared.** Same day, same classes: the current extractor (the family's usual run) and a throwaway read by S8's names from S7's profile, headless, timed; then fetch every listed attachment through the request context (R8) | agent + family sign-in | All classes read in under 30 minutes of the sign-in with no challenge; the same item ids (base64 of decimals), types, topics, attachments and stream posts; the status table of R7 filled with no contradiction; attachment bytes equal the replicas; and, inherited from S8 (2026-11-19, R4's notes): whether the session survives a whole read with `accounts.google.com/RotateCookiesPage` blocked or needs it let through, and whether the page needs `ClassroomUi/browserinfo` | A challenge: stop (constitution IV), record it, the read is not built. Differences: recorded per field; a field that cannot be matched is a spec question before building |
 | **S10 · From launchd, screen locked, no app open.** Install a throwaway LaunchAgent that runs S7's headless open at a set minute; the family locks the Mac and closes the Claude app; then a second agent opens the sign-in window | agent + family (lock the Mac, sign in) | The headless open reads the session with no keychain or other dialog; the window is there when the Mac is unlocked | A keychain dialog: the read profile's cookie key needs a one-time "Always allow" at set-up, recorded in the quickstart; a window that cannot open while locked: FR-012's unlock-first order is written into the notice |
 | **S11 · The remote view and the link.** Set up Chrome Remote Desktop to the Mac on the family's Google account; from the family's phone, open the remote view, unlock the Mac with its password, sign in in the window; time it; try R10's candidates from the phone and from the Mac | family phone + family sign-in | The sign-in completes from the phone in under 2 minutes from opening the link (SC-002); R10 records which link does what | No remote view to a locked Mac: the family signs in at the Mac, and FR-012 is amended |
 | **S12 · The notice email.** Link a family account with `gmail.send` only (a throwaway link, revoked after), send a notice to itself from a script | family (consent, phone) | The phone notifies within a minute; the time is recorded | No notification of a self-sent email: R9's fallback, FR-013 amended |
@@ -748,3 +754,49 @@ Nothing printed or kept names a student, an account or a class.
   1.2 GB); whether a read that starts at the floor ends well; the memory at the family's own
   12:34 read, of which only the log line is known; a container killed with no `end`
   event (the kernel's own kill of the Python process), which still reads `unexpected_ui`.
+
+### S8, last pieces · The session upkeep, Classroom's other POSTs, the calls' arguments — recorded
+
+Asked in julioarguello/alfabeta#267: what S8's second half left before S9. Measured 2026-11-19 at
+20:52–21:02, read-only, by Claude on the operator's standing permission to run tests, inside spec
+001 research R15's limits (no sign-in, no password), in the session of the family's `classroom
+refresh` that ended at 20:52 (`ok`). The read image with the read's own `Guard`; «Trabajo de
+clase», the stream and one assignment's detail of one class, 2–3 s apart, through a hidden frame;
+then Classroom's home page left open 10 minutes. Recorded: for each of the ten allowlisted names,
+the shape of the first two `f.req` arguments it was sent with (the capture's class, item, topic and
+post ids replaced by their kind, other digit runs by their length, short lower-case words kept as
+enum-like — none appeared —, other strings by their length); every request the pages made to
+Google's sign-in and cookie hosts (method, host, path without query, frame or page); every
+Classroom POST that is not `batchexecute` (path words). Nothing printed holds a body, a cookie, a
+name or an id.
+
+| Question | Answer |
+|---|---|
+| Session upkeep, as the pages request it | one request kind: `GET accounts.google.com/RotateCookiesPage`, a frame document, once per page load (4), none in the 10 minutes with the home page open; the guard aborted it every time, as in every container read. Requests made by Chrome itself (outside the pages) are not seen by this probe |
+| Session after the 10 minutes | the home page was still on Classroom (not reloaded) |
+| Classroom's other POSTs | one kind: `ClassroomUi/browserinfo`, twice (once on a page load, once while the page sat open), let through |
+| Arguments (first two per name) | `dpT4Vd` the class, and a topic; `ZZFlc` the class; `tQShAc` the item and the class; `Zj93ge` the item and the class, several at once, each with one more 12-digit id of another kind; `cCzVwf` the post and the class; `pONvgf`, `t51ITc` and `UG41I` (both shapes from the home page) ids that are not this class's and, for `pONvgf`, instants; `gXtzob` no id; `O1Xqee` the class or a list of ids. Each also carries a field-selection mask of numbers |
+| Guard | 10 frame loads blocked, not breached |
+
+Against R3, R4 and the open list of «S8, second half»:
+
+- **To-do pages: not needed for the fields the two classes of S8's second half hold.** Every status
+  those captures hold arrived through the ten names; the extractor reads only FR-030's pages.
+  R3's list of pages is amended accordingly (dated note in R3).
+- **Comments, grades and returned marks: not read yet.** The extractor does not read them today
+  (`teacher_comment` and `returned_text` written empty; spec 001 T061 is open to read them), and the
+  kept captures hold 14 «Calificado» items (seen 120 times) with no grade the extractor could read.
+  So the read by calls has nothing to compare them against. They stay open until spec 001 T061 reads them; then they are mapped, possibly adding one of the names blocked in S8's second half
+  (`sLc6hf`, `gkSD8b`, `Bypadc`).
+- **Session upkeep (R4)**: the frame the pages load is recorded — `accounts.google.com`
+  `/RotateCookiesPage` —, not what it would request once let through. Every container read so far
+  kept it blocked in the read phase (the scripted sign-in's own phase lets the account host's frames
+  through) and no read ended `session_expired` in the log. Whether the read by calls lets it
+  through moves to S9 (dated note in R4).
+- **Classroom's other POSTs (R4)**: `ClassroomUi/browserinfo` only, never blocked in S8; whether
+  the page needs it moves to S9 (dated note in R4).
+- **S9's input**: the arguments' shapes, with the gaps above (`pONvgf`, `t51ITc` and `UG41I` seen
+  only from the home page).
+
+**The probe** is on branch `spike/267-s8-calls` (`spikes/s8c_*`), kept off `main`. S8 has recorded
+what it could; S9 inherits R4's two tests above, and comments, grades and returned marks stay open.
