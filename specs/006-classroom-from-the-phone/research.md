@@ -704,3 +704,43 @@ What it leaves open:
   comparison, R7); then S9.
 - **The probes** are on branch `spike/267-s8-calls` (`spikes/s8b_*`, `spikes/s8_dates.py` with
   `spikes/s8_dates_prepare.py` and `spikes/s8_dates_run.sh`), kept off `main`.
+
+### S16 · A browser out of memory, and what tells it apart — measured (#268)
+
+Recorded 2026-11-19. Not a spike planned before the build: the family's read of 12:34 failed and
+julioarguello/alfabeta#268 asked why. Read-only throughout; the sign-in was never called by Claude.
+Nothing printed or kept names a student, an account or a class.
+
+| Fact | Read from |
+|---|---|
+| The 12:34 read signed in, listed 12 classes and failed each of them (`read: 0, failed: 12`, 312 s), logged and notified as `unexpected_ui` | its line in the student's `log.jsonl` |
+| What failed was the page's renderer dying: `Page.evaluate: Target crashed` | a read-only diagnostic of the same session, recorded in #268 |
+| Ten minutes after that read, with no read running, Docker's machine had 7835 MB and 1213 MB available | `free -m` in a short container of the image, 12:44 (the diagnostic session's record) |
+| The load of one class then took the diagnostic's container from about 0.7 GB to about 1.2 GB, and the page died; #268 gives about 0.5 GB to about 1.26 GB, and about 0.2 GB left available in the machine | `docker stats` sampled during the load (the same record), and #268 |
+| `--shm-size=1g`, one renderer, no site isolation and a JS heap cap did not avoid it | the same diagnostic (#268) |
+| The 09:24 read of the same day read 12 of 12; #268 says it was the same image, with the other containers stopped | `log.jsonl` for the result; the image and the containers' state from #268 |
+| A container with no limit of its own reads the machine's `/proc/meminfo`: its `MemTotal`, 8024028 kB, is `docker info`'s 8216604672 bytes to the byte | `docker run --rm --entrypoint cat <image> /proc/meminfo` and `docker info --format '{{.MemTotal}}'` on the Mac (Docker Engine 29.0.1 in Docker Desktop 4.53.0) |
+| That reading takes 0.1 s with the image present, and an image that is not there answers no reading | `DockerReadContainer.memory`, timed on the Mac |
+| `MemAvailable` moved from 5725 MB to 3294 MB within the hour, with eight other containers running | the same reading, twice |
+| A dead page raises `Target crashed` from the call that was pending and from `evaluate` and `inner_text` after it, and `Page crashed` from `wait_for_timeout`; the page's `crash` event reaches the program with the first of those errors, not before | `chrome://crash` in Playwright 1.64.1's Chromium (macOS) and in the image's Chrome 157.0.8103.78 (`linux/amd64`), twice in the image |
+| A load on the dead page raises `net::ERR_ABORTED; maybe frame was detached?` in Playwright's Chromium and `Page crashed` in the image's Chrome; `open_home` takes either for `unreachable` | the same two browsers |
+
+- **Decided**: two codes, each naming what was observed — `browser_crashed` for a page that died,
+  `docker_low_memory` for a reading under the floor before the read starts (#268's text asked for
+  one code for both; a check that has seen no browser cannot say one crashed). The crash is told
+  by the page's event or by an error's first line, and applied once more where `read.py` ends, so
+  a step that swallowed the error (`unreachable`, `challenge`, `unexpected_ui`) does not name the
+  stop — `session_expired` included, which is what `read.py` calls a home page that does not
+  load after a sign-in; a sign-in code read from the page while it lived (`wrong_password`,
+  `second_factor`, `rejected`, `other_sign_in`) is kept, since the host acts on it.
+- **The floor is 1536 MB**: above the one failing reading (1213 MB, taken the way the read takes
+  it: a short container, no read running), not a measured sufficiency. A reading that cannot be
+  taken stops nothing. The log line of every read that asked keeps its reading, so the floor can
+  be moved on evidence.
+- **The two browsers differ** in the error of a load on a dead page, and the tests run
+  Playwright's Chromium: the test of a page dead before the read rests on the event alone, which
+  both browsers send.
+- **Not measured**: what a whole read needs at its peak (the failing one was cut short at about
+  1.2 GB); whether a read that starts at the floor ends well; the memory at the family's own
+  12:34 read, of which only the log line is known; a container killed with no `end`
+  event (the kernel's own kill of the Python process), which still reads `unexpected_ui`.

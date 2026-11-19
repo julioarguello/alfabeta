@@ -604,6 +604,21 @@ arrives.
   failing to build, stops the read with `docker_unavailable`; no network from the container stops
   it with `unreachable`; both are notified as FR-032 says. `classroom plan` and
   `classroom apply` stay on the Mac, where the Google links are.
+  The browser needs memory in Docker's machine, which every container shares. Before the read
+  reads the password or signs in, it MUST read that machine's available memory through one short
+  container of the same image (`/proc/meminfo`, nothing mounted, no network); under 1536 MB it MUST
+  stop with `docker_low_memory`, having signed in to nothing. A reading that cannot be taken stops
+  nothing. The log line of every read that got as far as asking keeps the reading (`memory`), the
+  ones of reads that ended well too. A
+  page that dies during the read MUST end it there with `browser_crashed`, not with the code of
+  whatever the dead page looked like (a sign-in code read from the page while it lived is kept), keeping
+  the classes already captured; a stop of either code with nothing read is
+  notified as FR-032 says, and a read the crash left `partial` is not, as no `partial` is.
+  *(Measured 2026-11-19, #268, research S16: the family's read of 12:34 failed each of its 12
+  classes as `unexpected_ui`; ten minutes later, with 1213 MB available — read by a short container
+  of the image, no read running — the load of one class took its container to about 1.2 GB and the
+  page died. The floor sits above that one failing reading. No read has been measured to succeed
+  at the floor: the logged readings are what can move it.)*
 - **FR-029**: The read browser MUST run in the `Europe/Madrid` zone (constitution VIII): Classroom
   writes every date in the browser's zone, and a container in UTC moved every due time 1–2 hours
   earlier (research S14). Its locale MUST be `es-ES`, the language the extractor's labels are
@@ -632,11 +647,14 @@ arrives.
   `wrong_password` mark (FR-027); `classroom password delete` MUST remove it. Neither MAY print it,
   log it, or take it as an option, an argument or an environment variable. Changing the password
   at Google stops the next scripted sign-in with `wrong_password`, and the family sets it again.
-- **FR-032**: When the scripted sign-in stops (FR-027), or Docker is not running (FR-028), the read
+- **FR-032**: When the scripted sign-in stops (FR-027), or Docker is not running or has too little
+  memory left, or the browser dies before a class was read (FR-028), the read
   MUST stop with that code before
   reading anything, write nothing to the student's folder, show the macOS notification of spec 001
   FR-021a in Spanish naming the code and what to do (for `wrong_password` and `no_password`: run
-  `classroom password set`), and leave its log line (FR-020). That day's read is then the family's
+  `classroom password set`; for `docker_low_memory` and `browser_crashed`: close other containers
+  or raise Docker Desktop's memory — for `browser_crashed` as where to look, the cause not being
+  proven), and leave its log line (FR-020). That day's read is then the family's
   usual sync with Claude in Chrome (FR-018). The hand sign-in window is not opened: a session it
   made in the Mac's Chrome could not be read by the container (R2).
 

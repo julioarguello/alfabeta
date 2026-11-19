@@ -1,7 +1,8 @@
 """The read container (spec 006 FR-028, data-model «Read container»): Docker, behind a port.
 
 `DockerReadContainer` builds the image from the repository root when its inputs change (the tag is
-their hash), and runs it with `docker run --rm -i`: the read profile and an out folder mounted, the
+their hash), reads how much memory Docker has left through one short container of that image (the
+browser needs it: FR-028), and runs it with `docker run --rm -i`: the read profile and an out folder mounted, the
 request written once on stdin and closed. The account and the password never appear in an argument,
 an environment variable, the image or a file; stdout is read line by line as JSON events. The
 container is named after the run, so a watchdog can `docker kill` it when the read outlives
@@ -15,6 +16,7 @@ import hashlib
 import json
 import subprocess
 import threading
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -41,6 +43,14 @@ class ContainerError(Exception):
     """Docker is not running, or the image cannot be built (`docker_unavailable`)."""
 
 
+@dataclass(frozen=True)
+class Memory:
+    """The memory of Docker's machine as a container sees it, in MB (`/proc/meminfo`)."""
+
+    total_mb: int
+    available_mb: int
+
+
 class ReadContainer(Protocol):
     """What `classroom refresh` needs from the container."""
 
@@ -50,6 +60,10 @@ class ReadContainer(Protocol):
 
     def ensure_image(self) -> str:
         """The image to run, built if its inputs changed; ContainerError if it cannot be."""
+        ...
+
+    def memory(self, image: str) -> Memory | None:
+        """The memory a container of `image` has to work with; None when it could not be read."""
         ...
 
     def run(
@@ -117,6 +131,40 @@ def run_argv(image: str, profile: Path, out: Path, name: str) -> list[str]:
     ]
 
 
+def memory_argv(image: str) -> list[str]:
+    """`docker run` for the memory reading: the image's own `cat`, nothing mounted, no network, no stdin."""
+    return [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--platform",
+        PLATFORM,
+        "--entrypoint",
+        "cat",
+        image,
+        "/proc/meminfo",
+    ]
+
+
+def parse_meminfo(text: str) -> Memory | None:
+    """`MemTotal` and `MemAvailable` of a `/proc/meminfo`, in MB; None unless both are there in kB.
+
+    A container with no memory limit of its own reads the whole machine's file, which under Docker
+    Desktop is the Linux VM every container shares.
+    """
+    read: dict[str, int] = {}
+    for line in text.splitlines():
+        name, _, value = line.partition(":")
+        parts = value.split()
+        if name in ("MemTotal", "MemAvailable") and len(parts) == 2 and parts[0].isdigit() and parts[1] == "kB":
+            read[name] = int(parts[0]) // 1024
+    if len(read) != 2:
+        return None
+    return Memory(total_mb=read["MemTotal"], available_mb=read["MemAvailable"])
+
+
 class DockerReadContainer:
     """`ReadContainer` over the Docker command line."""
 
@@ -149,6 +197,14 @@ class DockerReadContainer:
         if built.returncode != 0:
             raise ContainerError("the read's image could not be built")
         return image
+
+    def memory(self, image: str) -> Memory | None:
+        """One short container that prints `/proc/meminfo`; None when it fails or prints something else."""
+        try:
+            ran = self._process(memory_argv(image), INFO_TIMEOUT_SECONDS)
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        return parse_meminfo(ran.stdout) if ran.returncode == 0 else None
 
     def run(
         self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Callable[[dict[str, Any]], None]

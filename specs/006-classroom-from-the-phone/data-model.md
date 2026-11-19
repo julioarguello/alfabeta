@@ -41,7 +41,8 @@ and `classroom password delete`. While it exists the container is started with `
 | mounts | the read profile `data/classroom-profile/` (the student's data folder, `0700`), which stays between reads, and an out folder under `data/` (`classroom-out-<run>/`, and `classroom-out-<run>-attachments/` for the attachments pass, whose files the host moves to `data/inbox/`); the container itself is removed at the end (`--rm`) |
 | stdin | one JSON line `{account, password, signin}`; `password` is `null` when none is needed or stored |
 | stdout | one JSON line per event: sign-in page loads by host and path (no query), each class captured, each attachment, the final counts and stop code; never the account or the password |
-| stop codes | `rejected`, `challenge`, `second_factor`, `other_sign_in`, `wrong_password`, `no_password`, `session_expired`, `unexpected_ui`, `unreachable`; `docker_unavailable` from the host |
+| stop codes | `rejected`, `challenge`, `second_factor`, `other_sign_in`, `wrong_password`, `no_password`, `session_expired`, `unexpected_ui`, `unreachable`, `browser_crashed` (the page's `crash` event, or an error whose first line is Playwright's `Target crashed` or `Page crashed`); `docker_unavailable` and `docker_low_memory` from the host |
+| memory | `MemTotal` and `MemAvailable` of Docker's machine in MB, read before the first pass through one short container of the image (`cat /proc/meminfo`, nothing mounted, no network); kept in the run's log line as `memory: {total_mb, available_mb}`, or `null` when it could not be read (the read goes on), and absent when the run stopped before asking; under FR-028's floor the read is not started (`docker_low_memory`) |
 
 ## Sign-in wait
 

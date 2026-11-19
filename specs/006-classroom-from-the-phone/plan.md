@@ -259,18 +259,22 @@ image needs no copy of the package. The host never runs a browser.
 
 1. Read `[classroom] profile_read` (FR-019); off → `disabled`. Take the student's lock and the
    browser lock (FR-024a).
-2. Docker not running → stop `docker_unavailable` (FR-028) → step 7.
+2. Docker not running → stop `docker_unavailable` (FR-028) → step 7. Build the image if its inputs
+   changed (`docker build -f docker/classroom/Dockerfile` from the repository root, so the
+   extractor is copied unchanged; the image labelled with the inputs' hash). Read Docker's
+   available memory through one short container of that image (`cat /proc/meminfo`, nothing
+   mounted, no network): under the floor → stop `docker_low_memory` (FR-028) → step 7, before the
+   keychain of step 3 is read; unreadable → go on; the reading goes to the log line.
 3. Inside Claude Code (`CLAUDECODE` set): stdin carries the account and `"signin": false`, never the
    password (FR-027). Else, the `wrong_password` mark → `"signin": false` as well, so a dead
    session stops with `wrong_password`; otherwise `"signin": true` with the keychain's password, or
    none if it holds none (`read.py` stops `no_password` only if a sign-in is needed).
-4. Build the image if its inputs changed (`docker build -f docker/classroom/Dockerfile` from the
-   repository root, so the extractor is copied unchanged; the image labelled with the inputs' hash),
-   then `docker run --rm -i` with the read profile `data/classroom-profile/` (0700) and an out
+4. `docker run --rm -i` with the read profile `data/classroom-profile/` (0700) and an out
    folder under `data/` mounted; write the stdin line and close it. Renew the lock while it runs.
 5. `read.py`: the account check (FR-006); alive → read; else, if allowed, clear the profile's Google
    cookies and sign in (stops by code, the sign-in's guard); capture the class list and each class
-   with the extractor (FR-008 `unexpected_ui`, FR-009 `partial`); one JSON line per event and a
+   with the extractor (FR-008 `unexpected_ui`, FR-009 `partial`); a page that dies ends the read
+   there with `browser_crashed`, whatever step it was in (FR-028); one JSON line per event and a
    final line with counts and stop code. No line carries the account or the password.
 6. Host: a sign-in stop → the `wrong_password` mark if that is the code; else move the captures to
    the downloads folder, `download collect`, `classroom plan`. Then the attachments pass (amended
@@ -290,7 +294,8 @@ image needs no copy of the package. The host never runs a browser.
    as single path components, every part a real folder of the out folder, no symlink), and
    runs `classroom apply` without planning again; what was not brought apply notes «no traído».
    The pass is skipped when the plan asks for nothing or the first pass ended `session_expired`,
-   `challenge` or breached.
+   `challenge`, `browser_crashed` (a second browser in the Docker that just lost one would only
+   repeat it; no second memory reading is taken) or breached.
 7. On a stop, the macOS notification in Spanish (FR-032), except under `CLAUDECODE`; one log line
    with what started it (`ALFABETA_STARTED_BY`: `schedule`, or `command`; FR-020); release the locks.
 

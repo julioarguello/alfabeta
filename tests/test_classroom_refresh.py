@@ -8,21 +8,22 @@ import json
 import re
 import subprocess
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from alfabeta import state
 from alfabeta.classroom import cli, refresh
-from alfabeta.classroom.container import ContainerError
+from alfabeta.classroom.container import ContainerError, Memory, memory_argv
 from alfabeta.classroom.password import MARK
 from alfabeta.google.keychain import KeychainError
 from alfabeta.model import RunMode
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
 STUDENT = "s9"
 ACCOUNT = "alumno@example.test"
 PASSWORD = "contraseña-inventada-123"
@@ -38,8 +39,10 @@ class FakeStore:
     def __init__(self, password: str | None = PASSWORD, locked: bool = False) -> None:
         self.secrets: dict[str, str] = {STUDENT: password} if password else {}
         self.locked = locked
+        self.asked = 0
 
     def get(self, account: str) -> str | None:
+        self.asked += 1
         if self.locked:
             raise KeychainError("locked")
         return self.secrets.get(account)
@@ -59,6 +62,11 @@ class FakeNotifier:
         self.texts.append(text)
 
 
+PLENTY = Memory(total_mb=7835, available_mb=5725)  # the Mac's Docker on 2026-11-19, 8 containers up
+# What `free -m` read in an idle container of the image on 2026-11-19, before the loads that died (#268).
+SHORT = Memory(total_mb=7835, available_mb=1213)
+
+
 class FakeContainer:
     """Answers with a scripted end event, writing the captures a read would leave."""
 
@@ -74,7 +82,10 @@ class FakeContainer:
         fetch_dies: bool = False,
         fetch_events: list[dict[str, Any]] | None = None,
         plant: Callable[[Path], None] | None = None,
+        memory: Memory | None = PLENTY,
     ) -> None:
+        self.memory_read = memory
+        self.probed: list[str] = []
         self.fetch_dies = fetch_dies
         self.fetch_events = fetch_events or []
         self.plant = plant
@@ -95,6 +106,10 @@ class FakeContainer:
         if not self.builds:
             raise ContainerError("no build")
         return "alfabeta-classroom-read:test"
+
+    def memory(self, image: str) -> Memory | None:
+        self.probed.append(image)
+        return self.memory_read
 
     def run(
         self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Callable[[dict[str, Any]], None]
@@ -717,3 +732,91 @@ def test_the_command_ends_with_a_summary(
         err,
         re.MULTILINE,
     )
+
+
+def test_too_little_docker_memory_stops_before_the_keychain_and_the_container(tmp_path: Path) -> None:
+    container, store = FakeContainer(OK, memory=SHORT), FakeStore()
+    result, notifier, steps, data = _go(tmp_path, container, store=store)
+    assert result["outcome"] == "stopped" and result["reason"] == "docker_low_memory" and not result["ok"]
+    assert container.probed == ["alfabeta-classroom-read:test"]
+    assert store.asked == 0 and container.requests == [] and steps.calls == []
+    assert notifier.texts == [
+        "alfabeta (s9): la lectura de Classroom se ha parado (docker_low_memory). Para seguir, "
+        "cierra otros contenedores o sube la memoria de Docker Desktop."
+    ]
+    line = _log(data)[-1]
+    assert line["reason"] == "docker_low_memory" and line["memory"] == {"total_mb": 7835, "available_mb": 1213}
+    assert not (data / MARK).exists()
+
+
+def test_the_floor_is_above_the_failing_reading_and_a_read_at_it_goes_on(tmp_path: Path) -> None:
+    assert refresh.READ_FLOOR_MB > SHORT.available_mb
+    at = FakeContainer(OK, memory=Memory(7835, refresh.READ_FLOOR_MB))
+    under = FakeContainer(OK, memory=Memory(7835, refresh.READ_FLOOR_MB - 1))
+    assert _go(tmp_path / "at", at)[0]["outcome"] == "ok" and len(at.requests) == 1
+    assert _go(tmp_path / "under", under)[0]["reason"] == "docker_low_memory" and under.requests == []
+
+
+def test_the_spec_and_the_quickstart_name_the_floor_and_the_command_the_code_uses() -> None:
+    spec = ROOT / "specs" / "006-classroom-from-the-phone"
+    for name in ("spec.md", "quickstart.md"):
+        assert f"{refresh.READ_FLOOR_MB} MB" in (spec / name).read_text(), name
+    command = " ".join(memory_argv("<image>"))
+    assert command in " ".join((spec / "quickstart.md").read_text().split())
+
+
+def test_memory_that_cannot_be_read_does_not_stop_the_read_and_the_log_says_so(tmp_path: Path) -> None:
+    container = FakeContainer(OK, memory=None)
+    cfg = _cfg(tmp_path)
+    lines: list[str] = []
+    deps, notifier, _ = _deps(container)
+    result = refresh.refresh(
+        cfg, state.Lock(tmp_path / "home", cfg.data_dir), dataclasses.replace(deps, say=lines.append), None
+    )
+    assert result["outcome"] == "ok" and len(container.requests) == 1 and notifier.texts == []
+    line = _log(cfg.data_dir)[-1]
+    assert "memory" in line and line["memory"] is None  # asked and not read: neither a number nor a missing key
+    assert "⚠ Docker's available memory could not be read" in lines
+
+
+def test_every_read_logs_dockers_memory_and_a_run_that_never_asked_has_no_such_key(tmp_path: Path) -> None:
+    _, _, _, data = _go(tmp_path / "ok", FakeContainer(OK))
+    assert _log(data)[-1]["memory"] == {"total_mb": 7835, "available_mb": 5725}
+    _, _, _, data = _go(tmp_path / "down", FakeContainer(OK, up=False))
+    assert "memory" not in _log(data)[-1]
+
+
+def test_low_memory_says_what_was_measured(tmp_path: Path) -> None:
+    cfg = _cfg(tmp_path)
+    lines: list[str] = []
+    deps, _, _ = _deps(FakeContainer(OK, memory=SHORT))
+    refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), dataclasses.replace(deps, say=lines.append), None)
+    assert lines == [
+        "preparing the container …",
+        f"✗ Docker has 1213 MB of memory available; the floor for a read is {refresh.READ_FLOOR_MB} MB",
+    ]
+
+
+def test_a_crashed_browser_is_notified_by_its_own_code_with_where_to_look(tmp_path: Path) -> None:
+    end = {"event": "end", "outcome": "stopped", "reason": "browser_crashed", "step": "classes"}
+    container = FakeContainer(end | {"classes": {"read": 0, "failed": 1}})
+    result, notifier, steps, data = _go(tmp_path, container)
+    assert result["outcome"] == "stopped" and result["reason"] == "browser_crashed" and steps.calls == []
+    assert notifier.texts == [
+        "alfabeta (s9): la lectura de Classroom se ha parado (browser_crashed). Para seguir, "
+        "mira la memoria de Docker: cierra otros contenedores o súbela en Docker Desktop."
+    ]
+    assert _log(data)[-1]["reason"] == "browser_crashed" and not (data / MARK).exists()
+
+
+def test_a_browser_that_crashed_midway_keeps_what_was_read_and_starts_no_second_browser(tmp_path: Path) -> None:
+    end = {"event": "end", "outcome": "partial", "reason": "browser_crashed", "classes": {"read": 1, "failed": 1}}
+    container = FakeContainer(end, brings=frozenset({"f1"}))
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    result, notifier, steps, data = _go(tmp_path, container, steps=steps)
+    assert result["ok"] and result["outcome"] == "partial" and result["reason"] == "browser_crashed"
+    assert len(steps.calls) == 3 and notifier.texts == []
+    # The plan asked for an attachment; no attachments pass ran, and apply notes it «no traído».
+    assert [r for r in container.requests if "fetch" in r] == []
+    assert result["capture"]["attachments"] == {"brought": 0, "not_brought": 1, "refused": 0}
+    assert _log(data)[-1]["reason"] == "browser_crashed"

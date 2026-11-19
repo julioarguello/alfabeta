@@ -7,6 +7,7 @@ own Chromium plays Google Chrome. No real account, keychain value or Google host
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import importlib.util
 import io
@@ -359,6 +360,9 @@ class ModuleContainer:
     def ensure_image(self) -> str:
         return "in-process"
 
+    def memory(self, image: str) -> None:
+        return None  # not read: the read goes on
+
     def run(self, image: str, request: dict[str, Any], profile: Path, out: Path, on_event: Any) -> dict[str, Any]:
         self.requests.append({k: v for k, v in request.items() if k != "password"})
         self.module.PROFILE, self.module.OUT, self.module.emit = profile, out, on_event
@@ -515,7 +519,7 @@ def test_a_breach_before_the_first_class_is_a_stop_not_ok(tmp_path: Path) -> Non
     module.emit = events.append
     guard = module.Guard()
     guard.breached = True
-    result = module.capture(_ListingPage(), guard, "r", tmp_path)
+    result = module.capture(_ListingPage(), guard, "r", tmp_path, module.Crash())
     assert result == {"outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
 
 
@@ -533,3 +537,177 @@ def test_an_exception_in_the_read_keeps_its_step(tmp_path: Path, monkeypatch: py
         )
     assert end["outcome"] == "stopped" and end["reason"] == "unexpected_ui" and end["step"] == "classes"
     assert "blocked" in end and "seconds" in end
+
+
+def _recording(module: Any, said: list[bool]) -> None:
+    """Keep what `says_crashed` answered for each error it was shown."""
+    says = module.says_crashed
+
+    def recording(err: BaseException) -> bool:
+        said.append(says(err))
+        return said[-1]
+
+    module.says_crashed = recording
+
+
+def _dying_at(marker: str, said: list[bool]) -> Any:
+    """A seed: a live session, and the page's renderer dies when a request for `marker` is routed.
+
+    `chrome://crash` is Chromium's own crash page. What follows — the page's `crash` event and the
+    error of the call that was pending — is the browser's and Playwright's, not this test's.
+    """
+
+    def seed(module: Any, fake: FakeGoogle) -> None:
+        _live("origin")(module, fake)
+        _recording(module, said)
+        holder: dict[str, Any] = {}
+        capture, route = module.capture, module.Guard.route
+
+        def capturing(page: Any, *rest: Any) -> Any:
+            holder["page"] = page
+            return capture(page, *rest)
+
+        def routing(self: Any, routed: Any, request: Any) -> None:
+            if marker in request.url and "page" in holder:
+                with contextlib.suppress(playwright.Error):
+                    holder.pop("page").goto("chrome://crash")
+                with contextlib.suppress(playwright.Error):
+                    routed.abort()
+                return
+            route(self, routed, request)
+
+        module.capture, module.Guard.route = capturing, routing
+
+    return seed
+
+
+def test_a_browser_that_dies_midway_stops_there_with_browser_crashed(tmp_path: Path) -> None:
+    said: list[bool] = []
+    only = frozenset({"synth-71", "synth-74", "synth-75"})
+    live = {"password": None, "signin": False}
+    end, events, _ = _read("ok", tmp_path, live, only=only, seed=_dying_at("synth-74", said))
+    assert end["outcome"] == "partial" and end["reason"] == "browser_crashed", end
+    assert end["classes"] == {"read": 1, "failed": 1} and end["step"] == "classes"
+    stops = [e for e in events if e["event"] == "class" and e["type"] == "stop"]
+    assert [e["reason"] for e in stops] == ["browser_crashed"]
+    # The class after the dead one is not tried: a dead page reads nothing.
+    assert [e["index"] for e in events if e["event"] == "class_start"] == [1, 2]
+    # Playwright's own error for the pending call was read as the crash (`Page.evaluate: Target crashed`).
+    assert said == [True]
+    assert len(list((tmp_path / "out").glob("alfabeta-capture-*-synth-7*.json"))) == 1  # the class read is kept
+
+
+def test_a_browser_dead_before_the_read_is_browser_crashed_not_what_it_looks_like(tmp_path: Path) -> None:
+    said: list[bool] = []
+
+    def seed(module: Any, fake: FakeGoogle) -> None:
+        _live("origin")(module, fake)
+        _recording(module, said)
+        open_home = module.open_home
+
+        def dead_home(page: Any) -> str:
+            with contextlib.suppress(playwright.Error):
+                page.goto("chrome://crash")
+            return cast("str", open_home(page))
+
+        module.open_home = dead_home
+
+    end, events, _ = _read("ok", tmp_path, {"password": None, "signin": False}, seed=seed)
+    # A load on a dead page fails as an aborted load: the step saw `unreachable`, and no error said "crashed".
+    assert {"event": "home", "state": "unreachable"} in events and said == []
+    # Only the page's `crash` event told; the end names it, in the step it happened.
+    assert end["outcome"] == "stopped" and end["reason"] == "browser_crashed" and end["step"] == "home", end
+
+
+class _TwoClasses(_ListingPage):
+    """Two classes listed; reading a class raises the error given."""
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+        self.asked: list[str] = []
+
+    def evaluate(self, script: str, arg: Any = None) -> Any:
+        if arg is not None and "classId" in arg:
+            self.asked.append(arg["classId"])
+            raise self.error
+        if arg is None:
+            return None
+        classes = [{"id": "c1", "title": "t"}, {"id": "c2", "title": "u"}]
+        capture = {"type": "classes", "classes": classes, "account_index": 0}
+        return {"name": "alfabeta-capture-r-classes.json", "capture": capture}
+
+
+def _captured(tmp_path: Path, error: Exception) -> tuple[dict[str, Any], list[str], list[dict[str, Any]]]:
+    module = _production()
+    module.EXTRACTOR = ROOT / "skills" / "classroom-sync" / "scripts" / "extract.js"
+    events: list[dict[str, Any]] = []
+    module.emit = events.append
+    page = _TwoClasses(error)
+    return module.capture(page, module.Guard(), "r", tmp_path, module.Crash()), page.asked, events
+
+
+def test_the_error_of_a_dead_page_alone_stops_the_classes(tmp_path: Path) -> None:
+    # The text Playwright 1.64.1 raised for the pending call on 2026-11-19; the test above gets it
+    # from a real browser, this one shows it is enough without the page's `crash` event.
+    result, asked, events = _captured(tmp_path, Exception("Page.evaluate: Target crashed "))
+    assert result == {"outcome": "stopped", "reason": "browser_crashed", "classes": {"read": 0, "failed": 1}}
+    assert asked == ["c1"] and [e["reason"] for e in events if e["event"] == "class"] == ["browser_crashed"]
+
+
+def test_any_other_error_in_a_class_stops_that_class_alone(tmp_path: Path) -> None:
+    result, asked, events = _captured(tmp_path, RuntimeError("x"))
+    assert result == {"outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 2}}
+    assert asked == ["c1", "c2"] and [e["reason"] for e in events if e["event"] == "class"] == ["unexpected_ui"] * 2
+
+
+@pytest.mark.parametrize(
+    ("text", "crashed"),
+    [
+        ("Page.evaluate: Target crashed ", True),  # a call pending or made on a dead page
+        ("Page.wait_for_timeout: Page crashed", True),
+        ("Page.goto: net::ERR_ABORTED; maybe frame was detached?", False),  # a load on a dead page
+        ('Locator.fill: Timeout 10000ms exceeded.\nCall log:\n  - fill("crashed")', False),  # a call log is not read
+        ("Page.evaluate: Error: «The site crashed» has no classwork tab", False),  # a script's own message
+        ("", False),
+    ],
+)
+def test_only_an_errors_first_line_says_crashed(text: str, crashed: bool) -> None:
+    assert _production().says_crashed(Exception(text)) is crashed
+
+
+def test_a_code_read_before_the_page_died_is_kept(tmp_path: Path) -> None:
+    def seed(module: Any, fake: FakeGoogle) -> None:
+        sign_in = module.sign_in
+
+        def dying_after(ctx: Any, page: Any, *rest: Any) -> Any:
+            code = sign_in(ctx, page, *rest)
+            with contextlib.suppress(playwright.Error):
+                page.goto("chrome://crash")
+            with contextlib.suppress(playwright.Error):
+                page.evaluate("1")  # the next call: the page's `crash` event arrives with its error
+            return code
+
+        module.sign_in = dying_after
+
+    end, _, _ = _read("ok", tmp_path, {"password": "otra-inventada", "signin": True}, seed=seed)
+    assert end["reason"] == "wrong_password" and end["outcome"] == "stopped", end
+
+
+def test_a_page_that_dies_after_the_sign_in_is_browser_crashed_not_session_expired(tmp_path: Path) -> None:
+    def seed(module: Any, fake: FakeGoogle) -> None:
+        open_home = module.open_home
+        loads: list[int] = []
+
+        def home(page: Any) -> str:
+            loads.append(1)
+            if len(loads) == 2:  # the load after the sign-in
+                with contextlib.suppress(playwright.Error):
+                    page.goto("chrome://crash")
+            return cast("str", open_home(page))
+
+        module.open_home = home
+
+    end, events, _ = _read("ok", tmp_path, SIGN_IN, seed=seed)
+    assert {"event": "signin", "result": "signed_in"} in events
+    # The dead load is `unreachable`, which this step calls `session_expired`: neither names the stop.
+    assert end["outcome"] == "stopped" and end["reason"] == "browser_crashed" and end["step"] == "home", end

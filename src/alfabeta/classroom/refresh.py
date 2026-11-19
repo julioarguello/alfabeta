@@ -1,14 +1,17 @@
 """`classroom refresh`, the container read (spec 006 FR-022, FR-027, FR-028, FR-032; plan, run flow).
 
-One run under the student's and the browser lock: Docker, the image, the container (which signs in
-when it must and may, and captures every class), then spec 001's own steps — `download collect`,
+One run under the student's and the browser lock: Docker, the image, Docker's available memory
+(under READ_FLOOR_MB the read stops with `docker_low_memory` before the keychain is read or anything
+signs in; a reading that fails stops nothing; either way the log line keeps it as `memory`), the
+container (which signs in when it must and may, and captures every class; a page that dies ends the
+read there with `browser_crashed`), then spec 001's own steps — `download collect`,
 `classroom plan`, `classroom apply` — as the classroom-sync skill runs them, with `ALFABETA_RUN`.
 Between plan and apply, the attachments the plan asks for (spec 001 research R4's rule: new,
 modified, renamed or the periodic review, out of this run's captures) are fetched by a second pass
 of the container in the same session, which never signs in; each file lands at its exact
 `data/inbox/<item>__<attachment>/<name>`, where `classroom apply` takes it. The pass is skipped
-when the plan asks for nothing or the first pass found the session gone; what is not brought,
-apply notes «no traído».
+when the plan asks for nothing, the first pass found the session gone, or its page died
+(`browser_crashed`); what is not brought, apply notes «no traído».
 
 - Inside Claude Code (`CLAUDECODE` set) the container gets the account and `signin: false`, never
   the password, and no notification is shown (FR-027): Claude never starts the scripted sign-in.
@@ -58,13 +61,24 @@ RENEW_SECONDS = 60
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,200}$")
 # A first pass that ended so says the session is gone or the read was breached: no second pass.
 NO_SESSION = ("session_expired", "challenge")
+# Nor after a page that died: a second browser in the Docker that just lost one would only repeat it.
+NO_SECOND_PASS = (*NO_SESSION, "browser_crashed")
 STARTED_BY = ("schedule", "command")
 # What the notification tells the family to do, by stop code (FR-032).
 ADVICE = {
     "wrong_password": "guarda la contraseña nueva con `classroom password set`",
     "no_password": "guarda la contraseña con `classroom password set`",
     "docker_unavailable": "abre Docker Desktop",
+    "docker_low_memory": "cierra otros contenedores o sube la memoria de Docker Desktop",
+    # The code states what was seen (the page died); memory is where to look, not a proven cause.
+    "browser_crashed": "mira la memoria de Docker: cierra otros contenedores o súbela en Docker Desktop",
 }
+# Below this much available memory in Docker the read is not started (FR-028). Measured 2026-11-19
+# (#268, research S16): with 1213 MB available — read as here, by a short container of the image
+# with no read running — the load of one class took its container to about 1.2 GB and the page
+# died. The floor sits above that one failing reading; no read has been measured to succeed at it,
+# and the `memory` each read logs is what can move it.
+READ_FLOOR_MB = 1536
 
 
 class Steps(Protocol):
@@ -261,7 +275,7 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
             {"type": "classroom_refresh", "run": run, "started_by": started_by}
             | {k: result.get(k) for k in ("outcome", "reason", "capture", "blocked")}
             | {"seconds": logged.get("seconds")}
-            | {k: logged[k] for k in ("refused_hosts", "attachments_pass", "step") if k in logged}
+            | {k: logged[k] for k in ("refused_hosts", "attachments_pass", "step", "memory") if k in logged}
             | _first_pass(logged.get("first_pass", []))
         )
         if not own:
@@ -300,6 +314,17 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         image = deps.container.ensure_image()
     except ContainerError:
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
+    # Before the keychain and the sign-in: a read that cannot finish must not sign in (FR-028).
+    memory = deps.container.memory(image)
+    logged["memory"] = None if memory is None else {"total_mb": memory.total_mb, "available_mb": memory.available_mb}
+    if memory is None:
+        _say(deps, f"{WARN} Docker's available memory could not be read")
+    elif memory.available_mb < READ_FLOOR_MB:
+        _say(
+            deps,
+            f"{FAIL} Docker has {memory.available_mb} MB of memory available; the floor for a read is {READ_FLOOR_MB} MB",
+        )
+        return _stop(cfg, deps, str(StopReason.DOCKER_LOW_MEMORY))
     passwords = PasswordStore(deps.store, cfg.data_dir, cfg.student)
     marked = passwords.marked()
     signin = not deps.inside_claude and not marked
@@ -342,7 +367,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     planned = {} if _failed(collected) else deps.steps(["classroom", "plan"], run)
     attachments: dict[str, int] = {"brought": 0, "not_brought": 0, "refused": 0}
     if not _failed(collected) and not _failed(planned):
-        session = reason not in NO_SESSION and not blocked.get("redirects")
+        session = reason not in NO_SECOND_PASS and not blocked.get("redirects")
         attachments = _attachments(cfg, lock, deps, run, image, planned, session, logged)
     if not _failed(collected) and not _failed(planned):
         _say(deps, "placing in Drive …")
