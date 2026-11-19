@@ -1,8 +1,8 @@
-"""The Makefile runs one job at a time, whatever `-j` asks for (issue 273).
+"""The Makefile runs one job at a time, whatever `-j` asks for (#273).
 
 The goals of the gate line are not independent: `setup-node` removes and reinstalls `node_modules`
 while `test-js` reads it, so under a parallel make the gate failed. CI's runner sets no `-j`, and
-would never notice the line going; these tests ask for four jobs themselves.
+would never notice the line going; these tests ask for parallel jobs themselves.
 
 The probe adds two targets to the Makefile's text, runs both under `-j4` and reads the order in which
 they started and ended. The control runs the same probe without the line and must see the two
@@ -16,13 +16,15 @@ import subprocess
 from pathlib import Path
 
 MAKEFILE = Path(__file__).resolve().parents[1] / "Makefile"
+# Bare, on a line of its own. Given prerequisites, GNU Make 4.4 and later keep only those targets'
+# prerequisites serial, and earlier versions ignore the prerequisites: one text, two meanings.
 SERIAL = ".NOTPARALLEL:"
 PROBE = """
 probe-a probe-b:
 \t@echo "start-$@" >> "$(TRACE)"; sleep 0.5; echo "end-$@" >> "$(TRACE)"
 """
-# What the make that runs the tests exported: a child would read its job count from them.
-INHERITED = {"MAKEFLAGS", "MFLAGS", "MAKELEVEL"}
+# What the make that runs the tests, or the shell, exported: a child would read its flags from them.
+INHERITED = {"MAKEFLAGS", "MFLAGS", "GNUMAKEFLAGS", "MAKELEVEL"}
 
 
 def trace(makefile: str, tmp_path: Path) -> list[str]:
@@ -30,14 +32,15 @@ def trace(makefile: str, tmp_path: Path) -> list[str]:
     (tmp_path / "Makefile").write_text(makefile + PROBE, encoding="utf-8")
     out = tmp_path / "trace"
     env = {name: value for name, value in os.environ.items() if name not in INHERITED}
-    subprocess.run(
+    done = subprocess.run(
         ["make", "-j4", f"TRACE={out}", "probe-a", "probe-b"],
         cwd=tmp_path,
         env=env,
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
+    assert done.returncode == 0, f"make could not run the probe: {done.stderr}"
     return out.read_text(encoding="utf-8").split()
 
 

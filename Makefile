@@ -5,7 +5,7 @@
 # One job at a time, in the order written, whatever -j asks for (a MAKEFLAGS the shell exports is
 # enough). The goals of `make setup-python setup-node ci` are not independent: npm ci removes and
 # reinstalls node_modules while node --test reads it, and under -j the gate failed in test-js. CI's
-# runner sets no -j, so tests/test_makefile_serial.py asks for four jobs itself (issue 273).
+# runner sets no -j, so tests/test_makefile_serial.py asks for parallel jobs itself (#273).
 .NOTPARALLEL:
 
 setup-python: setup-hooks
