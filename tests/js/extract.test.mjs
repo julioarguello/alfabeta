@@ -526,3 +526,35 @@ test("the gap of a throttled hidden tab does not count as holding still", { time
     dom.window.close();
   }
 });
+
+test("stillness before the tab was hidden does not carry over: 1.5 s unbroken once it is shown", { timeout: 5000 }, async () => {
+  const dom = framed(page("material-detail").serialize());
+  const win = dom.window;
+  let clock = 1_000_000;
+  let tick = null;
+  win.Date.now = () => clock;
+  win.setInterval = (fn) => { tick = fn; return 1; };
+  win.clearInterval = () => { tick = null; };
+  let state = "visible";
+  Object.defineProperty(win.document, "visibilityState", { get: () => state });
+  try {
+    let done = false;
+    const loading = win.alfabetaExtract.iframeLoader(win, { timeoutMs: 40000, attempts: 1, settleMs: 1500, settleCapMs: 10000 })(DETAIL)
+      .then(() => { done = true; return "loaded"; }, (err) => err.message);
+    await whenReady(dom);
+    const poll = async (ms) => { clock += ms; if (tick) tick(); await pause(0); };
+    for (let i = 0; i < 5; i++) await poll(300); // ready, then 1200 ms still on screen
+    assert.equal(done, false);
+    state = "hidden";
+    await poll(60000); // a minute hidden: longer than the 40 s timeout
+    state = "visible";
+    await poll(300); // back on screen: neither timed out nor taken at once
+    assert.equal(done, false);
+    for (let i = 0; i < 4; i++) await poll(300);
+    assert.equal(done, false); // 1200 ms on screen since it was shown
+    await poll(300);
+    assert.equal(await loading, "loaded");
+  } finally {
+    dom.window.close();
+  }
+});

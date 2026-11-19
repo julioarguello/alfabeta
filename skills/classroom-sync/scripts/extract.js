@@ -432,8 +432,10 @@
   // The default loader: a hidden same-origin iframe, so the injected script is never lost. It polls
   // from the start; a frame that leaves Classroom (Google's sign-in) is an expired session. It waits
   // while the tab is hidden, and time spent hidden counts towards nothing. A ready page is taken once
-  // its reading has held still for `settleMs` on screen; one that keeps changing for `settleCapMs`
-  // is `unsettled`, a failed load like a timeout (loaded again, then left out as incomplete).
+  // its reading has held still for `settleMs` on screen, unbroken since the tab was last shown; one
+  // that keeps changing for `settleCapMs` is `unsettled`, a failed load like a timeout (loaded again,
+  // then what any failed load leads to: an item page or the stream left out, the capture incomplete;
+  // a «Trabajo de clase» stops its class).
   function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300 } = {}) {
     const once = (path) => new Promise((resolve, reject) => {
       const frame = win.document.createElement("iframe");
@@ -452,6 +454,7 @@
         const now = Date.now();
         if (win.document.visibilityState === "hidden") { started = now; tick = now; wasHidden = true; return; }
         const step = wasHidden ? 0 : now - tick;
+        if (wasHidden) { started = now; still = 0; } // back on screen: a held-back paint may come now
         tick = now;
         wasHidden = false;
         let doc = null;
