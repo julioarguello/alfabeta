@@ -109,6 +109,13 @@ Job 2: quality-gate  (BLOCKING, NO `needs:`) → make setup-python setup-node ci
   *Development workflow*).
 - `python-version-file: .python-version` and `node-version-file: .node-version`, never a
   literal in the workflow.
+- **The Makefile is `.NOTPARALLEL`: one job at a time, whatever `-j` asks for** (#273). The goals
+  of the gate line are not independent: side by side, `npm ci` would remove and reinstall
+  `node_modules` while `node --test` reads it. Without the line, a `MAKEFLAGS=-j…` the shell
+  exports is enough for that, and CI, whose runner sets no `-j`, never shows it. Ordering that one
+  pair instead would leave the other pairs to uv's own locking and to timing, and each gate added
+  later to be thought about again. `tests/test_makefile_serial.py` asks for parallel jobs itself,
+  so the gate fails if `.NOTPARALLEL:` goes.
 
 ## 7. Overrides — Allowed
 
