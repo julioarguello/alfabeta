@@ -390,7 +390,9 @@ arrives.
   the allowlist is research R3's, which admits by name one call whose answers carry no tag,
   `t51ITc`, the only one seen carrying the teacher's attachment ids — the family's decision after
   spike S8, #270 (Clarifications, Session 2026-11-19); the family reads FR-004 as met with that
-  exception; before anything is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9.)*
+  exception; before anything is built, the to-do pages, the session upkeep's exact host and path
+  (R4) and the mapping of statuses and grades, then S9 (S8's second half passed and the dates are
+  mapped: research, «S8, second half»))*
 - **FR-005**: Read-only MUST hold by construction during the whole read (constitution IV), with the
   guard of spec 001 research R18 installed in the browser before any page script runs. It blocks,
   before they reach Classroom, every press, every document load outside the pages spec 001 FR-007

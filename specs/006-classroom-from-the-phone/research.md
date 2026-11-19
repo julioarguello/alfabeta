@@ -633,3 +633,56 @@ What it leaves open:
 - **The probes** are on branch `spike/267-s8-calls` (`spikes/s8_*`), kept off `main`.
 - **Decided after (2026-11-19, #270)**: the family admitted `t51ITc` by name in R3. This verdict stays
   as measured; before anything is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9.
+
+### S8, second half · The pages with only the allowlist let through — passes with ten names
+
+Asked in julioarguello/alfabeta#267 and R3 as amended (#270): do the pages still give the read what
+it needs when every call outside an allowlist, the telemetry, the push channel and the Google bar
+are blocked? Measured 2026-11-19, read-only, by Claude on the operator's standing permission to run
+tests, inside spec 001 research R15's limits (no sign-in, no password), in the session of the
+family's `classroom refresh` that ended at 16:42 (12 of 12 classes, `ok`).
+
+**How.** The container read itself (`read.py` and the extractor, unchanged) for two classes, with
+one addition to its guard's routing, run before it: a `batchexecute` request naming any call
+outside the allowlist was aborted, and so was every request to `play.google.com`,
+`signaler-pa.clients6.google.com` and `ogads-pa.clients6.google.com`; each abort counted by call
+name or host. The captures were compared with the same classes' captures of that refresh, minutes
+before.
+
+| Run | Allowlist | Result |
+|---|---|---|
+| 16:43 | the 9 names S8 saw carrying the capture's fields or the course (`dpT4Vd`, `pONvgf`, `tQShAc`, `ZZFlc`, `Zj93ge`, `cCzVwf`, `t51ITc`, `gXtzob`, `O1Xqee`) | the home page listed no class (`unexpected_ui` after the read's own retries); the page had asked 18 times for `UG41I`, blocked |
+| 16:44–16:48 | the same and `UG41I` (`hrq.usr`, tagged in every answer) | both classes complete (25 and 9 items, 23 and 13 attachments): the same items, fields and stream as the refresh, but one attachment |
+
+The one attachment that differed was read as a Google document, as in all 9 earlier captures of
+that item since 2026-10-28; the refresh minutes before had read it as a Drive file under a shorter
+name. The odd read was the refresh's, not this one's.
+
+Blocked in the second run (280 s): `sLc6hf` 376 times (comments; the page asks again and again),
+`Bypadc` 71 (the rubric), `gkSD8b` 4, and the three hosts 371, 125 and 39 times; 79 frame loads by
+the guard itself. An aborted request stops in the browser and never reaches the server, so the
+page's retries are no burst at Classroom (constitution IV).
+
+**Verdict: passes.** With ten names let through — the nine above and `UG41I`, which the home page
+needs to list the classes — and the telemetry, the push channel and the Google bar blocked, the
+read gets what the full page gives it. This is the allowlist R3 asks S8 to record; `t51ITc` is in
+it by R3's exception.
+
+**Dates (16:50, same session).** For the same two classes, the capture's due instants (17, as epoch
+seconds from `capture.normalize_class`) and posting days (34) were written by the host to a file
+the probe read; the probe loaded «Trabajo de clase» and the stream of each and counted, per call,
+the due instants found exactly as milliseconds and the posting days on which some epoch number in
+its answers falls (Madrid). `dpT4Vd` (`hrcw.qr`) holds all 17 due instants and an epoch on 33 of
+the 34 posting days; `pONvgf` (`hrsi.qr`) 14 and 26. No due instant appeared as seconds or as a
+year-month-day run. The posting days are a loose match (any epoch of that day); the due instants an
+exact one. Statuses and grades are still unmapped: the capture holds them as texts and codes, and
+`Zj93ge` (`hrq.sub`, the submissions by its tag) is the likely carrier, not shown.
+
+What it leaves open:
+
+- **The odd read of the refresh**: one attachment read as a Drive file with a shorter name, in 1 of
+  10 captures. If it repeats, it belongs with #264's readiness work.
+- **Still to measure before anything is built** (R3, FR-004's note): the to-do pages (outside the
+  container guard's pages), the session upkeep's exact host and path (R4), and the mapping of
+  statuses and grades to calls (dates: above); then S9.
+- **The probes** are on branch `spike/267-s8-calls` (`spikes/s8b_*`, `spikes/s8_dates.py`), kept off `main`.
