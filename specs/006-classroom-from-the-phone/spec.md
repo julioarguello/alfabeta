@@ -217,11 +217,12 @@ names and response shapes are a starting point, not a measurement of this accoun
 
 - Q: Spike S8 found the teacher's attachment ids only behind `t51ITc`, a call whose answers carry no
   tag, so S8 failed by research R3's tag rule. Asked «¿Admitimos `t51ITc` y seguimos con la lectura
-  por llamadas, o la paramos?», the operator answered, 2026-11-19: «Admitirla, seguir». → A: R3
+  por llamadas, o la paramos?», the operator chose the offered answer, 2026-11-19: «Admitirla,
+  seguir». → A: R3
   admits `t51ITc` by name as its one exception (no other untagged name; a new one needs a recording
-  and a decision of its own); the family reads FR-004 as met with that exception; S8's second half
-  and S9 follow before anything is built. Constitution IV's text is unchanged: no write is sent,
-  and the guard still blocks every name outside the allowlist by construction.
+  and a decision of its own); the family reads FR-004 as met with that exception; before anything
+  is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9. Constitution IV's text is unchanged: no write is sent to test it, and the
+  guard still blocks every name outside the allowlist by construction.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -389,7 +390,7 @@ arrives.
   the allowlist is research R3's, which admits by name one call whose answers carry no tag,
   `t51ITc`, the only one seen carrying the teacher's attachment ids — the family's decision after
   spike S8, #270 (Clarifications, Session 2026-11-19); the family reads FR-004 as met with that
-  exception, and S8's second half and S9 follow.)*
+  exception; before anything is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9.)*
 - **FR-005**: Read-only MUST hold by construction during the whole read (constitution IV), with the
   guard of spec 001 research R18 installed in the browser before any page script runs. It blocks,
   before they reach Classroom, every press, every document load outside the pages spec 001 FR-007
