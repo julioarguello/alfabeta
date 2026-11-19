@@ -748,3 +748,42 @@ Nothing printed or kept names a student, an account or a class.
   1.2 GB); whether a read that starts at the floor ends well; the memory at the family's own
   12:34 read, of which only the log line is known; a container killed with no `end`
   event (the kernel's own kill of the Python process), which still reads `unexpected_ui`.
+
+### S8, last pieces · The session upkeep, Classroom's other POSTs, the calls' arguments — recorded
+
+Asked in julioarguello/alfabeta#267: what S8's second half left before S9. Measured 2026-11-19 at
+20:52–21:02, read-only, by Claude on the operator's standing permission to run tests, inside spec
+001 research R15's limits (no sign-in, no password), in the session of the family's `classroom
+refresh` that ended at 20:52 (`ok`). The read image with the read's own `Guard`; «Trabajo de
+clase», the stream and one assignment's detail of one class, 2–3 s apart, through a hidden frame;
+then Classroom's home page left open 10 minutes. Recorded: for each of the ten allowlisted names,
+the shape of its `f.req` arguments (the capture's class, item, topic and post ids replaced by their
+kind, other digit runs by their length, other strings by their length); every request to Google's
+sign-in and cookie hosts (method, host, path without query, frame or page); every Classroom POST
+that is not `batchexecute` (path words). Nothing printed holds a body, a cookie, a name or an id.
+
+| Question | Answer |
+|---|---|
+| Session upkeep | one request kind: `GET accounts.google.com/RotateCookiesPage`, a frame document, once per page load (4), none in the 10 minutes with the home page open; the guard blocked it every time (as it has in every container read), and the session was still alive at the end |
+| Classroom's other POSTs | one kind: `ClassroomUi/browserinfo`, twice (once on a page load, once while the page sat open) |
+| Arguments | recorded for all ten names: `dpT4Vd` and `ZZFlc` take the class; `tQShAc` the item and the class; `Zj93ge` the item and the class, several at once; `cCzVwf` the post and the class; `pONvgf`, `t51ITc` and `UG41I` ids that are not this class's (other classes', items' or the user's) and, for `pONvgf`, instants; `gXtzob` no id; `O1Xqee` the class or a list of ids. Each also carries a long field-selection mask of numbers |
+| Guard | 10 frame loads blocked, not breached |
+
+What it settles, against R3, R4 and the open list of «S8, second half»:
+
+- **To-do pages: not needed.** Every status the capture holds arrived through the ten names in S8's
+  second half; no field needs a page outside FR-030's.
+- **Comments, grades and returned marks: nothing to map today.** The extractor writes
+  `teacher_comment` and `returned_text` as empty by design, and none of the 112 «Calificado» items in
+  the kept captures holds a grade it could read. If a grade appears, it is mapped then (likely
+  `Zj93ge`, `hrq.sub`).
+- **Session upkeep (R4)**: its exact host and path are recorded: `accounts.google.com`
+  `/RotateCookiesPage`, a frame. Every container read so far, the full ones included, kept it
+  blocked and its session lived; S9 decides whether the read by calls lets it through (R4) or keeps
+  it blocked, by whether a whole read's session survives.
+- **Classroom's other POSTs (R4)**: `ClassroomUi/browserinfo` only; the read by calls blocks it
+  unless S9 shows the page needs it.
+- **S9's input**: the arguments' shapes are what a read that sends the ten calls itself must build.
+
+**The probe** is on branch `spike/267-s8-calls` (`spikes/s8c_*`), kept off `main`. S8 is complete;
+what is left before anything is built is S9.

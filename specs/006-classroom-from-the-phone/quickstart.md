@@ -8,10 +8,8 @@ name, an address or a Classroom title.
 ## Prerequisites
 
 - Spikes S7, S8 and S9 passed and recorded ([research.md](research.md#spikes-before-the-build)); S8
-  passes under R3 as amended on 2026-11-19 (`t51ITc` admitted by name; its second half and the
-  due dates measured) once the to-do pages, the session upkeep's exact host and path (R4),
-  Classroom's own non-`batchexecute` POSTs and the mapping of comments, grades and returned marks
-  are measured.
+  passes under R3 as amended on 2026-11-19 (`t51ITc` admitted by name; its second half, the due
+  dates and its last pieces measured: research «S8, last pieces»).
 - `[classroom] profile_read = true` and `notice_account` set in the student's configuration;
   `config check --student <id>` clean.
 - For the container read: Docker Desktop running, with at least 1536 MB of memory available to
