@@ -375,7 +375,10 @@ arrives.
   widens spec 001's S6 to them. The peer project's catalogue may seed the recording but does not
   replace it. If reads and writes cannot be told apart by call name on this account, this read is
   not built and the plan says so. *(Amendment 2026-11-17: FR-003 and FR-004 are the read by calls,
-  which stays planned; the read the amendment builds is alfabeta's extractor, FR-030.)*
+  which stays planned; the read the amendment builds is alfabeta's extractor, FR-030.)* *(2026-11-19:
+  the allowlist is research R3's, which admits by name one call whose answers carry no tag,
+  `t51ITc`, the only one carrying the teacher's attachments — the family's decision after spike S8,
+  #270.)*
 - **FR-005**: Read-only MUST hold by construction during the whole read (constitution IV), with the
   guard of spec 001 research R18 installed in the browser before any page script runs. It blocks,
   before they reach Classroom, every press, every document load outside the pages spec 001 FR-007
