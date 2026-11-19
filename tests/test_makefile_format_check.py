@@ -1,4 +1,4 @@
-"""`make format-check` reads every tracked file ruff formats, whatever a git ignore file hides (#276).
+"""`make format-check` also reads the tracked files a git ignore file hides (#276).
 
 ruff skips what a git ignore file hides, tracked or not, and a clone's own `.git/info/exclude` is one.
 A clone that hides `.claude/` skipped the tracked rules there, which CI, with no such line, checks: an
@@ -69,6 +69,7 @@ def environment(tmp_path: Path) -> dict[str, str]:
         "HOME": str(home),
         "XDG_CONFIG_HOME": str(home / ".config"),
         "NO_COLOR": "1",
+        "PYTHONUTF8": "1",
         "UV_CALLS": str(tmp_path / "uv-calls"),
     }
 
@@ -96,56 +97,60 @@ def reported(done: subprocess.CompletedProcess[str]) -> list[str]:
     return sorted(REPORTED.findall(done.stdout + done.stderr))
 
 
-def format_check(repo: Path) -> tuple[int, list[str], int]:
-    """make's exit code for the Makefile's `format-check` in `repo`, what ruff reported, and the calls to uv."""
+def format_check(repo: Path) -> tuple[int, list[str], list[list[str]]]:
+    """make's exit code for the Makefile's `format-check` in `repo`, what ruff reported, and the paths of each run."""
     env = environment(repo.parent)
     done = subprocess.run(
         ["make", "-f", str(ROOT / "Makefile"), "format-check"],
         cwd=repo,
         env=env,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         check=False,
     )
-    calls = Path(env["UV_CALLS"])
-    return done.returncode, reported(done), len(calls.read_text(encoding="utf-8").splitlines()) if calls.exists() else 0
+    noted = Path(env["UV_CALLS"])
+    calls = noted.read_text(encoding="utf-8").splitlines() if noted.exists() else []
+    return done.returncode, reported(done), [[word for word in call.split()[2:] if word[0] != "-"] for call in calls]
 
 
 def ruff_with_no_path(repo: Path) -> list[str]:
     """What a ruff that is given no path reports in `repo`: the recipe as it was."""
     command = [sys.executable, "-m", "ruff", "format", "--check", "--no-cache"]
-    return reported(subprocess.run(command, cwd=repo, env=environment(repo.parent), capture_output=True, text=True))
+    done = subprocess.run(command, cwd=repo, env=environment(repo.parent), capture_output=True, encoding="utf-8")
+    return reported(done)
 
 
 def test_format_check_reads_the_tracked_files_a_git_ignore_file_hides_each_once(tmp_path: Path):
-    code, found, calls = format_check(repository(tmp_path, "clone", unformatted=[*HIDDEN, *NOT_OURS]))
+    code, found, runs = format_check(repository(tmp_path, "clone", unformatted=[*HIDDEN, *NOT_OURS]))
     assert found == HIDDEN
     assert code != 0
-    assert calls == 2, "both runs go through uv run --locked"
+    assert len(runs) == 2, "both runs go through uv run --locked"
+    assert sorted(runs[1]) == sorted([*HIDDEN, VENDORED]), "the second run is given what git names, nothing else"
 
 
-def test_format_check_still_reads_the_tree(tmp_path: Path):
-    code, found, _ = format_check(repository(tmp_path, "clone", unformatted=[TREE]))
+def test_format_check_still_reads_the_tree_whatever_the_checkout_is_called(tmp_path: Path):
+    # venv is one of ruff's own exclusions: a ruff told to force them on the tree would read nothing here.
+    code, found, _ = format_check(repository(tmp_path, "venv", unformatted=[TREE]))
     assert found == [TREE]
     assert code != 0
 
 
 def test_format_check_leaves_alone_what_is_not_the_projects_to_format(tmp_path: Path):
-    code, found, calls = format_check(repository(tmp_path, "clone", unformatted=NOT_OURS))
-    assert (code, found, calls) == (0, [], 2)
+    code, found, runs = format_check(repository(tmp_path, "clone", unformatted=NOT_OURS))
+    assert (code, found, len(runs)) == (0, [], 2)
 
 
 def test_format_check_runs_once_where_nothing_is_hidden(tmp_path: Path):
-    code, found, calls = format_check(repository(tmp_path, "clone", unformatted=[], hiding=False))
-    assert (code, found, calls) == (0, [], 1)
+    code, found, runs = format_check(repository(tmp_path, "clone", unformatted=[], hiding=False))
+    assert (code, found, len(runs)) == (0, [], 1)
 
 
 def test_format_check_stops_when_git_cannot_say_what_is_hidden(tmp_path: Path):
     repo = repository(tmp_path, "clone", unformatted=HIDDEN)
     (repo / ".git" / "index").write_bytes(b"not an index")
-    code, found, calls = format_check(repo)
+    code, found, runs = format_check(repo)
     assert code != 0
-    assert (found, calls) == ([], 1)
+    assert (found, len(runs)) == ([], 1)
 
 
 def test_control_with_no_path_ruff_misses_what_the_ignore_files_hide(tmp_path: Path):
