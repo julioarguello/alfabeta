@@ -109,6 +109,11 @@ Job 2: quality-gate  (BLOCKING, NO `needs:`) → make setup-python setup-node ci
   *Development workflow*).
 - `python-version-file: .python-version` and `node-version-file: .node-version`, never a
   literal in the workflow.
+- **The Makefile is `.NOTPARALLEL`.** The gate line names three goals that are not independent
+  (`npm ci` rewrites `node_modules` while `node --test` reads it): under a `MAKEFLAGS=-j…` the
+  shell exports it failed locally, while CI, whose runner sets no `-j`, stayed green. An ordering
+  between targets instead would be a list to keep beside `ci:`'s. `tests/test_makefile_serial.py`
+  asks for four jobs itself, so the gate notices the line going.
 
 ## 7. Overrides — Allowed
 

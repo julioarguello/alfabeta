@@ -2,6 +2,12 @@
 # The guardrail runs over every tracked file; the pre-commit hook runs it over the staged change.
 .PHONY: setup-python setup-node setup-hooks ci hook-check lint format-check typecheck test test-js guardrail
 
+# One job at a time, in the order written, whatever -j asks for (a MAKEFLAGS the shell exports is
+# enough). The goals of `make setup-python setup-node ci` are not independent: npm ci removes and
+# reinstalls node_modules while node --test reads it, and under -j the gate failed in test-js. CI's
+# runner sets no -j, so tests/test_makefile_serial.py asks for four jobs itself (issue 273).
+.NOTPARALLEL:
+
 setup-python: setup-hooks
 	@echo "==> uv lock --check"; uv lock --check
 	@echo "==> uv sync --locked"; uv sync --locked

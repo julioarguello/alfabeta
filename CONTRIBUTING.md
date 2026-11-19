@@ -32,6 +32,10 @@ It runs, in this order:
 5. `node --test` for the browser JavaScript;
 6. the personal-data guardrail over every tracked file (`python -m alfabeta guardrail check --all`).
 
+`make` runs them one at a time, whatever `-j` asks for, a `MAKEFLAGS` your shell exports included:
+the Makefile is `.NOTPARALLEL`, because `npm ci` rewrites `node_modules` while `node --test` reads
+it, and `make setup-python setup-node ci` is one invocation.
+
 Outside CI, `make ci` also fails if the pre-commit hook is missing or stale.
 
 GitHub runs the same `make ci` on every pull request (`.github/workflows/ci.yml`). The `autofix`
