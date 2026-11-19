@@ -415,7 +415,7 @@ function paintDescription(doc, text) {
   block.textContent = text;
 }
 
-test("a page that paints at once is taken settleMs after it is ready, as before", async () => {
+test("a page that paints at once is taken within a poll of settleMs after it is ready, as before", { timeout: 5000 }, async () => {
   const dom = framed(page("material-detail").serialize());
   try {
     const loading = dom.window.alfabetaExtract.iframeLoader(dom.window, FAST)(DETAIL);
@@ -430,7 +430,7 @@ test("a page that paints at once is taken settleMs after it is ready, as before"
   }
 });
 
-test("a page still painting after it is ready is read once it holds still: the late attachment is in", async () => {
+test("a page still painting after it is ready is read once it holds still: the late attachment is in", { timeout: 5000 }, async () => {
   const { html, late } = lateAttachment();
   const dom = framed(html);
   try {
@@ -453,7 +453,7 @@ test("a page still painting after it is ready is read once it holds still: the l
   }
 });
 
-test("time with the tab hidden does not count towards settling: what paints after it is read", async () => {
+test("time with the tab hidden does not count towards settling: what paints after it is read", { timeout: 5000 }, async () => {
   const { html, late } = lateAttachment();
   const dom = framed(html);
   const main = dom.window.document;
@@ -487,6 +487,42 @@ test("a page that never holds still is unsettled, a failed load", { timeout: 500
     assert.equal(await outcome, "unsettled");
   } finally {
     clearInterval(changer);
+    dom.window.close();
+  }
+});
+
+// Chrome barely runs a hidden tab's timers (about once a second, then once a minute), so the poll
+// after the tab is shown again may come long after the last one. That gap is time spent hidden: it
+// must not count as time the page held still. A clock and a scheduler driven by hand show it.
+test("the gap of a throttled hidden tab does not count as holding still", { timeout: 5000 }, async () => {
+  const dom = framed(page("material-detail").serialize());
+  const win = dom.window;
+  let clock = 1_000_000;
+  let tick = null;
+  win.Date.now = () => clock;
+  win.setInterval = (fn) => { tick = fn; return 1; };
+  win.clearInterval = () => { tick = null; };
+  let state = "visible";
+  Object.defineProperty(win.document, "visibilityState", { get: () => state });
+  try {
+    let done = false;
+    const loading = win.alfabetaExtract.iframeLoader(win, { timeoutMs: 120000, attempts: 1, settleMs: 1500, settleCapMs: 10000 })(DETAIL)
+      .then((r) => { done = true; return r; });
+    await whenReady(dom);
+    const poll = async (ms) => { clock += ms; if (tick) tick(); await pause(0); };
+    await poll(300); // ready, on screen
+    state = "hidden";
+    await poll(300);
+    await poll(60000); // one throttled timer a minute later
+    state = "visible"; // shown half a minute after that timer, before the next one
+    await poll(30000); // the first poll on screen: those 30 s were spent hidden, not holding still
+    assert.equal(done, false);
+    for (let i = 0; i < 4; i++) await poll(300);
+    assert.equal(done, false); // 1200 ms on screen
+    await poll(300);
+    assert.equal(done, true); // 1500 ms on screen
+    await loading;
+  } finally {
     dom.window.close();
   }
 });

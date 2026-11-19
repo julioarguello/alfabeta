@@ -442,6 +442,7 @@
       win.document.body.appendChild(frame);
       let started = Date.now();
       let tick = Date.now();
+      let wasHidden = false; // the step back on screen counts nothing: the gap was spent hidden
       let ready = false;
       let reading = null; // what the ready page showed at the last poll
       let still = 0; // time on screen the reading has not changed
@@ -449,9 +450,10 @@
       const stop = (err) => { win.clearInterval(poll); frame.remove(); reject(err); };
       const poll = win.setInterval(() => {
         const now = Date.now();
-        const step = now - tick;
+        if (win.document.visibilityState === "hidden") { started = now; tick = now; wasHidden = true; return; }
+        const step = wasHidden ? 0 : now - tick;
         tick = now;
-        if (win.document.visibilityState === "hidden") { started = now; return; }
+        wasHidden = false;
         let doc = null;
         try { doc = frame.contentDocument; } catch (_) { doc = null; }
         if (doc === null || (doc.location && /accounts\.google\.com/.test(doc.location.host))) {
@@ -472,10 +474,9 @@
           } else if (settling >= settleCapMs) {
             stop(new Error("unsettled"));
           }
-        } else if (ready) {
+        } else {
           ready = false; // it was ready and is not any more: its reading starts again when it is
-        } else if (now - started > timeoutMs) {
-          stop(new Error("timeout"));
+          if (now - started > timeoutMs) stop(new Error("timeout"));
         }
       }, pollMs);
     });

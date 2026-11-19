@@ -215,7 +215,7 @@ Measured 2026-10-27 on one real class of the school account; details in research
 |---|---|
 | One class capture took 75 s | poll in the background (step 6) |
 | A page's iframe `load` event came more than 30 s after its content | the extractor polls readiness instead |
-| Two classes were read while their item pages were still painting: two items without their attachments, two without their points and status, in captures marked complete (2026-11-10, #264) | a page is read once what the extractor reads on it has held still for 1.5 s with the tab on screen; one that never does is loaded again, then left out and the capture marked incomplete |
+| Two classes were read while their item pages were still painting: two items without their attachments, two without their points and status, in captures marked complete (2026-11-10, #264) | a page is read once what the extractor reads on it has held still for 1.5 s with the tab on screen; an item's page or the stream that never does is loaded again, then left out and the capture marked incomplete; a «Trabajo de clase» that never does stops that class |
 | An attachment's label reads «Archivo adjunto: <tipo>: <name>» | the extractor keeps only the name |
 | Both «Demuestra que eres tú» challenges came on the extension's `navigate`; about 120 page-started loads met none | step 2 |
 | The second `classroom apply` over the same captures changed nothing | step 11 is the check |
