@@ -100,6 +100,8 @@ CRASH_PHRASES = ("Target crashed", "Page crashed")
 # dead page once it swallowed the error (`unreachable`, then `session_expired`; `challenge` by
 # time-out; `unexpected_ui`), and is renamed at the end.
 CRASH_KEEPS = ("wrong_password", "no_password", "second_factor", "rejected", "other_sign_in")
+# How long the last read of the page may take at the end of a read that stopped (`died`).
+DIED_WAIT_MS = 5000
 
 EMAIL_FIELD = "#identifierId, input[name=identifier], input[type=email]"
 PASSWORD_FIELD = "input[name=Passwd], input[type=password]"
@@ -196,7 +198,8 @@ class Crash:
     Playwright's `crash` event on the page, and the error of the call that was pending or came next.
     A step that swallows its errors hides the second: a load on a dead page (`net::ERR_ABORTED` in
     Playwright's Chromium, `Page crashed` in the image's Chrome) is `unreachable` to `open_home`.
-    The event still arrives, so `run` asks `seen` again at its end (spec 006 research S16).
+    And the event can come after that load has failed (Chromium on Linux), so at its end `run`
+    asks the page itself (`died`), which waits for the answer (spec 006 research S16).
     """
 
     def __init__(self) -> None:
@@ -439,6 +442,22 @@ def wait_account(page: Any, account: str) -> bool | None:
         page.wait_for_timeout(1000)
 
 
+def died(page: Any, crash: Crash) -> bool:
+    """Whether the page's renderer died: the event already seen, or one read a dead page cannot answer.
+
+    The read needs the renderer, so on a dead page it ends with the crash's error as soon as
+    Playwright learns of it, however late the `crash` event is; on a live page it returns at once,
+    or runs out of DIED_WAIT_MS, which is no crash.
+    """
+    if crash.seen:
+        return True
+    try:
+        page.inner_text("html", timeout=DIED_WAIT_MS)
+    except Exception as err:
+        return crash.caught(err)
+    return False
+
+
 def capture(page: Any, guard: Guard, run: str, out: Path, crash: Crash) -> dict[str, Any]:
     """The extractor's calls over every class; returns the end event's fields.
 
@@ -627,6 +646,7 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
     account = str(request.get("account") or "")
     guard = Guard()
     crash = Crash()
+    page: Any = None
     end: dict[str, Any] = {"event": "end", "outcome": "stopped", "reason": None, "classes": {"read": 0, "failed": 0}}
     PROFILE.mkdir(mode=0o700, parents=True, exist_ok=True)
     with sync_playwright() as p:
@@ -704,7 +724,8 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
         finally:
             # A dead page is the stop, whatever the step made of it (`unreachable`, `session_expired`,
             # `challenge`, `unexpected_ui`); a pass that still ended well keeps its `ok`.
-            if crash.seen and end["outcome"] != "ok" and end["reason"] not in CRASH_KEEPS:
+            renamable = end["outcome"] != "ok" and end["reason"] not in CRASH_KEEPS
+            if renamable and page is not None and died(page, crash):
                 end["reason"] = "browser_crashed"
             end["blocked"] = dict(guard.blocked)
             end["seconds"] = int(time.monotonic() - started)

@@ -724,11 +724,15 @@ Nothing printed or kept names a student, an account or a class.
 | `MemAvailable` moved from 5725 MB to 3294 MB within the hour, with eight other containers running | the same reading, twice |
 | A dead page raises `Target crashed` from the call that was pending and from `evaluate` and `inner_text` after it, and `Page crashed` from `wait_for_timeout`; the page's `crash` event reaches the program with the first of those errors, not before | `chrome://crash` in Playwright 1.64.1's Chromium (macOS) and in the image's Chrome 157.0.8103.78 (`linux/amd64`), twice in the image |
 | A load on the dead page raises `net::ERR_ABORTED; maybe frame was detached?` in Playwright's Chromium and `Page crashed` in the image's Chrome; `open_home` takes either for `unreachable` | the same two browsers |
+| In the image's Chrome the `crash` event has arrived when a load right after the crash fails | `chrome://crash`, then a load, three times in the image |
+| In Chromium on Linux it has not: a read whose page died before the home load ended `unreachable`, and after a sign-in `session_expired` | the two tests of this fix that failed in the first CI run of its pull request, julioarguello/alfabeta#274 (Ubuntu, Playwright's Chromium), and pass on macOS |
 
 - **Decided**: two codes, each naming what was observed — `browser_crashed` for a page that died,
   `docker_low_memory` for a reading under the floor before the read starts (#268's text asked for
   one code for both; a check that has seen no browser cannot say one crashed). The crash is told
-  by the page's event or by an error's first line, and applied once more where `read.py` ends, so
+  by the page's event or by an error's first line. Where `read.py` ends with a stop it asks the
+  page once more — one read of at most five seconds that a dead page cannot answer, so a late
+  event does not matter — and applies the code there, so
   a step that swallowed the error (`unreachable`, `challenge`, `unexpected_ui`) does not name the
   stop — `session_expired` included, which is what `read.py` calls a home page that does not
   load after a sign-in; a sign-in code read from the page while it lived (`wrong_password`,
@@ -737,9 +741,9 @@ Nothing printed or kept names a student, an account or a class.
   it: a short container, no read running), not a measured sufficiency. A reading that cannot be
   taken stops nothing. The log line of every read that asked keeps its reading, so the floor can
   be moved on evidence.
-- **The two browsers differ** in the error of a load on a dead page, and the tests run
-  Playwright's Chromium: the test of a page dead before the read rests on the event alone, which
-  both browsers send.
+- **The three browsers differ**: in the error of a load on a dead page, and in whether the
+  `crash` event has arrived by then. The tests run Playwright's Chromium; one of them silences the
+  event, so the last read of the page is proven on every platform, not only where the event is late.
 - **Not measured**: what a whole read needs at its peak (the failing one was cut short at about
   1.2 GB); whether a read that starts at the floor ends well; the memory at the family's own
   12:34 read, of which only the log line is known; a container killed with no `end`

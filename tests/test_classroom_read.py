@@ -613,10 +613,65 @@ def test_a_browser_dead_before_the_read_is_browser_crashed_not_what_it_looks_lik
         module.open_home = dead_home
 
     end, events, _ = _read("ok", tmp_path, {"password": None, "signin": False}, seed=seed)
-    # A load on a dead page fails as an aborted load: the step saw `unreachable`, and no error said "crashed".
-    assert {"event": "home", "state": "unreachable"} in events and said == []
-    # Only the page's `crash` event told; the end names it, in the step it happened.
+    # The step swallowed the dead load's error: all it saw was `unreachable`.
+    assert {"event": "home", "state": "unreachable"} in events
+    # The end names the crash, in the step it happened — by the page's `crash` event where it has
+    # arrived by then (macOS Chromium, the image's Chrome), by the last read of the page where it
+    # has not (Chromium on Linux: this test read `unreachable` there before `died` existed).
     assert end["outcome"] == "stopped" and end["reason"] == "browser_crashed" and end["step"] == "home", end
+
+
+def test_a_dead_page_whose_crash_event_never_came_is_told_by_the_last_read(tmp_path: Path) -> None:
+    said: list[bool] = []
+
+    def seed(module: Any, fake: FakeGoogle) -> None:
+        _live("origin")(module, fake)
+        _recording(module, said)
+        open_home = module.open_home
+
+        def unheard(self: Any, *_: Any) -> None:
+            """The event is not heard: Linux Chromium's late event."""
+
+        module.Crash.mark = unheard
+
+        def dead_home(page: Any) -> str:
+            with contextlib.suppress(playwright.Error):
+                page.goto("chrome://crash")
+            return cast("str", open_home(page))
+
+        module.open_home = dead_home
+
+    end, events, _ = _read("ok", tmp_path, {"password": None, "signin": False}, seed=seed)
+    assert {"event": "home", "state": "unreachable"} in events
+    assert end["outcome"] == "stopped" and end["reason"] == "browser_crashed" and end["step"] == "home", end
+    assert said == [True]  # one error was read, the last read's, and it said the page had died
+
+
+class _Answering:
+    """A page whose last read answers, or raises the error given; it counts the reads."""
+
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error, self.reads = error, 0
+
+    def inner_text(self, selector: str, timeout: int) -> str:
+        self.reads += 1
+        if self.error is not None:
+            raise self.error
+        return "x"
+
+
+def test_died_asks_the_page_only_when_no_crash_was_seen_and_reads_only_a_crash_as_one() -> None:
+    module = _production()
+    seen = module.Crash()
+    seen.mark()
+    page = _Answering()
+    assert module.died(page, seen) is True and page.reads == 0
+    alive = _Answering()
+    assert module.died(alive, module.Crash()) is False and alive.reads == 1
+    dead, crash = _Answering(Exception("Page.inner_text: Target crashed ")), module.Crash()
+    assert module.died(dead, crash) is True and crash.seen
+    slow = _Answering(Exception("Page.inner_text: Timeout 5000ms exceeded."))
+    assert module.died(slow, module.Crash()) is False
 
 
 class _TwoClasses(_ListingPage):
