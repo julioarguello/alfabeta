@@ -7,7 +7,8 @@ name, an address or a Classroom title.
 
 ## Prerequisites
 
-- Spikes S7, S8 and S9 passed and recorded ([research.md](research.md#spikes-before-the-build)).
+- Spikes S7, S8 and S9 passed and recorded ([research.md](research.md#spikes-before-the-build)); S8
+  passes under R3 as amended on 2026-11-19 (`t51ITc` admitted by name) once its second half does.
 - `[classroom] profile_read = true` and `notice_account` set in the student's configuration;
   `config check --student <id>` clean.
 - For steps 6 to 8: the `family` account linked with `google account link` (spec 004 as amended),

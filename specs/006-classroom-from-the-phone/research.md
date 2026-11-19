@@ -98,17 +98,20 @@ measured on this account; they seed the spikes below and replace none of them (F
   copied into the allowlist.
 - **One exception, by name (family decision of 2026-11-19, #270)**: `t51ITc` is admitted although its
   answers carry no tag. S8 found it the only name whose answers hold the teacher's attachment ids;
-  the pages send it themselves while they load, with zero presses, alongside the tagged queries, and
-  its answer is the item's materials keyed by item id, not an acknowledgement. That is consistent
-  with a read and does not prove one (see below): admitting it is the family's decision, not a
-  measurement. No other untagged name is admitted; a new one stays blocked until a recording and a
-  decision of its own.
+  the pages send it themselves while they load or sit open, with zero presses, alongside the tagged
+  queries, and its non-empty answers are the item's materials keyed by item id, not an
+  acknowledgement. Today's container read already lets it reach Classroom (S8 measured it behind
+  the read's own guard), though the read by calls would send it with its own arguments, not the
+  page's. That is consistent with a read and does not prove one (see below): admitting it is the
+  family's decision («Admitirla, seguir», the operator, 2026-11-19; spec Clarifications, Session
+  2026-11-19), not a measurement. No other untagged name is admitted; a new one stays blocked until a
+  recording and a decision of its own.
 - **What cannot be measured, said plainly**: no spike sends a write to prove it is one, since that
   is what constitution IV forbids. "Reads and writes can be told apart by call name" therefore means:
   a read-only load of every page needed sends only names whose responses are queries, and each name
   the read needs is one of those. If a read-only load itself sends a name whose response is not a
   query (a "seen" mark, a view counter), that name stays blocked; if a page then fails to give the
-  read what it needs, FR-004 is not met and the read is not built.
+  read what it needs, FR-004 is not met and the read is not built. (Save the exception above, admitted by name.)
 - **Batched calls**: one `batchexecute` request can carry several names (`rpcids=a,b`); the guard
   admits it only if every name in it, in the URL and in the body, is on the allowlist.
 - **Drift**: a Classroom release can rename a call. The read then finds a needed name missing from
