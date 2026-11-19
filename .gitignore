@@ -11,3 +11,6 @@ __pycache__/
 node_modules/
 .pytest_cache/
 spikes/s8-out.jsonl
+spikes/s8b-out/
+spikes/events.jsonl
+spikes/compare.txt
