@@ -200,3 +200,57 @@ def test_the_attachments_pass_has_its_own_container_name(tmp_path: Path) -> None
     reader.run("img:tag", {"run": "r6", "fetch": []}, tmp_path / "p", tmp_path / "o", lambda e: None)
     name = started[0][started[0].index("--name") + 1]
     assert name == container.container_name("r6", attachments=True) != container.container_name("r6")
+
+
+# The first lines of `/proc/meminfo` as a container of the read's image printed them on the Mac
+# (Docker Engine 29.0.1 in Docker Desktop 4.53.0, `docker run --rm --entrypoint cat <image> /proc/meminfo`,
+# 2026-11-19).
+MEMINFO = """MemTotal:        8024028 kB
+MemFree:         4098988 kB
+MemAvailable:    5863332 kB
+Buffers:           63156 kB
+Cached:          1741796 kB
+SwapCached:        19432 kB
+"""
+
+
+class Printing:
+    """A process runner that answers with one output and exit code, or raises."""
+
+    def __init__(self, stdout: str, code: int = 0, error: Exception | None = None) -> None:
+        self.stdout, self.code, self.error = stdout, code, error
+        self.calls: list[list[str]] = []
+
+    def __call__(self, argv: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        self.calls.append(argv)
+        if self.error is not None:
+            raise self.error
+        return subprocess.CompletedProcess(argv, self.code, self.stdout, "")
+
+
+def test_memory_is_read_from_a_container_with_nothing_mounted_and_no_network() -> None:
+    process = Printing(MEMINFO)
+    memory = container.DockerReadContainer(process=process).memory("img:tag")
+    assert memory == container.Memory(total_mb=7835, available_mb=5725)
+    (argv,) = process.calls
+    assert argv[:3] == ["docker", "run", "--rm"] and argv[-2:] == ["img:tag", "/proc/meminfo"]
+    assert argv[argv.index("--entrypoint") + 1] == "cat" and argv[argv.index("--network") + 1] == "none"
+    assert argv[argv.index("--platform") + 1] == container.PLATFORM
+    assert not any(a in ("-v", "-i", "-e", "--env", "--mount", "--name") for a in argv)
+
+
+@pytest.mark.parametrize(
+    "process",
+    [
+        Printing(MEMINFO, code=125),  # docker refused the run: its output is not a reading
+        Printing(""),
+        Printing("MemTotal:        8024028 kB\n"),  # no MemAvailable line
+        Printing(MEMINFO.replace("5863332 kB", "plenty")),
+        Printing(MEMINFO.replace("5863332 kB", "5863332 MB")),  # another unit is another file format
+        Printing("", error=subprocess.TimeoutExpired(["docker"], 20)),
+        Printing("", error=OSError("no docker")),
+    ],
+)
+def test_memory_that_cannot_be_read_is_none(process: Printing) -> None:
+    assert container.DockerReadContainer(process=process).memory("img:tag") is None
+    assert len(process.calls) == 1  # the probe was asked: None is "not read", never "not tried"

@@ -11,6 +11,8 @@ CONTAINER_READ = {
     "wrong_password",
     "no_password",
     "docker_unavailable",
+    "docker_low_memory",
+    "browser_crashed",
     "unreachable",
     "disabled",
 }

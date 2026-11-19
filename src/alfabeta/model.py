@@ -186,6 +186,8 @@ class StopReason(StrEnum):
     WRONG_PASSWORD = "wrong_password"
     NO_PASSWORD = "no_password"
     DOCKER_UNAVAILABLE = "docker_unavailable"
+    DOCKER_LOW_MEMORY = "docker_low_memory"  # measured before the read starts (#268)
+    BROWSER_CRASHED = "browser_crashed"  # the container's page died during the read (#268)
     UNREACHABLE = "unreachable"
     DISABLED = "disabled"
 

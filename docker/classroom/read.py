@@ -23,6 +23,9 @@ outcome and stop code. No line carries the account or the password.
   `class` with its index), so the host can say where the read is; the end event names the `step`
   it stopped in. Right after a sign-in Classroom may still be painting: the account check and the
   class list are polled for a few seconds before they count as `unexpected_ui`.
+- **A dead page** (FR-028): when the page's renderer dies — Chrome out of memory in Docker, as
+  measured — the read ends there with `browser_crashed`, keeping the classes already written; the
+  classes after it are not tried, and no step's own reading of the dead page names the stop.
 - **Attachments** (FR-030's exception, the run's second pass): with `fetch` — the attachments the
   host's `classroom plan` asked for out of this run's captures — the read never signs in; after the
   account check it fetches each one through the page's request context (the session's cookies),
@@ -89,6 +92,16 @@ ONLY: frozenset[str] = frozenset()
 ACCOUNT_WAIT_SECONDS = 15
 LIST_TRIES = 4
 LIST_PAUSE_MS = 5000
+
+# Playwright 1.64.1's words for a call on a page whose renderer died (research S16).
+CRASH_PHRASES = ("Target crashed", "Page crashed")
+# Codes only a live sign-in page gives, or no page at all: kept when the page died after them, since
+# the host acts on them (the `wrong_password` mark). Every other code is what a step makes of a
+# dead page once it swallowed the error (`unreachable`, then `session_expired`; `challenge` by
+# time-out; `unexpected_ui`), and is renamed at the end.
+CRASH_KEEPS = ("wrong_password", "no_password", "second_factor", "rejected", "other_sign_in")
+# How long the last read of the page may take at the end of a read that stopped (`died`).
+DIED_WAIT_MS = 5000
 
 EMAIL_FIELD = "#identifierId, input[name=identifier], input[type=email]"
 PASSWORD_FIELD = "input[name=Passwd], input[type=password]"
@@ -166,6 +179,41 @@ async ({ run, classId, title, account, pace }) => {
 def emit(event: dict[str, Any]) -> None:
     """One JSON line on stdout; the host reads them as they come."""
     print(json.dumps(event, ensure_ascii=False), flush=True)
+
+
+def says_crashed(err: BaseException) -> bool:
+    """Whether an error's first line says the page died: Playwright's `Target crashed` or `Page crashed`.
+
+    Only the first line, and only those two phrases: the rest of a Playwright error is a call log,
+    which can quote a selector or a typed value, and the first line of a script's own error carries
+    its message. The text is never printed.
+    """
+    lines = str(err).splitlines()
+    return bool(lines) and any(phrase in lines[0] for phrase in CRASH_PHRASES)
+
+
+class Crash:
+    """Whether the page's renderer died, by either of two signals (measured 2026-11-19, #268).
+
+    Playwright's `crash` event on the page, and the error of the call that was pending or came next.
+    A step that swallows its errors hides the second: a load on a dead page (`net::ERR_ABORTED` in
+    Playwright's Chromium, `Page crashed` in the image's Chrome) is `unreachable` to `open_home`.
+    And the event can come after that load has failed (Chromium on Linux), so at its end `run`
+    asks the page itself (`died`), which waits for the answer (spec 006 research S16).
+    """
+
+    def __init__(self) -> None:
+        self.seen = False
+
+    def mark(self, *_: Any) -> None:
+        """The page's `crash` event."""
+        self.seen = True
+
+    def caught(self, err: BaseException) -> bool:
+        """Whether the page is dead, now that `err` was raised; an error that says so is remembered."""
+        if says_crashed(err):
+            self.seen = True
+        return self.seen
 
 
 class Guard:
@@ -394,8 +442,28 @@ def wait_account(page: Any, account: str) -> bool | None:
         page.wait_for_timeout(1000)
 
 
-def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
-    """The extractor's calls over every class; returns the end event's fields."""
+def died(page: Any, crash: Crash) -> bool:
+    """Whether the page's renderer died: the event already seen, or one read a dead page cannot answer.
+
+    The read needs the renderer, so on a dead page it ends with the crash's error as soon as
+    Playwright learns of it, however late the `crash` event is; on a live page it returns at once,
+    or runs out of DIED_WAIT_MS, which is no crash.
+    """
+    if crash.seen:
+        return True
+    try:
+        page.inner_text("html", timeout=DIED_WAIT_MS)
+    except Exception as err:
+        return crash.caught(err)
+    return False
+
+
+def capture(page: Any, guard: Guard, run: str, out: Path, crash: Crash) -> dict[str, Any]:
+    """The extractor's calls over every class; returns the end event's fields.
+
+    A class that raises stops alone (`unexpected_ui`), unless the page died: no class after it could
+    be read, so the read ends there with `browser_crashed` and keeps the classes already written.
+    """
     page.evaluate(EXTRACTOR.read_text())
     listed = page.evaluate(CLASSES_JS, {"run": run})
     for _ in range(LIST_TRIES - 1):  # a page still painting after a sign-in lists nothing yet
@@ -428,8 +496,12 @@ def capture(page: Any, guard: Guard, run: str, out: Path) -> dict[str, Any]:
                     "pace": PACE,
                 },
             )
-        except Exception:
+        except Exception as err:
             failed += 1
+            if crash.caught(err):
+                reason = "browser_crashed"
+                emit({"event": "class", "id": cls["id"], "type": "stop", "reason": reason, "complete": False})
+                break
             reason = reason or "unexpected_ui"
             emit({"event": "class", "id": cls["id"], "type": "stop", "reason": "unexpected_ui", "complete": False})
             continue
@@ -573,6 +645,8 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
     started = time.monotonic()
     account = str(request.get("account") or "")
     guard = Guard()
+    crash = Crash()
+    page: Any = None
     end: dict[str, Any] = {"event": "end", "outcome": "stopped", "reason": None, "classes": {"read": 0, "failed": 0}}
     PROFILE.mkdir(mode=0o700, parents=True, exist_ok=True)
     with sync_playwright() as p:
@@ -596,6 +670,7 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
             ctx.on("request", guard.watch)
             ctx.expose_binding("__abCount", lambda _source, kind: guard.bump(kind))
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            page.on("crash", crash.mark)
             emit({"event": "browser", **page.evaluate(BROWSER_CHECK_JS)})
             end["step"] = "home"
             state = open_home(page)
@@ -640,12 +715,18 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
                 end.update(fetch(page, list(request["fetch"]), OUT))
                 return end
             end["step"] = "classes"
-            end.update(capture(page, guard, str(request["run"]), OUT))
+            end.update(capture(page, guard, str(request["run"]), OUT, crash))
             return end
-        except Exception:  # never a traceback (it could carry what was typed); the step is kept
+        except Exception as err:  # never a traceback (it could carry what was typed); the step is kept
+            crash.caught(err)
             end.update({"outcome": "stopped", "reason": "unexpected_ui"})
             return end
         finally:
+            # A dead page is the stop, whatever the step made of it (`unreachable`, `session_expired`,
+            # `challenge`, `unexpected_ui`); a pass that still ended well keeps its `ok`.
+            renamable = end["outcome"] != "ok" and end["reason"] not in CRASH_KEEPS
+            if renamable and page is not None and died(page, crash):
+                end["reason"] = "browser_crashed"
             end["blocked"] = dict(guard.blocked)
             end["seconds"] = int(time.monotonic() - started)
             ctx.close()

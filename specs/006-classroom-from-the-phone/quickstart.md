@@ -14,6 +14,12 @@ name, an address or a Classroom title.
   are measured.
 - `[classroom] profile_read = true` and `notice_account` set in the student's configuration;
   `config check --student <id>` clean.
+- For the container read: Docker Desktop running, with at least 1536 MB of memory available to
+  containers when the read starts (FR-028). Under that the read stops with `docker_low_memory`
+  before signing in; close other containers or raise Docker Desktop's memory. What a container has
+  available: `docker run --rm --network none --platform linux/amd64 --entrypoint cat <image> /proc/meminfo`,
+  the `MemAvailable` line (the command the read runs; `<image>` is a line of
+  `docker images alfabeta-classroom-read --format '{{.Repository}}:{{.Tag}}'`).
 - For steps 6 to 8: the `family` account linked with `google account link` (spec 004 as amended),
   and Chrome Remote Desktop to the Mac set up on the family's phone.
 
