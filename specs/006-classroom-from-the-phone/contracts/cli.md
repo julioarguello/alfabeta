@@ -2,7 +2,7 @@
 
 These follow spec 001's [command contract](../../001-classroom-sync/contracts/cli.md): `--home`
 before the subcommand, `--student <id>` resolved once, JSON on stdout, messages for people on
-stderr in Spanish, and no message, log line or URL with a name, an email address, a Classroom
+stderr in English with the local time on each line (constitution 2.12.0), and no message, log line or URL with a name, an email address, a Classroom
 title, a token or an absolute path. `classroom sign-in`, `capture`, `refresh` and `status` take the
 student's lock and the browser lock before they touch the read profile, or go on inside them when
 `ALFABETA_RUN` names the run that holds them (FR-024a); all but `classroom status` stop with

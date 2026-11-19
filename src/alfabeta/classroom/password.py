@@ -69,7 +69,7 @@ class PasswordStore:
         if not is_tty:
             raise PasswordError("invalid_config", "the password is asked only from a terminal")
         try:
-            value = prompt("Contraseña de la cuenta del colegio (no se muestra): ")
+            value = prompt("School account password (not shown): ")
         except (EOFError, KeyboardInterrupt):
             raise PasswordError("invalid_config", "no password typed; nothing stored") from None
         if not value:

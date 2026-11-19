@@ -22,9 +22,9 @@ apply notes «no traído».
   lock, no notice. A window that crosses midnight belongs to the day it started.
 - A stop before anything was read writes nothing to the student's folder, shows the macOS
   notification in Spanish naming the code (FR-032) and leaves one log line.
-- Progress: one short Spanish line per step on stderr (`Deps.say`), built from the container's
-  events — where the read is, never an address, a name or a password (rule python-cli-output,
-  §1, §4, §6). The log line names the `step` the first pass stopped in.
+- Progress: one short English line per step on stderr (`Deps.say`; the CLI adds the local time),
+  built from the container's events — where the read is, never an address, a name or a password
+  (rule python-cli-output §1, §4, §6; constitution 2.12.0, Language). The log line names the `step` the first pass stopped in.
 - A step of spec 001 that fails (its JSON says `ok: false`, it leaves no JSON and a non-zero exit,
   or it runs out of time) stops the run with that step's reason and the same notification.
 """
@@ -113,7 +113,7 @@ def _counted(n: int, one: str, many: str) -> str:
 
 
 class Progress:
-    """The container's events as one Spanish line per step, or None for an event that says nothing new."""
+    """The container's events as one English line per step, or None for an event that says nothing new."""
 
     def __init__(self) -> None:
         self.index, self.total = 0, 0
@@ -124,33 +124,35 @@ class Progress:
         kind = event.get("event")
         if kind == "home":
             if event.get("state") == "alive":
-                return f"{OK} sesión abierta en Classroom"
+                return f"{OK} Classroom session open"
             if event.get("state") == "expired":
-                return f"{FAIL} Classroom no abre tras iniciar sesión" if self.signed_in else "la sesión ha caducado"
+                return (
+                    f"{FAIL} Classroom does not open after signing in" if self.signed_in else "the session has expired"
+                )
             return None
         if kind == "signin_start":
-            return "iniciando sesión con la contraseña guardada …"
+            return "signing in with the stored password …"
         if kind == "signin":
             result = event.get("result")
             self.signed_in = result == "signed_in"
-            return f"{OK} sesión iniciada" if result == "signed_in" else f"{FAIL} inicio de sesión parado: {result}"
+            return f"{OK} signed in" if result == "signed_in" else f"{FAIL} sign-in stopped: {result}"
         if kind == "account":
             return {
-                "ok": f"{OK} cuenta del colegio comprobada",
-                "other_account": f"{FAIL} el perfil tiene abierta otra cuenta",
-                "none": f"{FAIL} la página no muestra ninguna cuenta",
+                "ok": f"{OK} school account checked",
+                "other_account": f"{FAIL} another account is signed in to the profile",
+                "none": f"{FAIL} the page names no account",
             }.get(str(event.get("result")))
         if kind == "classes":
             if "stop" in event:
-                return f"{FAIL} la lista de clases no se pudo leer: {event['stop']}"
-            return f"{OK} {_counted(int(event.get('to_read', 0)), 'clase', 'clases')} que leer"
+                return f"{FAIL} the class list could not be read: {event['stop']}"
+            return f"{OK} {_counted(int(event.get('to_read', 0)), 'class', 'classes')} to read"
         if kind == "class_start":
             self.index, self.total = int(event.get("index", 0)), int(event.get("total", 0))
             return None
         if kind == "class":
-            where = f"clase {self.index}/{self.total}"
+            where = f"class {self.index}/{self.total}"
             if event.get("type") == "class":
-                return f"{OK} {where}" + ("" if event.get("complete") else " (incompleta: se repite en la próxima)")
+                return f"{OK} {where}" + ("" if event.get("complete") else " (incomplete: read again next time)")
             return f"{FAIL} {where}: {event.get('reason')}"
         return None
 
@@ -294,7 +296,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     if not deps.container.available():
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     try:
-        _say(deps, "preparando el contenedor …")
+        _say(deps, "preparing the container …")
         image = deps.container.ensure_image()
     except ContainerError:
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
@@ -314,7 +316,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     out = cfg.data_dir / f"classroom-out-{run}"
     try:
         with _Renewer(lock, run):
-            _say(deps, "abriendo Classroom …")
+            _say(deps, "opening Classroom …")
             end = deps.container.run(image, request, profile, out, _speaker(deps, events))
     except ContainerError:
         shutil.rmtree(out, ignore_errors=True)
@@ -335,7 +337,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(reason or StopReason.UNEXPECTED_UI)) | {"capture": capture, "blocked": blocked}
     _hand_over(out, cfg.downloads, run)
-    _say(deps, "recogiendo las capturas y planificando …")
+    _say(deps, "collecting the captures and planning …")
     collected = deps.steps(["download", "collect", "--wait", "10"], run)
     planned = {} if _failed(collected) else deps.steps(["classroom", "plan"], run)
     attachments: dict[str, int] = {"brought": 0, "not_brought": 0, "refused": 0}
@@ -343,7 +345,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         session = reason not in NO_SESSION and not blocked.get("redirects")
         attachments = _attachments(cfg, lock, deps, run, image, planned, session, logged)
     if not _failed(collected) and not _failed(planned):
-        _say(deps, "colocando en Drive …")
+        _say(deps, "placing in Drive …")
     applied = {} if _failed(collected) or _failed(planned) else deps.steps(["classroom", "apply"], run)
     failed = next((step for step in (collected, planned, applied) if _failed(step)), None)
     if failed is not None:
@@ -400,7 +402,7 @@ def _attachments(
     counts = {"brought": 0, "not_brought": len(wanted), "refused": 0}
     if not wanted or not session:
         return counts
-    _say(deps, f"bajando {_counted(len(wanted), 'adjunto', 'adjuntos')} …")
+    _say(deps, f"fetching {_counted(len(wanted), 'attachment', 'attachments')} …")
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": None, "signin": False, "fetch": wanted}
     out = cfg.data_dir / f"classroom-out-{run}-attachments"
     events: list[dict[str, Any]] = []
@@ -434,7 +436,7 @@ def _attachments(
     shutil.rmtree(out, ignore_errors=True)
     refused = int(end.get("attachments", {}).get("refused", 0))
     counts = {"brought": placed, "not_brought": len(wanted) - placed - refused, "refused": refused}
-    _say(deps, f"{OK} adjuntos: {placed} traídos, {counts['not_brought']} no traídos, {refused} rechazados")
+    _say(deps, f"{OK} attachments: {placed} brought, {counts['not_brought']} not brought, {refused} refused")
     return counts
 
 
