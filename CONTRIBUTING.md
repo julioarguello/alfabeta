@@ -34,13 +34,13 @@ It runs, in this order:
 
 Outside CI, `make ci` also fails if the pre-commit hook is missing or stale.
 
-GitHub runs the same `make ci` on every pull request (`.github/workflows/ci.yml`). The `autofix`
-job beside it only reports what ruff would change and never blocks.
+GitHub runs the same `make ci` on every pull request, after the two setup goals and in the same
+invocation: `make setup-python setup-node ci` (`.github/workflows/ci.yml`). The `autofix` job beside
+it only reports what ruff would change and never blocks.
 
 `make` runs its targets one at a time, whatever `-j` asks for, a `MAKEFLAGS` your shell exports
-included: the Makefile is `.NOTPARALLEL`. CI prepares and checks in one invocation,
-`make setup-python setup-node ci`, and side by side its `npm ci` would remove and reinstall
-`node_modules` while `node --test` reads it.
+included: the Makefile is `.NOTPARALLEL`. Side by side, that invocation's `npm ci` would remove and
+reinstall `node_modules` while `node --test` reads it.
 
 - Pyright in strict mode is the only type checker. Do not add mypy.
 - A gate that inspected nothing is not green. pytest exits non-zero when it collects zero tests.

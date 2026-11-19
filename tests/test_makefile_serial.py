@@ -23,7 +23,8 @@ PROBE = """
 probe-a probe-b:
 \t@echo "start-$@" >> "$(TRACE)"; sleep 0.5; echo "end-$@" >> "$(TRACE)"
 """
-# What the make that runs the tests, or the shell, exported: a child would read its flags from them.
+# What a make exports to what it runs, and what a shell may export for it. The probe takes its flags
+# from its own command line only: make reads them from MAKEFLAGS and GNUMAKEFLAGS.
 INHERITED = {"MAKEFLAGS", "MFLAGS", "GNUMAKEFLAGS", "MAKELEVEL"}
 
 
