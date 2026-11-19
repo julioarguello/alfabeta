@@ -93,7 +93,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   class's classwork, its stream, an assignment's, a material's and a question's detail, and the
   to-do lists — recorded on this account in spike S8, with each name's response tag. A name is
   admitted only if every response seen for it carries a query, list or get tag (as the peer's
-  `hrq.*`, `hrsi.qr`, `hrcw.qr`, `hrt.qr`) and it is needed for a field the capture holds. A name
+  `hrq.*`, `hrsi.qr`, `hrcw.qr`, `hrt.qr`) and it is needed for a field the capture holds (or the
+  page needs it: see «A tagged name the page needs» below). A name
   never seen is blocked and counted. The peer's thirteen names seed what S8 looks for; they are not
   copied into the allowlist.
 - **One exception, by name (family decision of 2026-11-19, #270)**: `t51ITc` is admitted although its
@@ -106,10 +107,12 @@ measured on this account; they seed the spikes below and replace none of them (F
   family's decision («Admitirla, seguir», the operator, 2026-11-19; spec Clarifications, Session
   2026-11-19), not a measurement. No other untagged name is admitted; a new one stays blocked until a
   recording and a decision of its own.
-- **A tagged name the page needs** (2026-11-19, S8's second half): a name whose answers carry a
-  query tag but no field of the capture is admitted when the page the read loads cannot work without
-  it — as R4 allows what a page cannot load without. S8 found one, `UG41I` (`hrq.usr`): without it
-  the home page lists no class.
+- **A tagged name the page needs** (2026-11-19, S8's second half): a name every answer of which
+  carries a query, list or get tag (as recorded in S8's first half) but no field of the capture is
+  admitted when a recording shows the page the read loads failing with it blocked — by the same
+  test as R4's for what a page cannot load without. The page sends it; the read by calls never does,
+  and nothing of its answer is kept (constitution III). S8 found one, `UG41I` (`hrq.usr`): with it
+  blocked the home page listed no class (16:43).
 - **What cannot be measured, said plainly**: no spike sends a write to prove it is one, since that
   is what constitution IV forbids. "Reads and writes can be told apart by call name" therefore means:
   a read-only load of every page needed sends only names whose responses are queries, and each name
@@ -329,7 +332,7 @@ the family's.
 | Spike | Who | Pass | If it fails |
 |---|---|---|---|
 | **S7 · The sign-in window and the profile.** Start the installed Chrome with a fresh profile in the data folder and `--remote-debugging-pipe`; the family signs in by hand; `Target.getTargets` shows the address reach Classroom; alfabeta closes it; Playwright (`channel="chrome"`, keychain flags removed) opens the profile headless and loads one Classroom page with the session; the window can be brought to the front by process id | agent + family sign-in | Google accepts the sign-in with the same steps the R20 probe of 2026-11-01 showed, and no «this browser may not be secure» page; the address change is seen; the headless open reads the session with no keychain dialog | Sign-in refused with the flag: R5's fallback (watch the process only) and FR-010 amended. Session not readable headless: the read is not built |
-| **S8 · The calls of every page** (widens spec 001's S6). Behind the minimal guard (document-load allowlist, zero presses), load once each page kind of R3 for two classes, headless, and record per request: method, host, path, call names, response tag — never bodies or cookies | agent + family sign-in | Every capture field comes from a name whose responses are queries, or from the name R3 admits by name; the pages load with everything outside those names and the session upkeep blocked; the stream's announcements are found | A needed field only behind a non-query name: FR-004 not met, the read is not built, this plan says so. *(2026-11-19: S8 failed this way on `t51ITc` alone; the family admitted it by name in R3, #270. Its second half passed the same day with ten names, research «S8, second half»)* |
+| **S8 · The calls of every page** (widens spec 001's S6). Behind the minimal guard (document-load allowlist, zero presses), load once each page kind of R3 for two classes, headless, and record per request: method, host, path, call names, response tag — never bodies or cookies | agent + family sign-in | Every capture field comes from a name whose responses are queries, or from the name R3 admits by name; besides those, only tagged names R3 admits because the page needs them are let through; the pages load with everything outside those names and the session upkeep blocked; the stream's announcements are found | A needed field only behind a non-query name: FR-004 not met, the read is not built, this plan says so. *(2026-11-19: S8 failed this way on `t51ITc` alone; the family admitted it by name in R3, #270. Its second half passed the same day with ten names, research «S8, second half»)* |
 | **S9 · A whole read by calls, compared.** Same day, same classes: the current extractor (the family's usual run) and a throwaway read by S8's names from S7's profile, headless, timed; then fetch every listed attachment through the request context (R8) | agent + family sign-in | All classes read in under 30 minutes of the sign-in with no challenge; the same item ids (base64 of decimals), types, topics, attachments and stream posts; the status table of R7 filled with no contradiction; attachment bytes equal the replicas | A challenge: stop (constitution IV), record it, the read is not built. Differences: recorded per field; a field that cannot be matched is a spec question before building |
 | **S10 · From launchd, screen locked, no app open.** Install a throwaway LaunchAgent that runs S7's headless open at a set minute; the family locks the Mac and closes the Claude app; then a second agent opens the sign-in window | agent + family (lock the Mac, sign in) | The headless open reads the session with no keychain or other dialog; the window is there when the Mac is unlocked | A keychain dialog: the read profile's cookie key needs a one-time "Always allow" at set-up, recorded in the quickstart; a window that cannot open while locked: FR-012's unlock-first order is written into the notice |
 | **S11 · The remote view and the link.** Set up Chrome Remote Desktop to the Mac on the family's Google account; from the family's phone, open the remote view, unlock the Mac with its password, sign in in the window; time it; try R10's candidates from the phone and from the Mac | family phone + family sign-in | The sign-in completes from the phone in under 2 minutes from opening the link (SC-002); R10 records which link does what | No remote view to a locked Mac: the family signs in at the Mac, and FR-012 is amended |
@@ -687,7 +690,8 @@ the 34 posting days; `pONvgf` (`hrsi.qr`) 14 and 26. No due instant appeared as 
 year-month-day run. The posting days are a loose match (any epoch of that day; it also fires on
 calls that do not hold posting dates, e.g. `Zj93ge` 22); the due instants an exact one. The guard
 blocked 12 frame loads, not breached. Statuses and grades are still unmapped: the capture holds them as texts and codes, and
-`Zj93ge` (`hrq.sub`, the submissions by its tag) is the likely carrier, not shown.
+`Zj93ge` (`hrq.sub`, the submissions by its tag) is the likely carrier, not shown; statuses arrive
+under the ten names (above) and their table is S9's (R7).
 
 What it leaves open:
 
@@ -696,6 +700,7 @@ What it leaves open:
 - **Still to measure before anything is built** (R3, FR-004's note): the to-do pages (outside the
   container guard's pages), the session upkeep's exact host and path (R4), Classroom's own
   non-`batchexecute` POSTs (R4: allowed by host and path, or blocked), and the mapping of comments,
-  grades and returned marks to calls (due dates: above); then S9.
+  grades and returned marks to calls (due dates: above; posting days and the status table: S9's
+  comparison, R7); then S9.
 - **The probes** are on branch `spike/267-s8-calls` (`spikes/s8b_*`, `spikes/s8_dates.py` with
-  `spikes/s8_dates_prepare.py`), kept off `main`.
+  `spikes/s8_dates_prepare.py` and `spikes/s8_dates_run.sh`), kept off `main`.
