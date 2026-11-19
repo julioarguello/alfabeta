@@ -430,3 +430,103 @@ What it settles and leaves open:
   project, with the job, its image and its service account) was deleted on 2026-11-17 with the
   operator's yes, as S4's token was.
 
+### S15 · Reading only the classes with news — not feasible
+
+Asked in julioarguello/alfabeta#263: can `classroom refresh` skip the classes that did not change
+since the last read, with a periodic full read, so a run reads fewer pages at the same pace
+(constitution IV rules out reading classes in parallel)? Measured 2026-11-19, read-only, by Claude on the
+operator's standing permission to run tests, inside spec 001 research R15's limits: no sign-in, no
+password, `signin: false`. Nothing printed or kept names a student, a teacher, an account or a class
+title.
+
+**The pass rule, fixed before the numbers.** A change signal is reliable only if, whenever it says
+«unchanged», every field that `classroom plan`, `classroom apply` and the agenda take from the class
+is unchanged too: the items and topics, each item's attachments (they are what the read copies to
+Drive), its due date, posting and modification dates, and the student's status, grade, return and
+teacher comment. One miss on any of those fails it; so does a signal that flags most classes on most
+days (nothing saved).
+
+**What a skipped class costs downstream (code, read).** Nothing breaks: the run's scope is the
+lease's class list, which `download collect` fills from this run's captures, so a class with no
+capture in the run is neither planned, applied nor withdrawn, its earlier captures are kept
+(`plan.prune_captures` keeps them by class), and the agenda keeps the class's items from the state
+and the instant of its newest earlier capture. Two things go stale with it: the plan's
+periodic attachment review (`[sync] full_review_days`) covers only the classes in scope yet the run
+is logged `full_review: true`, so a skipped class would miss it; and the agenda's past-exam test
+(`agenda.later_than`) compares with the class's newest capture instant, which stays old (an exam is
+shown as coming for longer — the safe side).
+
+**The cheapest page that could carry a signal (data/captures, offline).** The two pages per class
+that the extractor already reads besides the item details — «Trabajo de clase» (each item's id,
+title, topic, type and its listing date text) and the stream (each post's id, date text, text and
+attachments) — were taken as a fingerprint and compared with what the full capture holds. Over the
+12 classes' captures kept in the data folder from 2026-10-28 to 2026-11-18 (106 class captures; 83 consecutive pairs of the same
+class, 11 pairs with an incomplete capture left out), normalised with `capture.normalize_class`:
+
+| Consecutive pairs | Count |
+|---|---|
+| Fingerprint changed (the class would have been read) | 35 |
+| Fingerprint unchanged and nothing consumed changed (a correct skip) | 43 |
+| **Fingerprint unchanged but a consumed field changed (a wrong skip)** | **5** |
+
+The fingerprint would have skipped 48 of the 83 pairs; 5 of those 48 skips were wrong.
+
+The five wrong skips, each traced through every kept capture of its item, by what changed
+on the item's detail page only:
+
+| Wrong skip | What it was |
+|---|---|
+| 1 pair | **A read miss repaired, not a change**: one capture of 2026-11-10, marked `complete`, held two items with no attachments (they have them in every capture before and after) and a garbled status text; the next read brought them back |
+| 1 pair | An attachment renamed by the teacher (same Drive id, new name, kept since) |
+| 1 pair | Attachments replaced by files of the same names (one Drive id out, another in, kept since): to the plan a new attachment to copy |
+| 2 pairs | The student's side: status to «Calificado» with a grade, once with the submission's file |
+
+So four real changes that alfabeta acts on — two to the files it copies, two to the student's
+status and grade — sat behind an unchanged fingerprint: 4 of 48 skips (1 in 12), and none moved the
+item's listing date text. Both captures of each pair are `complete` and of the same extractor
+version. The listing and the stream cannot be finer than the item's detail page, where these four
+changes live.
+
+**The home page `/u/0/h` (live, one page load).** Measured 2026-11-19 at 09:40, right after the
+family's `classroom refresh` of that morning (its own sign-in, 12 of 12 classes), by a diagnostic run of the
+read image (Playwright 1.64.1, Google Chrome, linux/amd64) with `signin: false` and no password: the read profile mounted, `/app/read.py`'s `Guard`
+installed as the read installs it, one load of the home page, the account check, then a count of each
+class card's elements, attribute names, `aria-label`s and text pieces — never their text.
+
+| Question | Answer |
+|---|---|
+| Session alive, expected account | yes, yes |
+| Class cards | 12, each with 88 elements and the same attribute names, but for the one card below whose preview item adds `data-stream-item-id` |
+| A «new» or «unread» badge, a count, an activity or last-update text or attribute on a card | no (0 of 12) |
+| A `data-` attribute named for a change, a time or a count | no: 23 `data-` names, the same on every card — the class and user ids and widget wiring (`data-focus-id`, `data-tooltip-id`, `data-menu-uid`…); values not read |
+| A date on a card | only on 1 of 12: the card's «upcoming work» preview, one link to an assignment due soon |
+| Card links | the class stream, the student's own work page, the class's Drive folder, and that one assignment |
+| Guard | 2 frame loads blocked, no redirect, no press |
+
+The upcoming-work preview names assignments with a due date in the coming days, so it moves only
+when such an assignment appears or falls due: it says nothing of a material, an announcement, an
+attachment added to an existing item, or a grade. Between the night read of 2026-11-18 and that
+morning's read no class changed (the two newest captures of each class are equal), so the cards
+could not be watched turning over: the snapshot is of a no-news state, in which a marker drawn only
+when there is news would be absent too.
+
+**Verdict: not feasible.** No page the read may load was seen to say that a class changed in the
+fields alfabeta copies: the listing and the stream hid a real change in 1 in 12 of the classes they
+would skip, two of them to attachments, which are what the read is for; the home page's cards
+showed no change marker in a no-news state, and the only dated thing on them, the upcoming-work
+preview, cannot see an attachment or a grade. A periodic full read would bound how late such a
+change arrives, not prevent it. The read keeps reading every class. A faster read stays where the
+spec put it: the read by Classroom's own calls (FR-003, FR-004, R1), still planned and unmeasured
+(S8, S9).
+
+What it leaves open:
+
+- **Not measured**: the home page's cards at a moment when a class has news (a new material, an
+  attachment added, a grade). A marker that shows only then would not have been seen; it would
+  still have to cover detail-only changes to pass the rule above.
+- **A `complete` capture can miss attachments** (the 2026-11-10 read above, before the container
+  read): a full read every run repairs it on the next run, a skip would not. It is a question for
+  the extractor's readiness test, not for this entry.
+- **The probes** are on branch `spike/263-incremental-read` (`spikes/s15_*`), kept off `main`: the
+  offline comparison over `data/captures` and the home-page probe run in the read image with
+  `--entrypoint python`, which imports `/app/read.py` and installs its `Guard`.
