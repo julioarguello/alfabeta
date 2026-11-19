@@ -10,3 +10,4 @@ __pycache__/
 .venv/
 node_modules/
 .pytest_cache/
+spikes/s15-out/
