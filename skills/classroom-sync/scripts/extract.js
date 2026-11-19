@@ -416,30 +416,68 @@
     });
   }
 
+  // What a page shows, as the capture reads it: a page is read once this has held still. On
+  // 2026-11-10 two classes were read while their item pages were still painting — two items without
+  // their attachments, two without their points and status — and the pages were taken as ready.
+  function pageReading(path, doc) {
+    try {
+      if (/\/details$/.test(path)) return JSON.stringify(readDetail(doc));
+      if (/\/w\/[^/]+\/t\/all$/.test(path)) return JSON.stringify(readClasswork(doc));
+      return JSON.stringify(readStream(doc));
+    } catch (_) {
+      return null;
+    }
+  }
+
   // The default loader: a hidden same-origin iframe, so the injected script is never lost. It polls
   // from the start; a frame that leaves Classroom (Google's sign-in) is an expired session. It waits
-  // while the tab is hidden, and time spent hidden does not count towards the timeout.
-  function iframeLoader(win, { timeoutMs = 40000, attempts = 2 } = {}) {
+  // while the tab is hidden, and time spent hidden counts towards nothing. A ready page is taken once
+  // its reading has held still for `settleMs` on screen; one that keeps changing for `settleCapMs`
+  // is `unsettled`, a failed load like a timeout (loaded again, then left out as incomplete).
+  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300 } = {}) {
     const once = (path) => new Promise((resolve, reject) => {
       const frame = win.document.createElement("iframe");
       frame.style.cssText = "position:absolute;left:-10000px;width:1200px;height:800px;visibility:hidden";
       frame.src = path;
       win.document.body.appendChild(frame);
       let started = Date.now();
+      let tick = Date.now();
+      let ready = false;
+      let reading = null; // what the ready page showed at the last poll
+      let still = 0; // time on screen the reading has not changed
+      let settling = 0; // time on screen since the page was first ready
+      const stop = (err) => { win.clearInterval(poll); frame.remove(); reject(err); };
       const poll = win.setInterval(() => {
-        if (win.document.visibilityState === "hidden") { started = Date.now(); return; }
+        const now = Date.now();
+        const step = now - tick;
+        tick = now;
+        if (win.document.visibilityState === "hidden") { started = now; return; }
         let doc = null;
         try { doc = frame.contentDocument; } catch (_) { doc = null; }
         if (doc === null || (doc.location && /accounts\.google\.com/.test(doc.location.host))) {
-          win.clearInterval(poll); frame.remove(); reject(new SessionExpired()); return;
+          stop(new SessionExpired()); return;
         }
         if (doc.body && doc.location.href !== "about:blank" && pageReady(path, doc)) {
-          win.clearInterval(poll);
-          win.setTimeout(() => { resolve({ doc, path: frame.contentWindow.location.pathname }); win.setTimeout(() => frame.remove(), 0); }, 1500);
-        } else if (Date.now() - started > timeoutMs) {
-          win.clearInterval(poll); frame.remove(); reject(new Error("timeout"));
+          const current = pageReading(path, doc);
+          if (!ready) {
+            ready = true; reading = current; still = 0;
+          } else {
+            settling += step;
+            if (current === reading) { still += step; } else { reading = current; still = 0; }
+          }
+          if (still >= settleMs) {
+            win.clearInterval(poll);
+            resolve({ doc, path: frame.contentWindow.location.pathname });
+            win.setTimeout(() => frame.remove(), 0);
+          } else if (settling >= settleCapMs) {
+            stop(new Error("unsettled"));
+          }
+        } else if (ready) {
+          ready = false; // it was ready and is not any more: its reading starts again when it is
+        } else if (now - started > timeoutMs) {
+          stop(new Error("timeout"));
         }
-      }, 300);
+      }, pollMs);
     });
     return async (path) => {
       let last;
