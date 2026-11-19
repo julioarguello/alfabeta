@@ -31,8 +31,11 @@ hook-check:
 lint:
 	@echo "==> ruff check"; uv run --locked ruff check
 
+# ruff skips what the clone's own .git/info/exclude hides, tracked or not: a clone whose exclude file
+# hides .claude/ would pass an edit to a rule there that CI, with no such line, rejects. A directory
+# named on the command line is read all the same (#276; tests/test_makefile_format_check.py).
 format-check:
-	@echo "==> ruff format --check"; uv run --locked ruff format --check
+	@echo "==> ruff format --check"; uv run --locked ruff format --check . .claude/rules
 
 typecheck:
 	@echo "==> pyright"; uv run --locked pyright
