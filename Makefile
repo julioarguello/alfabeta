@@ -31,11 +31,14 @@ hook-check:
 lint:
 	@echo "==> ruff check"; uv run --locked ruff check
 
-# ruff skips what the clone's own .git/info/exclude hides, tracked or not: a clone whose exclude file
-# hides .claude/ would pass an edit to a rule there that CI, with no such line, rejects. A directory
-# named on the command line is read all the same (#276; tests/test_makefile_format_check.py).
+# ruff skips what an ignore file hides, tracked or not, and a clone's own .git/info/exclude is one: a
+# clone that hides .claude/ passed an edit to a rule there that CI, with no such line, rejects. So the
+# recipe also names the tracked files an ignore file hides, asked of git: none in a fresh checkout.
+# The suffixes are the ones ruff formats (a file of another kind named there is read as Python), and
+# --force-exclude keeps pyproject.toml's own exclusions over a named file (#276;
+# tests/test_makefile_format_check.py).
 format-check:
-	@echo "==> ruff format --check"; uv run --locked ruff format --check . .claude/rules
+	@echo "==> ruff format --check"; uv run --locked ruff format --check --force-exclude . $$(git ls-files -ci --exclude-standard -- '*.py' '*.pyi' '*.ipynb' '*.md')
 
 typecheck:
 	@echo "==> pyright"; uv run --locked pyright
