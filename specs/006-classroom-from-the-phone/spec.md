@@ -213,6 +213,17 @@ names and response shapes are a starting point, not a measurement of this accoun
   Claude in Chrome (spec 001). A hand sign-in in the Mac's Chrome cannot give the container a
   session (R2), and a window for the container's own browser would add a remote display (FR-032).
 
+### Session 2026-11-19
+
+- Q: Spike S8 found the teacher's attachment ids only behind `t51ITc`, a call whose answers carry no
+  tag, so S8 failed by research R3's tag rule. Asked «¿Admitimos `t51ITc` y seguimos con la lectura
+  por llamadas, o la paramos?», the operator chose the offered answer, 2026-11-19: «Admitirla,
+  seguir». → A: R3
+  admits `t51ITc` by name as its one exception (no other untagged name; a new one needs a recording
+  and a decision of its own); the family reads FR-004 as met with that exception; before anything
+  is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9. Constitution IV's text is unchanged: no write is sent to test it, and the
+  guard still blocks every name outside the allowlist by construction.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures alfabeta and signs the student's school
@@ -375,7 +386,11 @@ arrives.
   widens spec 001's S6 to them. The peer project's catalogue may seed the recording but does not
   replace it. If reads and writes cannot be told apart by call name on this account, this read is
   not built and the plan says so. *(Amendment 2026-11-17: FR-003 and FR-004 are the read by calls,
-  which stays planned; the read the amendment builds is alfabeta's extractor, FR-030.)*
+  which stays planned; the read the amendment builds is alfabeta's extractor, FR-030.)* *(2026-11-19:
+  the allowlist is research R3's, which admits by name one call whose answers carry no tag,
+  `t51ITc`, the only one seen carrying the teacher's attachment ids — the family's decision after
+  spike S8, #270 (Clarifications, Session 2026-11-19); the family reads FR-004 as met with that
+  exception; before anything is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9.)*
 - **FR-005**: Read-only MUST hold by construction during the whole read (constitution IV), with the
   guard of spec 001 research R18 installed in the browser before any page script runs. It blocks,
   before they reach Classroom, every press, every document load outside the pages spec 001 FR-007

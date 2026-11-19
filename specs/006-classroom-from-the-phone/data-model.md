@@ -63,7 +63,7 @@ Transitions: `waiting` → (`address` \| `closed` \| `timeout`) → one session 
 
 | Field | Rule |
 |---|---|
-| names | the call names S8 records as needed and query-only (research R3); a constant in the code |
+| names | the call names S8 records as needed and query-only, plus the one R3 admits by name (`t51ITc`, research R3); a constant in the code |
 | recorded_on | the date of the recording; changed only by a new recording in a pull request |
 
 A request whose names are not all in `names` is blocked and counted under `blocked.calls`.
