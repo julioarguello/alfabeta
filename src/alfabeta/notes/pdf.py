@@ -177,7 +177,7 @@ class ReportlabPdfBuilder:
         """A page whose photo has left Drive: its heading, the line saying so, and its transcription."""
         return [
             Paragraph(page.heading, self._heading),
-            Paragraph(f'<font color="#666666"><i>{html.escape(NO_PHOTO)}</i></font>', self._body),
+            Paragraph(f'<font color="#666666">{html.escape(NO_PHOTO)}</font>', self._body),
             Spacer(1, 0.25 * cm),
             *self._text(page.markdown),
             PageBreak(),

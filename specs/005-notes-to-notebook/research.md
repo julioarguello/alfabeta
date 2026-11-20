@@ -176,8 +176,10 @@ own table is the subset the requirements rest on; this one is the full list.
     transcription, with a line where the photo was: «La foto de esta página ya no está en Drive; se
     conserva su transcripción.» (constitution V, julioarguello/alfabeta#242). The photo going does not
     by itself rebuild the file, which still holds it; the next build for another reason draws the page
-    without it, and the photo's return through the feed draws it again. A listed photo that Drive fails
-    to read is not gone: that build stops, and the topic keeps what it owes for the next pass.
+    without it and records `without_photo` on the page. The first pass whose listing holds that photo
+    again rebuilds the file with it, since a photo back from the trash with the same bytes is no
+    arrival of the feed. A listed photo that Drive fails to read is not gone: that build stops, and the
+    topic keeps what it owes for the next pass.
   - Classroom: a cover page, then per item (a file, a `.md` note or a folder, first table) one entry:
     a cover page with title, posting date, the text of `descripcion.md` (or an assignment's
     `enunciado.md`) and the addresses of `enlaces.md`, then each file's pages. A PDF is copied page by page; a Google-native file is

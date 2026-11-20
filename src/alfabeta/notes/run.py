@@ -89,6 +89,9 @@ _HEADING = re.compile(r"^#{1,6} ", re.MULTILINE)
 # On a page's record: its text or heading changed and the living file does not hold it yet, whatever
 # stopped the rebuild (a missing living file, Drive failing); the first pass that builds the file clears it.
 UNBUILT = "unbuilt"
+# On a page's record: its living file was last built without its photo, gone from Drive (#242); the first
+# pass whose listing holds the photo again rebuilds the file, since a return the same bytes is no arrival.
+WITHOUT_PHOTO = "without_photo"
 # What a report counts per topic (contracts/cli.md); a topic is an opaque index, never a name or id.
 COUNTS = (
     "pages_added",
@@ -780,6 +783,7 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
         work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED
         or work.pages[p.photo_id].get(UNBUILT)
         or work.pages[p.photo_id].get("statements", {}).get(statements.UNBUILT)
+        or (work.pages[p.photo_id].get(WITHOUT_PHOTO) and deps.drive.contains(p.photo_id))
         for p in pages
     )
     if topic not in work.dirty and not waiting:
@@ -791,8 +795,12 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
     built, upload = living.built(hashlib.md5(data).hexdigest(), count)
     if upload:
         deps.drive.update(living.file_id, data, PDF)
-    for p in pages:
+    for p, image in drawn:
         work.pages[p.photo_id].pop(UNBUILT, None)
+        if image is None:
+            work.pages[p.photo_id][WITHOUT_PHOTO] = True
+        else:
+            work.pages[p.photo_id].pop(WITHOUT_PHOTO, None)
         work.pages[p.photo_id].get("statements", {}).pop(statements.UNBUILT, None)
         if work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED:
             work.files[p.photo_id]["state"] = str(PhotoState.IN_LIVING_FILE)

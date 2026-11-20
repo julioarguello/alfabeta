@@ -964,7 +964,7 @@ class MarkdownPdf(CountingPdf):
     """A living file whose bytes hold each page's text, as the real one does."""
 
     def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes | None]]) -> tuple[bytes, int]:
-        return "".join(p.markdown for p, _ in pages).encode(), 1 + 2 * len(pages)
+        return "".join(p.markdown for p, _ in pages).encode(), super().notes(topic, pages)[1]
 
 
 def test_a_living_file_that_could_not_be_rebuilt_gets_the_lines_on_the_next_run():
