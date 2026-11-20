@@ -230,13 +230,16 @@ names and response shapes are a starting point, not a measurement of this accoun
   operator answered them in the S9 session, 2026-11-20 (#283). → A:
   - **The student's number** `Zj93ge` needs: the read sends `UG41I` once, first, keeps the number
     in memory for that run only, and uses it; nothing else of `UG41I`'s answer is kept (R3).
-  - **Attachment names**: the name the call gives, as it comes, by a deterministic rule (R7).
+  - **Attachment names**: the name the call gives, as it comes; nothing added (R7).
   - **Paging**: every list call is paged until Classroom says there is no more — the worst case is
     assumed, not the 10 items S9 saw (R1).
   - **The two stream-only item records**: measured and explained before the build (S9's second
     measurement, #283).
-  - **The teacher's «missing» mark** (`missing_per_teacher`): the read detects it from the calls and
-    raises it as an event of its own (R7); where it lives is S9's second measurement.
+  - **The teacher's «missing» mark** (`missing_per_teacher`): the read detects it from the calls; it
+    overrides the item's status, as in spec 001, and its appearance raises an event, once (R7); the
+    channel is to be specified before the build; where it lives is S9's second measurement.
+  - Also: classes are not read in parallel (constitution IV, «no bursts»); grouping calls as the
+    page does is to be measured (R1), FR-003's «one call at a time» standing until then.
 
 ## User Scenarios & Testing *(mandatory)*
 

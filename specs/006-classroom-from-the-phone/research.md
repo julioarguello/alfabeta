@@ -55,9 +55,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   for two classes, 1.79 s a call; about 17 minutes extrapolated for the run's 12 classes, under
   30 but slower than the extractor's 884 s for the same run; research «S9».)* *(2026-11-20, family
   decision, #283: every list call is paged until Classroom says there is no more, whatever the
-  page size seen; and calls are grouped as the page itself groups them — several items in one call,
-  several names in one request — to be measured in S9's second measurement. Classes are not read in
-  parallel: constitution IV, «no bursts».)*
+  page size seen. Classes are not read in parallel: constitution IV, «no bursts». Whether calls can
+  be grouped as the page itself groups them — several items in one call, several names in one
+  request — is measured in S9's second measurement; FR-003's «one call at a time» stands until
+  then.)*
 - **Only what changed**: every run lists every active class's items (cheap: a few list calls per
   class), but asks for an item's materials (`t51ITc`-like, one call per item) only when its update
   mark differs from the last capture of that class; otherwise it copies that item's attachment list
@@ -253,13 +254,20 @@ measured on this account; they seed the spikes below and replace none of them (F
   — the read would invent text and its tests would test the invention; a second capture format
   with its own apply — doubles spec 001's apply and its tests (IX).
 - **Attachment names** (2026-11-20, family decision, #283): the read writes the name the call gives,
-  as it comes. A suffix is added only by rule, never by judgement: an empty name becomes the
-  attachment's kind; two attachments of one item with the same name get ` (2)`, ` (3)`… in the
-  order the call lists them. The replica's identity stays its ids (spec 001: unique per source, item
-  and attachment), so a name that differs from the extractor's makes no new replica.
-- **The teacher's «missing» mark** (2026-11-20, family decision, #283): when an item carries it
-  (`missing_per_teacher`), the read raises an event of its own for that item, besides its status,
-  so the family hears of it; the field that carries it is S9's second measurement.
+  as it comes; it adds nothing of its own. An empty name stays empty (spec 001's placement then
+  names the file by its id), and two files with one name in one folder get spec 001's own
+  numbering (FR-015c). The replica's identity stays its ids (spec 001: unique per source, item and
+  attachment), so a name that differs from the extractor's makes no new replica; but spec 001's
+  plan reads a changed name as a rename, so each attachment whose name differs between the two
+  routes (13 of 52 in S9) is downloaded again and moved once each time the route changes.
+  SC-005's comparison of attachments is by id.
+- **The teacher's «missing» mark** (2026-11-20, family decision, #283): the read detects it, and
+  the item's status follows spec 001's rule — `missing_per_teacher` overrides the bucket. When the
+  mark appears (absent from the class's last capture, present in this one) the read raises an
+  event so the family hears of it: once, on that change, not on every read. The channel and its
+  contents (the item's opaque id only, constitution III) are to be specified as a requirement
+  before the build, since no notice kind or result field carries it; the field that holds the mark
+  is S9's second measurement.
 - **Stream**: the class stream's announcements, through the stream query; S8 records which call
   and type carry an announcement (the peer documents assignments, not announcements).
 - **Judgement** (FR-007): unchanged — a class not linked to a subject, a new topic match and an exam
@@ -920,8 +928,8 @@ Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
   has it, and `O1Xqee`'s and `Zj93ge`'s own. The probe took it from the home page's own `O1Xqee`
   request, sent by the page as it loads, and so sent only eight names, never `UG41I` nor `O1Xqee`.
   R3 says nothing of `UG41I`'s answer is kept: taking the number from the page's request needs a
-  decision (or R3 admits reading it). *Decided: the read sends `UG41I` once and keeps the number for
-  the run (R3).*
+  decision (or R3 admits reading it). *Decided: the read sends `UG41I` once and keeps the number in
+  memory for that run only (R3).*
 - **Attachment names.** 13 of 52 names, mostly links, are not in the answers as the capture writes
   them (1 video, 10 links, 2 files), and 2 ids (a form, a link) are in no answer: how the capture's name of a link or a file is
   made has to be settled before the read writes it. *Decided: the call's name, by R7's rule; the
@@ -930,10 +938,16 @@ Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
   run's 12 classes holds exactly 10 items; one more would need the next page, untested. *Decided:
   always paged (R1); paging is forced and tested in S9's second measurement.*
 - **Two stream records.** Class 1's stream (`pONvgf`) held 2 item records, slot 1, that neither
-  `dpT4Vd` nor the capture holds; what they are is not known. The comparison takes items from `dpT4Vd` only; the probe sent the four item calls for
+  `dpT4Vd` nor the capture holds. The read takes items from `dpT4Vd` only; what they are is not
+  known. The comparison takes items from `dpT4Vd` only; the probe sent the four item calls for
   these two as well (8 of the 225). *Decided: measured and explained in S9's second measurement.*
 - **The teacher's «missing» mark** (above). *Decided: detected and raised as an event (R7); its
   field is S9's second measurement.*
+
+**S9's second measurement** (#283), after the next scheduled refresh: the read sending `UG41I`
+itself, once; grouping calls as the page does, and the time of a whole read so grouped; paging
+forced with a small page; the two stream-only records; the field of the teacher's «missing» mark;
+and the two attachments no call returned.
 
 Also measured: **`tQShAc` adds nothing** the `dpT4Vd` record lacks for the compared fields (titles,
 descriptions); leaving it out would save 122 of the 583 calls.
