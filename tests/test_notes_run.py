@@ -305,7 +305,7 @@ def test_with_no_key_no_photo_is_downloaded():
 class ReadingPdf(CountingPdf):
     """A `CountingPdf` whose notes file also carries each page's heading and text, to see a mark or a correction."""
 
-    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
+    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes | None]]) -> tuple[bytes, int]:
         data, count = super().notes(topic, pages)
         return data + b"|" + b"|".join(f"{p.heading}: {p.markdown}".encode() for p, _ in pages), count
 
@@ -536,20 +536,48 @@ def test_a_mark_on_a_page_whose_photo_is_gone_waits_for_the_photo():
     assert "|En corrección: " in drive.bodies[living].decode()
 
 
-def test_a_photo_gone_from_drive_stops_its_topics_file_not_the_pass_and_the_mark_is_kept():
+def test_a_photo_gone_from_drive_leaves_its_page_in_the_file_without_the_photo():
+    """#242: the topic's file is still built; the gone page keeps its text, drawn without its photo."""
     drive = MemoryDrive.topic()
     drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")
     drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
     living = set_up(drive)
     tr = ScriptedTranscriber()
     run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1", "foto-2"]]), tr), pdf=ReadingPdf()))
-    del drive.files["foto-2"]  # its page stays (constitution V), and the living file cannot draw it (#242)
+    writes, downloads = list(drive.updates), len(drive.downloads)
+    del drive.files["foto-2"]  # its page stays (constitution V)
+    assert run_notes(reading(drive, tr))["topics"] == []  # its going alone does not rebuild the file
+    assert drive.updates[len(writes) :] == ["last-run.json"]
     (pdf,) = drive.named(PAGE_PDF)
     rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
     report = run_notes(reading(drive, tr))
-    assert (report["ok"], report["topics"][0]["marks"], report["topics"][0]["failed"]) == (False, 1, 1)
-    assert state_of(drive)["pages"]["foto-1"]["review"] == "wrong"  # saved: the next pass does not read it again
+    assert (report["ok"], report["topics"][0]["marks"], report["topics"][0]["failed"]) == (True, 1, 0)
+    built = drive.bodies[living].decode()
+    assert built.startswith("notes:Tema 01 - Materia inventada:foto-1/wrong,foto-2/automatic/no-photo|")
+    assert "|En corrección: " in built and "Texto de foto dos" in built  # the gone page keeps its text
+    assert "foto-2" not in drive.downloads[downloads:]
+    assert "unbuilt" not in state_of(drive)["pages"]["foto-1"]  # nothing is left owed to the file
+    drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")  # restored from the trash: the feed says so
+    assert run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-2"]]), tr), pdf=ReadingPdf()))["ok"]
+    assert drive.bodies[living].decode().startswith("notes:Tema 01 - Materia inventada:foto-1/wrong,foto-2/automatic|")
+
+
+def test_a_listed_photo_drive_fails_to_read_still_stops_its_topics_file():
+    """An outage is not a photo gone: the file is not built without a photo Drive still has."""
+    drive = MemoryDrive.topic()
+    drive.put("foto-1", "IMG_0001.jpg", "image/jpeg", b"foto uno")
     drive.put("foto-2", "IMG_0002.jpg", "image/jpeg", b"foto dos")
+    living = set_up(drive)
+    tr = ScriptedTranscriber()
+    run_notes(replace(deps(drive, ScriptedFeed(drive, [["foto-1", "foto-2"]]), tr), pdf=ReadingPdf()))
+    before = drive.bodies[living]
+    drive.unreadable.add("foto-2")
+    (pdf,) = drive.named(PAGE_PDF)
+    rename(drive, pdf, "IMG_0001.jpg · transcripción (mal).pdf")
+    assert not run_notes(reading(drive, tr))["ok"]
+    assert drive.bodies[living] == before
+    assert state_of(drive)["pages"]["foto-1"]["unbuilt"]  # the heading is still owed to the file
+    drive.unreadable.clear()
     assert run_notes(reading(drive, tr))["ok"]
     assert "|En corrección: " in drive.bodies[living].decode()
 

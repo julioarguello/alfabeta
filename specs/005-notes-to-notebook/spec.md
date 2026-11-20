@@ -459,7 +459,8 @@ source and one living Classroom source, and that a second run adds nothing.
   faint (clearly in four of eight photos, faintly in the rest, 2026-10-30); it is never
   transcribed as part of the page.
 - **A photo is deleted after its page reached the living file.** The page stays; the family is told
-  (constitution V).
+  (constitution V). The living file keeps the page's transcription, with a line saying the photo is no
+  longer in Drive where the photo was, and the topic's file is still built (research R6).
 - **The AI budget is spent** for the month: transcription and the "what it adds" report wait,
   everything else continues, and the family is told once.
 - **A living file passes the configured page count**: reported before any notebook limit is

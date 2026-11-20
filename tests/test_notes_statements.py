@@ -963,7 +963,7 @@ def test_a_new_page_in_each_run_does_not_keep_an_older_one_searching():
 class MarkdownPdf(CountingPdf):
     """A living file whose bytes hold each page's text, as the real one does."""
 
-    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
+    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes | None]]) -> tuple[bytes, int]:
         return "".join(p.markdown for p, _ in pages).encode(), 1 + 2 * len(pages)
 
 
