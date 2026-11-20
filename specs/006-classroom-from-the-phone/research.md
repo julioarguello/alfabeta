@@ -53,7 +53,11 @@ measured on this account; they seed the spikes below and replace none of them (F
   (constitution IV); each class needs a handful of calls, so a whole read is expected to take
   minutes, well inside SC-003's 30 minutes. S9 measures it. *(2026-11-20, S9: 118 and 106 calls
   for two classes, 1.79 s a call; about 17 minutes extrapolated for the run's 12 classes, under
-  30 but slower than the extractor's 884 s for the same run; research «S9».)*
+  30 but slower than the extractor's 884 s for the same run; research «S9».)* *(2026-11-20, family
+  decision, #283: every list call is paged until Classroom says there is no more, whatever the
+  page size seen; and calls are grouped as the page itself groups them — several items in one call,
+  several names in one request — to be measured in S9's second measurement. Classes are not read in
+  parallel: constitution IV, «no bursts».)*
 - **Only what changed**: every run lists every active class's items (cheap: a few list calls per
   class), but asks for an item's materials (`t51ITc`-like, one call per item) only when its update
   mark differs from the last capture of that class; otherwise it copies that item's attachment list
@@ -118,7 +122,9 @@ measured on this account; they seed the spikes below and replace none of them (F
   admitted when a recording shows the page the read loads failing with it blocked — by the same
   test as R4's for what a page cannot load without. The page sends it; the read by calls never does,
   and nothing of its answer is kept (constitution III). S8 found one, `UG41I` (`hrq.usr`): with it
-  blocked the home page listed no class (16:43).
+  blocked the home page listed no class (16:43). *(2026-11-20, family decision, spec Clarifications
+  2026-11-20, #283: the read by calls sends `UG41I` once, first, for the student's own number, which
+  it keeps in memory for that run only; nothing else of the answer is kept.)*
 - **What cannot be measured, said plainly**: no spike sends a write to prove it is one, since that
   is what constitution IV forbids. "Reads and writes can be told apart by call name" therefore means:
   a read-only load of every page needed sends only names whose responses are queries, and each name
@@ -134,7 +140,8 @@ measured on this account; they seed the spikes below and replace none of them (F
 - **What the read by calls sends** (2026-11-20, S9): eight of the ten names — never `UG41I` nor
   `O1Xqee`, which the home page sends itself. `Zj93ge` needs the student's own number, which only
   `UG41I`'s answer (and `O1Xqee`'s and `Zj93ge`'s own) carries; S9 took it from the home page's own
-  `O1Xqee` request. Whether the read may take it so is open (research, «S9»).
+  `O1Xqee` request. Whether the read may take it so is open (research, «S9»). *(2026-11-20, family
+  decision, #283: the read sends `UG41I` itself, once, as above; nine names, never `O1Xqee`.)*
 
 ### R4. The guard (FR-005), installed before any page script
 
@@ -245,6 +252,14 @@ measured on this account; they seed the spikes below and replace none of them (F
 - **Alternatives rejected**: writing the Spanish texts the page would have shown from the instants
   — the read would invent text and its tests would test the invention; a second capture format
   with its own apply — doubles spec 001's apply and its tests (IX).
+- **Attachment names** (2026-11-20, family decision, #283): the read writes the name the call gives,
+  as it comes. A suffix is added only by rule, never by judgement: an empty name becomes the
+  attachment's kind; two attachments of one item with the same name get ` (2)`, ` (3)`… in the
+  order the call lists them. The replica's identity stays its ids (spec 001: unique per source, item
+  and attachment), so a name that differs from the extractor's makes no new replica.
+- **The teacher's «missing» mark** (2026-11-20, family decision, #283): when an item carries it
+  (`missing_per_teacher`), the read raises an event of its own for that item, besides its status,
+  so the family hears of it; the field that carries it is S9's second measurement.
 - **Stream**: the class stream's announcements, through the stream query; S8 records which call
   and type carry an announcement (the peer documents assignments, not announcements).
 - **Judgement** (FR-007): unchanged — a class not linked to a subject, a new topic match and an exam
@@ -897,24 +912,28 @@ notice says `missing_per_teacher`); the attachments' bytes (R8) were not fetched
 classes and the 30-minute bound are extrapolated; and the questions below are open. No challenge appeared, so nothing stops the read.
 
 Open, before the build (each a spec question under the S9 row: «a field that cannot be matched is
-a spec question before building»):
+a spec question before building»). *(2026-11-20: the operator decided all five the same day — spec
+Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
 
 - **The student's number.** `Zj93ge` (the submission) needs the student's own 12-digit number. It
   is not in `WIZ_global_data` nor in the answer of any call the read sends; only `UG41I`'s answer
   has it, and `O1Xqee`'s and `Zj93ge`'s own. The probe took it from the home page's own `O1Xqee`
   request, sent by the page as it loads, and so sent only eight names, never `UG41I` nor `O1Xqee`.
   R3 says nothing of `UG41I`'s answer is kept: taking the number from the page's request needs a
-  decision (or R3 admits reading it).
+  decision (or R3 admits reading it). *Decided: the read sends `UG41I` once and keeps the number for
+  the run (R3).*
 - **Attachment names.** 13 of 52 names, mostly links, are not in the answers as the capture writes
   them (1 video, 10 links, 2 files), and 2 ids (a form, a link) are in no answer: how the capture's name of a link or a file is
-  made has to be settled before the read writes it.
+  made has to be settled before the read writes it. *Decided: the call's name, by R7's rule; the
+  two missing ids are S9's second measurement.*
 - **Paging.** `dpT4Vd` asks for 10 items a call and was never paged here. The largest topic of the
-  run's 12 classes holds exactly 10 items; one more would need the next page, untested.
+  run's 12 classes holds exactly 10 items; one more would need the next page, untested. *Decided:
+  always paged (R1); paging is forced and tested in S9's second measurement.*
 - **Two stream records.** Class 1's stream (`pONvgf`) held 2 item records, slot 1, that neither
-  `dpT4Vd` nor the capture holds. The read takes items from `dpT4Vd` only; what they are is not
-  known. The comparison takes items from `dpT4Vd` only; the probe sent the four item calls for
-  these two as well (8 of the 225).
-- **The teacher's «missing» mark** (above).
+  `dpT4Vd` nor the capture holds; what they are is not known. The comparison takes items from `dpT4Vd` only; the probe sent the four item calls for
+  these two as well (8 of the 225). *Decided: measured and explained in S9's second measurement.*
+- **The teacher's «missing» mark** (above). *Decided: detected and raised as an event (R7); its
+  field is S9's second measurement.*
 
 Also measured: **`tQShAc` adds nothing** the `dpT4Vd` record lacks for the compared fields (titles,
 descriptions); leaving it out would save 122 of the 583 calls.

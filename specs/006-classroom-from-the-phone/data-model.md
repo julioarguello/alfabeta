@@ -108,7 +108,7 @@ confirmed; the rest stay unconfirmed.)*
 | done late (4) | `turned_in_late` | yes, S9 («Entregado con retraso») |
 | returned, graded, graded late (5 seen: graded) | `returned` | not settled: the one graded item (5) also carried the teacher's «missing» notice, read `missing_per_teacher` today |
 | excused | none (left `null`, listed) | no |
-| teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item) | no |
+| teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item); raises an event of its own (research R7, #283) | no |
 
 ## Read result
 

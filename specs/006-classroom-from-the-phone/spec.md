@@ -224,6 +224,20 @@ names and response shapes are a starting point, not a measurement of this accoun
   is built, S8's second half, the to-do pages, the session upkeep's exact host and path (R4) and the mapping of dates, statuses and grades, then S9. Constitution IV's text is unchanged: no write is sent to test it, and the
   guard still blocks every name outside the allowlist by construction.
 
+### Session 2026-11-20
+
+- Q: Spike S9 left five questions before the build of the read by calls (research «S9»). The
+  operator answered them in the S9 session, 2026-11-20 (#283). → A:
+  - **The student's number** `Zj93ge` needs: the read sends `UG41I` once, first, keeps the number
+    in memory for that run only, and uses it; nothing else of `UG41I`'s answer is kept (R3).
+  - **Attachment names**: the name the call gives, as it comes, by a deterministic rule (R7).
+  - **Paging**: every list call is paged until Classroom says there is no more — the worst case is
+    assumed, not the 10 items S9 saw (R1).
+  - **The two stream-only item records**: measured and explained before the build (S9's second
+    measurement, #283).
+  - **The teacher's «missing» mark** (`missing_per_teacher`): the read detects it from the calls and
+    raises it as an event of its own (R7); where it lives is S9's second measurement.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures alfabeta and signs the student's school
