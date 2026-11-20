@@ -51,6 +51,7 @@ from alfabeta.google.transport import TransportError, UrllibTransport
 from alfabeta.model import AgendaCategory, AgendaList, DecisionType, RunMode, StopReason
 from alfabeta.notes import cli as notes_cli
 from alfabeta.notes import refresh, watch
+from alfabeta.output import say as _say
 
 MADRID = ZoneInfo("Europe/Madrid")
 PROBE_SUMMARY = "Prueba alfabeta · ignorar"
@@ -65,7 +66,7 @@ def _emit(payload: dict[str, Any]) -> None:
 
 
 def _fail(reason: str, code: int, message: str) -> int:
-    print(f"alfabeta: {message}", file=sys.stderr)
+    _say(message)
     _emit({"ok": False, "reason": reason})
     return code
 
@@ -104,9 +105,9 @@ def _refresh_config(home: Path, student: str, started_by: str) -> classroom_refr
 def _cmd_config_check(home: Path, student: str) -> int:
     problems, warnings = config.check(home, student)
     for warning in warnings:
-        print(f"alfabeta: warning: {warning.key}: {warning.reason}", file=sys.stderr)
+        _say(f"warning: {warning.key}: {warning.reason}")
     for problem in problems:
-        print(f"alfabeta: {problem.key}: {problem.reason}", file=sys.stderr)
+        _say(f"{problem.key}: {problem.reason}")
     _emit(
         {
             "ok": not problems,
@@ -249,12 +250,9 @@ def _cmd_book_place(args: argparse.Namespace, home: Path) -> int:
         store.save(placer.state)
     result = "placed" if placer.placed else "unchanged"
     store.log(line | {"result": result})
-    print(
-        f"alfabeta: libro en {', '.join(folders)}: {len(placer.placed)} colocados, {len(placer.unchanged)} sin cambios",
-        file=sys.stderr,
-    )
+    _say(f"book in {', '.join(folders)}: {len(placer.placed)} placed, {len(placer.unchanged)} unchanged")
     if placer.previous:
-        print(f"alfabeta: versiones anteriores guardadas: {len(placer.previous)}", file=sys.stderr)
+        _say(f"previous versions kept: {len(placer.previous)}")
     _emit(
         {
             "ok": True,
@@ -358,9 +356,9 @@ def _cmd_plan(args: argparse.Namespace, home: Path) -> int:
 def _summary(
     applier: replicas.Applier, pending: list[dict[str, Any]], stopped: dict[str, str], agenda_written: list[str]
 ) -> list[str]:
-    """What the family reads after a sync, in Spanish (T043, FR-008).
+    """The sync's summary, in English (T043, FR-008; constitution 2.12.0): Claude reports it to the family in Spanish.
 
-    An agenda rewritten because an entry changed list is a change too (FR-025), never «sin cambios».
+    An agenda rewritten because an entry changed list is a change too (FR-025), never `no changes`.
     """
     if not (
         applier.added
@@ -372,28 +370,28 @@ def _summary(
         or applier.unknown_statuses
         or agenda_written
     ):
-        return ["sin cambios"]
-    lines = [f"{applier.added} nuevos, {applier.changed} cambiados, {len(applier.not_fetched)} sin traer"]
-    lines += [f"retirado de Classroom: {title}" for title in applier.withdrawn]
+        return ["no changes"]
+    lines = [f"{applier.added} new, {applier.changed} changed, {len(applier.not_fetched)} not fetched"]
+    lines += [f"withdrawn from Classroom: {title}" for title in applier.withdrawn]
     unlinked = [p for p in pending if p["type"] == "class_link" and p.get("visibility") == "visible"]
     hidden = [p for p in pending if p["type"] == "class_link" and p.get("visibility") != "visible"]
     matches = [p for p in pending if p["type"] == "topic_match"]
     exams = [p for p in pending if p["type"] == CANDIDATE]
     if unlinked:
-        lines.append("clases sin vincular: " + ", ".join(str(p["title"]) for p in unlinked))
+        lines.append("classes not linked: " + ", ".join(str(p["title"]) for p in unlinked))
     if hidden:
-        lines.append(f"clases ocultas o archivadas: {len(hidden)}")
+        lines.append(f"classes hidden or archived: {len(hidden)}")
     if matches:
-        lines.append(f"temas por confirmar: {len(matches)}")
+        lines.append(f"topics to confirm: {len(matches)}")
     if exams:
-        lines.append(f"posibles exámenes por revisar: {len(exams)}")
+        lines.append(f"possible exams to review: {len(exams)}")
     if agenda_written:
-        lines.append("agenda actualizada")
+        lines.append("agenda updated")
     if applier.unknown_statuses:
-        lines.append(f"estados desconocidos: {applier.unknown_statuses}")
+        lines.append(f"unknown statuses: {applier.unknown_statuses}")
     if applier.unreadable:
-        lines.append(f"capturas ilegibles: {len(applier.unreadable)}")
-    lines += [f"clase sin aplicar: {reason}" for reason in stopped.values()]
+        lines.append(f"unreadable captures: {len(applier.unreadable)}")
+    lines += [f"class not applied: {reason}" for reason in stopped.values()]
     return lines
 
 
@@ -473,9 +471,9 @@ def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) ->
     }
     store_log.log(line)
     for text in _summary(applier, list(planned.get("pending_decisions", [])), stopped, agenda_written):
-        print(f"alfabeta: {text}", file=sys.stderr)
+        _say(text)
     if cfg.share_with:
-        print(f"alfabeta: {share.summary(shared)}", file=sys.stderr)
+        _say(share.summary(shared))
     _emit(
         {k: line[k] for k in ("result", "reason", "added", "changed", "withdrawn", "unknown_statuses", "shares")}
         | {"not_fetched": len(applier.not_fetched)}
@@ -521,10 +519,10 @@ def _list_reports(cfg: config.StudentConfig, data_dir: Path, store: KeychainStor
         OSError,
         ValueError,  # a cache or an answer that is not the JSON expected
     ) as err:
-        print(f"alfabeta: reports not listed this run ({type(err).__name__})", file=sys.stderr)
+        _say(f"reports not listed this run ({type(err).__name__})")
     else:
         if new:
-            print(f"alfabeta: {len(new)} new report(s) of the notes in Drive", file=sys.stderr)
+            _say(f"{len(new)} new report(s) of the notes in Drive")
     return watch.report_lines(data_dir)
 
 
@@ -551,7 +549,7 @@ def _share(cfg: config.StudentConfig, store: KeychainStore) -> dict[str, Any]:
         OSError,
         ValueError,  # a cache or an answer that is not the JSON expected
     ) as err:
-        print(f"alfabeta: the school-year folder was not shared this run ({type(err).__name__})", file=sys.stderr)
+        _say(f"the school-year folder was not shared this run ({type(err).__name__})")
         return share.not_reached(len(cfg.share_with))
 
 
@@ -569,7 +567,7 @@ def _cmd_drive_share(args: argparse.Namespace, home: Path, keychain: KeychainSto
     state.StateStore(lock.data_dir).log(
         line | {"result": "failed" if result["failed"] else "ok", "shares": share.counts(result)}
     )
-    print(f"alfabeta: {share.summary(result)}", file=sys.stderr)
+    _say(share.summary(result))
     _emit(result)
     return EXIT_INVALID if result["failed"] else EXIT_OK
 
@@ -590,12 +588,11 @@ def _cmd_agenda(args: argparse.Namespace, home: Path) -> int:
     )
     written = builder.write(cfg.base)
     counts = builder.counts()
-    print(
-        f"alfabeta: agenda: {counts[AgendaList.PENDING]} en «Pendiente», {counts[AgendaList.DONE]} en «Hecho», "
-        f"{counts[AgendaList.POSTED]} en «Publicado»",
-        file=sys.stderr,
+    _say(
+        f"agenda: {counts[AgendaList.PENDING]} in «Pendiente», {counts[AgendaList.DONE]} in «Hecho», "
+        f"{counts[AgendaList.POSTED]} in «Publicado»"
     )
-    print(f"alfabeta: {'escrita: ' + ', '.join(written) if written else 'sin cambios'}", file=sys.stderr)
+    _say("written: " + ", ".join(written) if written else "no changes")
     _emit({"written": written})
     return EXIT_OK
 
@@ -643,13 +640,13 @@ def _cmd_client_set(args: argparse.Namespace, store: KeychainStore) -> int:
         accounts.set_client(store, args.student, Path(args.from_file).expanduser())
     except accounts.LinkError as err:
         return _fail(err.reason, EXIT_INVALID, "the file is not a Desktop client downloaded from Google")
-    print("alfabeta: client stored in the keychain; delete the downloaded file now.", file=sys.stderr)
+    _say("client stored in the keychain; delete the downloaded file now.")
     _emit({"ok": True})
     return EXIT_OK
 
 
 def _cmd_link(args: argparse.Namespace, cfg: config.StudentConfig, store: KeychainStore) -> int:
-    print(f"alfabeta: opening Google's sign-in for account '{args.account}'…", file=sys.stderr)
+    _say(f"opening Google's sign-in for account '{args.account}'…")
     try:
         scopes = accounts.link_account(cfg, args.account, store, UrllibTransport(), webbrowser.open, dt.date.today())
     except accounts.LinkError as err:
@@ -662,7 +659,7 @@ def _cmd_check(cfg: config.StudentConfig, store: KeychainStore) -> int:
     statuses = accounts.check_accounts(cfg, store, UrllibTransport(), dt.date.today(), MacNotifier())
     for status in statuses:
         hint = " (the app may still be in Testing: publish it)" if status.testing_suspected else ""
-        print(f"alfabeta: {status.alias}: {status.status}{hint}", file=sys.stderr)
+        _say(f"{status.alias}: {status.status}{hint}")
     all_ok = all(s.status == "ok" for s in statuses)
     _emit({"ok": all_ok, "accounts": [{"alias": s.alias, "status": s.status} for s in statuses]})
     return EXIT_OK if all_ok else EXIT_LINK
@@ -691,21 +688,18 @@ def _cmd_mail(args: argparse.Namespace, cfg: config.StudentConfig, store: Keycha
         mail_plan = _mail_plan(cfg)
         if args.verb == "plan":
             for label in mail_plan.labels:
-                print(f"alfabeta: label {label}", file=sys.stderr)
+                _say(f"label {label}")
             for spec in mail_plan.filters:
-                print(f"alfabeta: filter {spec.subject} -> {spec.label}", file=sys.stderr)
+                _say(f"filter {spec.subject} -> {spec.label}")
             filters = [{"subject": f.subject, "label": f.label, "query": f.query} for f in mail_plan.filters]
             _emit({"ok": True, "labels": list(mail_plan.labels), "filters": filters})
             return EXIT_OK
         if args.verb == "build":
             out = Path(args.out).expanduser()
             mail.write_import_file(mail_plan, out)
-            print(
-                f"alfabeta: {len(mail_plan.filters)} filters written; labels, if the import leaves them out:",
-                file=sys.stderr,
-            )
+            _say(f"{len(mail_plan.filters)} filters written; labels, if the import leaves them out:")
             for label in mail_plan.labels:
-                print(f"alfabeta:   {label}", file=sys.stderr)
+                _say(f"  {label}")
             _emit({"ok": True, "filters": len(mail_plan.filters), "out": args.out})
             return EXIT_OK
     except mail.MailError as err:
@@ -752,14 +746,11 @@ def _cmd_mail_apply(cfg: config.StudentConfig, store: KeychainStore, mail_plan: 
     except TransportError:
         return _fail("network", EXIT_LINK, "Gmail could not be reached; run it again")
     for row in report.labels:
-        print(f"alfabeta: label {row['name']}: {row['status']}", file=sys.stderr)
+        _say(f"label {row['name']}: {row['status']}")
     for row in report.filters:
-        print(f"alfabeta: filter {row['subject']}: {row['status']}", file=sys.stderr)
+        _say(f"filter {row['subject']}: {row['status']}")
     for row in report.existing_mail:
-        print(
-            f"alfabeta: {row['subject']}: {row['matched']} notices labelled, {row['in_inbox']} were in the inbox",
-            file=sys.stderr,
-        )
+        _say(f"{row['subject']}: {row['matched']} notices labelled, {row['in_inbox']} were in the inbox")
     _emit({"ok": True, **report.as_json()})
     return EXIT_OK
 

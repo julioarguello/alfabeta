@@ -84,7 +84,7 @@ def test_plan_needs_no_link_and_no_network(
     assert out["labels"] == ["Alfabeta", "Alfabeta/3º ESO", "Alfabeta/3º ESO/FyQ", "Alfabeta/3º ESO/Ingles"]
     assert [f["subject"] for f in out["filters"]] == ["FyQ", "Ingles"]
     assert out["filters"][0]["query"].endswith(' subject:"3º ESO. FyQ."')
-    assert "alfabeta: filter FyQ -> Alfabeta/3º ESO/FyQ" in err
+    assert " filter FyQ -> Alfabeta/3º ESO/FyQ" in err
 
 
 def test_build_writes_the_file_with_no_link(

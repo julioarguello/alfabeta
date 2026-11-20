@@ -54,7 +54,7 @@ again: the agenda keeps the correction.
 ## 4. US3: repeating with no changes and with changes (no Classroom)
 
 - Repeat on the same `$ALFABETA_SANDBOX` the commands of scenario 2 from `lock take` to
-  `lock release` (`sandbox stage --captures` leaves the captures again with the new `run`): the summary says «sin cambios», `classroom apply`'s JSON counts
+  `lock release` (`sandbox stage --captures` leaves the captures again with the new `run`): the summary says `no changes`, `classroom apply`'s JSON counts
   the sample classes (not zero), and `find "$ALFABETA_SANDBOX/drive" -newer <marker>` is empty (SC-002). The repeated captures carry the
   same `captured_at`; the case of another `captured_at` with no dates in between is tested by T051. That
   the agenda does not depend on the day is tested by T045 with a simulated "today", without changing the system clock.

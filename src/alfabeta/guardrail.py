@@ -12,11 +12,12 @@ import base64
 import binascii
 import re
 import subprocess
-import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
+
+from alfabeta.output import say as _say
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -268,18 +269,16 @@ def run(repo: Path, home: Path, mode: str, out: Callable[[str], None] = print) -
     """Run the guardrail in `staged`, `all` or `history` mode and return its exit code."""
     blind = self_test()
     if blind:
-        print(f"alfabeta: guardrail detectors are blind: {', '.join(blind)}", file=sys.stderr)
+        _say(f"guardrail detectors are blind: {', '.join(blind)}")
         return EXIT_BLIND
     if unreadable_configs(home):
         # A free-text rule makes this easy to reach (spec 009), and every named value would go unseen.
-        print(
-            "alfabeta: a config.toml cannot be parsed, so the guardrail is blind: run `config check`", file=sys.stderr
-        )
+        _say("a config.toml cannot be parsed, so the guardrail is blind: run `config check`")
         return EXIT_BLIND
     named = named_values(home)
     allowed = load_allowed(repo)
     if not named:
-        print("alfabeta: no local configuration found; only the generic detectors run", file=sys.stderr)
+        _say("no local configuration found; only the generic detectors run")
     findings: list[Finding] = []
     checked = 0
     if mode == "history":
@@ -299,8 +298,8 @@ def run(repo: Path, home: Path, mode: str, out: Callable[[str], None] = print) -
         return EXIT_FINDING
     if checked == 0:
         if mode == "staged":
-            print("alfabeta: guardrail: no staged file to check", file=sys.stderr)
+            _say("guardrail: no staged file to check")
             return EXIT_CLEAN
-        print("alfabeta: guardrail checked no file", file=sys.stderr)
+        _say("guardrail checked no file")
         return EXIT_NOTHING_CHECKED
     return EXIT_CLEAN

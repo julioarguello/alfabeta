@@ -150,15 +150,15 @@ Below, `alfabeta <command>` stands for that line.
     was collected through the current `plan.json`, so when subjects go one at a time, plan, download
     and apply each before planning the next. On a subject's first run, apply once more: it must
     report `added` 0 and `changed` 0. Every apply ends by making sure each account of
-    `drive.share_with` can edit the school-year folder (FR-011a): the summary says «carpeta del curso
-    compartida con N cuenta(s), fallidas: M», and a failed share stops nothing; `alfabeta drive
+    `drive.share_with` can edit the school-year folder (FR-011a): the summary says `school-year folder
+    shared with N account(s), failed: M`, and a failed share stops nothing; `alfabeta drive
     share` alone repairs one (a `refused` account's domain takes no outside shares: tell the family,
     never retry in a loop). Nothing is copied to another account's Drive. After the last apply of
     every run on the Mac, `interactive` or `scheduled` (the daily task included; only the cloud's
     unattended runner skips it), `alfabeta notebook share --student <student>` once: it makes every
     account of `notebook.share_with` an editor of every topic's notebook, whoever made the notebook
-    (spec 001 FR-011c), and its line goes in the summary as it prints it («cuadernos compartidos
-    como editor: N revisado(s), …»). For each topic in its `changed`, and each topic in its
+    (spec 001 FR-011c), and its line goes in the report, in Spanish, from what it prints
+    (`notebooks shared as editor: N checked, …`). For each topic in its `changed`, and each topic in its
     `failed` (an invite may have taken without being read back), leave the notebook's link in that
     topic's `notebook/` folder when «Abrir el cuaderno.pdf» is not there, as the study-pack skill
     says (`print_pack.py link <notebook id> …`; spec 002 FR-047): an invited account does not list
@@ -172,6 +172,8 @@ Below, `alfabeta <command>` stands for that line.
 12. **Report** to the family, in Spanish: what was placed and where, what waits for them (unlinked
     classes, topics to confirm, attachments not fetched, each with its link), the exams detected
     with their dates, and why a run was `partial`. The agenda is `<school year>/agenda.md`.
+    alfabeta's own lines are English, each with its Madrid time (constitution 2.12.0): the report
+    says what they say in Spanish, it does not paste them.
 
 ## Scheduled mode (spec 001 FR-021a)
 

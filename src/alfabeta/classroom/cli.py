@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import datetime as dt
 import json
 import os
 import subprocess
@@ -14,10 +13,10 @@ from alfabeta import state
 from alfabeta.classroom import refresh
 from alfabeta.classroom.agent import ClassroomAgent, ClassroomAgentSpec, system_agent
 from alfabeta.classroom.password import PasswordError, PasswordStore, Prompt
-from alfabeta.dates import MADRID  # principle VIII: local time is always Madrid
 from alfabeta.google.keychain import KeychainError, TokenStore
 from alfabeta.model import RunMode, StopReason
 from alfabeta.notes.agent import AgentError
+from alfabeta.output import say as _say
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -34,11 +33,6 @@ _IDLE_MINUTES = 5
 
 def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=False))
-
-
-def _say(message: str) -> None:
-    """One line for people on stderr: English, with the local time (constitution 2.12.0, Language)."""
-    print(f"alfabeta: {dt.datetime.now(MADRID):%Y-%m-%dT%H:%M:%S} {message}", file=sys.stderr)
 
 
 def say(message: str) -> None:

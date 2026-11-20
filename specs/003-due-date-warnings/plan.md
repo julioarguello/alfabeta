@@ -150,7 +150,7 @@ Facts the design rests on: [research.md](research.md#observed-facts).
 | Ports | `HttpTransport`, `Clock`, `RecordStore` | What the services need from outside |
 | Adapters | `CalendarClient` (spec 004, gains `list_owned` and patches instead of replacing), `JsonRecordStore` | Each wraps one store or API |
 | Services | `CalendarSync`, `Replay`, `LegacyReport` | Orchestrate per command; return results the CLI prints |
-| CLI | `calendar sync`, `replay`, `delivery`, `sharing`, `legacy` in `calendar/cli.py`, registered in `__main__.py` | Arguments, JSON out, Spanish lines for the family, exit codes ([contracts/cli.md](contracts/cli.md)) |
+| CLI | `calendar sync`, `replay`, `delivery`, `sharing`, `legacy` in `calendar/cli.py`, registered in `__main__.py` | Arguments, JSON out, English lines for people with the time (constitution 2.12.0), exit codes ([contracts/cli.md](contracts/cli.md)) |
 
 Changes to other specs' files, each named in the task that makes it:
 

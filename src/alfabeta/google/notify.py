@@ -8,9 +8,10 @@ on CI) loses only this channel: the run still reports the failure and exits 2 (c
 from __future__ import annotations
 
 import subprocess
-import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
+
+from alfabeta.output import say as _say
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -66,4 +67,4 @@ class MacNotifier:
         try:
             self.run(argv)
         except (OSError, subprocess.SubprocessError):
-            print("alfabeta: the Mac could not show the notification", file=sys.stderr)
+            _say("the Mac could not show the notification")

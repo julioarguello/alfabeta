@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import sys
 import time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
@@ -39,6 +38,7 @@ from alfabeta.exam.prep import (
 )
 from alfabeta.exam.printing import PrintPack
 from alfabeta.notes.run import topic_name
+from alfabeta.output import say as _say
 
 if TYPE_CHECKING:
     import argparse
@@ -63,7 +63,7 @@ def _emit(payload: dict[str, Any]) -> None:
 
 
 def _fail(reason: str, code: int, message: str) -> int:
-    print(f"alfabeta: {message}", file=sys.stderr)
+    _say(message)
     _emit({"ok": False, "reason": reason})
     return code
 
@@ -161,10 +161,10 @@ def cmd_exam_prep(
     # 1. The configuration, as `config check` reads it; notebooks may be switched off.
     problems, warnings = config.check(home, args.student)
     for warning in warnings:
-        print(f"alfabeta: warning: {warning.key}: {warning.reason}", file=sys.stderr)
+        _say(f"warning: {warning.key}: {warning.reason}")
     for problem in problems:
         label = "warning: " if problem == ACCEPTED_PROBLEM else ""
-        print(f"alfabeta: {label}{problem.key}: {problem.reason}", file=sys.stderr)
+        _say(f"{label}{problem.key}: {problem.reason}")
     if any(problem != ACCEPTED_PROBLEM for problem in problems):
         return _fail("invalid_config", EXIT_INVALID, "the configuration is not valid; nothing was asked or printed")
     cfg = config.load_all(home, args.student)
@@ -217,9 +217,9 @@ def cmd_exam_prep(
     except Refusal as refusal:
         return _fail(refusal.reason, EXIT_INVALID, str(refusal))
     if not args.topic:
-        print(f"alfabeta: the exam's topic is the subject's most recent one: {folders[0].name}", file=sys.stderr)
+        _say(f"the exam's topic is the subject's most recent one: {folders[0].name}")
     if not announced:
-        print("alfabeta: no announcement backs these sheets: they cover the whole of the topics named", file=sys.stderr)
+        _say("no announcement backs these sheets: they cover the whole of the topics named")
     notebooks: list[str] = []
     for folder in folders:
         title = cfg.notebook_title_pattern.format(
@@ -251,14 +251,14 @@ def cmd_exam_prep(
     except Refusal as refusal:
         return _fail(refusal.reason, EXIT_INVALID, str(refusal))
     first_sheets = parts[0][1]
-    print(f"alfabeta: {_rules_line(first_sheets)}", file=sys.stderr)
+    _say(_rules_line(first_sheets))
 
     listed = sorted(p.name for p in folders[0].parent.iterdir() if p.is_dir())
     topics: list[dict[str, Any]] = []
     partial = False
     for folder, notebook, (part, sheets) in zip(folders, notebooks, parts, strict=True):
         if len(folders) > 1:
-            print(f"alfabeta: {folder.name} ({part.words}):", file=sys.stderr)  # what follows is about it
+            _say(f"{folder.name} ({part.words}):")  # what follows is about it
         prep = ExamPrep(
             deps=deps,
             data_dir=cfg.data_dir,

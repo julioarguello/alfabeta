@@ -107,7 +107,7 @@ def test_the_topic_goes_in_the_book_subfolder_of_its_folder(box: Box, tmp_path: 
     }
     assert (tmp_path / "out" / "Tema01_ES.pdf").read_bytes() == origin  # the origin is only read
     assert str(box.home) not in done.stdout + done.stderr  # never an absolute path (FR-031)
-    assert "4 colocados" in done.stderr
+    assert "4 placed" in done.stderr
 
 
 def test_the_folder_is_found_by_its_number_whatever_its_date_and_title(box: Box, tmp_path: Path):

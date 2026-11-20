@@ -37,7 +37,7 @@ def test_each_account_can_edit_the_school_year_folder_and_one_refused_stops_noth
     assert result == {"shared": 1, "failed": [{"index": 0, "reason": "refused"}]}
     assert all("/files/curso-1/" in url for _, url, _, _ in t.calls[-4:])  # the school-year folder, not the root
     assert share.counts(result) == {"shared": 1, "failed": 1}
-    assert share.summary(result) == "carpeta del curso compartida con 1 cuenta(s), fallidas: 1"
+    assert share.summary(result) == "school-year folder shared with 1 account(s), failed: 1"
 
 
 def test_with_no_school_year_folder_nothing_is_shared(tmp_path: Path):
@@ -71,7 +71,7 @@ def drive_share(box: Box) -> tuple[int, dict[str, object], str]:
 def test_the_command_logs_counts_and_needs_the_lock(box: Box):
     code, result, err = drive_share(box)
     assert (code, result) == (0, {"shared": 0, "failed": []})
-    assert "compartida con 0 cuenta(s)" in err
+    assert "shared with 0 account(s)" in err
     log = [json.loads(line) for line in (box.home / "sample" / "data" / "log.jsonl").read_text().splitlines()]
     assert {k: log[-1][k] for k in ("type", "run", "result", "shares")} == {
         "type": "shares",

@@ -51,9 +51,10 @@ not an absence.
 - **Language:** everything a command prints is in **English** — progress, summaries, errors, JSON
   keys and `reason` values (constitution 2.12.0, Technical constraints › Language). Spanish stays
   where alfabeta writes for the family: file names, the agenda, the calendar, a Mac notification.
-  Commands that still print a Spanish line are being moved over (#261).
 
-**Gate:** each spec's CLI tests parse stdout as JSON. **Not gated:** a stray `print()` (ruff
+**Gate:** each spec's CLI tests parse stdout as JSON; `tests/test_output_language.py` fails on a
+Spanish string literal in `src/` outside the family-facing writers it names, and on any module
+but `alfabeta.output` writing to `sys.stderr`. **Not gated:** a stray `print()` to stdout (ruff
 `T20` is not selected; adopting it with a per-file ignore for the emitters is the gate).
 
 ## 2. The version line — standard (GNU 4.8.1)
@@ -117,10 +118,11 @@ Boundary announcements **not gated** — a review item.
 - **One line per step on the happy path.** Detail belongs to a warning.
 - **Each line for people carries the local time** right after the program's name:
   `alfabeta: 2026-11-18T17:05:03 ✓ signed in` (constitution 2.12.0) — a run is followed and placed
-  in time from the terminal or an agent's log. One stderr helper per module adds it, never each
-  call. A new line carries no `FAIL`/`ERROR`/`INFO` prefix; the `alfabeta: warning:` lines a
-  contract already prints stay. **Gate:** `classroom refresh`'s summary test; the other commands'
-  helpers follow in #261.
+  in time from the terminal or an agent's log. `alfabeta.output.say` is the one writer; each
+  module's helper (`_say`, `_fail`) calls it, never adds the time itself. A new line carries no
+  `FAIL`/`ERROR`/`INFO` prefix; the `warning:` lines a contract already prints stay, after the time
+  (`alfabeta: <time> warning: …`). **Gate:** `tests/test_output_language.py` runs every module's
+  `_say` and `_fail` and asserts the prefix.
 - **An unattended run is silent on success** where its contract says so (`runner read` on
   `lock_busy`).
 
@@ -171,7 +173,7 @@ contract already assigns it, the contract wins; a new code avoids `2`.
 | a line for people with no time | `alfabeta: <YYYY-MM-DDTHH:MM:SS> <message>` |
 | an absolute path, an address, a `display_name` | relative to the student's root; alias; abbreviated id |
 | `✅`, `❌`, `💡` | `✓`, `✗`, the sentence |
-| `alfabeta: Something went wrong.` | `alfabeta: the configuration folder does not exist` + `reason` |
+| `alfabeta: Something went wrong.` | `alfabeta: <time> the configuration folder does not exist` + `reason` |
 | the value of a bad key in the message | the key and why |
 | exit inside a loop on the first failure | collect; exit with the worst after the loop |
 | a new exit code nobody listed | the contract's *Codes* column first |

@@ -571,9 +571,9 @@ def test_the_agenda_command_writes_only_what_changed(box: Box):
     done = box("agenda", "build", "--student", "sample")
     assert done.returncode == 0, done.stderr
     assert json.loads(done.stdout) == {"written": ["2026-2027/agenda.md"]}
-    assert str(box.base) not in done.stderr and "alfabeta: agenda:" in done.stderr
+    assert str(box.base) not in done.stderr and " agenda:" in done.stderr
     again = box("agenda", "build", "--student", "sample")
-    assert json.loads(again.stdout) == {"written": []} and "sin cambios" in again.stderr
+    assert json.loads(again.stdout) == {"written": []} and "no changes" in again.stderr
 
 
 def test_the_agenda_command_needs_the_lock(box: Box):

@@ -119,9 +119,7 @@ def test_a_dry_run_counts_and_invites_nobody():
     report = shares.share_notebooks(port, wanted((TOPIC, TITLE)), [ONE, TWO], dry_run=True)
     assert (report["dry_run"], report["invited"], report["raised"], report["changed"]) == (True, 1, 1, [TOPIC])
     assert port.invites == []
-    assert shares.summary(report).startswith(
-        "simulación, nada cambiado: cuadernos compartidos como editor: 1 revisado(s)"
-    )
+    assert shares.summary(report).startswith("dry run, nothing changed: notebooks shared as editor: 1 checked")
 
 
 def test_a_refused_account_is_counted_by_position_and_the_rest_go_on():
@@ -286,7 +284,7 @@ def test_the_command_shares_every_topics_notebook_and_logs_counts_only(
     code, printed, err = run(cfg, port, capsys)
     assert code == 0
     assert (printed["notebooks"], printed["invited"], printed["raised"], printed["failed"]) == (2, 3, 1, [])
-    assert "cuadernos compartidos como editor: 2 revisado(s), cuentas invitadas 3, subidas a editor 1" in err
+    assert "notebooks shared as editor: 2 checked, accounts invited 3, raised to editor 1" in err
     (line,) = log_lines(cfg)
     assert (line["type"], line["result"]) == ("notebook_shares", "ok")
     assert line["shares"] == {"notebooks": 2, "invited": 3, "raised": 1, "already": 0, "failed": 0}

@@ -16,7 +16,9 @@ Stdout gains the top-level key `rules` ([data-model.md](../data-model.md)), `[]`
 
 Stderr gains one line for whoever runs it, before the notebook is asked; the JSON comes at the end, as today:
 
-- `alfabeta: standing rules: theory student.both subject.theory 1a2b3c4d; problems student.both subject.problems 5e6f7a8b`
-- `alfabeta: no standing rules for this subject`
+- `alfabeta: <time> standing rules: theory student.both subject.theory 1a2b3c4d; problems student.both subject.problems 5e6f7a8b`
+- `alfabeta: <time> no standing rules for this subject`
+
+`<time>` is the Madrid time, `YYYY-MM-DDTHH:MM:SS` (constitution 2.12.0).
 
 No line holds a word of a rule.

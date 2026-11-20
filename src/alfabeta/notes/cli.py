@@ -13,7 +13,6 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
-import sys
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
@@ -35,6 +34,7 @@ from alfabeta.notes.shares import summary as share_summary
 from alfabeta.notes.sources import NlmMissingError, NlmSources, SourcesError, run_bounded
 from alfabeta.notes.state import ConcurrentWriteError, DriveNotesStateStore, retry_once
 from alfabeta.notes.transcribe import TIMEOUT_SECONDS, ClaudeTranscriber, claude_key_name
+from alfabeta.output import say as _say
 from alfabeta.state import RUN_ENV, StateStore
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ def _emit(payload: dict[str, Any]) -> None:
 
 
 def _fail(reason: str, code: int, message: str) -> int:
-    print(f"alfabeta: {message}", file=sys.stderr)
+    _say(message)
     _emit({"ok": False, "reason": reason})
     return code
 
@@ -120,7 +120,7 @@ def cmd_notes_run(
         return _fail("state_changed", EXIT_PARTIAL, "another run wrote the records twice meanwhile; nothing written")
     if report["no_key"]:
         where = "the cloud has" if ran_on == RanOn.CLOUD else "this Mac has"
-        print(f"alfabeta: {where} no Claude key; photos wait (`claude set-key`).", file=sys.stderr)
+        _say(f"{where} no Claude key; photos wait (`claude set-key`).")
     _emit(report)
     if not report["ok"] or (report["no_key"] and ran_on == RanOn.CLOUD):
         return EXIT_PARTIAL
@@ -173,7 +173,7 @@ def cmd_notebook_share(
             return _fail("no_topic", EXIT_INVALID, "no topic folder has that name")
     if not cfg.notebook_enabled:
         wanted = []
-        print("alfabeta: [notebook] enabled is false; no notebook is shared", file=sys.stderr)
+        _say("[notebook] enabled is false; no notebook is shared")
 
     def logged(result: str, shares_counted: dict[str, int] | None = None, reason: str | None = None) -> None:
         """The run's line (constitution VII: a share that could not even start shows in the log)."""
@@ -200,7 +200,7 @@ def cmd_notebook_share(
     if topic is not None and cfg.notebook_enabled and cfg.notebook_share_with and not report["notebooks"]:
         return stopped("no_notebook", EXIT_INVALID, "the topic has no notebook with its title")
     logged("ok" if report["ok"] else "failed", share_counts(report))
-    print(f"alfabeta: {share_summary(report)}", file=sys.stderr)
+    _say(share_summary(report))
     _emit(report)
     return EXIT_OK if report["ok"] else EXIT_PARTIAL
 
@@ -239,19 +239,18 @@ def cmd_notebook_refresh(
     except (DriveError, TransportError):
         return _fail("drive_failed", EXIT_PARTIAL, "Drive refused or did not answer; the next pass tries again")
     _emit(report)
-    when = deps.clock.now().isoformat(timespec="seconds")  # the agent's log has no time of its own
     counts = f"read {report['read']}, unchanged {report['unchanged']}, missing {report['missing']}"
     counts += f", gone {report['gone']}"
-    print(f"alfabeta: notebook refresh at {when}: {counts}", file=sys.stderr)
+    _say(f"notebook refresh: {counts}")  # the helper carries the time the agent's log has not
     if report["gone"]:  # reading again will not bring it back: only the setup adds a source (FR-009a)
         gone = "a notebook no longer holds a living file's source; add it again (`notebook prepare`)"
-        print(f"alfabeta: {gone}", file=sys.stderr)
+        _say(gone)
     if not report["ok"] and report["session"] == "signed_out":  # the last session a pass measured
-        print("alfabeta: nlm is not signed in: run `nlm login --profile <profile>`", file=sys.stderr)
+        _say("nlm is not signed in: run `nlm login --profile <profile>`")
         return EXIT_SIGNED_OUT
     if not report["ok"]:
         if not report["gone"]:
-            print("alfabeta: a source could not be read; the next pass reads it again", file=sys.stderr)
+            _say("a source could not be read; the next pass reads it again")
         return EXIT_PARTIAL
     return EXIT_OK
 
@@ -278,7 +277,7 @@ def cmd_notebook_agent(cfg: StudentConfig, home: Path, action: str, agent: Launc
             out = made.remove(cfg.student)
     except AgentError as err:
         return _fail(err.reason, EXIT_INVALID, _AGENT_REFUSALS[err.reason])
-    print(f"alfabeta: notebook agent {out['agent']}", file=sys.stderr)
+    _say(f"notebook agent {out['agent']}")
     _emit(out)
     return EXIT_OK
 
@@ -289,6 +288,6 @@ def cmd_claude_key_set(student: str, store: TokenStore, stdin: str) -> int:
     if not key:
         return _fail("empty_key", EXIT_INVALID, "no key on standard input")
     store.set(claude_key_name(student), key)
-    print("alfabeta: Claude key stored in the keychain.", file=sys.stderr)
+    _say("Claude key stored in the keychain.")
     _emit({"ok": True})
     return EXIT_OK
