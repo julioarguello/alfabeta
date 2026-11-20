@@ -110,6 +110,9 @@ confirmed; the rest stay unconfirmed.)*
 | excused | none (left `null`, listed) | no |
 | teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item) | no |
 
+*(2026-11-20, family decision, #283: the teacher's mark overrides the bucket, as in spec 001, and
+its appearance raises an event, once; research R7.)*
+
 ## Read result
 
 | Field | Rule |
