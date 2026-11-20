@@ -90,7 +90,7 @@ _HEADING = re.compile(r"^#{1,6} ", re.MULTILINE)
 # stopped the rebuild (a missing living file, Drive failing); the first pass that builds the file clears it.
 UNBUILT = "unbuilt"
 # On a page's record: its living file was last built without its photo, gone from Drive (#242); the first
-# pass whose listing holds the photo again rebuilds the file, since a return the same bytes is no arrival.
+# pass whose listing holds the photo again rebuilds the file, since a return with the same bytes is no arrival.
 WITHOUT_PHOTO = "without_photo"
 # What a report counts per topic (contracts/cli.md); a topic is an opaque index, never a name or id.
 COUNTS = (
