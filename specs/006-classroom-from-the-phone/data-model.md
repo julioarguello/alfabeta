@@ -96,17 +96,19 @@ otherwise; a capture by calls leaves the `*_text` fields `null`. Item and class 
 
 ### Status from the call's bucket
 
-Filled from spike S9's comparison, not from the peer project (research R7). Until then:
+Filled from spike S9's comparison, not from the peer project (research R7). *(2026-11-20, S9 on
+two classes: the bucket is the small number at `[2, 0, 20]` of `Zj93ge`'s answer; the rows seen are
+confirmed; the rest stay unconfirmed.)*
 
-| Bucket (peer's reading) | `ItemStatus` | Confirmed on this account |
+| Bucket (peer's reading; number seen in S9) | `ItemStatus` | Confirmed on this account |
 |---|---|---|
-| assigned | `pending` | no |
-| missing | `overdue` | no |
-| turned in | `turned_in` | no |
-| done late | `turned_in_late` | no |
-| returned, graded, graded late | `returned` | no |
+| assigned (1) | `pending` | yes, S9 («Asignado») |
+| missing (2) | `overdue` | yes, S9 («Sin entregar») |
+| turned in (3) | `turned_in` | yes, S9 («Entregado») |
+| done late (4) | `turned_in_late` | yes, S9 («Entregado con retraso») |
+| returned, graded, graded late (5 seen: graded) | `returned` | not settled: the one graded item (5) also carried the teacher's «missing» notice, read `missing_per_teacher` today |
 | excused | none (left `null`, listed) | no |
-| teacher marked as missing | `missing_per_teacher` — no field seen yet | no |
+| teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item) | no |
 
 ## Read result
 
