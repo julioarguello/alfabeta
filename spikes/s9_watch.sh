@@ -1,6 +1,7 @@
 #!/bin/zsh
-# Spike S9 (#279). Usage: STUDENT=<id> s9_watch.sh <probe.py> — waits for the student's next `classroom refresh` to end
-# `ok` (a new run id in log.jsonl), then runs the probe at once through s9_run.sh. Prints only times and the run's
+# Spike S9 (#279, #283). Usage: STUDENT=<id> s9_watch.sh <probe.py>… — waits for the student's next `classroom refresh`
+# to end `ok` (a new run id in log.jsonl), then runs the probes at once, in order, through s9_run.sh (browserinfo
+# blocked), and deletes the templates s9t wrote. Prints only times and the run's
 # outcome. A refresh that ends otherwise is reported and the wait goes on.
 HERE=$(cd "$(dirname "$0")" && pwd)
 : ${STUDENT:?set STUDENT to the student id, as in ~/.alfabeta/<id>}
@@ -23,6 +24,8 @@ while true; do
   echo "refresh ended $(date +%H:%M:%S): $OUTCOME"
   [ "$OUTCOME" = "ok" ] || continue
   sleep 5  # let the refresh's container and lock go
-  "$HERE/s9_run.sh" "$1"
-  exit $?
+  RC=0
+  for PROBE in "$@"; do "$HERE/s9_run.sh" "$PROBE" S9_BLOCK_BROWSERINFO=1 || RC=$?; done
+  rm -f "$HOME/.alfabeta/$STUDENT/data/spike-s9/templates.json"
+  exit $RC
 done
