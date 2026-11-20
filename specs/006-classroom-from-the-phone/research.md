@@ -128,6 +128,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   the answers or a page asking for a blocked name; the class stops with `unexpected_ui` (FR-008)
   and the log counts the blocked name, never its body. The allowlist is changed only by a new
   recording, in a pull request.
+- **What the read by calls sends** (2026-11-20, S9): eight of the ten names — never `UG41I` nor
+  `O1Xqee`, which the home page sends itself. `Zj93ge` needs the student's own number, which only
+  `UG41I`'s answer (and `O1Xqee`'s and `Zj93ge`'s own) carries; S9 took it from the home page's own
+  `O1Xqee` request. Whether the read may take it so is open (research, «S9»).
 
 ### R4. The guard (FR-005), installed before any page script
 
@@ -147,11 +151,14 @@ measured on this account; they seed the spikes below and replace none of them (F
     and counted, since blocking them could end the session (Observed facts, DBSC). S9 checks the
     session survives a full read with them. *(2026-11-19, «S8, last pieces»: the only one the pages
     request is `accounts.google.com/RotateCookiesPage`, a frame; it stays blocked until S9 measures
-    whether the read by calls lets it through, and what it requests then.)*
+    whether the read by calls lets it through, and what it requests then. *(2026-11-20, S9: kept blocked through
+    a 7-minute read by calls of two classes, twice; the session survived each, so it stays blocked.
+    A longer read is not measured.)*
   - **everything else** a page asks for (telemetry, push channels) is blocked and counted, unless S8
     shows the page cannot load without it, in which case it is allowed by exact host and path and
     recorded here; *(2026-11-19: Classroom's own `ClassroomUi/browserinfo` POST, never blocked in S8,
-    is S9's to test.)*
+    is S9's to test.)* *(2026-11-20, S9: aborted 3 times a read; the home page still listed its classes and
+    every call answered, so the page does not need it and it is blocked.)*
   - **downloads**: no browser download; the read fetches only the attachments it listed in this run,
     through the session's request context (R8), and the adapter refuses any other id.
 - **Test** (SC-004): offline, in CI, a real headless browser opens a local fake Classroom that serves
@@ -216,7 +223,10 @@ measured on this account; they seed the spikes below and replace none of them (F
 
 - **Identifiers**: the capture keeps today's ids, the URL's `<xB64>`: the read encodes each decimal
   id from the answers as base64 of the decimal string without padding, so a capture by calls and one
-  by the extractor name the same items. S9 checks it on every class.
+  by the extractor name the same items. S9 checks it on every class. *(2026-11-20, S9: the same ids on the two
+  classes read; types by the record's slot in `dpT4Vd`'s answer, 1 assignment, 3 question,
+  5 material; posting days at record path `[0, 9, 2]` and due instants at `[1, 0]`, as epoch
+  milliseconds.)*
 - **Dates and statuses**: the answers give instants (UTC milliseconds) and enums, not the Spanish
   texts today's capture holds. The capture grows, in a minor version, optional structured fields —
   `posted_at`, `modified_at`, `due_at` (with whether a time was set), `status` (an `ItemStatus`
@@ -800,3 +810,104 @@ Against R3, R4 and the open list of «S8, second half»:
 
 **The probe** is on branch `spike/267-s8-calls` (`spikes/s8c_*`), kept off `main`. S8 has recorded
 what it could; S9 inherits R4's two tests above, and comments, grades and returned marks stay open.
+
+### S9 · A read by calls, compared — passes on two classes; the attachments' bytes and five questions stay open
+
+Asked in julioarguello/alfabeta#279: can a read made only of Classroom's own calls, sent from one
+loaded home page, give spec 001's capture, and how does it compare with the extractor's capture of
+the same session? Measured 2026-11-20, read-only, by Claude on the operator's standing permission to
+run tests, inside spec 001 research R15's limits (no sign-in, no password), in the session of the
+family's scheduled `classroom refresh` that ended at 16:30 (12 of 12 classes, `ok`, 884 s). An
+earlier attempt, at 21:57 the day before, found the session of the 20:52 refresh already expired
+and sent nothing.
+
+**How.** Four throwaway probes in the read image, behind the read's own `Guard` and S8's routing
+(every `batchexecute` naming a call outside R3's ten names aborted; `play.google.com`,
+`signaler-pa`, `ogads-pa` and `ogs.google.com` aborted; `RotateCookiesPage` blocked as in every
+read; `ClassroomUi/browserinfo` aborted on purpose):
+
+1. 16:31 — the arguments' and answers' shapes for the class of the run with the most item types,
+   its «Trabajo de clase», stream and one detail per type (this fills S8's gap: every name now seen
+   from a class's own pages).
+2. 16:34 and 16:49 — the request templates, learnt from the same pages' own requests: each call's
+   arguments with the class, item, topic and post ids replaced by placeholders, and the request's
+   envelope (each query and body parameter a `WIZ_global_data` key, the page path, the call name,
+   the request id or a literal). Written to the student's data folder, 0600, deleted after.
+3. 16:38 and 16:49 — the read by calls: one home page, then one call per request through `fetch` in
+   the page, 1–2 s jittered apart (constitution IV); classes from `gXtzob`, topics from `ZZFlc`,
+   items from `dpT4Vd` (once without a topic, then once per topic), posts from `pONvgf` (stream), and
+   per item `tQShAc`, `t51ITc`, `cCzVwf` and, for assignments and questions, `Zj93ge`; per post
+   `t51ITc` and `cCzVwf`. Ids came from the answers only, never from the capture. Two classes: the
+   two of the run with the most item types and posts. Raw answers kept 0600 for step 4, then deleted.
+4. Offline, on the host: each value the refresh's capture holds for those classes, looked for in the
+   answers of the call that should carry it; dates through `capture.normalize_class`.
+
+Both runs of step 3 gave the same counts; the figures below are the second's. Nothing printed held
+a body, a cookie, a name, a title or an id.
+
+| S9 row | Result |
+|---|---|
+| No challenge | none; every answer `200` with its row; the guard never breached |
+| Calls | 225 for two classes, 402 s (1.79 s a call, 0.24 s of it the answer; the rest the pause); class 1: 118 calls, 209 s; class 2: 106, 191 s |
+| All classes in under 30 minutes | **extrapolated, not measured**: the run's 12 classes hold 122 items (81 assignments, 1 question, 40 materials), 28 topics and 11 posts, so about 583 calls ≈ 17 min at the same pace — under 30, though slower than the extractor's 884 s for the same run |
+| Item ids (base64 of decimals) | 25 = 25 and 24 = 24, none on one side only, items taken from `dpT4Vd` |
+| Types | by the record's slot in `dpT4Vd`'s answer: 1 → assignment (35), 3 → question (1), 5 → material (13); no contradiction |
+| Topics | 4 = 4 and 7 = 7 with the same ids and titles; the capture's one extra topic per class is the item-less bucket with no id |
+| Stream posts | 2 = 2 and 2 = 2, same ids, texts found; no post held an attachment in either class |
+| Titles, descriptions, topic of each item | all found in the item's own `dpT4Vd` record (titles 49 of 49, descriptions 27 of 27, topics 47 of 47); 2 titles and 5 descriptions only after collapsing runs of whitespace |
+| Class title | the capture's is `gXtzob`'s name and section joined |
+| Points | 36 of 36 |
+| Posting days | an epoch-millisecond at record path `[0, 9, 2]` falls on the capture's posting day (Madrid) for 49 of 49 items |
+| Due instants | exact milliseconds at record path `[1, 0]`, 19 of 19 items with a time |
+| Status table (R7) | `Zj93ge` answered for all 36 assignments and questions; the small number at `[2, 0, 20]` of its answer tells the five statuses seen one to one (below) |
+| Attachments, ids | 50 of 52 in `t51ITc`'s answer; one form and one link appear in no answer of their class |
+| Attachments, names | 39 of 52 as they are; 1 video, 10 links and 2 files not found, not even inside another string |
+| Attachment bytes through the request context (R8) | **not measured**: no attachment was fetched |
+| `RotateCookiesPage` blocked | requested 2 times a run, blocked; the session survived the whole read (the home page loaded again on Classroom, account matching), and was still alive 27 minutes after the refresh ended. Not measured over a longer read |
+| `ClassroomUi/browserinfo` | aborted 3 times a run; the page loaded, listed its classes and answered every call: not needed |
+
+**The status table** (data-model.md, «Status from the call's bucket»), from 36 items:
+
+| `Zj93ge` `[2, 0, 20]` | Classroom's status text | `ItemStatus` from the capture today | Items |
+|---|---|---|---|
+| 1 | Asignado | `pending` | 15 |
+| 2 | Sin entregar | `overdue` | 7 |
+| 3 | Entregado | `turned_in` | 8 |
+| 4 | Entregado con retraso | `turned_in_late` | 5 |
+| 5 | Calificado | `missing_per_teacher` (the capture's notice «El profesor ha indicado que falta esto») | 1 |
+
+It is the peer's bucket order. The one graded item also carried the teacher's «missing» notice,
+so today's normaliser reads it `missing_per_teacher`; the bucket says graded (`returned` in R7's
+hypothesis). Which field of `Zj93ge` holds the teacher's mark is not located: one item is too few.
+Excused was not seen.
+
+**Verdict: passes on two classes, not yet as a whole.** For the two classes read, the calls gave
+the same item ids, types, topics and stream posts as the extractor; titles, descriptions, points,
+posting days and due instants were all found; and the status table fills with five statuses and no
+contradiction of the bucket order. The row is not passed as a whole: the attachments' bytes (R8)
+were not fetched, ten of the twelve classes and the 30-minute bound are extrapolated, and the
+questions below are open. No challenge appeared, so nothing stops the read.
+
+Open, before the build (each a spec question under the S9 row: «a field that cannot be matched is
+a spec question before building»):
+
+- **The student's number.** `Zj93ge` (the submission) needs the student's own 12-digit number. It
+  is not in `WIZ_global_data` nor in the answer of any call the read sends; only `UG41I`'s answer
+  has it, and `O1Xqee`'s and `Zj93ge`'s own. The probe took it from the home page's own `O1Xqee`
+  request, sent by the page as it loads, and so sent only eight names, never `UG41I` nor `O1Xqee`.
+  R3 says nothing of `UG41I`'s answer is kept: taking the number from the page's request needs a
+  decision (or R3 admits reading it).
+- **Attachment names.** 13 of 52 names, mostly links, are not in the answers as the capture writes
+  them, and 2 ids (a form, a link) are in no answer: how the capture's name of a link or a file is
+  made has to be settled before the read writes it.
+- **Paging.** `dpT4Vd` asks for 10 items a call and was never paged here. The largest topic of the
+  run's 12 classes holds exactly 10 items; one more would need the next page, untested.
+- **Two stream records.** Class 1's stream (`pONvgf`) held 2 item records, slot 1, that neither
+  `dpT4Vd` nor the capture holds. The read takes items from `dpT4Vd` only; what they are is not
+  known.
+- **The teacher's «missing» mark** (above).
+
+Also measured: **`tQShAc` adds nothing** the `dpT4Vd` record lacks for the compared fields (titles,
+descriptions); leaving it out would save 122 of the 583 calls.
+
+**The probes** are on branch `spike/279-s9-read-by-calls` (`spikes/s9*`), kept off `main`.
