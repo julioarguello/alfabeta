@@ -170,10 +170,10 @@ def counts(report: dict[str, Any]) -> dict[str, int]:
 
 
 def summary(report: dict[str, Any]) -> str:
-    """The family's line, in Spanish, with counts only."""
+    """The summary line, in English, with counts only (constitution 2.12.0)."""
     c = counts(report)
-    lead = "simulación, nada cambiado: " if report["dry_run"] else ""
+    lead = "dry run, nothing changed: " if report["dry_run"] else ""
     return (
-        f"{lead}cuadernos compartidos como editor: {c['notebooks']} revisado(s), cuentas invitadas {c['invited']}, "
-        f"subidas a editor {c['raised']}, ya editoras {c['already']}, fallidas {c['failed']}"
+        f"{lead}notebooks shared as editor: {c['notebooks']} checked, accounts invited {c['invited']}, "
+        f"raised to editor {c['raised']}, already editors {c['already']}, failed {c['failed']}"
     )

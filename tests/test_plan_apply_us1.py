@@ -111,7 +111,7 @@ def test_the_run_places_every_item_or_notes_it(box: Box):
     # The sandbox's stop capture names the English class: it is left unapplied and the run is partial.
     assert (result["result"], result["reason"]) == ("partial", "session_expired")
     assert not any(f.startswith("2026-2027/Ingles/") for f in files)
-    assert "clase sin aplicar" in summary and "temas por confirmar: 2" in summary
+    assert "class not applied" in summary and "topics to confirm: 2" in summary
     assert str(box.base) not in summary  # never an absolute path (FR-031)
     assert list((box.data / "inbox").rglob("*.pdf")) == []  # placed, so gone from data/
     again, _ = box.apply()
@@ -121,7 +121,7 @@ def test_the_run_places_every_item_or_notes_it(box: Box):
 def test_an_attachment_that_does_not_arrive_is_noted(box: Box):
     box.collect_and_plan(skip="ficha-inventada.pdf")
     result, summary = box.apply()
-    assert result["not_fetched"] == 1 and "1 sin traer" in summary
+    assert result["not_fetched"] == 1 and "1 not fetched" in summary
     note = (box.base / TOPIC / "20261006 - Ficha inventada de mezclas" / "enlaces.md").read_text()
     assert "no traído" in note and "https://drive.google.com/file/d/synth-40/view" in note
 
@@ -159,7 +159,7 @@ def test_an_unreadable_class_does_not_stop_the_other(box: Box):
     broken["items"] = "not a list"
     physics.write_text(json.dumps(broken))
     result, summary = box.apply()
-    assert result["result"] == "ok" and "capturas ilegibles: 1" in summary
+    assert result["result"] == "ok" and "unreadable captures: 1" in summary
     assert any(f.startswith("2026-2027/Ingles/") for f in box.files())
     assert not any(f.startswith(f"{FYQ}/") for f in box.files())
 

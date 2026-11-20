@@ -114,7 +114,7 @@ def test_an_exam_date_between_two_captures_moves_only_that_entry(box: Box):
     assert (was["list"], moved["list"]) == ("pending", "done")
     assert {k: v for k, v in moved.items() if k != "list"} == {k: v for k, v in was.items() if k != "list"}
     assert (box.data / "state.json").read_bytes() == state_before  # Classroom did not change
-    assert "agenda actualizada" in summary  # FR-025: an entry that changes list is a change
+    assert "agenda updated" in summary  # FR-025: an entry that changes list is a change
 
 
 def test_another_capture_with_no_date_in_between_rewrites_neither_state_nor_agenda(box: Box):
@@ -125,7 +125,7 @@ def test_another_capture_with_no_date_in_between_rewrites_neither_state_nor_agen
     next_run(box)
     _, summary = box.apply()
     assert snapshot(box) == before  # FR-025: state.json, agenda.json and agenda.md untouched
-    assert "agenda actualizada" not in summary
+    assert "agenda updated" not in summary
 
 
 def test_a_later_modification_keeps_the_previous_version(box: Box):
@@ -212,7 +212,7 @@ def test_an_item_gone_from_classroom_is_kept_and_marked_only_after_a_complete_ca
     if complete:
         assert marked == sorted(k for k in replicas if k.startswith("classroom|synth-23|")) and marked
         assert result["withdrawn"] == last_line(box)["withdrawn"] == 1
-        assert "retirado de Classroom: Apuntes inventados" in summary
+        assert "withdrawn from Classroom: Apuntes inventados" in summary
     else:  # a cut-short capture withdraws nothing
         assert marked == [] and result["withdrawn"] == last_line(box)["withdrawn"] == 0
 
@@ -341,4 +341,4 @@ def test_a_plan_is_applied_only_once_every_class_it_planned_is(box: Box):
     box.apply()
     assert "applied_at" in json.loads((box.data / "plan.json").read_text())
     again, summary = box.apply()
-    assert again["added"] == 0 and "temas por confirmar: 2" in summary  # still pending, still said
+    assert again["added"] == 0 and "topics to confirm: 2" in summary  # still pending, still said

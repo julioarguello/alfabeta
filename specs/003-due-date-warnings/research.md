@@ -231,9 +231,9 @@ at 23:59 is 23:59–24:00).
 
 ## R11 — Output and the family's words
 
-- **Decision**: JSON on stdout with counts and opaque ids; one Spanish line per fact the family must
-  act on, on stderr: subjects with dated work and no session, items seen too late for any warning,
-  events marked «Retirado ·», and the delivery state («Entrega de avisos no comprobada» until a
+- **Decision**: JSON on stdout with counts and opaque ids; one English line, with the time, per fact the family must
+  act on, on stderr (constitution 2.12.0; Claude reports it in Spanish): subjects with dated work and no session, items seen too late for any warning,
+  events marked «Retirado ·», and the delivery state (`warning delivery not checked` until a
   check is on record). No title, address, calendar id or path is printed.
 - **Event text** is in Spanish ([contracts/events.md](contracts/events.md)), restates facts only, and
   carries the Classroom link and the item's folder as its path relative to the student's base
@@ -269,7 +269,7 @@ at 23:59 is 23:59–24:00).
   therefore the family's, by hand, in quickstart step 1: the calendar's sharing settings list
   exactly the accounts of `calendar.shared_with`, each able to see all event details, recorded
   with its date (T019). `calendar set-sharing --checked-on <date>` records that check with a hash of
-  `calendar.shared_with`; every run says «Comprobar con quién se comparte el calendario» while the
+  `calendar.shared_with`; every run says `check who the calendar is shared with` while the
   list's hash differs from the recorded one, so a change to the list asks for the check again.
   Adding `calendar.acls.readonly` so a run could check it would mean linking
   the student's Gmail again, with a parent's approval, for a list that changes about once a year;

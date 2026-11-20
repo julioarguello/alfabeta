@@ -4,7 +4,9 @@ These follow spec 001's [command contract](../../001-classroom-sync/contracts/cl
 [Google subcommands](../../004-google-connection/contracts/cli.md):
 
 - `--home` comes before the subcommand, and `--student <id>` is resolved once;
-- JSON goes to stdout and lines for people, in Spanish, to stderr;
+- JSON goes to stdout and lines for people, in English with the Madrid time
+  (`alfabeta: <YYYY-MM-DDTHH:MM:SS> <message>`, constitution 2.12.0), to stderr; Claude reports them to
+  the family in Spanish;
 - no message shows an address, a token, the calendar id, an event title or an absolute path. Items
   are named by their agenda id abbreviated as spec 001's messages abbreviate Classroom ids, subjects
   by their folder.
@@ -24,11 +26,11 @@ These follow spec 001's [command contract](../../001-classroom-sync/contracts/cl
 written, `calendar sync --apply` (slice 5). Code 2 or 3 makes the run report the calendar as failed
 and lets every other output finish (constitution VII).
 
-**Lines for the family** (stderr), each only when it applies:
+**Lines for people** (stderr, after `alfabeta: <time> `), each only when it applies:
 
-- `Avisos apagados: los eventos se escriben sin recordatorios.`
-- `Entrega de avisos no comprobada en el móvil del estudiante.` or `Entrega de avisos comprobada el <fecha>.`
-- `<n> tareas vistas demasiado tarde para avisar.`
-- `Sin clase en el horario: <asignatura>, <asignatura>.`
-- `<n> eventos marcados «Retirado».`
-- `Comprobar con quién se comparte el calendario.` (no check on record, or `calendar.shared_with` changed since)
+- `warnings off: events are written with no reminders`
+- `warning delivery not checked on the student's phone` or `warning delivery checked on <date>`
+- `<n> items seen too late to warn`
+- `no class in the timetable: <subject>, <subject>`
+- `<n> events marked «Retirado»`
+- `check who the calendar is shared with` (no check on record, or `calendar.shared_with` changed since)

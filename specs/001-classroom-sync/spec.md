@@ -407,7 +407,7 @@ test class, sync and check each effect.
 1. **Given** a recent full sync, no change in Classroom and no due or exam date
    between the two captures, **When** it is synced
    again, **Then** no file in the student's folder is created, modified or deleted and the
-   summary says «sin cambios» ("no changes").
+   summary says «sin cambios» (`no changes` on stderr, constitution 2.12.0).
 2. **Given** a due date moved by the teacher, **When** it is synced, **Then** the agenda
    shows the new date and the summary mentions it.
 3. **Given** an attachment of an item that Classroom shows as modified after the last replica,

@@ -1798,7 +1798,7 @@ def test_a_run_names_the_rules_it_used_with_a_fingerprint_and_never_their_words(
         assert entry["fingerprint"] == hashlib.sha256(text.encode()).hexdigest()[:8]
     assert theory["fingerprint"] != problems["fingerprint"]
     assert (
-        f"alfabeta: standing rules: theory student.both {theory['fingerprint']};"
+        f" standing rules: theory student.both {theory['fingerprint']};"
         f" problems student.both subject.problems {problems['fingerprint']}"
     ) in captured.err
     pack_text = (world.data / "study-pack.json").read_text()
@@ -1842,7 +1842,7 @@ def test_a_sheets_repr_holds_no_rule():
 def test_a_run_with_no_rules_says_so(world: World, capsys: pytest.CaptureFixture[str]):
     assert world.run() == 0
     result, err = output(capsys)
-    assert result["rules"] == [] and "alfabeta: no standing rules for this subject" in err
+    assert result["rules"] == [] and " no standing rules for this subject" in err
     pack = json.loads((world.data / "study-pack.json").read_text())
     assert [p["rules"] for p in pack["topics"][f"2026-2027/FyQ/20260915 - {TOPIC}"]["pieces"]] == [None, None]
 
@@ -1891,7 +1891,7 @@ def test_a_base_inside_drive_alone_is_a_warning_and_the_sheets_are_made(
     assert world.run() == 0
     result, err = output(capsys)
     assert result["ok"] is True and len(sent(world)) == 2
-    assert "alfabeta: warning: storage.base: inside_drive_mount" in err
+    assert " warning: storage.base: inside_drive_mount" in err
     assert "GoogleDrive-inventado" not in err
 
 
@@ -1901,7 +1901,7 @@ def test_a_base_inside_drive_does_not_excuse_any_other_problem(
     inside_the_mount(world, monkeypatch)
     set_rules(world, student={"both": "changeme"})
     err = refused(world, capsys, 1, "invalid_config")
-    assert "alfabeta: student.rules_both: unset" in err
+    assert " student.rules_both: unset" in err
     assert world.nlm.calls == []
 
 
@@ -1913,7 +1913,7 @@ def test_a_base_inside_drive_is_a_warning_beside_a_place_that_is_a_problem(
     config = world.home / STUDENT / "config.toml"
     config.write_text(re.sub(r"(?m)(\[tools\]\n(?:#.*\n)*folder = ).*$", rf'\1"{mounted}/tools"', config.read_text()))
     err = refused(world, capsys, 1, "invalid_config")
-    assert "alfabeta: warning: storage.base: inside_drive_mount" in err and "invalid_config" not in err
+    assert " warning: storage.base: inside_drive_mount" in err and "invalid_config" not in err
     assert world.nlm.calls == []
 
 

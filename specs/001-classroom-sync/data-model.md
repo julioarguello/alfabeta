@@ -29,7 +29,7 @@ and the family read stays Spanish. Where a technical value becomes a name in the
 | Agenda entry `declared: true` (spec 007, not built yet) | «declarado por la familia» |
 | Agenda entry `date: null` | «sin fecha» |
 | Attachment not fetched, noted in `enlaces.md` | «no traído» |
-| Summary for the family (stderr of `classroom apply`, relayed by Claude) | in Spanish; an unchanged run says «sin cambios» |
+| Summary for the family (relayed by Claude from the stderr of `classroom apply`, which is English: constitution 2.12.0) | in Spanish; an unchanged run says «sin cambios» (`no changes` on stderr) |
 | Book topic folder | `YYYYMMDD - Tema NN - <title>` |
 | Teacher's topic folder with no book equivalent, or with its match not yet confirmed | `YYYYMMDD - <teacher's title>` |
 | Folder for what Classroom posts with no topic | `YYYYMMDD - No topic` |

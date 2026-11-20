@@ -18,7 +18,6 @@ import datetime as dt
 import json
 import math
 import re
-import sys
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
@@ -26,6 +25,7 @@ from alfabeta.exam.nlm import NlmError
 from alfabeta.exam.prompts import NO_DATE, short_day, weekday
 from alfabeta.notes.refresh import LocalRefreshStore
 from alfabeta.notes.run import topic_name
+from alfabeta.output import say as _say
 from alfabeta.placement import MAX_NAME_BYTES, NO_TOPIC, book_topic_number, is_reading_book, subtopic_letter
 from alfabeta.sources import CLASSROOM
 from alfabeta.state import write_atomic
@@ -69,10 +69,6 @@ class Refusal(Exception):
     def __init__(self, reason: str, message: str) -> None:
         super().__init__(message)
         self.reason = reason
-
-
-def _say(message: str) -> None:
-    print(f"alfabeta: {message}", file=sys.stderr)
 
 
 @dataclass(frozen=True)

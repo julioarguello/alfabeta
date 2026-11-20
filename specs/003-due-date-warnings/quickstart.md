@@ -124,7 +124,7 @@ that Thursday's Physics session.
 ## 8. In every run (slice 5)
 
 - Run the Classroom sync as the family does. Its summary carries the calendar's line and the
-  delivery line, «Entrega de avisos no comprobada…» until step 9's record.
+  delivery line, `warning delivery not checked …` until step 9's record.
 - Revoke the link (spec 004 quickstart step 6) and run again: the calendar reports code 2 and the Mac
   notification of julioarguello/alfabeta#120 appears; the folder and the agenda still update. Link
   again.

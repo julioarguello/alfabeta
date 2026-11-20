@@ -15,6 +15,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from alfabeta.google.keychain import run_command
+from alfabeta.output import say as _say
 
 if TYPE_CHECKING:
     from alfabeta.google.keychain import Runner
@@ -38,7 +39,7 @@ class PrintPack:
         # Its own lines name keys and headings, never a value; nlm's, which may hold ids, stay out.
         for line in done.stderr.splitlines():
             if line.startswith("print_pack: "):
-                print(f"alfabeta: {line}", file=sys.stderr)
+                _say(line)
         return done.returncode == 0 and out.is_file()
 
     def pages(self, pdf: Path) -> int | None:

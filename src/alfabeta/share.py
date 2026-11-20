@@ -55,5 +55,5 @@ def counts(result: dict[str, Any]) -> dict[str, int]:
 
 
 def summary(result: dict[str, Any]) -> str:
-    """The family's line, in Spanish, with counts only."""
-    return f"carpeta del curso compartida con {result['shared']} cuenta(s), fallidas: {len(result['failed'])}"
+    """The summary line, in English, with counts only (constitution 2.12.0)."""
+    return f"school-year folder shared with {result['shared']} account(s), failed: {len(result['failed'])}"
