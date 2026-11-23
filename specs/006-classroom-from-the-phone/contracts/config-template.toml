@@ -9,7 +9,8 @@ account = "changeme@example.org"
 # 001's unattended runner for this student: config check reports it.
 profile_read = false
 # Spec 006: alias of the [google.accounts.<alias>] table, role "family", whose account sends the
-# family the sign-in notice and the read's result, to itself (FR-013, FR-014).
+# family the sign-in notice, the read's result and the teacher's «missing» marks, to itself
+# (FR-013, FR-014, FR-033).
 notice_account = "changeme"         # e.g. "family"
 
 # Spec 004 as amended by spec 006: a family account linked only to send those notices.

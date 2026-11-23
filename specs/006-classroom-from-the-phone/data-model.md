@@ -131,6 +131,7 @@ One log line per read (FR-020) and one result email (FR-014) carry these, and no
 |---|---|---|
 | `sign_in_waiting` | student id, `until` (local time), link (research R10) | sent within a minute of the wait starting (FR-013) |
 | `read_ended` | student id, the read result's counts and stop reason, `other_account` | one per read (FR-014) |
+| `missing_marked` *(2026-11-23)* | student id; per item newly marked, its subject folder and the link to its page in Classroom (ids only) | one per read that finds a new mark, none otherwise (FR-033) |
 
 Spanish text; no name, address or Classroom title (SC-006). Sent from the account whose alias is
 `[classroom] notice_account`, role `family`, to itself.

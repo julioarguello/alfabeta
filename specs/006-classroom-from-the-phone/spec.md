@@ -241,6 +241,13 @@ names and response shapes are a starting point, not a measurement of this accoun
   - Also: classes are not read in parallel (constitution IV, «no bursts»); grouping calls as the
     page does is to be measured (R1), FR-003's «one call at a time» standing until then.
 
+### Session 2026-11-23
+
+- Q: Through what does the family hear that a teacher marked an item as missing (Session
+  2026-11-20 left the channel open)? → A: The operator, 2026-11-23 (#283): «el aviso, que llegue
+  por correo a la familia». An email from the `family` account to itself, as FR-013 and FR-014's,
+  sent once when the mark appears (FR-033).
+
 ## User Scenarios & Testing *(mandatory)*
 
 The actors are **the family** (the parent who configures alfabeta and signs the student's school
@@ -674,6 +681,18 @@ arrives.
   usual sync with Claude in Chrome (FR-018). The hand sign-in window is not opened: a session it
   made in the Mac's Chrome could not be read by the container (R2).
 
+**The teacher's «missing» mark** *(added 2026-11-23, #283)*
+
+- **FR-033**: When a read finds the teacher's «missing» mark (`missing_per_teacher`) on an item that
+  the class's last capture held without it, or that it is the first to capture, it MUST send one
+  notice email the way FR-013's is sent — from the account linked with role `family` to that same
+  account — once for that read, listing every such item, and none for a mark already sent. It is in
+  Spanish and carries, for each item, the subject's folder as alfabeta names it and a link to the
+  item's page in Classroom (ids only); no name, email address or Classroom title (constitution III,
+  SC-006). It applies to every read, the container read included, so FR-022's amendment that the
+  container read sends no email does not cover it: the read by calls is not built without the
+  `family` account's link (research R9).
+
 ### Key Entities
 
 - **Read profile**: the browser profile kept for one student's read; holds the school session after
@@ -685,8 +704,9 @@ arrives.
   account; anything else is blocked.
 - **Sign-in wait**: one read's wait for the family: when it started, until when it waits, and how it
   ended (`signed_in`, `session_expired`, `challenge`).
-- **Notice**: an email to the family account, of two kinds: a sign-in is waiting (student id,
-  deadline, link) or a read ended (student id, counts, stop reason).
+- **Notice**: an email to the family account, of three kinds: a sign-in is waiting (student id,
+  deadline, link), a read ended (student id, counts, stop reason), or a teacher marked items as
+  missing (student id, each item's subject folder and link; FR-033, added 2026-11-23).
 - **Capture**: what the read leaves for spec 001's apply step, in spec 001's format.
 - **Stored password** (amendment 2026-11-17): the school account's password in the keychain under
   the student, set and deleted only by `classroom password` (FR-031), with its `wrong_password`

@@ -172,7 +172,8 @@ Facts the design rests on: [research.md](research.md#observed-facts).
    challenge → stop `challenge`.
 5. `classroom plan` and `classroom apply` (spec 001), which apply, check the shares and
    regenerate the agenda; judgement left pending (FR-007).
-6. Result email (FR-014), one log line (FR-020), release the locks.
+6. Result email (FR-014) and, when the capture holds a teacher's «missing» mark the last one did
+   not, its notice (FR-033, 2026-11-23); one log line (FR-020), release the locks.
 
 ## Vertical slices (each leaves the system demonstrable)
 
@@ -193,8 +194,8 @@ those three are recorded, so the tasks follow what was measured rather than the 
    watch (or S7's fallback), the macOS notification. Done when quickstart step 4 passes at the Mac.
 4. **`classroom refresh`.** FR-022, FR-024a, FR-020, US3 scenarios 1 and 2. Done when quickstart
    step 5 passes from a terminal with the app closed.
-5. **The notices.** FR-013, FR-014, SC-006. Needs spec 004's `family` role and `gmail.send` linked
-   (its own task there). Done when quickstart step 6 passes: notice and result email on the phone.
+5. **The notices.** FR-013, FR-014, FR-033 (2026-11-23), SC-006. Needs spec 004's `family` role and
+   `gmail.send` linked (its own task there). Done when quickstart step 6 passes: notice and result email on the phone.
 6. **Schedule and launcher.** FR-015 to FR-017, `classroom agent install|uninstall`, `config check`'s
    exclusivity with spec 001's runner. Done when quickstart step 7 passes: a scheduled read with
    the app closed and the screen locked.
