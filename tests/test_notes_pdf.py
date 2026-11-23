@@ -65,6 +65,18 @@ def test_a_change_in_one_page_changes_the_bytes(builder: ReportlabPdfBuilder):
     assert "Revisada por el alumno" in text_of(after)
 
 
+def test_a_page_whose_photo_left_drive_keeps_its_text_and_says_so(builder: ReportlabPdfBuilder):
+    """#242: the file is built without the photo, the same records still give the same bytes."""
+    gone = [(page, None if page.order == 2 else image) for page, image in notes_pages()]
+    a, pages = builder.notes(TOPIC, gone)
+    b, _ = builder.notes(TOPIC, gone)
+    assert a == b
+    assert pages == 4  # cover + (photo + text) for the first page + text alone for the second
+    text = " ".join(text_of(a).split())
+    assert "ZORONGO-DOS" in text and "En corrección" in text
+    assert text.count("ya no está en Drive") == 1
+
+
 def one_page_pdf(word: str) -> bytes:
     from reportlab.pdfgen import canvas
 

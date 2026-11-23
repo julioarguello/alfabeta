@@ -172,6 +172,14 @@ own table is the subset the requirements rest on; this one is the full list.
   topic folder's name after its date. Topics are keyed by folder id.
   - Notes: a cover page, then per page, in the order pages were first seen, the photo and its
     transcription, headed «Transcripción automática», «Revisada por el alumno» or «En corrección».
+    A page whose photo is gone from Drive (not in the run's listing) keeps its place and its
+    transcription, with a line where the photo was: «La foto de esta página ya no está en Drive; se
+    conserva su transcripción.» (constitution V, julioarguello/alfabeta#242). The photo going does not
+    by itself rebuild the file, which still holds it; the next build for another reason draws the page
+    without it and records `without_photo` on the page. The first pass whose listing holds that photo
+    again rebuilds the file with it, since a photo back from the trash with the same bytes is no
+    arrival of the feed. A listed photo that Drive fails to read is not gone: that build stops, and the
+    topic keeps what it owes for the next pass.
   - Classroom: a cover page, then per item (a file, a `.md` note or a folder, first table) one entry:
     a cover page with title, posting date, the text of `descripcion.md` (or an assignment's
     `enunciado.md`) and the addresses of `enlaces.md`, then each file's pages. A PDF is copied page by page; a Google-native file is
@@ -215,9 +223,8 @@ own table is the subset the requirements rest on; this one is the full list.
   recorded. `review` follows the name: « (revisada)» is `checked`, « (mal)» is `wrong`, and a name
   without a mark is `automatic` again. The name is then recorded, and the report names the topic and
   the page's photo. The mark may sit before the extension or after it, as a phone types it, in any case.
-  A page whose photo is gone from Drive is not marked; its mark is read once the photo is back. A page
-  whose photo is gone stops its topic's notes file from being built, since the file draws every photo:
-  that topic counts a failure and keeps what it owes, and the pass goes on (#242 decides how to draw it).
+  A page whose photo is gone from Drive is not marked; its mark is read once the photo is back. Its
+  topic's notes file is still built, with the page drawn without its photo (R6, #242).
 - **Order in a pass**: marks first, then corrections: a Markdown edit, a new version of the photo, or
   a « (corregida)» photo. So a correction seen in the same pass as a mark is taken as the later event.
   Drive's `modifiedTime` does not order a rename against an edit, because no one has measured whether a

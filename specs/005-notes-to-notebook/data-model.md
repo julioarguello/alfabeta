@@ -68,6 +68,7 @@ One per transcribed photo.
 | `model`, `usage` | The model and its token counts, for the report; empty when adopted |
 | `statements` | The search for the statements of the page's solved problems (FR-016d), below. Absent on a page recorded before it was built, which is never searched on its own |
 | `unbuilt` | A mark or a correction changed the page and its living file does not hold it yet; the first build that does clears it |
+| `without_photo` | The living file was last built with this page drawn without its photo, gone from Drive (research R6); the first pass whose listing holds the photo again rebuilds the file, and that build clears it |
 
 A correction (research R7) keeps the page's `order`: a photo named like `photo_id`'s plus
 « (corregida)» replaces `photo_id` and its transcription; a new `markdown_version` re-renders the

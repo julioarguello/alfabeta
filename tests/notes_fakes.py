@@ -273,12 +273,14 @@ class ScriptedFeed:
 
 @dataclass
 class CountingPdf:
-    """A `PdfBuilder` whose bytes name what went in; a notes file has 1 + 2 pages per page."""
+    """A `PdfBuilder` whose bytes name what went in; a notes file has 1 + 2 pages per page.
 
-    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
-        return (f"notes:{topic.name}:" + ",".join(f"{p.photo_id}/{p.review}" for p, _ in pages)).encode(), 1 + 2 * len(
-            pages
-        )
+    A page drawn without its photo, gone from Drive, is named `<id>/<review>/no-photo` and is one page.
+    """
+
+    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes | None]]) -> tuple[bytes, int]:
+        named = ",".join(f"{p.photo_id}/{p.review}" + ("/no-photo" if image is None else "") for p, image in pages)
+        return f"notes:{topic.name}:{named}".encode(), 1 + sum(1 if image is None else 2 for _, image in pages)
 
     def classroom(
         self, topic: Topic, entries: Sequence[tuple[ClassroomEntry, Sequence[RenderedPart]]]

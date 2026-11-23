@@ -1,6 +1,7 @@
 """Living files as PDF (spec 005 research R6): the same records always give the same bytes.
 
-A notes file is a cover page, then per page the photo and its literal transcription. A Classroom file
+A notes file is a cover page, then per page the photo and its literal transcription; a page whose photo
+has left Drive keeps its transcription, with a line where the photo was (#242). A Classroom file
 is a cover page, then per item a cover page and the pages of each of its parts. The student's work,
 its grading and previous versions never reach here: `ClassroomEntry` refuses them.
 """
@@ -43,6 +44,8 @@ FONT_CANDIDATES = (
 FONT = "AlfabetaText"
 BLUE = colors.HexColor("#1f3a68")
 MARGIN = 2 * cm
+# Where the photo of a page was, once it has left Drive: the page stays (constitution V, #242).
+NO_PHOTO = "La foto de esta página ya no está en Drive; se conserva su transcripción."
 
 
 @dataclass(frozen=True)
@@ -56,8 +59,8 @@ class RenderedPart:
 class PdfBuilder(Protocol):
     """Builds living files; returns their bytes and page count."""
 
-    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
-        """The notes living file: each page with its photo."""
+    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes | None]]) -> tuple[bytes, int]:
+        """The notes living file: each page with its photo, or with none when the photo has left Drive."""
         ...
 
     def classroom(
@@ -161,14 +164,24 @@ class ReportlabPdfBuilder:
         scale = min(box_w / width, box_h / height)
         return Image(io.BytesIO(image), width=width * scale, height=height * scale)
 
-    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes]]) -> tuple[bytes, int]:
+    def notes(self, topic: Topic, pages: Sequence[tuple[NotesPage, bytes | None]]) -> tuple[bytes, int]:
         """The notes living file: cover, then per page its heading, photo and transcription."""
         story = self._cover(
             f"Apuntes · {topic.name}", ["Transcripción literal de los apuntes de clase, página a página."]
         )
         for page, image in sorted(pages, key=lambda p: p[0].order):
-            story += self._page(page, image)
+            story += self._page(page, image) if image is not None else self._without_photo(page)
         return _finish([self._drawn(story, f"Apuntes · {topic.name}")])
+
+    def _without_photo(self, page: NotesPage) -> list[Flowable]:
+        """A page whose photo has left Drive: its heading, the line saying so, and its transcription."""
+        return [
+            Paragraph(page.heading, self._heading),
+            Paragraph(f'<font color="#666666">{html.escape(NO_PHOTO)}</font>', self._body),
+            Spacer(1, 0.25 * cm),
+            *self._text(page.markdown),
+            PageBreak(),
+        ]
 
     def _page(self, page: NotesPage, image: bytes) -> list[Flowable]:
         return [

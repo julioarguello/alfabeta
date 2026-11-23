@@ -64,6 +64,7 @@ FAMILY_FACING: dict[str, str] = {
     "alfabeta.google.oauth._CallbackHandler": "the browser page the family sees after linking an account",
     "alfabeta.notes.changes.TRANSCRIPT_MARK": "names of the files alfabeta writes for the family",
     "alfabeta.notes.model.NotesPage": "the transcription's states, written in the family's folder",
+    "alfabeta.notes.pdf.NO_PHOTO": "the line where a gone photo was, in the family's notes living file",
     "alfabeta.notes.pdf.ReportlabPdfBuilder": "the family's printed transcription",
     "alfabeta.notes.refresh.AGENDA_LINE": "the agenda's warning",
     "alfabeta.notes.refresh.GONE_AGENDA_LINE": "the agenda's warning",

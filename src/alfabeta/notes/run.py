@@ -89,6 +89,9 @@ _HEADING = re.compile(r"^#{1,6} ", re.MULTILINE)
 # On a page's record: its text or heading changed and the living file does not hold it yet, whatever
 # stopped the rebuild (a missing living file, Drive failing); the first pass that builds the file clears it.
 UNBUILT = "unbuilt"
+# On a page's record: its living file was last built without its photo, gone from Drive (#242); the first
+# pass whose listing holds the photo again rebuilds the file, since a return with the same bytes is no arrival.
+WITHOUT_PHOTO = "without_photo"
 # What a report counts per topic (contracts/cli.md); a topic is an opaque index, never a name or id.
 COUNTS = (
     "pages_added",
@@ -377,8 +380,8 @@ def run_notes(deps: NotesDeps) -> dict[str, Any]:
             except DriveError:
                 work.write_failed = True
             except OutsideFolderError:
-                # A page whose photo left Drive cannot be drawn: the file waits, what it owes is kept, and
-                # every other topic is still built (#242).
+                # An id this run's listing no longer holds, read anyway: the file waits, what it owes is
+                # kept, and every other topic is still built.
                 work.count(topic, "failed")
     try:
         write_report(deps, work, started)  # before the save: its calls' usage and its snapshot go with it
@@ -669,7 +672,7 @@ def _marks(deps: NotesDeps, work: Pass) -> None:
         pdf_id = page.get("pdf_id")
         record = work.files.get(pdf_id) if isinstance(pdf_id, str) else None
         if record is None or not deps.drive.contains(str(pdf_id)) or not deps.drive.contains(photo_id):
-            continue  # a page whose photo is gone cannot be built again: its mark waits, unread, for it
+            continue  # a page whose photo is gone is not marked (research R7): its mark waits, unread, for it
         name = deps.drive.listed(str(pdf_id)).name
         if name == record.get("name"):
             continue
@@ -780,18 +783,24 @@ def _rebuild(deps: NotesDeps, work: Pass, topic: str) -> None:
         work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED
         or work.pages[p.photo_id].get(UNBUILT)
         or work.pages[p.photo_id].get("statements", {}).get(statements.UNBUILT)
+        or (work.pages[p.photo_id].get(WITHOUT_PHOTO) and deps.drive.contains(p.photo_id))
         for p in pages
     )
     if topic not in work.dirty and not waiting:
         return
-    data, count = deps.pdf.notes(
-        Topic(topic, work.topics[topic]["name"]), [(p, deps.drive.content(p.photo_id)) for p in pages]
-    )
+    # A photo gone from Drive is not in this run's listing: its page is drawn without it (#242). A listed
+    # photo Drive fails to read stops the build, so an outage never writes a file stripped of its photos.
+    drawn = [(p, deps.drive.content(p.photo_id) if deps.drive.contains(p.photo_id) else None) for p in pages]
+    data, count = deps.pdf.notes(Topic(topic, work.topics[topic]["name"]), drawn)
     built, upload = living.built(hashlib.md5(data).hexdigest(), count)
     if upload:
         deps.drive.update(living.file_id, data, PDF)
-    for p in pages:
+    for p, image in drawn:
         work.pages[p.photo_id].pop(UNBUILT, None)
+        if image is None:
+            work.pages[p.photo_id][WITHOUT_PHOTO] = True
+        else:
+            work.pages[p.photo_id].pop(WITHOUT_PHOTO, None)
         work.pages[p.photo_id].get("statements", {}).pop(statements.UNBUILT, None)
         if work.files[p.photo_id]["state"] == PhotoState.TRANSCRIBED:
             work.files[p.photo_id]["state"] = str(PhotoState.IN_LIVING_FILE)
