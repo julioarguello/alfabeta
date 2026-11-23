@@ -231,17 +231,23 @@ names and response shapes are a starting point, not a measurement of this accoun
   operator answered them in the S9 session, 2026-11-20 (#283). → A:
   - **The student's number** `Zj93ge` needs: the read sends `UG41I` once, first, keeps the number
     in memory for that run only, and uses it; nothing else of `UG41I`'s answer is kept (R3).
+    *(2026-11-23, S9's third measurement: `UG41I` answers with the number only when its request
+    already carries it, so this cannot work as written; the number is taken from the page's own
+    request instead, Session 2026-11-23, R3.)*
   - **Attachment names**: the name the call gives, as it comes; nothing added (R7).
   - **Paging**: every list call is paged until Classroom says there is no more — the worst case is
-    assumed, not the 10 items S9 saw (R1).
+    assumed, not the 10 items S9 saw (R1). *(2026-11-23: the token works, R1; lists longer than 10
+    hold items the extractor's capture lacks, and whether the student sees them is #288.)*
   - **The two stream-only item records**: measured and explained before the build (S9's second
-    measurement, #283).
+    measurement, #283). *(2026-11-23: most likely items past a list's first 10, #288.)*
   - **The teacher's «missing» mark** (`missing_per_teacher`): the read detects it from the calls; it
     overrides the item's status, as in spec 001, and its appearance raises an event, once (R7); the
     channel is to be specified before the build; where it lives is S9's second measurement.
     *(Since 2026-11-23 the channel is an email to the family: see Session 2026-11-23, FR-033.)*
   - Also: classes are not read in parallel (constitution IV, «no bursts»); grouping calls as the
     page does is to be measured (R1), FR-003's «one call at a time» standing until then.
+    *(2026-11-23: measured, R1; FR-003 amended to one request at a time with several calls in it,
+    Session 2026-11-23.)*
 
 ### Session 2026-11-23
 
@@ -249,6 +255,24 @@ names and response shapes are a starting point, not a measurement of this accoun
   2026-11-20 left the channel open)? → A: The operator, 2026-11-23 (#283): «el aviso, que llegue
   por correo a la familia». An email from the `family` account to itself, as FR-013 and FR-014's,
   sent once when the mark appears (FR-033).
+- Q: S9's measurements (research «S9 · Second and third measurements») showed that `UG41I` answers
+  with the student's number only when asked with it, and that the page sends several calls in one
+  request. Two proposals: the read takes the number from the page's own request as the page loads,
+  keeps it in memory for that run only and sends eight names; and FR-003's «one call at a time»
+  reads «one request at a time», each with several of the allowlist's calls as the page sends them,
+  pauses kept. → A: The operator, 2026-11-23 (#287): «Ok, adelante». The first is adopted (R3). The
+  second rested on a premise a check the same day (`s9g`) disproved — the page sends one call per
+  request — so it is set aside and FR-003 stands; the question is asked again below.
+- Q: Asked again with the measured facts: the page sends one call per request (354 of 354). One
+  call per request, as the page, about 12 minutes for a whole read; several calls per request, a
+  shape the page never sends but answered with the same data, about 8 minutes. → A: The operator,
+  2026-11-23 (#287): «Varias por petición». FR-003 amended: one request at a time with pauses, a
+  request carrying several calls of the allowlist. Constitution IV's «no bursts» holds (fewer
+  requests, the same pauses); a challenge or a refused request stops the read as before (FR-008).
+  The operator added, the same day: «optimiza el rendimiento … lo importante es que sea rápido y
+  que aseguréis la integridad … que no nos falte nada». So, for the read by calls: completeness
+  first (every list paged, every item and attachment the student sees), then speed; the request
+  shape is not to be traded against either.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -406,7 +430,10 @@ arrives.
 
 - **FR-003**: The read MUST get Classroom's data from the read calls Classroom's own pages make, sent
   from a Classroom page loaded in the student's profile, one call at a time with pauses, as a
-  student browsing (constitution IV).
+  student browsing (constitution IV). *(Amendment 2026-11-23, Session 2026-11-23: one request at
+  a time with pauses; a request MAY carry several calls of the allowlist, a shape the page itself
+  does not send, and one call MAY carry several items where the page's own call does, as `Zj93ge`
+  does — research R1. Until 2026-11-23 this said «one call at a time».)*
 - **FR-004**: The read MUST send only calls whose names are on an allowlist of reads, recorded on
   this account before anything is built, for every page the read needs: a spike in this spec's plan
   widens spec 001's S6 to them. The peer project's catalogue may seed the recording but does not

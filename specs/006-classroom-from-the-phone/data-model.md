@@ -106,9 +106,9 @@ confirmed; the rest stay unconfirmed.)*
 | missing (2) | `overdue` | yes, S9 («Sin entregar») |
 | turned in (3) | `turned_in` | yes, S9 («Entregado») |
 | done late (4) | `turned_in_late` | yes, S9 («Entregado con retraso») |
-| returned, graded, graded late (5 seen: graded) | `returned` | not settled: the one graded item (5) also carried the teacher's «missing» notice, read `missing_per_teacher` today |
+| returned, graded, graded late (5 seen: graded) | `returned` | not settled: the one graded item (5) also carried the teacher's «missing» notice, read `missing_per_teacher` today *(2026-11-23: the capture shows graded items without the notice too; the mark overrides the bucket, R7)* |
 | excused | none (left `null`, listed) | no |
-| teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item) | no |
+| teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item) *(2026-11-23: `[32]` = 3 of the item's entry, on every marked item and no other of 12 classes, graded ones included per the capture's status texts)* | no *(2026-11-23: yes, S9's third measurement)* |
 
 *(2026-11-20, family decision, #283: the teacher's mark overrides the bucket, as in spec 001, and
 its appearance raises an event, once; research R7. Since 2026-11-23 that event is an email to the
