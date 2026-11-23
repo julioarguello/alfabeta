@@ -246,8 +246,8 @@ names and response shapes are a starting point, not a measurement of this accoun
     *(Since 2026-11-23 the channel is an email to the family: see Session 2026-11-23, FR-033.)*
   - Also: classes are not read in parallel (constitution IV, «no bursts»); grouping calls as the
     page does is to be measured (R1), FR-003's «one call at a time» standing until then.
-    *(2026-11-23: measured, R1; the page sends one call per request, so FR-003 stands, Session
-    2026-11-23.)*
+    *(2026-11-23: measured, R1; FR-003 amended to one request at a time with several calls in it,
+    Session 2026-11-23.)*
 
 ### Session 2026-11-23
 
@@ -263,6 +263,12 @@ names and response shapes are a starting point, not a measurement of this accoun
   pauses kept. → A: The operator, 2026-11-23 (#287): «Ok, adelante». The first is adopted (R3). The
   second rested on a premise a check the same day (`s9g`) disproved — the page sends one call per
   request — so it is set aside and FR-003 stands; the question is asked again below.
+- Q: Asked again with the measured facts: the page sends one call per request (354 of 354). One
+  call per request, as the page, about 12 minutes for a whole read; several calls per request, a
+  shape the page never sends but answered with the same data, about 8 minutes. → A: The operator,
+  2026-11-23 (#287): «Varias por petición». FR-003 amended: one request at a time with pauses, a
+  request carrying several calls of the allowlist. Constitution IV's «no bursts» holds (fewer
+  requests, the same pauses); a challenge or a refused request stops the read as before (FR-008).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -420,8 +426,10 @@ arrives.
 
 - **FR-003**: The read MUST get Classroom's data from the read calls Classroom's own pages make, sent
   from a Classroom page loaded in the student's profile, one call at a time with pauses, as a
-  student browsing (constitution IV). *(2026-11-23: one call may carry several items where the
-  page's own call does, as `Zj93ge` does; the page sends one call per request, research R1.)*
+  student browsing (constitution IV). *(Amendment 2026-11-23, Session 2026-11-23: one request at
+  a time with pauses; a request MAY carry several calls of the allowlist, a shape the page itself
+  does not send, and one call MAY carry several items where the page's own call does, as `Zj93ge`
+  does — research R1. Until 2026-11-23 this said «one call at a time».)*
 - **FR-004**: The read MUST send only calls whose names are on an allowlist of reads, recorded on
   this account before anything is built, for every page the read needs: a spike in this spec's plan
   widens spec 001's S6 to them. The peer project's catalogue may seed the recording but does not

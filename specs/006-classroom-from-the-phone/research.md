@@ -67,9 +67,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   the same statuses as one call per item. A whole read of the 12 classes with `Zj93ge` still one
   item a call took 270 requests and 503 s. The page itself sends one call per request (354 of
   354 over a home, «Trabajo de clase», stream and detail load, `s9g`), so several calls in one
-  request is the probe's shape, not the page's; FR-003 stands and is asked again, spec
-  Clarifications 2026-11-23. One call per request, `Zj93ge` grouped as the page does: about 390
-  requests, about 12 minutes (estimated).)*
+  request is the probe's shape, not the page's. One call per request, `Zj93ge` grouped as the page
+  does: about 390 requests, about 12 minutes (estimated). Asked with those facts, the operator chose
+  several calls per request (spec Clarifications 2026-11-23, FR-003 amended): one request at a time,
+  pauses kept, `Zj93ge` grouped, `t51ITc` and `cCzVwf` six to a request.)*
 - **Only what changed**: every run lists every active class's items (cheap: a few list calls per
   class), but asks for an item's materials (`t51ITc`-like, one call per item) only when its update
   mark differs from the last capture of that class; otherwise it copies that item's attachment list
@@ -994,7 +995,7 @@ descriptions); leaving it out would save 122 of the 583 calls.
 
 **The probes** are on branch `spike/279-s9-read-by-calls` (`spikes/s9*`), kept off `main`.
 
-### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field, the student's number comes from the page's own request
+### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field, the number from the page's own request, several calls a request
 
 Asked in julioarguello/alfabeta#283 and #287. Measured 2026-11-23, read-only, by Claude on the
 operator's standing permission to run tests, inside spec 001 research R15's limits (no sign-in, no
@@ -1028,10 +1029,11 @@ Against the family's decisions of 2026-11-20 and R1, R3, R7:
   asked with it. The read takes it from the page's own request as the page loads (home, or one
   class page if the home page sends none), keeps it in memory for that run only, and sends eight
   names (R3).
-- **FR-003's «one call at a time»** — stands. The operator approved «one request at a time, several
-  calls in it» on the premise that the page sends so; `s9g` then showed it does not (one call per
-  request), so the approval is set aside and the question asked again (spec Clarifications
-  2026-11-23). `Zj93ge` grouped is one call, as the page sends it, and needs no change.
+- **FR-003's «one call at a time»** — amended. The operator first approved «one request at a time,
+  several calls in it» on the premise that the page sends so; `s9g` then showed it does not (one
+  call per request), so the question was asked again with that fact, and the operator chose several
+  calls per request (spec Clarifications 2026-11-23): one request at a time, pauses kept, `Zj93ge`
+  grouped, `t51ITc` and `cCzVwf` six to a request.
 - **Paging**: the token's places are settled; R1's «always page» is built once #288 says whether
   the student sees the items past a list's first 10.
 - **Items past a list's first 10**: the read by calls finds items the extractor's capture lacks;
