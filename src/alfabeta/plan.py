@@ -305,6 +305,9 @@ class Planner:
                             "why": why,
                         }
                         (collected if self._collected(item, wanted) else downloads).append(wanted)
+        # What the student has not got yet goes first: the periodic review comes last, so a pass cut midway
+        # loses review files before any other (#290). The sort is stable: plan order within each group.
+        downloads.sort(key=lambda d: d["why"] == "review")
         seen: Counter[str] = Counter()
         for download in downloads:
             download["batch"] = seen[download["expected_name"]]

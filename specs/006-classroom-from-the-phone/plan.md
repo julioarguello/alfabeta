@@ -297,7 +297,9 @@ image needs no copy of the package. The host never runs a browser.
    written to a temporary name and renamed into `/out/inbox/<item>__<attachment>/<name>`. The host
    moves only each download's exact `data/inbox/<item>__<attachment>/<name>` (ids and name checked
    as single path components, every part a real folder of the out folder, no symlink), and
-   runs `classroom apply` without planning again; what was not brought apply notes «no traído».
+   runs `classroom apply` without planning again (with `--review-incomplete` when this pass was cut
+   or skipped while the plan asked for `review` downloads: the run is then no full review, #290);
+   what was not brought apply notes «no traído».
    The pass is skipped when the plan asks for nothing or the first pass ended `session_expired`,
    `challenge`, `browser_crashed` (a second browser in the Docker that just lost one would only
    repeat it; no second memory reading is taken) or breached.

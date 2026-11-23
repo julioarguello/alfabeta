@@ -371,7 +371,10 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         attachments = _attachments(cfg, lock, deps, run, image, planned, session, logged)
     if not _failed(collected) and not _failed(planned):
         _say(deps, "placing in Drive …")
-    applied = {} if _failed(collected) or _failed(planned) else deps.steps(["classroom", "apply"], run)
+    apply_args = ["classroom", "apply"]
+    if _review_incomplete(planned, logged):
+        apply_args.append("--review-incomplete")
+    applied = {} if _failed(collected) or _failed(planned) else deps.steps(apply_args, run)
     failed = next((step for step in (collected, planned, applied) if _failed(step)), None)
     if failed is not None:
         code = str(failed.get("reason") or StopReason.UNEXPECTED_UI)
@@ -386,6 +389,21 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         | {"pending_decisions": len(planned.get("pending_decisions", []))},
         "blocked": blocked,
     }
+
+
+def _review_incomplete(planned: dict[str, Any], logged: dict[str, Any]) -> bool:
+    """Whether the plan's review downloads were not all asked for: the pass was cut or never ran (#290).
+
+    A file asked for and not brought (a page, a 404) does not make a review incomplete; a pass that
+    stopped before the end of its list, or that was skipped, does.
+    """
+    listed = planned.get("downloads", [])
+    entries: list[Any] = cast("list[Any]", listed) if isinstance(listed, list) else []
+    reasons = [cast("dict[str, Any]", d).get("why") for d in entries if isinstance(d, dict)]
+    if not planned.get("full_review") or "review" not in reasons:
+        return False
+    passed = logged.get("attachments_pass")
+    return not isinstance(passed, dict) or cast("dict[str, Any]", passed).get("reason") is not None
 
 
 def _wanted(planned: dict[str, Any]) -> list[dict[str, Any]]:
