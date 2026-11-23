@@ -269,6 +269,10 @@ names and response shapes are a starting point, not a measurement of this accoun
   2026-11-23 (#287): «Varias por petición». FR-003 amended: one request at a time with pauses, a
   request carrying several calls of the allowlist. Constitution IV's «no bursts» holds (fewer
   requests, the same pauses); a challenge or a refused request stops the read as before (FR-008).
+  The operator added, the same day: «optimiza el rendimiento … lo importante es que sea rápido y
+  que aseguréis la integridad … que no nos falte nada». So, for the read by calls: completeness
+  first (every list paged, every item and attachment the student sees), then speed; the request
+  shape is not to be traded against either.
 
 ## User Scenarios & Testing *(mandatory)*
 
