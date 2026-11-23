@@ -36,7 +36,7 @@ from urllib.parse import parse_qs, urlsplit
 sys.path.insert(0, "/s9")
 import s9_common as C  # noqa: E402
 from s8_calls import LOAD_JS, ROUTE  # noqa: E402
-from s9b_calls import at_path, fill, kinds_in, pick, records  # noqa: E402
+from s9b_calls import at_path, fill, kinds_in, pick  # noqa: E402
 
 R = C.R
 TPL = "/s9out/templates.json"
@@ -84,6 +84,50 @@ def tokens(payload: Any) -> list[tuple[tuple, str]]:
         if p[:1] != (2,) and isinstance(v, str) and len(v) >= 12 and not v.isdigit() and " " not in v:
             out.append((p, v))
     return out
+
+
+def records(ans: Any, cls: str) -> list[tuple[int, str, Any]]:
+    """[(slot, id, record)] for every record whose key ans[2][i][slot][0][0] is [id, [class]] of this class."""
+    out: list[tuple[int, str, Any]] = []
+    for entry in at_path(ans, [2, "*"]):
+        if not isinstance(entry, list):
+            continue
+        for slot, rec in enumerate(entry):
+            try:
+                key = rec[0][0]
+                if isinstance(key, list) and str(key[1][0]) == cls and key[0] is not None:
+                    out.append((slot, str(key[0]), rec))
+            except (IndexError, TypeError, KeyError):
+                continue
+    return out
+
+
+def ph_path(t: Any, kind: str, p: tuple = ()) -> tuple | None:
+    """Path of the first {"$": kind} placeholder in a template."""
+    if isinstance(t, dict):
+        return p if next(iter(t.values())) == kind else None
+    if isinstance(t, list):
+        for i, v in enumerate(t):
+            got = ph_path(v, kind, p + (i,))
+            if got is not None:
+                return got
+    return None
+
+
+def grouped(tpl_args: Any, c: dict[str, str], ids: list[str]) -> Any:
+    """The template filled for ids[0], with the list that holds the [item, [class]] key repeated once per id."""
+    p = ph_path(tpl_args, "item")
+    a = fill(tpl_args, {**c, "item": ids[0]})
+    if p is None or len(p) < 2:
+        return a
+    holder = a
+    for i in p[:-2]:
+        holder = holder[i]
+    elem = holder[p[-2]]
+    holder[:] = [copy.deepcopy(elem) for _ in ids]
+    for e, it in zip(holder, ids, strict=True):
+        e[p[-1]] = int(it) if isinstance(e[p[-1]], int) else it
+    return a
 
 
 def main() -> int:
@@ -178,6 +222,10 @@ def main() -> int:
                  "Zj": pick(tpl, "Zj93ge", "assignment", {"class", "item", "user"})[:1], "t5": pick(tpl, "t51ITc", "assignment", {"class", "item"})[:1],
                  "cC": pick(tpl, "cCzVwf", "assignment", {"class", "item"})[:1]}
             C.emit(templates={k: len(v) for k, v in T.items()})
+            C.emit(item_paths={k: list(ph_path(T[k][0], "item") or []) for k in ("Zj", "t5", "cC") if T[k]})
+            page.evaluate(R.EXTRACTOR.read_text())
+            if T["dp_all"]:
+                C.emit(dp_all_args_shape=C.shape(T["dp_all"][0], {}))
             token_path: dict[str, Any] = {}
 
             def paged(page: Any, args: Any, cls: str, size: int | None = None) -> tuple[list, int]:
@@ -226,9 +274,24 @@ def main() -> int:
                 C.emit(part="C", cls=n, one_call=len({i for _s, i, _r in full_once}), paged_by_3=len({i for _s, i, _r in by3}), pages=pages3,
                        same_ids={i for _s, i, _r in full_once} == {i for _s, i, _r in by3}, token_path_in_answer=list(token_path.get("answer", [])))
                 dp_recs = list(by3 or full_once)
+                per_topic: dict[str, list] = {}
                 for tp in topics:
                     recs, _pg = paged(page, fill(T["dp_topic"][0], {**c, "topic": tp}), cls)
+                    per_topic[tp] = recs
                     dp_recs += recs
+                if per_topic and "topic_paged" not in state:
+                    big = max(per_topic, key=lambda t: len(per_topic[t]))
+                    a3 = fill(T["dp_topic"][0], {**c, "topic": big})
+                    a3[0][0] = 3
+                    first = one(page, "dpT4Vd", a3)
+                    cand = tokens(first) if first is not None else []
+                    if cand and "answer" not in token_path:
+                        token_path["answer"] = cand[0][0]
+                    p3, n3 = paged(page, fill(T["dp_topic"][0], {**c, "topic": big}), cls, size=3)
+                    state["topic_paged"] = True
+                    C.emit(part="C", cls=n, topic_size=len(per_topic[big]), first_page_records=len(records(first, cls)) if first else 0,
+                           token_candidates=[list(pth) for pth, _ in cand][:4], paged_by_3=len({i for _s, i, _r in p3}), pages=n3,
+                           same_ids={i for _s, i, _r in p3} == {i for _s, i, _r in per_topic[big]})
                 po_recs: list = []
                 for a in T["pO"]:
                     ans = one(page, "pONvgf", fill(a, c))
@@ -256,14 +319,10 @@ def main() -> int:
                             zj[hit[0]] = entry
                 t5: dict[str, Any] = {}
                 for k in range(0, len(items), GROUP):
-                    a = fill(T["t5"][0], {**c, "item": items[k]})
-                    a[1] = [[int(i), [int(cls)]] for i in items[k:k + GROUP]]
-                    ans = one(page, "t51ITc", a)
+                    ans = one(page, "t51ITc", grouped(T["t5"][0], c, items[k:k + GROUP]))
                     for i in items[k:k + GROUP]:
                         t5[i] = {str(v) for _p, v in leaves(ans)} if ans is not None else set()
-                    cc = copy.deepcopy(fill(T["cC"][0], {**c, "item": items[k]}))
-                    cc[3] = [[int(i), [int(cls)]] for i in items[k:k + GROUP]]
-                    one(page, "cCzVwf", cc)
+                    one(page, "cCzVwf", grouped(T["cC"][0], c, items[k:k + GROUP]))
                 if with_status and items and "pair" not in state:
                     state["pair"] = (fill(T["Zj"][0], {**c, "item": with_status[0]}), fill(T["t5"][0], {**c, "item": items[0]}))
                 grouped_s, grouped_n = round(time.monotonic() - tb), state["n"] - nb
