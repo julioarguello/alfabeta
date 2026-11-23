@@ -65,8 +65,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   names, or one name six times — are answered, and six `t51ITc` calls in one request give the same
   attachments as one request each; `Zj93ge` with 12 items in one call, as the page sends it, gives
   the same statuses as one call per item. A whole read of the 12 classes with `Zj93ge` still one
-  item a call took 270 requests and 503 s. Reading FR-003 as «one request at a time», as the page
-  does, is proposed, pending the operator.)*
+  item a call took 270 requests and 503 s. FR-003 now reads «one request at a time», several calls
+  in a request as the page sends them: the operator, 2026-11-23, spec Clarifications.)*
 - **Only what changed**: every run lists every active class's items (cheap: a few list calls per
   class), but asks for an item's materials (`t51ITc`-like, one call per item) only when its update
   mark differs from the last capture of that class; otherwise it copies that item's attachment list
@@ -137,9 +137,10 @@ measured on this account; they seed the spikes below and replace none of them (F
   second and third measurements: `UG41I` answers with the number only when its request already
   carries it — the page's own shapes that carry it, 3 of 3; those without it, 3 of 3 not. So the
   read cannot learn the number by sending `UG41I`. The number is in the page's own requests as it
-  loads (`O1Xqee`'s, and `UG41I`'s), and in no `WIZ_global_data` key. Proposed, pending the
-  operator: the read takes it from the home page's own request, keeps it in memory for that run
-  only, and sends eight names, neither `UG41I` nor `O1Xqee`.)*
+  loads (`O1Xqee`'s, and `UG41I`'s), and in no `WIZ_global_data` key. Decided by the operator,
+  2026-11-23 (spec Clarifications): the read takes it from the page's own request as the page
+  loads, keeps it in memory for that run only, and sends eight names, neither `UG41I` nor
+  `O1Xqee`.)*
 - **What cannot be measured, said plainly**: no spike sends a write to prove it is one, since that
   is what constitution IV forbids. "Reads and writes can be told apart by call name" therefore means:
   a read-only load of every page needed sends only names whose responses are queries, and each name
@@ -157,7 +158,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   `UG41I`'s answer (and `O1Xqee`'s and `Zj93ge`'s own) carries; S9 took it from the home page's own
   `O1Xqee` request. Whether the read may take it so is open (research, «S9»). *(2026-11-20, family
   decision, #283: the read sends `UG41I` itself, once, as above; nine names, never `O1Xqee`.)*
-  *(2026-11-23: `UG41I` cannot give the number without it (above); the route is pending.)*
+  *(2026-11-23: `UG41I` cannot give the number without it (above); eight names, the number from
+  the page's own request, the operator's decision of that day.)*
 
 ### R4. The guard (FR-005), installed before any page script
 
@@ -956,7 +958,8 @@ Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
   R3 says nothing of `UG41I`'s answer is kept: taking the number from the page's request needs a
   decision (or R3 admits reading it). *Decided: the read sends `UG41I` once and keeps the number in
   memory for that run only (R3).* *(2026-11-23: `UG41I` answers with the number only when its
-  request already carries it; the route is pending the operator, R3.)*
+  request already carries it; since the operator's decision of that day the number comes from the
+  page's own request, R3.)*
 - **Attachment names.** 13 of 52 names, mostly links, are not in the answers as the capture writes
   them (1 video, 10 links, 2 files), and 2 ids (a form, a link) are in no answer: how the capture's name of a link or a file is
   made has to be settled before the read writes it. *Decided: the call's name, by R7's rule; the
@@ -988,7 +991,7 @@ descriptions); leaving it out would save 122 of the 583 calls.
 
 **The probes** are on branch `spike/279-s9-read-by-calls` (`spikes/s9*`), kept off `main`.
 
-### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field; the student's number and FR-003 wait on the operator
+### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field; the student's number from the page's own request
 
 Asked in julioarguello/alfabeta#283 and #287. Measured 2026-11-23, read-only, by Claude on the
 operator's standing permission to run tests, inside spec 001 research R15's limits (no sign-in, no
@@ -1015,11 +1018,12 @@ used. No breach; no stop; the session survived each (`RotateCookiesPage` request
 
 Against the family's decisions of 2026-11-20 and R1, R3, R7:
 
-- **The student's number** — pending the operator. The family's decision, the read sends `UG41I`
-  once, cannot work as written: `UG41I` answers with the number only when asked with it. Proposed:
-  the read takes it from the page's own request as the page loads (home, or one class page if the
-  home page sends none), keeps it in memory for that run only, and sends eight names (R3).
-- **FR-003's «one call at a time»** — pending the operator. Proposed: one request at a time, each
+- **The student's number** — decided by the operator, 2026-11-23. The family's earlier decision,
+  the read sends `UG41I` once, cannot work as written: `UG41I` answers with the number only when
+  asked with it. The read takes it from the page's own request as the page loads (home, or one
+  class page if the home page sends none), keeps it in memory for that run only, and sends eight
+  names (R3).
+- **FR-003's «one call at a time»** — decided by the operator, 2026-11-23: one request at a time, each
   with several calls of the read's allowlist as the page sends them (`Zj93ge` grouped, `t51ITc` and
   `cCzVwf` six to a request), pauses kept. The page itself sends so.
 - **Paging**: settled; R1's «always page» is built with the token's places above.
