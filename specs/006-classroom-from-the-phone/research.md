@@ -57,16 +57,19 @@ measured on this account; they seed the spikes below and replace none of them (F
   decision, #283: every list call is paged until Classroom says there is no more, whatever the
   page size seen. *(2026-11-23, S9's third measurement: the next-page token is at answer `[1,1,0]`
   and goes at request `[0][1]`; within a topic read 3 a page, the pages equal the capture's items
-  of that topic, 3 topics of 3. Lists longer than 10 gave 5 items the extractor's capture lacks,
-  #288.)* Classes are not read in parallel: constitution IV, «no bursts». Whether calls can
+  of that topic, 3 topics of 3. Lists longer than 10 gave 5 items the extractor's capture lacks;
+  whether the student sees them is #288, and «always page» is built once #288 answers it.)* Classes are not read in parallel: constitution IV, «no bursts». Whether calls can
   be grouped as the page itself groups them — several items in one call, several names in one
   request — is measured in S9's second measurement; FR-003's «one call at a time» stands until
   then.)* *(2026-11-23, S9's second and third measurements: several calls in one request — two
   names, or one name six times — are answered, and six `t51ITc` calls in one request give the same
   attachments as one request each; `Zj93ge` with 12 items in one call, as the page sends it, gives
   the same statuses as one call per item. A whole read of the 12 classes with `Zj93ge` still one
-  item a call took 270 requests and 503 s. FR-003 now reads «one request at a time», several calls
-  in a request as the page sends them: the operator, 2026-11-23, spec Clarifications.)*
+  item a call took 270 requests and 503 s. The page itself sends one call per request (354 of
+  354 over a home, «Trabajo de clase», stream and detail load, `s9g`), so several calls in one
+  request is the probe's shape, not the page's; FR-003 stands and is asked again, spec
+  Clarifications 2026-11-23. One call per request, `Zj93ge` grouped as the page does: about 390
+  requests, about 12 minutes (estimated).)*
 - **Only what changed**: every run lists every active class's items (cheap: a few list calls per
   class), but asks for an item's materials (`t51ITc`-like, one call per item) only when its update
   mark differs from the last capture of that class; otherwise it copies that item's attachment list
@@ -404,7 +407,7 @@ the family's.
 |---|---|---|---|
 | **S7 · The sign-in window and the profile.** Start the installed Chrome with a fresh profile in the data folder and `--remote-debugging-pipe`; the family signs in by hand; `Target.getTargets` shows the address reach Classroom; alfabeta closes it; Playwright (`channel="chrome"`, keychain flags removed) opens the profile headless and loads one Classroom page with the session; the window can be brought to the front by process id | agent + family sign-in | Google accepts the sign-in with the same steps the R20 probe of 2026-11-01 showed, and no «this browser may not be secure» page; the address change is seen; the headless open reads the session with no keychain dialog | Sign-in refused with the flag: R5's fallback (watch the process only) and FR-010 amended. Session not readable headless: the read is not built |
 | **S8 · The calls of every page** (widens spec 001's S6). Behind the minimal guard (document-load allowlist, zero presses), load once each page kind of R3 for two classes, headless, and record per request: method, host, path, call names, response tag — never bodies or cookies | agent + family sign-in | Every capture field comes from a name whose responses are queries, or from the name R3 admits by name; besides those, only tagged names R3 admits because the page needs them are let through; the pages load with everything outside those names and the session upkeep blocked; the stream's announcements are found | A needed field only behind a non-query name: FR-004 not met, the read is not built, this plan says so. *(2026-11-19: S8 failed this way on `t51ITc` alone; the family admitted it by name in R3, #270. Its second half passed the same day with ten names, research «S8, second half»; its last pieces: «S8, last pieces»)* |
-| **S9 · A whole read by calls, compared.** Same day, same classes: the current extractor (the family's usual run) and a throwaway read by S8's names from S7's profile, headless, timed; then fetch every listed attachment through the request context (R8) | agent + family sign-in | All classes read in under 30 minutes of the sign-in with no challenge; the same item ids (base64 of decimals), types, topics, attachments and stream posts; the status table of R7 filled with no contradiction; attachment bytes equal the replicas; and, inherited from S8 (2026-11-19, R4's notes): whether the session survives a whole read with `accounts.google.com/RotateCookiesPage` blocked or needs it let through, and whether the page needs `ClassroomUi/browserinfo` | A challenge: stop (constitution IV), record it, the read is not built. Differences: recorded per field; a field that cannot be matched is a spec question before building *(2026-11-20: no challenge; on two classes the ids, types, topics, posts, posting days and due instants match and four status rows are confirmed; attachments, the graded status, the bytes and the whole read stay open; research «S9»)* |
+| **S9 · A whole read by calls, compared.** Same day, same classes: the current extractor (the family's usual run) and a throwaway read by S8's names from S7's profile, headless, timed; then fetch every listed attachment through the request context (R8) | agent + family sign-in | All classes read in under 30 minutes of the sign-in with no challenge; the same item ids (base64 of decimals), types, topics, attachments and stream posts; the status table of R7 filled with no contradiction; attachment bytes equal the replicas; and, inherited from S8 (2026-11-19, R4's notes): whether the session survives a whole read with `accounts.google.com/RotateCookiesPage` blocked or needs it let through, and whether the page needs `ClassroomUi/browserinfo` | A challenge: stop (constitution IV), record it, the read is not built. Differences: recorded per field; a field that cannot be matched is a spec question before building *(2026-11-20: no challenge; on two classes the ids, types, topics, posts, posting days and due instants match and four status rows are confirmed; attachments, the graded status, the bytes and the whole read stay open; research «S9»)* *(2026-11-23: the graded status, the mark's field and a whole read's time measured — research «S9 · Second and third measurements»; the bytes stay open.)* |
 | **S10 · From launchd, screen locked, no app open.** Install a throwaway LaunchAgent that runs S7's headless open at a set minute; the family locks the Mac and closes the Claude app; then a second agent opens the sign-in window | agent + family (lock the Mac, sign in) | The headless open reads the session with no keychain or other dialog; the window is there when the Mac is unlocked | A keychain dialog: the read profile's cookie key needs a one-time "Always allow" at set-up, recorded in the quickstart; a window that cannot open while locked: FR-012's unlock-first order is written into the notice |
 | **S11 · The remote view and the link.** Set up Chrome Remote Desktop to the Mac on the family's Google account; from the family's phone, open the remote view, unlock the Mac with its password, sign in in the window; time it; try R10's candidates from the phone and from the Mac | family phone + family sign-in | The sign-in completes from the phone in under 2 minutes from opening the link (SC-002); R10 records which link does what | No remote view to a locked Mac: the family signs in at the Mac, and FR-012 is amended |
 | **S12 · The notice email.** Link a family account with `gmail.send` only (a throwaway link, revoked after), send a notice to itself from a script | family (consent, phone) | The phone notifies within a minute; the time is recorded | No notification of a self-sent email: R9's fallback, FR-013 amended |
@@ -991,7 +994,7 @@ descriptions); leaving it out would save 122 of the 583 calls.
 
 **The probes** are on branch `spike/279-s9-read-by-calls` (`spikes/s9*`), kept off `main`.
 
-### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field; the student's number from the page's own request
+### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field, the student's number comes from the page's own request
 
 Asked in julioarguello/alfabeta#283 and #287. Measured 2026-11-23, read-only, by Claude on the
 operator's standing permission to run tests, inside spec 001 research R15's limits (no sign-in, no
@@ -999,22 +1002,24 @@ password), in the session of the family's `classroom refresh` that ended `ok` at
 the family by hand, the scheduled 16:15 one having stopped `docker_low_memory`. The read image with
 the read's own `Guard`, `browserinfo` blocked; before each probe the request templates were learnt
 again from the page (`s9t`); one request at a time, 1–2 s apart. Three probes kept: `s9d`
-(16:51–16:57, the 3 classes whose capture shows the teacher's notice, 86 requests), `s9f`
-(17:10, `UG41I`'s shapes, 6 requests) and `s9e` (17:13–17:22, every class, 288 requests). Earlier
+(16:51–16:57, the classes whose capture shows the teacher's notice, 86 requests), `s9f`
+(17:10, `UG41I`'s shapes, 6 requests), `s9e` (17:13–17:22, every class, 288 requests) and `s9g`
+(17:31, the page's own requests counted, nothing sent). Earlier
 tries of `s9d` and `s9e` that afternoon stopped on faults of the probes, and their output is not
-used. No breach; no stop; the session survived each (`RotateCookiesPage` requested and blocked).
+used. No breach; no stop; `s9d` and `s9e` ended on a live home page, and each later probe opened
+one (`RotateCookiesPage` requested and blocked).
 
 | Question | Answer |
 |---|---|
-| The student's number | `UG41I` answers with it (at `[2,0,0,0]`) only when its request carries it already: of the page's own shapes, the 3 that carry it do, the 3 that do not, do not. It is in the page's own requests as it loads, in no `WIZ_global_data` key. The home page sent its `O1Xqee` within 15 s each time the probe waited for it; once, 1.5 s was too short |
-| Several calls in one request | answered: two names (`s9d`), one name six times (`s9e`) |
+| The student's number | `UG41I` answers with it (at `[2,0,0,0]`) only when its request carries it already: of the page's own shapes, the 3 that carry it do, the 3 that do not, do not. It is in the page's own requests as it loads, and in no `WIZ_global_data` key (`s9t`, every run). The home page sent its `O1Xqee` within the 15 s the probe waited |
+| Several calls in one request | answered when the probe sends them: two names (`s9d`), one name six times (`s9e`). The page itself never does: 354 of its requests, one call each (`s9g`, 17:31) |
 | `Zj93ge`, 12 items in one call | as the page sends it: the same status as one call per item, 15 of 15 compared (first 5 items of 3 classes). `s9e` built the group at the wrong depth and got an error row each time, then sent one item a call |
-| `t51ITc` for several items | 12 item keys in one call (a shape the probe made, not the page's): agrees with one call per item for 1 of 11 attachments. Six `t51ITc` calls in one request: agrees for 9 of 9 |
+| `t51ITc` for several items | 12 item keys in one call (a shape the probe made, not the page's): agrees with one call per item for 1 of 11 attachments. Six `t51ITc` calls in one request: agrees for 9 of 9 (two classes; the third had no attachment) |
 | Attachments | 117 of the capture's 122 attachment ids are in a `t51ITc` answer, none in the item record; 5 in neither |
 | Paging | the next-page token is at answer `[1,1,0]` and goes at request `[0][1]`. Within a topic read 3 a page, the pages equal the capture's items of that topic (topics of 5, 6 and 7 items). With 10 a page, every single-page list equals the capture; the two lists that ran to a second page (two classes) gave 2 and 3 items the capture lacks, under no other topic either (#288) |
 | The stream-only records | with every list paged, none: no item record is left to the stream alone. One `s9d` saw before paging was in place was 48–82 days old by its instants, with paths `[0,14]`, `[0,25]` and `[0,27,…]` not common to the class's first 10 records |
-| The teacher's «missing» mark | `[32]` of the item's entry in `Zj93ge`'s answer is 3 on every item the capture shows with the notice and on no other item of the 12 classes, graded items without the notice included. The item record shows no difference |
-| A whole read | 12 classes, 131 items, the same items as the capture in 10 classes (the other two: #288): 270 requests, 503 s, with `Zj93ge` one item a call; the extractor's refresh of the same session took 916 s. With `Zj93ge` grouped as `s9d` measured, about 75 requests fewer (estimated) |
+| The teacher's «missing» mark | `[32]` of the item's entry in `Zj93ge`'s answer is 3 on every item the capture shows with the notice and on no other item of the 12 classes. Every item of the 12 classes was read, and the capture's status texts show graded items without the notice, so `[32]` is not the graded bucket. The item record shows no difference |
+| A whole read | 12 classes, 131 items, the same items as the capture in 10 classes (the other two: #288): 270 requests, 503 s, with `Zj93ge` one item a call; the extractor's refresh of the same session took 916 s. Items only, no per-post calls; `t51ITc` and `cCzVwf` six to a request (the probe's shape, not the page's). One call per request with `Zj93ge` grouped as the page does: about 390 requests, about 12 minutes (estimated) |
 
 Against the family's decisions of 2026-11-20 and R1, R3, R7:
 
@@ -1023,10 +1028,12 @@ Against the family's decisions of 2026-11-20 and R1, R3, R7:
   asked with it. The read takes it from the page's own request as the page loads (home, or one
   class page if the home page sends none), keeps it in memory for that run only, and sends eight
   names (R3).
-- **FR-003's «one call at a time»** — decided by the operator, 2026-11-23: one request at a time, each
-  with several calls of the read's allowlist as the page sends them (`Zj93ge` grouped, `t51ITc` and
-  `cCzVwf` six to a request), pauses kept. The page itself sends so.
-- **Paging**: settled; R1's «always page» is built with the token's places above.
+- **FR-003's «one call at a time»** — stands. The operator approved «one request at a time, several
+  calls in it» on the premise that the page sends so; `s9g` then showed it does not (one call per
+  request), so the approval is set aside and the question asked again (spec Clarifications
+  2026-11-23). `Zj93ge` grouped is one call, as the page sends it, and needs no change.
+- **Paging**: the token's places are settled; R1's «always page» is built once #288 says whether
+  the student sees the items past a list's first 10.
 - **Items past a list's first 10**: the read by calls finds items the extractor's capture lacks;
   whether the student sees them, and the extractor's fix, are #288.
 - **The mark**: settled, `[32]` = 3 (R7; data-model's status table).
