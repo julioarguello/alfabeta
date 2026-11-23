@@ -231,9 +231,13 @@ names and response shapes are a starting point, not a measurement of this accoun
   operator answered them in the S9 session, 2026-11-20 (#283). → A:
   - **The student's number** `Zj93ge` needs: the read sends `UG41I` once, first, keeps the number
     in memory for that run only, and uses it; nothing else of `UG41I`'s answer is kept (R3).
+    *(2026-11-23, S9's third measurement: `UG41I` answers with the number only when its request
+    already carries it, so this cannot work as written; a route is proposed in R3, pending the
+    operator.)*
   - **Attachment names**: the name the call gives, as it comes; nothing added (R7).
   - **Paging**: every list call is paged until Classroom says there is no more — the worst case is
-    assumed, not the 10 items S9 saw (R1).
+    assumed, not the 10 items S9 saw (R1). *(2026-11-23: measured and working, R1; lists longer
+    than 10 hold items the extractor's capture lacks, #288.)*
   - **The two stream-only item records**: measured and explained before the build (S9's second
     measurement, #283).
   - **The teacher's «missing» mark** (`missing_per_teacher`): the read detects it from the calls; it
@@ -242,6 +246,8 @@ names and response shapes are a starting point, not a measurement of this accoun
     *(Since 2026-11-23 the channel is an email to the family: see Session 2026-11-23, FR-033.)*
   - Also: classes are not read in parallel (constitution IV, «no bursts»); grouping calls as the
     page does is to be measured (R1), FR-003's «one call at a time» standing until then.
+    *(2026-11-23: measured, R1; reading FR-003 as «one request at a time» is proposed, pending the
+    operator.)*
 
 ### Session 2026-11-23
 
@@ -406,7 +412,8 @@ arrives.
 
 - **FR-003**: The read MUST get Classroom's data from the read calls Classroom's own pages make, sent
   from a Classroom page loaded in the student's profile, one call at a time with pauses, as a
-  student browsing (constitution IV).
+  student browsing (constitution IV). *(2026-11-23: the page sends several calls in one request;
+  «one request at a time» is proposed, pending the operator — research R1.)*
 - **FR-004**: The read MUST send only calls whose names are on an allowlist of reads, recorded on
   this account before anything is built, for every page the read needs: a spike in this spec's plan
   widens spec 001's S6 to them. The peer project's catalogue may seed the recording but does not

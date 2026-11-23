@@ -55,10 +55,18 @@ measured on this account; they seed the spikes below and replace none of them (F
   for two classes, 1.79 s a call; about 17 minutes extrapolated for the run's 12 classes, under
   30 but slower than the extractor's 884 s for the same run; research «S9».)* *(2026-11-20, family
   decision, #283: every list call is paged until Classroom says there is no more, whatever the
-  page size seen. Classes are not read in parallel: constitution IV, «no bursts». Whether calls can
+  page size seen. *(2026-11-23, S9's third measurement: the next-page token is at answer `[1,1,0]`
+  and goes at request `[0][1]`; within a topic read 3 a page, the pages equal the capture's items
+  of that topic, 3 topics of 3. Lists longer than 10 gave 5 items the extractor's capture lacks,
+  #288.)* Classes are not read in parallel: constitution IV, «no bursts». Whether calls can
   be grouped as the page itself groups them — several items in one call, several names in one
   request — is measured in S9's second measurement; FR-003's «one call at a time» stands until
-  then.)*
+  then.)* *(2026-11-23, S9's second and third measurements: several calls in one request — two
+  names, or one name six times — are answered, and six `t51ITc` calls in one request give the same
+  attachments as one request each; `Zj93ge` with 12 items in one call, as the page sends it, gives
+  the same statuses as one call per item. A whole read of the 12 classes with `Zj93ge` still one
+  item a call took 270 requests and 503 s. Reading FR-003 as «one request at a time», as the page
+  does, is proposed, pending the operator.)*
 - **Only what changed**: every run lists every active class's items (cheap: a few list calls per
   class), but asks for an item's materials (`t51ITc`-like, one call per item) only when its update
   mark differs from the last capture of that class; otherwise it copies that item's attachment list
@@ -125,7 +133,13 @@ measured on this account; they seed the spikes below and replace none of them (F
   and nothing of its answer is kept (constitution III). S8 found one, `UG41I` (`hrq.usr`): with it
   blocked the home page listed no class (16:43). *(2026-11-20, family decision, spec Clarifications
   2026-11-20, #283: the read by calls sends `UG41I` once, first, for the student's own number, which
-  it keeps in memory for that run only; nothing else of the answer is kept.)*
+  it keeps in memory for that run only; nothing else of the answer is kept.)* *(2026-11-23, S9's
+  second and third measurements: `UG41I` answers with the number only when its request already
+  carries it — the page's own shapes that carry it, 3 of 3; those without it, 3 of 3 not. So the
+  read cannot learn the number by sending `UG41I`. The number is in the page's own requests as it
+  loads (`O1Xqee`'s, and `UG41I`'s), and in no `WIZ_global_data` key. Proposed, pending the
+  operator: the read takes it from the home page's own request, keeps it in memory for that run
+  only, and sends eight names, neither `UG41I` nor `O1Xqee`.)*
 - **What cannot be measured, said plainly**: no spike sends a write to prove it is one, since that
   is what constitution IV forbids. "Reads and writes can be told apart by call name" therefore means:
   a read-only load of every page needed sends only names whose responses are queries, and each name
@@ -143,6 +157,7 @@ measured on this account; they seed the spikes below and replace none of them (F
   `UG41I`'s answer (and `O1Xqee`'s and `Zj93ge`'s own) carries; S9 took it from the home page's own
   `O1Xqee` request. Whether the read may take it so is open (research, «S9»). *(2026-11-20, family
   decision, #283: the read sends `UG41I` itself, once, as above; nine names, never `O1Xqee`.)*
+  *(2026-11-23: `UG41I` cannot give the number without it (above); the route is pending.)*
 
 ### R4. The guard (FR-005), installed before any page script
 
@@ -271,7 +286,11 @@ measured on this account; they seed the spikes below and replace none of them (F
   (#283) — R9's `Mailer`, a third notice kind. The contents are the spec's, FR-033: an opaque id
   would not let the family find the item, so each item goes as its subject folder and a link to
   its Classroom page built from ids, which constitution III allows; «once» is kept by a record of
-  sent marks rather than by comparing captures, so a failed send is retried.)*
+  sent marks rather than by comparing captures, so a failed send is retried.)* *(2026-11-23, S9's
+  second and third measurements: field `[32]` of an item's entry in `Zj93ge`'s answer is 3 on every
+  item the capture shows with the teacher's notice, and on no other item of the 12 classes — graded
+  items without the notice included, so it is not the graded bucket. The item record holds nothing
+  that differs. The read reads the mark from there.)*
 - **Stream**: the class stream's announcements, through the stream query; S8 records which call
   and type carry an announcement (the peer documents assignments, not announcements).
 - **Judgement** (FR-007): unchanged — a class not linked to a subject, a new topic match and an exam
@@ -936,18 +955,24 @@ Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
   request, sent by the page as it loads, and so sent only eight names, never `UG41I` nor `O1Xqee`.
   R3 says nothing of `UG41I`'s answer is kept: taking the number from the page's request needs a
   decision (or R3 admits reading it). *Decided: the read sends `UG41I` once and keeps the number in
-  memory for that run only (R3).*
+  memory for that run only (R3).* *(2026-11-23: `UG41I` answers with the number only when its
+  request already carries it; the route is pending the operator, R3.)*
 - **Attachment names.** 13 of 52 names, mostly links, are not in the answers as the capture writes
   them (1 video, 10 links, 2 files), and 2 ids (a form, a link) are in no answer: how the capture's name of a link or a file is
   made has to be settled before the read writes it. *Decided: the call's name, by R7's rule; the
-  two missing ids are S9's second measurement.*
+  two missing ids are S9's second measurement.* *(2026-11-23: over the 12 classes, 117 of the
+  capture's 122 attachment ids are in a `t51ITc` answer and none in the item record; the 5 others
+  are open, #287.)*
 - **Paging.** `dpT4Vd` asks for 10 items a call and was never paged here. The largest topic of the
   run's 12 classes holds exactly 10 items; one more would need the next page, untested. *Decided:
-  always paged (R1); paging is forced and tested in S9's second measurement.*
+  always paged (R1); paging is forced and tested in S9's second measurement.* *(2026-11-23: tested,
+  R1; «exactly 10» was the first page of a longer list, #288.)*
 - **Two stream records.** Class 1's stream (`pONvgf`) held 2 item records, slot 1, that neither
   `dpT4Vd` nor the capture holds. The read takes items from `dpT4Vd` only; what they are is not
   known. The comparison takes items from `dpT4Vd` only; the probe sent the four item calls for
   these two as well (8 of the 225). *Decided: measured and explained in S9's second measurement.*
+  *(2026-11-23: with every list paged, no item record is left to the stream alone; these were most
+  likely items past a list's first 10, which the capture lacks too, #288.)*
 - **The teacher's «missing» mark** (above). *Decided: detected and raised as an event (R7); its
   field is S9's second measurement. The event's channel, 2026-11-23: an email to the family
   (FR-033).*
@@ -955,9 +980,52 @@ Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
 **S9's second measurement** (#283), after the next scheduled refresh: the read sending `UG41I`
 itself, once; grouping calls as the page does, and the time of a whole read so grouped; paging
 forced with a small page; the two stream-only records; the field of the teacher's «missing» mark;
-and the two attachments no call returned.
+and the two attachments no call returned. *(Measured 2026-11-23, with a third measurement for what
+it left: «S9 · Second and third measurements» below.)*
 
 Also measured: **`tQShAc` adds nothing** the `dpT4Vd` record lacks for the compared fields (titles,
 descriptions); leaving it out would save 122 of the 583 calls.
 
 **The probes** are on branch `spike/279-s9-read-by-calls` (`spikes/s9*`), kept off `main`.
+
+### S9 · Second and third measurements — a whole read in 8 minutes, paging within a topic works, the mark has its field; the student's number and FR-003 wait on the operator
+
+Asked in julioarguello/alfabeta#283 and #287. Measured 2026-11-23, read-only, by Claude on the
+operator's standing permission to run tests, inside spec 001 research R15's limits (no sign-in, no
+password), in the session of the family's `classroom refresh` that ended `ok` at 16:47 — run by
+the family by hand, the scheduled 16:15 one having stopped `docker_low_memory`. The read image with
+the read's own `Guard`, `browserinfo` blocked; before each probe the request templates were learnt
+again from the page (`s9t`); one request at a time, 1–2 s apart. Three probes kept: `s9d`
+(16:51–16:57, the 3 classes whose capture shows the teacher's notice, 86 requests), `s9f`
+(17:10, `UG41I`'s shapes, 6 requests) and `s9e` (17:13–17:22, every class, 288 requests). Earlier
+tries of `s9d` and `s9e` that afternoon stopped on faults of the probes, and their output is not
+used. No breach; no stop; the session survived each (`RotateCookiesPage` requested and blocked).
+
+| Question | Answer |
+|---|---|
+| The student's number | `UG41I` answers with it (at `[2,0,0,0]`) only when its request carries it already: of the page's own shapes, the 3 that carry it do, the 3 that do not, do not. It is in the page's own requests as it loads, in no `WIZ_global_data` key. The home page sent its `O1Xqee` within 15 s each time the probe waited for it; once, 1.5 s was too short |
+| Several calls in one request | answered: two names (`s9d`), one name six times (`s9e`) |
+| `Zj93ge`, 12 items in one call | as the page sends it: the same status as one call per item, 15 of 15 compared (first 5 items of 3 classes). `s9e` built the group at the wrong depth and got an error row each time, then sent one item a call |
+| `t51ITc` for several items | 12 item keys in one call (a shape the probe made, not the page's): agrees with one call per item for 1 of 11 attachments. Six `t51ITc` calls in one request: agrees for 9 of 9 |
+| Attachments | 117 of the capture's 122 attachment ids are in a `t51ITc` answer, none in the item record; 5 in neither |
+| Paging | the next-page token is at answer `[1,1,0]` and goes at request `[0][1]`. Within a topic read 3 a page, the pages equal the capture's items of that topic (topics of 5, 6 and 7 items). With 10 a page, every single-page list equals the capture; the two lists that ran to a second page (two classes) gave 2 and 3 items the capture lacks, under no other topic either (#288) |
+| The stream-only records | with every list paged, none: no item record is left to the stream alone. One `s9d` saw before paging was in place was 48–82 days old by its instants, with paths `[0,14]`, `[0,25]` and `[0,27,…]` not common to the class's first 10 records |
+| The teacher's «missing» mark | `[32]` of the item's entry in `Zj93ge`'s answer is 3 on every item the capture shows with the notice and on no other item of the 12 classes, graded items without the notice included. The item record shows no difference |
+| A whole read | 12 classes, 131 items, the same items as the capture in 10 classes (the other two: #288): 270 requests, 503 s, with `Zj93ge` one item a call; the extractor's refresh of the same session took 916 s. With `Zj93ge` grouped as `s9d` measured, about 75 requests fewer (estimated) |
+
+Against the family's decisions of 2026-11-20 and R1, R3, R7:
+
+- **The student's number** — pending the operator. The family's decision, the read sends `UG41I`
+  once, cannot work as written: `UG41I` answers with the number only when asked with it. Proposed:
+  the read takes it from the page's own request as the page loads (home, or one class page if the
+  home page sends none), keeps it in memory for that run only, and sends eight names (R3).
+- **FR-003's «one call at a time»** — pending the operator. Proposed: one request at a time, each
+  with several calls of the read's allowlist as the page sends them (`Zj93ge` grouped, `t51ITc` and
+  `cCzVwf` six to a request), pauses kept. The page itself sends so.
+- **Paging**: settled; R1's «always page» is built with the token's places above.
+- **Items past a list's first 10**: the read by calls finds items the extractor's capture lacks;
+  whether the student sees them, and the extractor's fix, are #288.
+- **The mark**: settled, `[32]` = 3 (R7; data-model's status table).
+- **Attachments**: 5 of 122 in no `t51ITc` answer; what they are stays in #287.
+
+**The probes**: `spikes/s9d_followup.py`, `s9e_third.py` and `s9f_number.py` on the same branch.
