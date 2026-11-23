@@ -5,7 +5,8 @@
 **Scope**: the container read through `classroom refresh`, `classroom password set|delete` and
 `classroom agent install|uninstall`. `classroom capture` and `classroom status` stay in `PLANNED`
 (the container read reaches them through `refresh`); the launcher of FR-016 and the read on the
-Mac's own Chrome (window, remote view, notices, read by calls) get their tasks when they are built.
+Mac's own Chrome (window, remote view, notices, read by calls) get their tasks when they are built
+(FR-033's email with the read by calls, 2026-11-23).
 **Rules for every test**: no real account, no keychain value and no Google host is ever reached; the
 fakes are local; `CLAUDECODE` is honoured everywhere (no task needs to bypass it).
 

@@ -14,7 +14,8 @@ read stops and tells the family why, and that day's read is the family's usual s
 (User Story 2, FR-003, FR-004, FR-010 to FR-013) stay specified for a read on the Mac's own Chrome,
 which the amendment does not build: a session signed in by hand in the Mac's Chrome cannot be read
 by the container (inferred, not measured: macOS encrypts that profile's cookies with a key in its
-keychain, R2). Where an
+keychain, R2). *(2026-11-23: the read by calls sends FR-033's email wherever it runs, the container
+included, so it is built with the `family` account's link.)* Where an
 older sentence of this spec conflicts with FR-027 to FR-032, those win. Measured first: spike S14
 in research.md.
 
@@ -238,6 +239,7 @@ names and response shapes are a starting point, not a measurement of this accoun
   - **The teacher's «missing» mark** (`missing_per_teacher`): the read detects it from the calls; it
     overrides the item's status, as in spec 001, and its appearance raises an event, once (R7); the
     channel is to be specified before the build; where it lives is S9's second measurement.
+    *(Since 2026-11-23 the channel is an email to the family: see Session 2026-11-23, FR-033.)*
   - Also: classes are not read in parallel (constitution IV, «no bursts»); grouping calls as the
     page does is to be measured (R1), FR-003's «one call at a time» standing until then.
 
@@ -525,7 +527,8 @@ arrives.
   `classroom apply` (which regenerates the agenda), under one lock, with one result email (FR-014)
   and one log line (FR-020). *(Amendment 2026-11-17: the container read sends no email — the
   `family` account's link is not built with it — and reports by its log line and, on a stop, FR-032's
-  notification.)* It is what the schedule (FR-015), the launcher and the notice's link
+  notification. 2026-11-23: true of the extractor's container read; the read by calls sends FR-033's
+  email wherever it runs.)* It is what the schedule (FR-015), the launcher and the notice's link
   run. Its verb is `refresh` — re-read the source so the copy that depends on it is current — and
   not `sync`, which alfabeta keeps for writing its state out to an outside copy (spec 003's
   `calendar sync`) and which spec 001 uses for the full sync launched with Claude (FR-018).
@@ -683,15 +686,19 @@ arrives.
 
 **The teacher's «missing» mark** *(added 2026-11-23, #283)*
 
-- **FR-033**: When a read finds the teacher's «missing» mark (`missing_per_teacher`) on an item that
-  the class's last capture held without it, or that it is the first to capture, it MUST send one
-  notice email the way FR-013's is sent — from the account linked with role `family` to that same
-  account — once for that read, listing every such item, and none for a mark already sent. It is in
-  Spanish and carries, for each item, the subject's folder as alfabeta names it and a link to the
-  item's page in Classroom (ids only); no name, email address or Classroom title (constitution III,
-  SC-006). It applies to every read, the container read included, so FR-022's amendment that the
-  container read sends no email does not cover it: the read by calls is not built without the
-  `family` account's link (research R9).
+- **FR-033**: When the read by calls (wherever it runs: the Mac's own Chrome or the container,
+  research R1) captures the teacher's «missing» mark (`missing_per_teacher`) on an item whose mark
+  is not in the student's record of sent marks, it MUST send one notice email the way FR-013's is
+  sent — from the account linked with role `family` to that same account — listing every such item
+  of that read, and then add those items to the record; an item leaves the record when a capture
+  holds it without the mark, so a mark set again is sent again, and a failed send is tried again by
+  the next read. The email is in Spanish, names the student only by its id and carries, for each
+  item, the subject's folder as alfabeta names it («sin asignatura» for a class not linked to one,
+  FR-007) and a link to the item's page in Classroom built from ids only, without `/u/<n>`, as spec
+  001's agenda writes it, and the email says to open it with the school account. No
+  name, email address or Classroom title (constitution III, SC-006). Tested offline with invented
+  captures. The extractor's container read of today (FR-030) does not send it: the read by calls
+  is not built without the `family` account's link (research R9).
 
 ### Key Entities
 

@@ -264,10 +264,14 @@ measured on this account; they seed the spikes below and replace none of them (F
 - **The teacher's «missing» mark** (2026-11-20, family decision, #283): the read detects it, and
   the item's status follows spec 001's rule — `missing_per_teacher` overrides the bucket. When the
   mark appears (absent from the class's last capture, present in this one) the read raises an
-  event so the family hears of it: once, on that change, not on every read. *(2026-11-23, family
-  decision, #283: by email to the family — R9's `Mailer`, a third notice kind, FR-033; the item
-  as its subject folder and a link to its Classroom page, ids only.)* The field that holds the
-  mark is S9's second measurement.
+  event so the family hears of it: once, on that change, not on every read. The channel and its
+  contents (the item's opaque id only, constitution III) are to be specified as a requirement
+  before the build, since no notice kind or result field carries it; the field that holds the mark
+  is S9's second measurement. *(2026-11-23: the family chose the channel, an email to the family
+  (#283) — R9's `Mailer`, a third notice kind. The contents are the spec's, FR-033: an opaque id
+  would not let the family find the item, so each item goes as its subject folder and a link to
+  its Classroom page built from ids, which constitution III allows; «once» is kept by a record of
+  sent marks rather than by comparing captures, so a failed send is retried.)*
 - **Stream**: the class stream's announcements, through the stream query; S8 records which call
   and type carry an announcement (the peer documents assignments, not announcements).
 - **Judgement** (FR-007): unchanged — a class not linked to a subject, a new topic match and an exam
@@ -291,7 +295,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   with spec 004's `HttpTransport` and the token of the account linked with role `family` and scope
   `gmail.send` only (spec 004 FR-004, FR-005 as amended), from that account to itself. Texts in
   Spanish, naming the student by its id and nothing from Classroom (FR-014); a test over every
-  template (SC-006).
+  template (SC-006). *(2026-11-23: FR-033's notice also carries Classroom links built from ids
+  and alfabeta's subject folders; still no name, address or title.)*
 - **Depends on**: spec 004's role `family` and the Gmail scope, which no code links yet; that is
   its own task in spec 004 before slice 5. *(2026-11-23: the teacher's «missing» mark is sent the
   same way, by every read, the container read included (FR-033), so the read by calls needs this
