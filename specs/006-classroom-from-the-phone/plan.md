@@ -86,7 +86,7 @@ constitution 2.6.0, amended by the spec.
 |---|---|---|
 | I. The student is configuration | The school account, the switch and the notice account are configuration; the profile lives in the student's data folder; two students have two profiles and run one at a time under the browser lock | Pass |
 | II. Three layers | Two template keys with `changeme`; the session in the data folder (user-only); the family's token in the keychain; nothing in a file beside the configuration; nothing copied off the Mac | Pass |
-| III. Minors' data | *(Written before the amendment of 2026-11-17, which stores the password in the keychain and signs in by script, spec FR-027 to FR-032; this plan is redone before that build.)* The family types the sign-in; alfabeta stores no password or second factor; emails and logs carry the student's id and counts only, tested (SC-006); the sign-in address never logged; data goes to Google (the family's account sends the email) and nowhere else; fixtures invented, not the peer's | Pass |
+| III. Minors' data | *(Written before the amendment of 2026-11-17, which stores the password in the keychain and signs in by script, spec FR-027 to FR-032; this plan is redone before that build.)* The family types the sign-in; alfabeta stores no password or second factor; emails and logs carry the student's id and counts only (and, 2026-11-23, FR-033's subject folders and item links built from ids), tested (SC-006); the sign-in address never logged; data goes to Google (the family's account sends the email) and nowhere else; fixtures invented, not the peer's | Pass |
 | IV. Read-only on the school's platforms | The guard of research R4 in the browser before any page script: presses cancelled, document loads and calls allowlisted by name, form hosts blocked; the allowlist from read-only loads only (R3), and no write is sent to test it; a challenge stops the run; no stealth flags, no proxy: only the keychain flags Chrome needs to read its own cookies are changed | Pass, conditional on S8 (if reads cannot be told from writes by name, the read is not built). *S8 (2026-11-19): the names carrying the capture's fields have query tags in every answer (reading `.lr`, `.laa` and `rubric.list` as list or get tags) but one, `t51ITc` (the attachment ids), admitted by name on the family's decision (R3, #270); S8's second half passed with ten names and the due dates are mapped exactly (research, «S8, second half»); its last pieces recorded (research «S8, last pieces»); S9 (2026-11-20): on two classes the ids, types, topics, posts and dates match and four status rows are confirmed; the read by calls sends eight of the names, `RotateCookiesPage` and `browserinfo` stay blocked; attachments, the graded status, the bytes, the whole read and five questions stay open (research, «S9»); *(2026-11-20, #283: the five decided — spec Clarifications 2026-11-20; nine names, `UG41I` sent once)*; comments, grades and returned marks stay open* |
 | V. Idempotent, incremental | Captures keep today's ids (base64 of the decimal id, R7); apply unchanged; an unchanged item's materials are copied from the last capture, and a periodic full read asks again (R1) | Pass |
 | VI. One isolated, tested provider | The read is a second capture route of the Classroom provider behind the same capture contract; one class's failure stops only that class (FR-008); tests against fake answers and a fake Classroom, never the real one | Pass |
@@ -172,7 +172,9 @@ Facts the design rests on: [research.md](research.md#observed-facts).
    challenge → stop `challenge`.
 5. `classroom plan` and `classroom apply` (spec 001), which apply, check the shares and
    regenerate the agenda; judgement left pending (FR-007).
-6. Result email (FR-014), one log line (FR-020), release the locks.
+6. Result email (FR-014) and, for teacher's «missing» marks not in the sent-marks record, their
+   notice, adding the items once it is sent and dropping those a capture holds without the mark
+   (FR-033, 2026-11-23); one log line (FR-020), release the locks.
 
 ## Vertical slices (each leaves the system demonstrable)
 
@@ -193,8 +195,9 @@ those three are recorded, so the tasks follow what was measured rather than the 
    watch (or S7's fallback), the macOS notification. Done when quickstart step 4 passes at the Mac.
 4. **`classroom refresh`.** FR-022, FR-024a, FR-020, US3 scenarios 1 and 2. Done when quickstart
    step 5 passes from a terminal with the app closed.
-5. **The notices.** FR-013, FR-014, SC-006. Needs spec 004's `family` role and `gmail.send` linked
-   (its own task there). Done when quickstart step 6 passes: notice and result email on the phone.
+5. **The notices.** FR-013, FR-014, FR-033 (2026-11-23), SC-006. Needs spec 004's `family` role
+   and `gmail.send` linked (its own task there). FR-033 also has an offline test with invented
+   captures. Done when quickstart step 6 passes: notice and result email on the phone.
 6. **Schedule and launcher.** FR-015 to FR-017, `classroom agent install|uninstall`, `config check`'s
    exclusivity with spec 001's runner. Done when quickstart step 7 passes: a scheduled read with
    the app closed and the screen locked.
@@ -220,7 +223,9 @@ No step needs the student's phone.
 
 What the amendment builds (spec FR-027 to FR-032), on spec 001's lock, captures, plan and apply,
 spec 004's keychain and macOS notifier, and spec 005's launchd agent. The read on the Mac's own
-Chrome above (window, remote view, notices, read by calls) is not built here.
+Chrome above (window, remote view, notices, read by calls) is not built here. *(2026-11-23: when
+the read by calls is built, in the container too, it brings FR-033's email and the `family`
+account's link with it.)*
 
 ### Source code
 

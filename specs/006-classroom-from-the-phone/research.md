@@ -267,7 +267,11 @@ measured on this account; they seed the spikes below and replace none of them (F
   event so the family hears of it: once, on that change, not on every read. The channel and its
   contents (the item's opaque id only, constitution III) are to be specified as a requirement
   before the build, since no notice kind or result field carries it; the field that holds the mark
-  is S9's second measurement.
+  is S9's second measurement. *(2026-11-23: the family chose the channel, an email to the family
+  (#283) — R9's `Mailer`, a third notice kind. The contents are the spec's, FR-033: an opaque id
+  would not let the family find the item, so each item goes as its subject folder and a link to
+  its Classroom page built from ids, which constitution III allows; «once» is kept by a record of
+  sent marks rather than by comparing captures, so a failed send is retried.)*
 - **Stream**: the class stream's announcements, through the stream query; S8 records which call
   and type carry an announcement (the peer documents assignments, not announcements).
 - **Judgement** (FR-007): unchanged — a class not linked to a subject, a new topic match and an exam
@@ -285,15 +289,18 @@ measured on this account; they seed the spikes below and replace none of them (F
   bytes equal those of the last replicas. *(2026-11-20, S9: not measured; no attachment was
   fetched.)*
 
-### R9. Notices by email from the `family` account (FR-013, FR-014)
+### R9. Notices by email from the `family` account (FR-013, FR-014, FR-033)
 
 - **Decision**: one `Mailer` port; its adapter sends through the Gmail API `users.messages.send`
   with spec 004's `HttpTransport` and the token of the account linked with role `family` and scope
   `gmail.send` only (spec 004 FR-004, FR-005 as amended), from that account to itself. Texts in
   Spanish, naming the student by its id and nothing from Classroom (FR-014); a test over every
-  template (SC-006).
+  template (SC-006). *(2026-11-23: FR-033's notice also carries Classroom links built from ids
+  and alfabeta's subject folders; still no name, address or title.)*
 - **Depends on**: spec 004's role `family` and the Gmail scope, which no code links yet; that is
-  its own task in spec 004 before slice 5.
+  its own task in spec 004 before slice 5. *(2026-11-23: the teacher's «missing» mark is sent the
+  same way by the read by calls, wherever it runs, the container included (FR-033), so the read
+  by calls needs this link too.)*
 - **To be measured (spike S12)**: how long the email takes to reach the phone and whether Gmail
   notifies the phone of a message the account sent to itself. If it does not, the plan's fallback
   is the family account sending to a second address the family names, which would amend FR-013
@@ -942,7 +949,8 @@ Clarifications 2026-11-20, #283; each bullet below ends with its decision.)*
   known. The comparison takes items from `dpT4Vd` only; the probe sent the four item calls for
   these two as well (8 of the 225). *Decided: measured and explained in S9's second measurement.*
 - **The teacher's «missing» mark** (above). *Decided: detected and raised as an event (R7); its
-  field is S9's second measurement.*
+  field is S9's second measurement. The event's channel, 2026-11-23: an email to the family
+  (FR-033).*
 
 **S9's second measurement** (#283), after the next scheduled refresh: the read sending `UG41I`
 itself, once; grouping calls as the page does, and the time of a whole read so grouped; paging

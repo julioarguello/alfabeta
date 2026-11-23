@@ -111,7 +111,8 @@ confirmed; the rest stay unconfirmed.)*
 | teacher marked as missing | `missing_per_teacher` — no field located in `Zj93ge` (one item) | no |
 
 *(2026-11-20, family decision, #283: the teacher's mark overrides the bucket, as in spec 001, and
-its appearance raises an event, once; research R7.)*
+its appearance raises an event, once; research R7. Since 2026-11-23 that event is an email to the
+family, FR-033.)*
 
 ## Read result
 
@@ -131,9 +132,14 @@ One log line per read (FR-020) and one result email (FR-014) carry these, and no
 |---|---|---|
 | `sign_in_waiting` | student id, `until` (local time), link (research R10) | sent within a minute of the wait starting (FR-013) |
 | `read_ended` | student id, the read result's counts and stop reason, `other_account` | one per read (FR-014) |
+| `missing_marked` *(2026-11-23)* | student id; per item newly marked, its subject folder («sin asignatura» if none) and the link to its page in Classroom (ids only, no `/u/<n>`) | one per read that finds a mark not in the sent-marks record, none otherwise (FR-033) |
 
 Spanish text; no name, address or Classroom title (SC-006). Sent from the account whose alias is
 `[classroom] notice_account`, role `family`, to itself.
+
+**Sent marks** *(2026-11-23, FR-033)*: per student, in its data folder (user-only), the opaque ids
+of the items whose teacher's «missing» mark was emailed. An id is added after the email is sent
+and removed when a capture holds the item without the mark. Nothing else is kept.
 
 ## Seam
 
