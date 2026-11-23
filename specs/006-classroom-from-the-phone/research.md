@@ -299,8 +299,8 @@ measured on this account; they seed the spikes below and replace none of them (F
   and alfabeta's subject folders; still no name, address or title.)*
 - **Depends on**: spec 004's role `family` and the Gmail scope, which no code links yet; that is
   its own task in spec 004 before slice 5. *(2026-11-23: the teacher's «missing» mark is sent the
-  same way, by every read, the container read included (FR-033), so the read by calls needs this
-  link too.)*
+  same way by the read by calls, wherever it runs, the container included (FR-033), so the read
+  by calls needs this link too.)*
 - **To be measured (spike S12)**: how long the email takes to reach the phone and whether Gmail
   notifies the phone of a message the account sent to itself. If it does not, the plan's fallback
   is the family account sending to a second address the family names, which would amend FR-013

@@ -714,6 +714,8 @@ arrives.
 - **Notice**: an email to the family account, of three kinds: a sign-in is waiting (student id,
   deadline, link), a read ended (student id, counts, stop reason), or a teacher marked items as
   missing (student id, each item's subject folder and link; FR-033, added 2026-11-23).
+- **Sent marks** (added 2026-11-23): per student, the opaque ids of the items whose teacher's
+  «missing» mark was emailed (FR-033).
 - **Capture**: what the read leaves for spec 001's apply step, in spec 001's format.
 - **Stored password** (amendment 2026-11-17): the school account's password in the keychain under
   the student, set and deleted only by `classroom password` (FR-031), with its `wrong_password`

@@ -172,8 +172,9 @@ Facts the design rests on: [research.md](research.md#observed-facts).
    challenge → stop `challenge`.
 5. `classroom plan` and `classroom apply` (spec 001), which apply, check the shares and
    regenerate the agenda; judgement left pending (FR-007).
-6. Result email (FR-014) and, when the capture holds a teacher's «missing» mark the last one did
-   not, its notice (FR-033, 2026-11-23); one log line (FR-020), release the locks.
+6. Result email (FR-014) and, for teacher's «missing» marks not in the sent-marks record, their
+   notice, adding the items once it is sent and dropping those a capture holds without the mark
+   (FR-033, 2026-11-23); one log line (FR-020), release the locks.
 
 ## Vertical slices (each leaves the system demonstrable)
 
