@@ -223,7 +223,8 @@ Contract: [agenda.schema.json](contracts/agenda.schema.json).
 One line per run: `started_at`, `ended_at`, `mode` (`interactive` · `scheduled` · `unattended`, from `lock take --mode`; `unattended` is the runner of User Story 7, with no Claude in the run, so it proposes nothing), the `/u/<n>` index used (`account_index`, from the classes capture),
 `classes` visited, counters `added`, `changed`, `withdrawn`, `not_fetched` (with a reason per
 item, without student data), `unknown_statuses`, `pending_decisions`, `full_review`
-(boolean: the next full review is counted from the last line that has it), `result` (`ok` ·
+(boolean: the next full review is counted from the last line that has it; `false` when
+`classroom apply --review-incomplete` was passed, #290), `result` (`ok` ·
 `partial` · `stopped`) and `reason` (of the stop or of a `partial` one. A stop in the browser —session expired, challenge or unexpected interface— before capturing any class leaves the run `stopped` without writing to the student's folder; after capturing at least one, `classroom apply` applies those already captured, leaves the class of the `stop` capture unapplied and the result is `partial` with that reason. The same in both modes. Drive not mounted, lock busy or invalid configuration always stop before writing) (`session_expired`, `challenge`,
 `unexpected_ui`, `timeout`, `drive_not_mounted`, `lock_busy`, `lock_not_held`,
 `invalid_config`, `idle`, and, for the unattended runner, `account_blocked` (the API refuses the

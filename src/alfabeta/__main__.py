@@ -466,7 +466,8 @@ def _cmd_apply(args: argparse.Namespace, home: Path, keychain: KeychainStore) ->
         "not_fetched": applier.not_fetched,
         "unknown_statuses": applier.unknown_statuses,
         "pending_decisions": len(planned.get("pending_decisions", [])),
-        "full_review": bool(planned.get("full_review")),
+        # A review whose downloads did not all get asked for has not been performed (FR-026, #290).
+        "full_review": bool(planned.get("full_review")) and not args.review_incomplete,
         "shares": share.counts(shared),
     }
     store_log.log(line)
@@ -820,6 +821,11 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.add_argument("--subject", action="append", default=[])
     apply_cmd.add_argument(
         "--stopped", choices=["timeout"], help="a scheduled run's wait ended midway with no stop capture (FR-021a)"
+    )
+    apply_cmd.add_argument(
+        "--review-incomplete",
+        action="store_true",
+        help="the attachments pass did not get through the review's downloads: this run is no full review (FR-026)",
     )
     refresh_cmd = classroom.add_parser(
         "refresh", help="spec 006's container read: sign in if needed and allowed, capture, plan and apply"

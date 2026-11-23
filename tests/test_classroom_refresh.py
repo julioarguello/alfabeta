@@ -83,8 +83,10 @@ class FakeContainer:
         fetch_events: list[dict[str, Any]] | None = None,
         plant: Callable[[Path], None] | None = None,
         memory: Memory | None = PLENTY,
+        fetch_reason: str | None = None,
     ) -> None:
         self.memory_read = memory
+        self.fetch_reason = fetch_reason
         self.probed: list[str] = []
         self.fetch_dies = fetch_dies
         self.fetch_events = fetch_events or []
@@ -132,7 +134,8 @@ class FakeContainer:
                     path.write_bytes(b"%PDF")
             brought = sum(d["attachment"] in self.brings for d in request["fetch"])
             counts = {"brought": brought, "not_brought": len(request["fetch"]) - brought, "refused": 0}
-            return {"event": "end", "outcome": "ok", "reason": None, "attachments": counts}
+            outcome = "stopped" if self.fetch_reason else "ok"
+            return {"event": "end", "outcome": outcome, "reason": self.fetch_reason, "attachments": counts}
         self.out = out
         if self.dies:
             raise ContainerError("died")
@@ -145,10 +148,13 @@ class FakeContainer:
 
 
 class FakeSteps:
-    def __init__(self, fail: str | None = None, downloads: list[dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self, fail: str | None = None, downloads: list[dict[str, Any]] | None = None, full_review: bool = False
+    ) -> None:
         self.calls: list[tuple[list[str], str]] = []
         self.fail = fail
         self.downloads = downloads or []
+        self.full_review = full_review
 
     def __call__(self, args: list[str], run: str) -> dict[str, Any]:
         self.calls.append((args, run))
@@ -157,7 +163,12 @@ class FakeSteps:
         if args[:2] == ["download", "collect"]:
             return {"collected": [], "pending": [], "classes": ["c0"]}
         if args[:2] == ["classroom", "plan"]:
-            return {"classes": ["c0"], "pending_decisions": [{"type": "class_link"}], "downloads": self.downloads}
+            return {
+                "classes": ["c0"],
+                "pending_decisions": [{"type": "class_link"}],
+                "downloads": self.downloads,
+                "full_review": self.full_review,
+            }
         if args[:2] == ["classroom", "apply"]:
             return {"result": "ok", "added": 2, "changed": 0}
         return {}
@@ -499,6 +510,41 @@ def test_the_plans_downloads_are_fetched_and_placed_before_apply(tmp_path: Path)
     assert [d["attachment"] for d in second["fetch"]] == ["f1", "f2"] and "batch" not in second["fetch"][0]
     assert [c[0][1] for c in steps.calls] == ["collect", "plan", "apply"]
     assert not list(data.glob("classroom-out-*"))
+
+
+def _review(item: str, attachment: str, name: str) -> dict[str, Any]:
+    return _download(item, attachment, name) | {"why": "review"}
+
+
+@pytest.mark.parametrize(
+    ("first", "fetch_reason", "fetch_dies", "incomplete"),
+    [
+        (OK, None, False, False),  # the pass got to the end of its list: the review is done
+        (OK, "session_expired", False, True),  # 2026-11-20: cut after 5 of 146 (#290)
+        (OK, None, True, True),  # the pass's container died
+        (  # the first pass found the session gone: the second never ran
+            {"event": "end", "outcome": "partial", "reason": "session_expired", "classes": {"read": 1, "failed": 1}},
+            None,
+            False,
+            True,
+        ),
+    ],
+)
+def test_a_review_the_pass_did_not_get_through_is_applied_as_incomplete(
+    tmp_path: Path, first: dict[str, Any], fetch_reason: str | None, fetch_dies: bool, incomplete: bool
+) -> None:
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf"), _review("i2", "f2", "b.pdf")], full_review=True)
+    container = FakeContainer(first, fetch_reason=fetch_reason, fetch_dies=fetch_dies)
+    _go(tmp_path, container, steps=steps)
+    apply_args = next(c[0] for c in steps.calls if c[0][1] == "apply")
+    assert ("--review-incomplete" in apply_args) is incomplete
+
+
+def test_a_cut_pass_with_no_review_to_do_marks_nothing(tmp_path: Path) -> None:
+    # A full-review run whose plan holds only new files: a cut loses them, but no review was asked for.
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")], full_review=True)
+    _go(tmp_path, FakeContainer(OK, fetch_reason="session_expired"), steps=steps)
+    assert "--review-incomplete" not in next(c[0] for c in steps.calls if c[0][1] == "apply")
 
 
 def test_nothing_to_fetch_starts_no_second_pass(tmp_path: Path) -> None:

@@ -194,6 +194,34 @@ def test_an_unchanged_attachment_waits_for_the_full_review(box: Box):
     assert next_run(box)["full_review"] is False  # counted from the review just logged
 
 
+def test_a_review_the_attachments_pass_did_not_get_through_is_not_a_full_review(box: Box):
+    # 2026-11-20: a scheduled review brought 5 of 146 files and still logged `full_review: true` (#290).
+    first_run(box)
+    box.apply()
+    age_full_reviews(box, days=8)
+    assert next_run(box)["full_review"] is True
+    box.apply("--review-incomplete")
+    assert last_line(box)["full_review"] is False
+    assert next_run(box)["full_review"] is True  # the review is asked for again on the next run
+
+
+def test_what_the_student_lacks_comes_before_the_review(box: Box):
+    # A pass cut midway loses only what is already replicated (#290).
+    first_run(box)
+    box.apply()
+    age_full_reviews(box, days=8)
+    attachments = box.home / "sandbox-attachments"
+    (attachments / "ficha-v2.pdf").write_bytes((attachments / "ficha-inventada.pdf").read_bytes())
+
+    def rename(capture: dict[str, Any]) -> None:  # posted after synth-23, whose two files are only reviewed
+        item(capture, "synth-20")["detail"]["attachments"][0]["name"] = "ficha-v2.pdf"
+
+    later_capture(box, rename)
+    downloads = cast("list[dict[str, str]]", next_run(box)["downloads"])
+    assert (downloads[0]["attachment"], downloads[0]["why"]) == ("synth-40", "renamed")
+    assert len(downloads) > 1 and {d["why"] for d in downloads[1:]} == {"review"}
+
+
 @pytest.mark.parametrize("complete", [True, False])
 def test_an_item_gone_from_classroom_is_kept_and_marked_only_after_a_complete_capture(box: Box, complete: bool):
     first_run(box)

@@ -1005,7 +1005,9 @@ Example of the resulting structure (invented names):
   only if Classroom shows its item was modified after the last replica, if its name or its type
   changes, or in the periodic full review (`full_review_days`; template value: 7). The
   full review counts from the last run in the log that performed one (the first
-  sync is one); if it finds the
+  sync is one; a run whose spec 006 attachments pass was cut before the end of its list, or never
+  ran, while the plan asked for review downloads has not performed one, #290); in the plan's list
+  the review's downloads come after every other download; if it finds the
   same bytes it writes nothing outside its own records (FR-025). The superseded version is kept
   according to FR-015b.
 - **FR-027**: An item withdrawn from Classroom MUST be kept, marked as withdrawn in the log
