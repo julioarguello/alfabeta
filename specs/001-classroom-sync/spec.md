@@ -667,7 +667,11 @@ test.
   The only controls the runner's web route presses are, on those two to-do pages, the header button
   that opens a collapsed section and the «Ver todo» (see all) button, each found by its label (and,
   on a Google sign-in page, the web route's own scripted sign-in, FR-032b); any other press by the
-  runner is a defect. No route follows a link to a form or a quiz
+  runner is a defect. The extractor presses one control: on «Trabajo de clase», a topic's «Ver más
+  publicaciones» (see more posts), found by its component name or its label and pressed only while
+  shown, until no topic shows it, since a topic shows only its first 10 items until it is pressed and
+  scrolling loads none (#288; spec 006 research S17); a press the page does not answer fails that
+  page's load, so a list still cut is never read as the whole. No route follows a link to a form or a quiz
   (Google Forms or similar) or presses a button in the «Tu trabajo» (Your work) panel. If
   Classroom's interface does not show the expected labels (for example, because it is in another
   language), it stops and says so instead of guessing.

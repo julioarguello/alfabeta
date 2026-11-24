@@ -15,9 +15,10 @@ outcome and stop code. No line carries the account or the password.
 - **Read** (FR-030): alfabeta's own extractor, unchanged, injected into Classroom's home page; the
   skill's calls, class by class; each capture returned through the page and written to the out
   folder under the extractor's own file name.
-- **Guard** (FR-030, FR-027): presses and form submits cancelled on Classroom pages; main-frame and
-  frame document loads only on the pages the phase allows; form, quiz and download hosts refused.
-  Every block is counted.
+- **Guard** (FR-030, FR-027): presses and form submits cancelled on Classroom pages, but for the
+  extractor's own press of «Trabajo de clase»'s «Ver más publicaciones» (#288), counted apart;
+  main-frame and frame document loads only on the pages the phase allows; form, quiz and download
+  hosts refused. Every block is counted.
 - **Browser zone and locale** (FR-029): `Europe/Madrid`, `es-ES`.
 - **Progress**: one event per step (`home`, `signin_start`, `signin`, `account`, `classes`, each
   `class` with its index), so the host can say where the read is; the end event names the `step`
@@ -129,18 +130,28 @@ CAPTCHA_MARKS = (
 WRONG_PASSWORD_MARKS = ("contraseña incorrecta", "wrong password")
 SECOND_FACTOR_PATHS = ("/totp", "/ipp", "/sk", "/az", "/dp", "/iap", "/selection", "/ootp")
 
+# The one press the read lets through: «Trabajo de clase»'s «Ver más publicaciones», pressed by the
+# extractor's script (not a person's input) to show a topic's items past its first 10, and counted as
+# `more_presses` beside the blocked counts (#288; spec 006 research S17). The extractor's MORE_BUTTON.
+MORE_BUTTON = 'button[jsname="t6Kl7b"], button[aria-label="Ver más publicaciones"]'
 GUARD_JS = """
 (() => {
   if (!window.__abClassroom) return;
   const count = (k) => { try { window.__abCount(k); } catch (_) {} };
+  const MORE = __MORE__;
+  const more = (e) => e.type === "click" && !e.isTrusted && /\\/w\\/[^/]+\\/t\\/all$/.test(location.pathname)
+    && e.target instanceof Element && e.target.closest(MORE) !== null;
   for (const type of ["click", "submit", "keydown", "pointerdown", "mousedown"]) {
-    window.addEventListener(type, (e) => { e.preventDefault(); e.stopImmediatePropagation(); count("presses"); }, true);
+    window.addEventListener(type, (e) => {
+      if (more(e)) { count("more_presses"); return; }
+      e.preventDefault(); e.stopImmediatePropagation(); count("presses");
+    }, true);
   }
   const block = function () { count("form_submits"); };
   HTMLFormElement.prototype.submit = block;
   HTMLFormElement.prototype.requestSubmit = block;
 })();
-"""
+""".replace("__MORE__", json.dumps(MORE_BUTTON))
 
 BROWSER_CHECK_JS = """
 () => {

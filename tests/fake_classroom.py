@@ -9,7 +9,7 @@ redirects outside), `captcha` (an image captcha after the account), `rejected`, 
 `other_sign_in` (the account's own sign-in elsewhere), `other_account` (Classroom shows another
 account), `no_account` (Classroom names no account), `slow_list` (the class cards appear 1.5 s
 after the page, as right after a sign-in), `expire_mid` (the third class's pages leave for another origin, as an expired session
-does). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
+does), `more` (a topic of «Trabajo de clase» shows «Ver más publicaciones», see MORE_TOPIC). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
 prove the read clears the cookies first. Class `synth-73` is unreadable (`unexpected_ui`).
 
 Attachments (R4's routes, served for any mode at `other_origin`, so the download host is not the
@@ -29,6 +29,7 @@ from __future__ import annotations
 import base64
 import gzip
 import http.server
+import json
 import re
 import threading
 from pathlib import Path
@@ -58,6 +59,32 @@ PLANTED = """<button id=planted>x</button><form id=plantedform></form>
 <div aria-label="Cuenta de Google: Persona Inventada ({email})"></div>
 <script>window.addEventListener('load', () => {{ document.getElementById('planted').click();
 document.getElementById('plantedform').submit(); }});</script>"""
+# Mode `more`: «Trabajo de clase» gains a topic of 10 rows that shows «Ver más publicaciones», as
+# Classroom's did (spec 006 research S17); a press adds its last 2 rows and hides the button. The page
+# also presses a button of its own there, which the guard still cancels.
+MORE_TOPIC = (
+    '<div role="region" data-topic-id="t-more"><h2>Tema largo</h2><ol id="more-list">{rows}</ol>'
+    '<div class="Mvr5Ef"><div id="more-box" style=""><div><button id="more" jsname="t6Kl7b" '
+    'aria-label="Ver más publicaciones"><span aria-hidden="true">Ver más</span></button></div></div></div></div>'
+    '<button id="other-press">x</button>'
+    "<script>document.getElementById('more').addEventListener('click', () => setTimeout(() => {{"
+    "document.getElementById('more-list').insertAdjacentHTML('beforeend', {late});"
+    "document.getElementById('more-box').setAttribute('style', 'display: none;'); }}, 200));"
+    "document.getElementById('other-press').addEventListener('click', () => document.getElementById('more-list')"
+    '.insertAdjacentHTML(\'beforeend\', \'<li data-stream-item-type="5" data-stream-item-id="9398">'
+    '<span class="Vu2fZd">Si se ve, el guard falló</span></li>\'));'
+    "window.addEventListener('load', () => document.getElementById('other-press').click());</script>"
+)
+# The saved page has a topic of 10 that shows «Ver más publicaciones» (2026-10-25), but not the items
+# a press brought: here a press brings one invented row and hides the button, as Classroom did.
+ANSWER_MORE = (
+    "<script>for (const b of document.querySelectorAll('button[jsname=\"t6Kl7b\"]:not(#more)')) "
+    "b.addEventListener('click', () => setTimeout(() => { const box = b.parentElement.parentElement; "
+    "box.closest('[data-topic-id][role=region]').querySelector('ol').insertAdjacentHTML('beforeend', "
+    '\'<li data-stream-item-type="5" data-stream-item-id="9399"><span class="Vu2fZd">Material 9399</span></li>\'); '
+    "box.setAttribute('style', 'display: none;'); }, 100));</script>"
+)
+MORE_ROW = '<li data-stream-item-type="5" data-stream-item-id="{n}"><span class="Vu2fZd">Material {n}</span></li>'
 PDF = b"%PDF-1.4 fichero inventado\n"
 
 ROUTES = [
@@ -245,5 +272,12 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._send(_page("assignment-detail.html"))
         for pattern, name in ROUTES:
             if re.match(pattern, url.path):
-                return self._send(_page(name))
+                body = _page(name)
+                if name == "classwork.html":
+                    body = body.replace(b"</body>", ANSWER_MORE.encode() + b"</body>", 1)
+                if mode == "more" and name == "classwork.html":
+                    rows = "".join(MORE_ROW.format(n=9300 + i) for i in range(10))
+                    late = json.dumps("".join(MORE_ROW.format(n=9300 + i) for i in range(10, 12)))
+                    body = body.replace(b"</body>", MORE_TOPIC.format(rows=rows, late=late).encode() + b"</body>", 1)
+                return self._send(body)
         return self._send("no", 404)

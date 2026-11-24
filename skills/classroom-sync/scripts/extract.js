@@ -2,8 +2,10 @@
 //
 // Injected by the skill into the Classroom tab of the school account. It only reads: it loads the
 // pages FR-007 allows (home, «Trabajo de clase», the stream, and the detail of assignments,
-// materials and questions) in a hidden same-origin iframe, never navigates the tab, never clicks,
-// never submits, never opens a form or a quiz, and waits at least 2 s with jitter between pages.
+// materials and questions) in a hidden same-origin iframe, never navigates the tab, never submits,
+// never opens a form or a quiz, and waits at least 2 s with jitter between pages. It presses one
+// button only: a topic's «Ver más publicaciones» on «Trabajo de clase», which shows the items past
+// the topic's first 10 and changes nothing (#288).
 // It returns the texts exactly as shown; Python interprets them (dates, statuses, categories).
 //
 // Two layers: pure readers (a document in, contract-shaped data out) and a driver whose page
@@ -42,6 +44,11 @@
   // (measured 2026-10-27 on the real pages, where every download would otherwise go unmatched).
   // An image on the stream came without the type: «Archivo adjunto: <name>» (2026-10-28).
   const ATTACHMENT_LABEL = /^Archivo adjunto: (?:[^:]+: )?/;
+  // A topic of «Trabajo de clase» shows its first 10 items and, below them, this button for the rest;
+  // a topic with no more keeps the button with an ancestor at `display: none`. Scrolling loads
+  // nothing; one press loads the rest of a topic of 12 and of 13 (spec 006 research S17, 2026-11-24).
+  // By its name or its label, so a renamed one of the two still finds it.
+  const MORE_BUTTON = 'button[jsname="t6Kl7b"], button[aria-label="Ver más publicaciones"]';
   // A class with nothing in «Trabajo de clase» shows only this, and no rows (measured 2026-10-28).
   const EMPTY_CLASSWORK = /^Aún no hay tareas/;
   // And a class with no announcements shows this on its stream (measured 2026-10-28).
@@ -429,14 +436,36 @@
     }
   }
 
+  // Whether a button is on the page and shown: not hidden, nor inside anything hidden.
+  function isShown(button) {
+    const doc = button.ownerDocument;
+    if (!doc.body || !doc.body.contains(button)) return false;
+    const win = doc.defaultView;
+    for (let n = button; n && n !== doc.body; n = n.parentElement) {
+      if (n.hidden || (win && win.getComputedStyle(n).display === "none")) return false;
+    }
+    return true;
+  }
+
+  // The first «Ver más publicaciones» button a page shows, if any.
+  function shownMore(doc) {
+    return [...doc.querySelectorAll(MORE_BUTTON)].find(isShown) || null;
+  }
+
   // The default loader: a hidden same-origin iframe, so the injected script is never lost. It polls
   // from the start; a frame that leaves Classroom (Google's sign-in) is an expired session. It waits
   // while the tab is hidden, and time spent hidden counts towards nothing. A ready page is taken once
   // its reading has held still for `settleMs` on screen, unbroken since the tab was last shown; one
   // that keeps changing for `settleCapMs` is `unsettled`, a failed load like a timeout (loaded again,
   // then what any failed load leads to: an item page or the stream left out, the capture incomplete;
-  // a «Trabajo de clase» stops its class).
-  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300 } = {}) {
+  // a «Trabajo de clase» stops its class). A «Trabajo de clase» that has held still and shows «Ver
+  // más publicaciones» is not taken: the button is pressed and the page waited for until its reading
+  // changes — only that: a button hidden with no new row is no answer — then it settles again, until
+  // no topic shows the button (#288). A press the page does not answer within `moreTimeoutMs`
+  // (`more_unanswered`), or a button still shown after
+  // `maxPresses` of them (`more_endless`), is a failed load: a list still cut is never read whole.
+  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300, moreTimeoutMs = 20000, maxPresses = 30 } = {}) {
+    const classwork = (path) => /\/w\/[^/]+\/t\/all$/.test(path);
     const once = (path) => new Promise((resolve, reject) => {
       const frame = win.document.createElement("iframe");
       frame.style.cssText = "position:absolute;left:-10000px;width:1200px;height:800px;visibility:hidden";
@@ -449,6 +478,10 @@
       let reading = null; // what the ready page showed at the last poll
       let still = 0; // time on screen the reading has not changed
       let settling = 0; // time on screen since the page was first ready
+      let presses = 0; // «Ver más publicaciones» pressed on this page
+      let waiting = false; // a button was pressed and its rows have not come yet
+      let pressed = null; // the reading when it was pressed
+      let answering = 0; // time on screen since that press
       const stop = (err) => { win.clearInterval(poll); frame.remove(); reject(err); };
       const poll = win.setInterval(() => {
         const now = Date.now();
@@ -464,13 +497,29 @@
         }
         if (doc.body && doc.location.href !== "about:blank" && pageReady(path, doc)) {
           const current = pageReading(path, doc);
+          if (waiting) {
+            // Only a change in what the page reads is an answer: a button hidden or drawn again
+            // while its rows are on their way is not, or the old rows would be taken for the whole.
+            if (current === pressed || current === null) {
+              answering += step;
+              if (answering >= moreTimeoutMs) stop(new Error("more_unanswered"));
+              return;
+            }
+            waiting = false; reading = current; still = 0; settling = 0; started = now; // answered: settle again
+            return;
+          }
           if (!ready) {
             ready = true; reading = current; still = 0;
           } else {
             settling += step;
             if (current === reading) { still += step; } else { reading = current; still = 0; }
           }
-          if (still >= settleMs) {
+          const more = still >= settleMs && classwork(path) ? shownMore(doc) : null;
+          if (more) {
+            if (presses >= maxPresses) { stop(new Error("more_endless")); return; }
+            presses += 1; waiting = true; pressed = current; answering = 0; started = now;
+            more.click();
+          } else if (still >= settleMs) {
             win.clearInterval(poll);
             resolve({ doc, path: frame.contentWindow.location.pathname });
             win.setTimeout(() => frame.remove(), 0);
@@ -510,6 +559,6 @@
 
   root.alfabetaExtract = {
     VERSION, MIN_WAIT_MS, detectStop, readClasses, readClasswork, readDetail, readStream, attachmentOf,
-    captureClasses, captureClass, iframeLoader, pageReady, SessionExpired, fileName, save, base64,
+    captureClasses, captureClass, iframeLoader, pageReady, shownMore, MORE_BUTTON, SessionExpired, fileName, save, base64,
   };
 })(typeof globalThis !== "undefined" ? globalThis : this);
