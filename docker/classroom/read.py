@@ -31,8 +31,10 @@ outcome and stop code. No line carries the account or the password.
   account check it fetches each one through the page's request context (the session's cookies),
   only by spec 001 research R4's routes and only for the attachment id it is listed under, into
   `out/inbox/<item>__<attachment>/<name>`. The request context does not go through the guard's
-  route, so each hop is checked here: redirects are followed by hand within the R4 hosts; a hop to
-  Google's sign-in is the expired session (the rest is not brought); any other host is refused and
+  route, so each hop is checked here: redirects are followed by hand within the R4 hosts and the
+  measured content hosts; one hop per file to the sign-in's `/ServiceLogin` is followed, since a live
+  session answers it with a redirect back (#290); any other hop to Google's sign-in, or a page the
+  sign-in serves, is the expired session (the rest is not brought); any other host is refused and
   logged by host only. An HTML page, a wrong length or an oversized body is not a file: not brought.
 
 The tests run this module directly with Playwright's Chromium against a local fake, setting the
@@ -65,9 +67,18 @@ DOWNLOAD_HOSTS = frozenset({"drive.usercontent.google.com"})
 DRIVE_DOWNLOAD = "https://drive.usercontent.google.com/download"
 DOCS_ORIGIN = "https://docs.google.com"
 DOCS_EXPORT = re.compile(r"^/(document|spreadsheets|presentation)/d/([A-Za-z0-9_-]+)/export(/pdf)?$")
-# Hosts a fetch may be redirected to besides R4's own: none measured yet. Each refused host reaches
-# the run's log line (`refused_hosts`), and only a measured one is added here.
+# Hosts a fetch may be redirected to besides R4's own. Each refused host reaches the run's log line
+# (`refused_hosts`), and only a measured one is added here. Measured 2026-11-24 (spike S10c, 15 of 15
+# Google files of the refresh): a document's export answers 307 to `doc-<x>-<y>-docstext`, a
+# presentation's to `doc-<x>-<y>-slides`, both on googleusercontent.com, which serve the PDF. A
+# spreadsheet's was not measured: it stays refused until it is.
 FETCH_REDIRECT_NETLOCS: frozenset[str] = frozenset()
+FETCH_CONTENT_HOST = re.compile(r"^doc-[0-9a-z]{1,4}-[0-9a-z]{1,4}-(docstext|slides)\.googleusercontent\.com$")
+# Where a Google export with no session cookie of its own sends the request (S10c, the same day): the
+# account's sign-in host, which with a live session answers a redirect straight back to the export
+# host, setting its cookie, and asks for nothing. That one hop is followed, once per file; a sign-in
+# host that answers anything else (a page, another of its own pages) is an expired session.
+SERVICE_LOGIN_PATH = "/ServiceLogin"
 FETCH_MAX_HOPS = 5
 FETCH_MAX_BYTES = 200 * 1024 * 1024
 FETCH_TIMEOUT_MS = 120_000
@@ -566,6 +577,14 @@ def fetch_netlocs() -> set[str]:
     return {urlsplit(DRIVE_DOWNLOAD).netloc, urlsplit(DOCS_ORIGIN).netloc} | set(FETCH_REDIRECT_NETLOCS)
 
 
+def fetch_may_follow(url: str, scheme: str) -> bool:
+    """Whether a fetch follows a redirect to `url`: R4's origins or a measured content host, same scheme."""
+    parts = urlsplit(url)
+    if parts.scheme != scheme:
+        return False
+    return parts.netloc in fetch_netlocs() or bool(FETCH_CONTENT_HOST.match(parts.netloc))
+
+
 def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | None, str | None]:
     """Fetch one listed attachment: (`brought`|`not_brought`|`refused`|`expired`, why, refused host)."""
     item, attachment, url, name = (wanted.get(k) for k in ("item", "attachment", "url", "expected_name"))
@@ -575,11 +594,14 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
         return "refused", "route", None
     current = url
     scheme = urlsplit(url).scheme
+    bounced = False  # the one hop through the sign-in host (SERVICE_LOGIN_PATH) taken
     for _ in range(FETCH_MAX_HOPS + 1):
         try:
             response = page.request.get(current, max_redirects=0, timeout=FETCH_TIMEOUT_MS, fail_on_status_code=False)
         except Exception:
             return "not_brought", "error", None
+        # On the sign-in host, not on one of the fetch's own (the tests serve both from one machine).
+        at_sign_in = (urlsplit(current).hostname or "") in ACCOUNT_HOSTS and not fetch_may_follow(current, scheme)
         if 300 <= response.status < 400:
             location = response.headers.get("location")
             response.dispose()
@@ -587,12 +609,22 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
                 return "not_brought", "redirect", None
             following = urljoin(current, location)
             parts = urlsplit(following)
-            if parts.netloc in fetch_netlocs() and parts.scheme == scheme:
+            if fetch_may_follow(following, scheme):
                 current = following
                 continue
             if (parts.hostname or "") in ACCOUNT_HOSTS:
+                # Once, from an export host to the sign-in's own redirect page: the session answers it.
+                if not bounced and not at_sign_in and parts.path == SERVICE_LOGIN_PATH and parts.scheme == scheme:
+                    bounced = True
+                    current = following
+                    continue
                 return "expired", None, None
             return "refused", "host", parts.hostname or ""
+        if at_sign_in:
+            # The sign-in host answered with a page of its own: it asks for the account, whatever the
+            # file's name says it is (a `.html` attachment is no sign-in page).
+            response.dispose()
+            return "expired", None, None
         if response.status != 200:
             return "not_brought", f"status_{response.status}", None
         headers = response.headers

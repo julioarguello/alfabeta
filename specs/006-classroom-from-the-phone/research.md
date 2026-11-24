@@ -1042,3 +1042,37 @@ Against the family's decisions of 2026-11-20 and R1, R3, R7:
 - **Attachments**: 5 of 122 in no `t51ITc` answer; what they are stays in #287.
 
 **The probes**: `spikes/s9d_followup.py`, `s9e_third.py` and `s9f_number.py` on the same branch.
+
+### S17 · A topic's items past 10, and the Google files of the attachments pass — measured (#288, #290)
+
+Recorded 2026-11-24. Not a spike planned before the build: the first scheduled full review
+(2026-11-20) brought 5 of 146 attachments and stopped `session_expired` seconds after a read that
+had gone well (#290), and S9's third measurement found items past a list's first 10 that the
+capture lacked (#288). Four read-only probes, each run in the read image against the session the
+family's 16:31 `classroom refresh` had just left in the read profile, after it ended; none signs
+in (each stops at a dead home). Nothing printed or kept names a student, an account, a class or a
+file; the outputs stay outside the repository.
+
+| Fact | Read from |
+|---|---|
+| Every topic region of «Trabajo de clase» holds a `button[jsname="t6Kl7b"]` labelled «Ver más publicaciones»; it is shown only on the two topics with 10 rows (of 7 topics in 2 classes) | the first probe, in the main frame, and the third, in a hidden 1200×800 iframe as the extractor loads it |
+| On the other topics the button's grandparent `div` carries `style="display: none;"`; on the two it is `style=""`. Nothing else differs on the way up to the region: no `hidden`, no `aria-hidden`, no class | the fourth probe, the computed style of each node from the button to its region |
+| Scrolling every scrollable box to the bottom, five times, adds no row and sets off no call | the first probe |
+| One `click()` on the shown button, in the hidden iframe, adds the rest: 10 → 12 and 10 → 13 rows, 2 and 3 of them new to the capture, no row twice, one `dpT4Vd` call each; then the button is hidden | the third probe, with the guard's press blocker letting through a click on that one button |
+| Those 5 items are #288's 2 and 3, the same classes | the counts of S9's third measurement |
+| Of the 106 attachments of the run, the 91 Drive files answer 200 (one 404); the 15 Google files (9 documents, 6 presentations) answer 302 to `accounts.google.com/ServiceLogin`, and Classroom's home is alive after each | the second probe, every R4 address once, 2 s apart, no redirect followed |
+| Followed by hand, the first document's export goes `docs.google.com` 302 → `accounts.google.com/ServiceLogin` 302 → `docs.google.com/accounts` 302 → `docs.google.com/document` 307 → `doc-<x>-<y>-docstext.googleusercontent.com`; nothing is asked. Every later file of the run skips the sign-in hop | the third probe |
+| With that last host followed, the 15 Google files are PDFs (200, `application/pdf`, `%PDF-`), 33 KB to 4.7 MB; presentations come from `doc-<x>-<y>-slides.googleusercontent.com` | the third probe, rerun |
+| On the stream of one of the two classes, scrolling its document to the bottom loads more posts: 61 → 92 → 105; on the other it stays at 62 | the fourth probe |
+
+- **Decided (#290)**: the attachments pass follows one hop per file to the sign-in's
+  `/ServiceLogin`, and the two measured content hosts; any other hop to the sign-in, or a page the
+  sign-in serves whatever the file's name, is the expired session. A spreadsheet's content host
+  was not measured and stays refused, logged in `refused_hosts`.
+- **Decided (#288)**: the extractor presses that one button, the only press it makes, until no
+  topic shows it, before it reads «Trabajo de clase»; the guard lets through a click on it alone.
+- **Not measured**: a topic of more than 20 items (a second press); a spreadsheet's export; whether
+  the stream's posts past its first load hold announcements the capture lacks (its own issue).
+
+**The probes**: `spikes/s10_classwork_past_ten.py`, `s10b_downloads.py`, `s10c_more_and_docs.py`
+and `s10d_button_and_stream.py`, kept outside this branch.

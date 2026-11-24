@@ -291,9 +291,12 @@ image needs no copy of the package. The host never runs a browser.
    `"signin": false` and no password: it never signs in (one scripted sign-in per run at most).
    It checks the account, then fetches each one by R4's routes through the page's request
    context, checked against its listed attachment id before the request, redirects followed by
-   hand within R4's hosts and scheme (a hop to the sign-in ends the pass as the expired session;
-   another host is refused, and the run's log line lists it by host only in `refused_hosts`, so a
-   real run shows what to allow; an HTML page, a wrong length or an oversized body is not a file),
+   hand within R4's hosts, the measured content hosts and scheme (one hop per file to the
+   sign-in's `/ServiceLogin` is followed, since a live session answers it with a redirect back,
+   measured 2026-11-24 in spike S10c, #290; any other hop to the sign-in, or a page it serves, ends
+   the pass as the expired session; another host is refused, and the run's log line lists it by host
+   only in `refused_hosts`, so a real run shows what to allow; an HTML page, a wrong length or an
+   oversized body is not a file),
    written to a temporary name and renamed into `/out/inbox/<item>__<attachment>/<name>`. The host
    moves only each download's exact `data/inbox/<item>__<attachment>/<name>` (ids and name checked
    as single path components, every part a real folder of the out folder, no symlink), and
