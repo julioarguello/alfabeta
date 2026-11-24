@@ -136,6 +136,9 @@ _ARIA_ROLE = re.compile(r"[a-z]+(?: [a-z]+)*")
 # Enumerations the page uses for structure (`data-stream-item-type="1"`, `aria-current="page"`), never data.
 _ENUM = re.compile(r"\d{1,3}|true|false|page")
 _ID_IN_NAME = re.compile(r"\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}", re.IGNORECASE)
+# What hides an element (`style="display: none;"`): structure the extractor reads, never data. A topic's
+# «Ver más publicaciones» is hidden this way when the topic has no more items (#288).
+_HIDING_STYLE = re.compile(r"\s*display:\s*none;?\s*")
 
 
 class AnonymizeError(Exception):
@@ -244,7 +247,11 @@ class _Rewriter(HTMLParser):
             if value is None:
                 rendered.append(f" {name}")
                 continue
-            if name == "class" or (name in _CODE_ATTRS and _is_code(value)):
+            if (
+                name == "class"
+                or (name in _CODE_ATTRS and _is_code(value))
+                or (name == "style" and _HIDING_STYLE.fullmatch(value))
+            ):
                 kept = value
             elif _looks_like_url(value):
                 kept = self.inventor.url(value)

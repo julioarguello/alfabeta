@@ -232,7 +232,9 @@ Measured 2026-10-27 on one real class of the school account; details in research
 
 ## Never
 
-- Turn in, comment, mark done, or open a quiz or a form; never click the «Tu trabajo» panel.
+- Turn in, comment, mark done, or open a quiz or a form; never click the «Tu trabajo» panel. The
+  extractor's one press is a topic's «Ver más publicaciones» on «Trabajo de clase», to read its
+  items past the first 10 (#288).
 - Open or move a Google page with the extension's `navigate` or `tabs_create`.
 - Type a password, or sign in for the family.
 - Delete anything in Drive or in `data/`: what has to go is quarantined.

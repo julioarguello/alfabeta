@@ -448,7 +448,9 @@ arrives.
   stay open until spec 001 T061 reads them)*
 - **FR-005**: Read-only MUST hold by construction during the whole read (constitution IV), with the
   guard of spec 001 research R18 installed in the browser before any page script runs. It blocks,
-  before they reach Classroom, every press, every document load outside the pages spec 001 FR-007
+  before they reach Classroom, every press (but the extractor's own press of a topic's «Ver más
+  publicaciones» on «Trabajo de clase», spec 001 FR-007, counted apart as `more_presses`, #288),
+  every document load outside the pages spec 001 FR-007
   lets the full sync load, every
   call not on the allowlist, and every request to a form or quiz host. Downloads are allowed only
   for the attachments this read listed in this run, through the routes of spec 001 research R4.

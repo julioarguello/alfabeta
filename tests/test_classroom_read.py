@@ -104,6 +104,27 @@ def test_signs_in_reads_and_writes_valid_captures(tmp_path: Path) -> None:
     _no_secret(events, end, tmp_path)
 
 
+def test_a_topic_past_10_items_is_read_whole_and_the_only_press_let_through_is_its_button(tmp_path: Path) -> None:
+    # #288: the extractor presses «Ver más publicaciones»; the page's own press is still cancelled.
+    end, _, _ = _read("more", tmp_path, SIGN_IN, only=frozenset({"synth-71"}))
+    assert end["outcome"] == "ok" and end["classes"] == {"read": 1, "failed": 0}, end
+    (path,) = [p for p in (tmp_path / "out").glob("*.json") if json.loads(p.read_text())["type"] == "class"]
+    data = json.loads(path.read_text())
+    assert data["complete"] is True
+    assert len([i for i in data["items"] if i["topic"] == "t-more"]) == 12
+    # Two presses: this topic's, and the saved page's own topic of 10 (2026-10-25), which brings none.
+    assert end["blocked"].get("more_presses") == 2
+    assert end["blocked"].get("presses", 0) >= 2  # the home page's planted press and this page's own
+
+
+def test_the_guard_lets_through_the_extractors_button_only() -> None:
+    # The same button the extractor presses (its MORE_BUTTON), and nothing in the guard wider than it.
+    module = _production()
+    source = (ROOT / "skills" / "classroom-sync" / "scripts" / "extract.js").read_text()
+    assert f"const MORE_BUTTON = '{module.MORE_BUTTON}';" in source
+    assert "!e.isTrusted" in module.GUARD_JS and "/t\\/all$/" in module.GUARD_JS
+
+
 def test_a_live_profile_reads_without_signing_in(tmp_path: Path) -> None:
     def seed(module: Any, fake: FakeGoogle) -> None:
         with playwright.sync_playwright() as p:

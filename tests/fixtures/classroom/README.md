@@ -27,6 +27,11 @@ label allowlist of research R8 and the short enumerations the page uses for stru
 (`data-stream-item-type`, `data-visibility`, `aria-*`); texts, ids and dates are invented, and
 scripts and stylesheets are emptied. Ids become `synth-<n>` in the same position of each URL.
 
+`page anonymize` keeps a `style` that only hides (`display: none;`); `classwork.html`'s were put
+back by hand on 2026-11-24 (#288), as the extractor reads them to tell a topic's shown «Ver más
+publicaciones» from a hidden one. That page has one topic of 10 that shows it; its items past 10
+were not saved.
+
 Measured 2026-10-27 against the six pages saved by S3: the number of elements matching each of
 these selectors is the same in the original and in its synthetic page: `[data-stream-item-id]`,
 `[data-stream-item-type]`, `[data-topic-id]`, `a[href*="/details"]`, `a[href*="/mc/"]`,

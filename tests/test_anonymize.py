@@ -48,6 +48,15 @@ def test_keeps_structure_and_labels_and_invents_the_rest():
     assert "hl=es" not in out and "lh3.googleusercontent.com" not in out
 
 
+def test_what_hides_an_element_is_kept_and_any_other_style_is_invented():
+    # A topic's «Ver más publicaciones» is hidden by `display: none;` when the topic has no more (#288).
+    page = f"""<html><body><div style="display: none;">a</div><div style="background: url(/{ITEM_ID})">b</div>
+<div style="">c</div></body></html>"""
+    out = anonymize.anonymize(page)
+    assert '<div style="display: none;">' in out and '<div style="">' in out
+    assert ITEM_ID not in out and "background" not in out
+
+
 def test_values_are_stable():
     once, twice = anonymize.anonymize(PAGE), anonymize.anonymize(PAGE)
     assert once == twice
