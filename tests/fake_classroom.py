@@ -19,7 +19,8 @@ cookie of their own they redirect to `origin`'s `/ServiceLogin`, as Google's exp
 `other_origin`'s cookie and returns to the file; without it, or in mode `sso_refused`, it serves the
 sign-in page. `doc-1`'s export answers 307 to `/content/doc-1`, as Google's to its content host. By id: `f-pdf` a PDF, `f-hop` a redirect to
 `f-pdf` on the same host, `f-away` a redirect to another host, `f-html` an HTML page, `f-gone` 404,
-`f-gzip` the PDF compressed (its Content-Length the packed size), `f-scheme` a redirect to `https` on
+`f-signin` a redirect straight to the sign-in's identifier page, `f-userinfo` one to `/ServiceLogin` with a
+user in the address, `f-gzip` the PDF compressed (its Content-Length the packed size), `f-scheme` a redirect to `https` on
 the same host, `f-nolen` the PDF with no Content-Length.
 """
 
@@ -152,6 +153,10 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._send(PDF, content_type="application/pdf", length=False)
         if file_id == "f-scheme":
             return self._send("", 302, f"https://localhost:{self.fake.server_address[1]}/download?id=f-pdf")
+        if file_id == "f-signin":  # straight to a sign-in page, not through /ServiceLogin
+            return self._send("", 302, f"{self.fake.origin}/v3/signin/identifier")
+        if file_id == "f-userinfo":
+            return self._send("", 302, f"http://someone@127.0.0.1:{self.fake.server_address[1]}/ServiceLogin")
         if file_id == "f-away":
             return self._send("", 302, "http://third.invalid/file")
         if file_id == "f-html":

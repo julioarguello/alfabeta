@@ -582,7 +582,7 @@ def fetch_may_follow(url: str, scheme: str) -> bool:
     parts = urlsplit(url)
     if parts.scheme != scheme:
         return False
-    return parts.netloc in fetch_netlocs() or bool(FETCH_CONTENT_HOST.match(parts.netloc))
+    return parts.netloc in fetch_netlocs() or bool(FETCH_CONTENT_HOST.fullmatch(parts.netloc))
 
 
 def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | None, str | None]:
@@ -613,8 +613,15 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
                 current = following
                 continue
             if (parts.hostname or "") in ACCOUNT_HOSTS:
-                # Once, from an export host to the sign-in's own redirect page: the session answers it.
-                if not bounced and not at_sign_in and parts.path == SERVICE_LOGIN_PATH and parts.scheme == scheme:
+                # Once per file, from one of the fetch's own hosts to the sign-in's own redirect page,
+                # with no credentials in the address: the session answers it.
+                if (
+                    not bounced
+                    and not at_sign_in
+                    and parts.path == SERVICE_LOGIN_PATH
+                    and parts.scheme == scheme
+                    and "@" not in parts.netloc
+                ):
                     bounced = True
                     current = following
                     continue

@@ -358,6 +358,18 @@ def test_a_sign_in_page_on_a_download_is_an_expired_session_whatever_the_file_na
     assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
 
 
+@pytest.mark.parametrize("file_id", ["f-signin", "f-userinfo"])
+def test_a_hop_to_the_sign_in_other_than_its_service_login_is_an_expired_session(tmp_path: Path, file_id: str) -> None:
+    # Only the sign-in's /ServiceLogin, with no credentials in the address, is followed: any other
+    # hop there ends the pass before its request, and nothing is typed.
+    wanted = [_want("i1", file_id, "a.pdf"), _want("i2", "f-pdf", "b.pdf")]
+    end, events, fake = _fetch(tmp_path, wanted)
+    assert end["outcome"] == "stopped" and end["reason"] == "session_expired"
+    assert fake.service_logins == 0 and "/v3/signin/identifier" not in fake.served
+    assert fake.served.count("/download") == 1
+    assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
+
+
 def test_a_second_sign_in_hop_for_one_file_is_an_expired_session(tmp_path: Path) -> None:
     # The sign-in redirects back but the host still has no cookie: /ServiceLogin is followed once per
     # file, so its second answer is the session not answering, not a loop.
