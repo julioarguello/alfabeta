@@ -656,18 +656,53 @@ test("two topics that show the button are each pressed: the second is not taken 
   }
 });
 
-test("a press whose topic only hides its button is answered, while another topic still shows one", { timeout: 5000 }, async () => {
-  const both = classworkPage().replace('<div style="display: none;">', '<div style="">');
-  const dom = framed(both, CLASSWORK);
+test("a button hidden at once, its rows after settleMs, is waited for: the rows are in", { timeout: 5000 }, async () => {
+  const dom = framed(classworkPage(), CLASSWORK);
   try {
     const X = dom.window.alfabetaExtract;
-    const loading = X.iframeLoader(dom.window, MORE_FAST)(CLASSWORK);
-    const { doc, presses } = await classworkReady(dom);
-    answer(doc, { add: 0, hide: true }); // t1 brings nothing more
-    const second = doc.querySelector('[data-topic-id="t2"] button');
-    second.addEventListener("click", () => setTimeout(() => second.parentElement.parentElement.setAttribute("style", "display: none;"), 60));
-    await loading;
-    assert.deepEqual(presses, { t1: 1, t2: 1 });
+    const loading = X.iframeLoader(dom.window, { ...MORE_FAST, moreTimeoutMs: 2000 })(CLASSWORK);
+    const { doc } = await classworkReady(dom);
+    const button = doc.querySelector('[data-topic-id="t1"] button');
+    button.addEventListener("click", () => {
+      button.parentElement.parentElement.setAttribute("style", "display: none;"); // a loading state
+      setTimeout(() => doc.querySelector('[data-topic-id="t1"] ol').insertAdjacentHTML("beforeend", rows(10, 13)), MORE_FAST.settleMs * 3);
+    });
+    const { doc: read } = await loading;
+    assert.deepEqual(perTopic(X, read), { t1: 13, t2: 2 });
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a button drawn again before its rows come is no answer: the rows are in", { timeout: 5000 }, async () => {
+  const dom = framed(classworkPage(), CLASSWORK);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const loading = X.iframeLoader(dom.window, { ...MORE_FAST, moreTimeoutMs: 2000 })(CLASSWORK);
+    const { doc } = await classworkReady(dom);
+    const button = doc.querySelector('[data-topic-id="t1"] button');
+    button.addEventListener("click", () => {
+      button.replaceWith(button.cloneNode(true)); // a fresh node, still shown, with no listener
+      setTimeout(() => {
+        doc.querySelector('[data-topic-id="t1"] ol').insertAdjacentHTML("beforeend", rows(10, 12));
+        doc.querySelector('[data-topic-id="t1"] .Mvr5Ef > div').setAttribute("style", "display: none;");
+      }, MORE_FAST.settleMs * 3);
+    });
+    const { doc: read } = await loading;
+    assert.deepEqual(perTopic(X, read), { t1: 12, t2: 2 });
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a press that only hides its button, with no new row, is a failed load, never a list read as whole", { timeout: 5000 }, async () => {
+  const dom = framed(classworkPage(), CLASSWORK);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const outcome = X.iframeLoader(dom.window, MORE_FAST)(CLASSWORK).then(() => "loaded", (err) => err.message);
+    const { doc } = await classworkReady(dom);
+    answer(doc, { add: 0, hide: true });
+    assert.equal(await outcome, "more_unanswered");
   } finally {
     dom.window.close();
   }

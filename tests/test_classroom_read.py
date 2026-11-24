@@ -115,6 +115,8 @@ def test_a_topic_past_10_items_is_read_whole_and_the_only_press_let_through_is_i
     # Two presses: this topic's, and the saved page's own topic of 10 (2026-10-25), which brings none.
     assert end["blocked"].get("more_presses") == 2
     assert end["blocked"].get("presses", 0) >= 2  # the home page's planted press and this page's own
+    # Had this page's own press gone through, its handler would have added a row: it is not there.
+    assert not [i for i in data["items"] if i["title"] == "Si se ve, el guard falló"]
 
 
 def test_the_guard_lets_through_the_extractors_button_only() -> None:

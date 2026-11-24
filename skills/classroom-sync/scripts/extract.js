@@ -460,8 +460,9 @@
   // then what any failed load leads to: an item page or the stream left out, the capture incomplete;
   // a «Trabajo de clase» stops its class). A «Trabajo de clase» that has held still and shows «Ver
   // más publicaciones» is not taken: the button is pressed and the page waited for until its reading
-  // changes, then it settles again, until no topic shows the button (#288). A press the page does
-  // not answer within `moreTimeoutMs` (`more_unanswered`), or a button still shown after
+  // changes — only that: a button hidden with no new row is no answer — then it settles again, until
+  // no topic shows the button (#288). A press the page does not answer within `moreTimeoutMs`
+  // (`more_unanswered`), or a button still shown after
   // `maxPresses` of them (`more_endless`), is a failed load: a list still cut is never read whole.
   function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300, moreTimeoutMs = 20000, maxPresses = 30 } = {}) {
     const classwork = (path) => /\/w\/[^/]+\/t\/all$/.test(path);
@@ -478,8 +479,8 @@
       let still = 0; // time on screen the reading has not changed
       let settling = 0; // time on screen since the page was first ready
       let presses = 0; // «Ver más publicaciones» pressed on this page
-      let pressed = null; // the reading when a button was last pressed, until the page answers
-      let pressedButton = null; // that button: its topic answered once it is gone or the reading changed
+      let waiting = false; // a button was pressed and its rows have not come yet
+      let pressed = null; // the reading when it was pressed
       let answering = 0; // time on screen since that press
       const stop = (err) => { win.clearInterval(poll); frame.remove(); reject(err); };
       const poll = win.setInterval(() => {
@@ -496,13 +497,15 @@
         }
         if (doc.body && doc.location.href !== "about:blank" && pageReady(path, doc)) {
           const current = pageReading(path, doc);
-          if (pressed !== null) {
-            if (current === pressed && isShown(pressedButton)) {
+          if (waiting) {
+            // Only a change in what the page reads is an answer: a button hidden or drawn again
+            // while its rows are on their way is not, or the old rows would be taken for the whole.
+            if (current === pressed || current === null) {
               answering += step;
               if (answering >= moreTimeoutMs) stop(new Error("more_unanswered"));
               return;
             }
-            pressed = null; pressedButton = null; reading = current; still = 0; settling = 0; // answered: settle again
+            waiting = false; reading = current; still = 0; settling = 0; started = now; // answered: settle again
             return;
           }
           if (!ready) {
@@ -514,7 +517,7 @@
           const more = still >= settleMs && classwork(path) ? shownMore(doc) : null;
           if (more) {
             if (presses >= maxPresses) { stop(new Error("more_endless")); return; }
-            presses += 1; pressed = current; pressedButton = more; answering = 0;
+            presses += 1; waiting = true; pressed = current; answering = 0; started = now;
             more.click();
           } else if (still >= settleMs) {
             win.clearInterval(poll);

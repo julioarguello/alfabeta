@@ -66,14 +66,19 @@ MORE_TOPIC = (
     "<script>document.getElementById('more').addEventListener('click', () => setTimeout(() => {{"
     "document.getElementById('more-list').insertAdjacentHTML('beforeend', {late});"
     "document.getElementById('more-box').setAttribute('style', 'display: none;'); }}, 200));"
+    "document.getElementById('other-press').addEventListener('click', () => document.getElementById('more-list')"
+    '.insertAdjacentHTML(\'beforeend\', \'<li data-stream-item-type="5" data-stream-item-id="9398">'
+    '<span class="Vu2fZd">Si se ve, el guard falló</span></li>\'));'
     "window.addEventListener('load', () => document.getElementById('other-press').click());</script>"
 )
 # The saved page has a topic of 10 that shows «Ver más publicaciones» (2026-10-25), but not the items
-# a press brought: here a press brings none and hides the button, as Classroom does at a topic's end.
+# a press brought: here a press brings one invented row and hides the button, as Classroom did.
 ANSWER_MORE = (
     "<script>for (const b of document.querySelectorAll('button[jsname=\"t6Kl7b\"]:not(#more)')) "
-    "b.addEventListener('click', () => setTimeout(() => b.parentElement.parentElement.setAttribute("
-    "'style', 'display: none;'), 100));</script>"
+    "b.addEventListener('click', () => setTimeout(() => { const box = b.parentElement.parentElement; "
+    "box.closest('[data-topic-id][role=region]').querySelector('ol').insertAdjacentHTML('beforeend', "
+    '\'<li data-stream-item-type="5" data-stream-item-id="9399"><span class="Vu2fZd">Material 9399</span></li>\'); '
+    "box.setAttribute('style', 'display: none;'); }, 100));</script>"
 )
 MORE_ROW = '<li data-stream-item-type="5" data-stream-item-id="{n}"><span class="Vu2fZd">Material {n}</span></li>'
 PDF = b"%PDF-1.4 fichero inventado\n"
