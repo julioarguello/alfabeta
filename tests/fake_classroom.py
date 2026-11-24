@@ -13,10 +13,14 @@ does). A stale cookie `fakestale` sends the identifier page to an account choose
 prove the read clears the cookies first. Class `synth-73` is unreadable (`unexpected_ui`).
 
 Attachments (R4's routes, served for any mode at `other_origin`, so the download host is not the
-sign-in's): `/download?id=<id>&export=download` and `/document/d/<id>/export`. Without the session
-cookie they redirect to the sign-in at `origin`. By id: `f-pdf` a PDF, `f-hop` a redirect to
+sign-in's): `/download?id=<id>&export=download` and `/document/d/<id>/export`. Without a session
+cookie of their own they redirect to `origin`'s `/ServiceLogin`, as Google's export did (spike S10c,
+2026-11-24): with `origin`'s session it redirects back through `/accounts/SetOSID`, which sets
+`other_origin`'s cookie and returns to the file; without it, or in mode `sso_refused`, it serves the
+sign-in page. `doc-1`'s export answers 307 to `/content/doc-1`, as Google's to its content host. By id: `f-pdf` a PDF, `f-hop` a redirect to
 `f-pdf` on the same host, `f-away` a redirect to another host, `f-html` an HTML page, `f-gone` 404,
-`f-gzip` the PDF compressed (its Content-Length the packed size), `f-scheme` a redirect to `https` on
+`f-signin` a redirect straight to the sign-in's identifier page, `f-userinfo` one to `/ServiceLogin` with a
+user in the address, `f-gzip` the PDF compressed (its Content-Length the packed size), `f-scheme` a redirect to `https` on
 the same host, `f-nolen` the PDF with no Content-Length.
 """
 
@@ -29,7 +33,7 @@ import re
 import threading
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 PAGES = Path(__file__).parent / "fixtures" / "classroom" / "pages"
 ACCOUNT = "alumno@example.test"
@@ -78,6 +82,7 @@ class FakeGoogle(http.server.ThreadingHTTPServer):
         super().__init__(("127.0.0.1", 0), _Handler)
         self.mode = mode
         self.password_attempts = 0
+        self.service_logins = 0
         self.served: list[str] = []
         self.thread = threading.Thread(target=self.serve_forever, daemon=True)
 
@@ -134,7 +139,10 @@ class _Handler(http.server.BaseHTTPRequestHandler):
 
     def _attachment(self, file_id: str) -> None:
         if not self._signed_in():
-            return self._send("", 302, f"{self.fake.origin}/v3/signin/identifier")
+            back = quote(f"{self.fake.other_origin}{self.path}", safe="")
+            return self._send("", 302, f"{self.fake.origin}/ServiceLogin?continue={back}")
+        if file_id == "doc-1" and not self.path.startswith("/content/"):
+            return self._send("", 307, "/content/doc-1")
         if file_id in ("f-pdf", "doc-1"):
             return self._send(PDF, content_type="application/pdf")
         if file_id == "f-hop":
@@ -145,6 +153,10 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._send(PDF, content_type="application/pdf", length=False)
         if file_id == "f-scheme":
             return self._send("", 302, f"https://localhost:{self.fake.server_address[1]}/download?id=f-pdf")
+        if file_id == "f-signin":  # straight to a sign-in page, not through /ServiceLogin
+            return self._send("", 302, f"{self.fake.origin}/v3/signin/identifier")
+        if file_id == "f-userinfo":
+            return self._send("", 302, f"http://someone@127.0.0.1:{self.fake.server_address[1]}/ServiceLogin")
         if file_id == "f-away":
             return self._send("", 302, "http://third.invalid/file")
         if file_id == "f-html":
@@ -157,9 +169,20 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.fake.served.append(url.path)
         if url.path == "/download":
             return self._attachment(parse_qs(url.query).get("id", [""])[0])
-        exported = re.match(r"^/document/d/([\w-]+)/export$", url.path)
+        exported = re.match(r"^/document/d/([\w-]+)/export$", url.path) or re.match(r"^/content/([\w-]+)$", url.path)
         if exported:
             return self._attachment(exported.group(1))
+        if url.path == "/ServiceLogin":
+            self.fake.service_logins += 1
+            back = parse_qs(url.query).get("continue", [""])[0]
+            if self._signed_in() and mode != "sso_refused" and back.startswith(self.fake.other_origin + "/"):
+                return self._send("", 302, f"{self.fake.other_origin}/accounts/SetOSID?continue={quote(back, safe='')}")
+            return self._send(IDENTIFIER.format(next="/v3/signin/challenge/pwd"))
+        if url.path == "/accounts/SetOSID":
+            back = parse_qs(url.query).get("continue", [""])[0]
+            if mode == "sso_no_cookie":
+                return self._send("", 302, back)
+            return self._send("", 302, back, cookie="fakesid=ok; Path=/; Max-Age=3600")
         if url.path == "/v3/signin/identifier":
             if "fakestale=1" in (self.headers.get("Cookie") or ""):
                 return self._send("", 302, "/v3/signin/accountchooser")

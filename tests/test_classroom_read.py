@@ -267,9 +267,10 @@ def _fetch(
     wanted: list[dict[str, Any]],
     seed: Any = None,
     request: dict[str, Any] | None = None,
+    mode: str = "ok",
     **constants: Any,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], FakeGoogle]:
-    with FakeGoogle("ok") as fake:
+    with FakeGoogle(mode) as fake:
         module, events = _load(fake, tmp_path, frozenset({"none"}))
         for name, value in constants.items():
             setattr(module, name, value)
@@ -329,13 +330,74 @@ def test_a_page_or_a_missing_file_is_not_brought_and_not_retried(tmp_path: Path)
     assert fake.served.count("/download") == 2
 
 
-def test_an_expired_session_stops_the_pass_and_brings_nothing_more(tmp_path: Path) -> None:
-    # Classroom still opens, but the download host has no session: its sign-in redirect ends the pass.
-    wanted = [_want("i1", "f-pdf", "a.pdf"), _want("i2", "f-pdf", "b.pdf")]
-    end, _, fake = _fetch(tmp_path, wanted, seed=_live("origin"))
+def test_a_download_host_without_its_cookie_is_answered_by_the_live_session(tmp_path: Path) -> None:
+    # Classroom's session lives, the download host has no cookie of its own: as Google's export did on
+    # 2026-11-24 (S10c), it sends the request to the sign-in's /ServiceLogin, which redirects back and
+    # sets it. Followed once, nothing typed; the next file already has the cookie (#290).
+    wanted = [_want("i1", "doc-1", "Apuntes.pdf", "{docs}/document/d/doc-1/export?format=pdf&authuser=5")]
+    wanted += [_want("i2", "f-pdf", "b.pdf")]
+    end, events, fake = _fetch(tmp_path, wanted, seed=_live("origin"))
+    assert end["outcome"] == "ok" and end["reason"] is None, end
+    assert end["attachments"] == {"brought": 2, "not_brought": 0, "refused": 0}, end
+    assert _inbox(tmp_path, "i1", "doc-1", "Apuntes.pdf").read_bytes() == PDF
+    assert _inbox(tmp_path, "i2", "f-pdf", "b.pdf").read_bytes() == PDF
+    assert fake.service_logins == 1 and "/content/doc-1" in fake.served
+    assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
+
+
+@pytest.mark.parametrize("name", ["a.pdf", "inicio.html"])
+def test_a_sign_in_page_on_a_download_is_an_expired_session_whatever_the_file_name(tmp_path: Path, name: str) -> None:
+    # Classroom still opens, but the sign-in will not answer for the download host: its page ends the
+    # pass, and is never saved as the file, not even under a name that says it is a page.
+    wanted = [_want("i1", "f-pdf", name), _want("i2", "f-pdf", "b.pdf")]
+    end, events, fake = _fetch(tmp_path, wanted, seed=_live("origin"), mode="sso_refused")
     assert end["outcome"] == "stopped" and end["reason"] == "session_expired"
     assert end["attachments"] == {"brought": 0, "not_brought": 2, "refused": 0}
+    assert fake.served.count("/download") == 1 and fake.service_logins == 1
+    assert not (tmp_path / "out" / "inbox").exists()
+    assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
+
+
+@pytest.mark.parametrize("file_id", ["f-signin", "f-userinfo"])
+def test_a_hop_to_the_sign_in_other_than_its_service_login_is_an_expired_session(tmp_path: Path, file_id: str) -> None:
+    # Only the sign-in's /ServiceLogin, with no credentials in the address, is followed: any other
+    # hop there ends the pass before its request, and nothing is typed.
+    wanted = [_want("i1", file_id, "a.pdf"), _want("i2", "f-pdf", "b.pdf")]
+    end, events, fake = _fetch(tmp_path, wanted)
+    assert end["outcome"] == "stopped" and end["reason"] == "session_expired"
+    assert fake.service_logins == 0 and "/v3/signin/identifier" not in fake.served
     assert fake.served.count("/download") == 1
+    assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
+
+
+def test_a_second_sign_in_hop_for_one_file_is_an_expired_session(tmp_path: Path) -> None:
+    # The sign-in redirects back but the host still has no cookie: /ServiceLogin is followed once per
+    # file, so its second answer is the session not answering, not a loop.
+    wanted = [_want("i1", "f-pdf", "a.pdf"), _want("i2", "f-pdf", "b.pdf")]
+    end, _, fake = _fetch(tmp_path, wanted, seed=_live("origin"), mode="sso_no_cookie")
+    assert end["outcome"] == "stopped" and end["reason"] == "session_expired"
+    assert end["attachments"] == {"brought": 0, "not_brought": 2, "refused": 0}
+    assert fake.service_logins == 1 and fake.served.count("/download") == 2
+
+
+@pytest.mark.parametrize(
+    ("url", "follows"),
+    [
+        ("https://doc-08-14-docstext.googleusercontent.com/export/abc/def", True),
+        ("https://doc-0g-7k-slides.googleusercontent.com/export/abc", True),
+        ("http://doc-08-14-docstext.googleusercontent.com/export/abc", False),  # another scheme
+        ("https://doc-08-14-sheets.googleusercontent.com/export/abc", False),  # not measured yet
+        ("https://doc-08-14-docstext.googleusercontent.com.evil.invalid/x", False),
+        ("https://lh3.googleusercontent.com/x", False),
+        ("https://accounts.google.com/ServiceLogin", False),
+    ],
+)
+def test_only_the_measured_content_hosts_are_followed(tmp_path: Path, url: str, follows: bool) -> None:
+    spec = importlib.util.spec_from_file_location("read_hosts", READ)
+    assert spec and spec.loader
+    module: Any = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.fetch_may_follow(url, "https") is follows
 
 
 def test_the_attachments_pass_never_signs_in(tmp_path: Path) -> None:
