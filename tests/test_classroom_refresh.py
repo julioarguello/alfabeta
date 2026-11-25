@@ -688,6 +688,7 @@ def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> N
             "host": "accounts.google.es",
             "path": "/accounts/SetSID",
             "main_frame": True,
+            "via": "redirect",
             "allowed": True,
         },
         {"event": "signin", "result": "signed_in"},
@@ -698,7 +699,15 @@ def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> N
     line = _log(data)[-1]
     assert line["signin"] == "signed_in"
     assert line["signin_pages"] == [{"host": "accounts.google.com", "path": "/v3/signin/identifier"}]
-    loads = [{"host": "accounts.google.es", "path": "/accounts/SetSID", "main_frame": True, "allowed": True}]
+    loads = [
+        {
+            "host": "accounts.google.es",
+            "path": "/accounts/SetSID",
+            "main_frame": True,
+            "via": "redirect",
+            "allowed": True,
+        }
+    ]
     assert line["signin_loads"] == loads
     assert line["redirects"] == [{"to": "other", "host": "accounts.google.de", "path": "", "main_frame": True}]
     assert "first_pass" not in line and "typed" not in json.dumps(line)

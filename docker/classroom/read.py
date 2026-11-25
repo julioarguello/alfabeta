@@ -238,13 +238,15 @@ class Crash:
         return self.seen
 
 
-# An opaque token in a path (a session or a request id): never logged as it is.
-PATH_TOKEN = re.compile(r"[A-Za-z0-9_-]{20,}")
+# A path segment kept in the log: a plain word (`signin`, `SetSID`), a version (`v3`) or a short
+# number (an account index); any other segment — an id, an encoded address, a token — is `ID`.
+PLAIN_SEGMENT = re.compile(r"[A-Za-z]{1,24}|v\d{1,2}|\d{1,3}")
 
 
 def loggable_path(url: str) -> str:
-    """A URL's path for the log: no query, no fragment, long tokens as `ID`, at most 120 characters."""
-    return PATH_TOKEN.sub("ID", urlsplit(url).path)[:120]
+    """A Google page's path for the log: no query, no fragment, every segment not plain as `ID`, at most 120 characters."""
+    segments = urlsplit(url).path.split("/")
+    return "/".join(s if not s or PLAIN_SEGMENT.fullmatch(s) else "ID" for s in segments)[:120]
 
 
 class Guard:
@@ -254,17 +256,33 @@ class Guard:
         self.phase = "read"
         self.blocked: dict[str, int] = {}
         self.breached = False
-        self.signin_loads: set[tuple[str, str, bool, bool]] = set()
+        self.signin_loads: set[tuple[str, str, bool, str, bool]] = set()
 
-    def note_signin_load(self, url: str, main_frame: bool, allowed: bool) -> None:
-        """While signing in, each document load once — host, path, frame, allowed — what narrowing needs (T017)."""
+    def note_signin_load(self, url: str, main_frame: bool, via: str, allowed: bool) -> None:
+        """While signing in, each document load once, what narrowing needs (T017).
+
+        Host, path (Google's own hosts only: any other is logged by host alone, as `kind` does), main
+        frame or not, `via` the guard's route (`allowed`: let through) or a server's redirect, already
+        fetched when seen (`allowed`: what the route would have done).
+        """
         if self.phase != "signin":
             return
-        key = (urlsplit(url).hostname or "", loggable_path(url), main_frame, allowed)
+        host = urlsplit(url).hostname or ""
+        google = host in ACCOUNT_HOSTS | REDIRECT_HOSTS | CLASSROOM_HOSTS
+        key = (host, loggable_path(url) if google else "", main_frame, via, allowed)
         if key in self.signin_loads:
             return
         self.signin_loads.add(key)
-        emit({"event": "signin_load", "host": key[0], "path": key[1], "main_frame": main_frame, "allowed": allowed})
+        emit(
+            {
+                "event": "signin_load",
+                "host": host,
+                "path": key[1],
+                "main_frame": main_frame,
+                "via": via,
+                "allowed": allowed,
+            }
+        )
 
     def _count(self, kind: str) -> None:
         self.blocked[kind] = self.blocked.get(kind, 0) + 1
@@ -285,6 +303,9 @@ class Guard:
         """Playwright's route handler: abort and count what the guard refuses."""
         parts = urlsplit(request.url)
         host = parts.hostname or ""
+        if request.resource_type == "document":
+            main_frame = request.frame.parent_frame is None
+            self.note_signin_load(request.url, main_frame, "route", self.allows_document(request.url, main_frame))
         if host in FORM_HOSTS or (host == "docs.google.com" and parts.path.startswith("/forms")):
             self._count("form_hosts")
             route.abort()
@@ -295,7 +316,6 @@ class Guard:
             return
         if request.resource_type == "document":
             main_frame = request.frame.parent_frame is None
-            self.note_signin_load(request.url, main_frame, self.allows_document(request.url, main_frame))
             if not self.allows_document(request.url, main_frame):
                 self._count("pages" if main_frame else "frames")
                 route.abort()
@@ -313,7 +333,7 @@ class Guard:
         if request.redirected_from is None or request.resource_type != "document":
             return
         main_frame = request.frame.parent_frame is None
-        self.note_signin_load(request.url, main_frame, self.allows_document(request.url, main_frame))
+        self.note_signin_load(request.url, main_frame, "redirect", self.allows_document(request.url, main_frame))
         if self.allows_document(request.url, main_frame) or kind(request.url).startswith("accounts:"):
             return
         self._count("redirects")
@@ -438,6 +458,7 @@ def sign_in(ctx: Any, page: Any, guard: Guard, account: str, password: str | Non
     try:
         page.goto(SIGN_IN_URL, wait_until="domcontentloaded", timeout=45000)
     except Exception:
+        guard.phase = "read"
         return "unreachable"
     step = wait_for(page, EMAIL_FIELD, 30)
     if step == "field":

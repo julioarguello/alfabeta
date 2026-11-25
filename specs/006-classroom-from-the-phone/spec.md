@@ -645,8 +645,10 @@ arrives.
     `accounts.google.es`, measured 2026-11-18 in the first real container read (CheckCookie →
     `accounts.google.es/accounts/SetSID` → Classroom); the run's log line keeps the sign-in pages and
     redirects by host and path, and every document the sign-in loaded — redirects and frames too —
-    once each, by host and path (no query, long tokens as `ID`), frame and whether the guard let it
-    through (`signin_loads`); the allowlist is narrowed to what real runs show (T017).
+    once each (`signin_loads`): host; path on Google's own hosts only, no query, every segment that is
+    not a plain word, a version or a short number as `ID`; frame; `via` the guard's route or a
+    server's redirect (already fetched); and whether the guard let it through. The allowlist is
+    narrowed to what real runs show (T017).
 - **FR-028**: The read — sign-in, capture and attachments — MUST run in a container on the Mac:
   Docker, `linux/amd64` (the platform S14 measured, under emulation on the Mac; another one only
   after measuring it), Google Chrome installed in the image and a pinned Playwright. The container is the operator's requirement of
