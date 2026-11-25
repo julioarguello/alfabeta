@@ -238,6 +238,15 @@ class Crash:
         return self.seen
 
 
+# An opaque token in a path (a session or a request id): never logged as it is.
+PATH_TOKEN = re.compile(r"[A-Za-z0-9_-]{20,}")
+
+
+def loggable_path(url: str) -> str:
+    """A URL's path for the log: no query, no fragment, long tokens as `ID`, at most 120 characters."""
+    return PATH_TOKEN.sub("ID", urlsplit(url).path)[:120]
+
+
 class Guard:
     """Request routing by phase (`signin` or `read`), with its counts."""
 
@@ -245,6 +254,17 @@ class Guard:
         self.phase = "read"
         self.blocked: dict[str, int] = {}
         self.breached = False
+        self.signin_loads: set[tuple[str, str, bool, bool]] = set()
+
+    def note_signin_load(self, url: str, main_frame: bool, allowed: bool) -> None:
+        """While signing in, each document load once — host, path, frame, allowed — what narrowing needs (T017)."""
+        if self.phase != "signin":
+            return
+        key = (urlsplit(url).hostname or "", loggable_path(url), main_frame, allowed)
+        if key in self.signin_loads:
+            return
+        self.signin_loads.add(key)
+        emit({"event": "signin_load", "host": key[0], "path": key[1], "main_frame": main_frame, "allowed": allowed})
 
     def _count(self, kind: str) -> None:
         self.blocked[kind] = self.blocked.get(kind, 0) + 1
@@ -275,6 +295,7 @@ class Guard:
             return
         if request.resource_type == "document":
             main_frame = request.frame.parent_frame is None
+            self.note_signin_load(request.url, main_frame, self.allows_document(request.url, main_frame))
             if not self.allows_document(request.url, main_frame):
                 self._count("pages" if main_frame else "frames")
                 route.abort()
@@ -292,6 +313,7 @@ class Guard:
         if request.redirected_from is None or request.resource_type != "document":
             return
         main_frame = request.frame.parent_frame is None
+        self.note_signin_load(request.url, main_frame, self.allows_document(request.url, main_frame))
         if self.allows_document(request.url, main_frame) or kind(request.url).startswith("accounts:"):
             return
         self._count("redirects")

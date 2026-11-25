@@ -136,7 +136,9 @@ Format: `[ID] [P?] [Slice] Description`. `[P]`: no dependency on another open ta
 - [ ] T016 `classroom password set --student <id>` at the Mac, then the first real
   `classroom refresh --student <id>` from a terminal; its stop code and counts recorded in #166.
 - [ ] T017 After T016, a pull request narrows `read.py`'s sign-in allowlist to the hosts and paths
-  the first real run logged (no queries) (FR-027).
+  the first real run logged (no queries) (FR-027). *(2026-11-25: the real runs' `signin_pages`
+  hold only the pages the window rested on, not the redirects between them; the log line first
+  gains `signin_loads`, every document the sign-in loaded, and the narrowing follows from real runs.)*
 - [ ] T018 `classroom agent install --student <id>`; one scheduled read with the screen locked
   recorded in #166; then ten school days for SC-008, as a table in #166.
 

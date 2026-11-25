@@ -101,6 +101,14 @@ def test_signs_in_reads_and_writes_valid_captures(tmp_path: Path) -> None:
     # The sign-in pages are logged by host and path only.
     pages = [e for e in events if e["event"] == "signin_page"]
     assert pages and all("?" not in e["path"] for e in pages)
+    # And every document the sign-in loaded, once each: the pages, the redirect after the password
+    # (`/v3/signin/check`, followed to Classroom), and the home's planted frames, refused (T017).
+    loads = {(e["host"], e["path"], e["main_frame"], e["allowed"]) for e in events if e["event"] == "signin_load"}
+    assert ("127.0.0.1", "/v3/signin/identifier", True, True) in loads
+    assert ("127.0.0.1", "/v3/signin/check", True, True) in loads
+    assert ("127.0.0.1", "/u/5/h", True, True) in loads
+    assert all("?" not in path for _, path, _, _ in loads)
+    assert len(loads) == len([e for e in events if e["event"] == "signin_load"])
     _no_secret(events, end, tmp_path)
 
 
@@ -508,6 +516,15 @@ def _production() -> Any:
     module: Any = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_a_sign_in_load_is_logged_without_query_or_token() -> None:
+    module = _production()
+    path = module.loggable_path(
+        "https://accounts.google.com/v3/signin/" + "Ab1_" * 8 + "/x?continue=https://a.invalid#f"
+    )
+    assert path == "/v3/signin/ID/x"
+    assert len(module.loggable_path("https://accounts.google.com/" + "a/" * 100)) == 120
 
 
 def test_the_measured_setsid_redirect_is_allowed_only_while_signing_in() -> None:

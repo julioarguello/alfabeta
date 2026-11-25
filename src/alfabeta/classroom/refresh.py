@@ -293,13 +293,16 @@ def _stop(cfg: RefreshConfig, deps: Deps, code: str) -> dict[str, Any]:
 def _first_pass(events: list[dict[str, Any]]) -> dict[str, Any]:
     """What the log keeps of the first pass's events: the sign-in's result, its pages, the redirects.
 
-    The sign-in's pages (host and path, never a query) are what narrowing its guard needs (T017).
+    The sign-in's pages (host and path, never a query) and every document it loaded, redirects and
+    frames included, with whether the guard let it through, are what narrowing its guard needs (T017).
     """
     signin = next((e.get("result") for e in events if e.get("event") == "signin"), None)
     keys = ("to", "host", "path", "main_frame")
     redirects = [{k: e[k] for k in keys if k in e} for e in events if e.get("event") == "redirect"]
     pages = [{k: e[k] for k in ("host", "path") if k in e} for e in events if e.get("event") == "signin_page"]
-    return {"signin": signin, "signin_pages": pages, "redirects": redirects}
+    load_keys = ("host", "path", "main_frame", "allowed")
+    loads = [{k: e[k] for k in load_keys if k in e} for e in events if e.get("event") == "signin_load"]
+    return {"signin": signin, "signin_pages": pages, "signin_loads": loads, "redirects": redirects}
 
 
 def _failed(step: dict[str, Any]) -> bool:
