@@ -683,6 +683,14 @@ def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> N
     end = {"event": "end", "outcome": "stopped", "reason": "unexpected_ui", "classes": {"read": 0, "failed": 0}}
     events = [
         {"event": "signin_page", "host": "accounts.google.com", "path": "/v3/signin/identifier"},
+        {
+            "event": "signin_load",
+            "host": "accounts.google.es",
+            "path": "/accounts/SetSID",
+            "main_frame": True,
+            "via": "redirect",
+            "allowed": True,
+        },
         {"event": "signin", "result": "signed_in"},
         {"event": "redirect", "to": "other", "path": "", "main_frame": True, "host": "accounts.google.de"},
         {"event": "typed", "field": "password"},
@@ -691,6 +699,16 @@ def test_the_first_pass_sign_in_and_redirects_reach_the_log(tmp_path: Path) -> N
     line = _log(data)[-1]
     assert line["signin"] == "signed_in"
     assert line["signin_pages"] == [{"host": "accounts.google.com", "path": "/v3/signin/identifier"}]
+    loads = [
+        {
+            "host": "accounts.google.es",
+            "path": "/accounts/SetSID",
+            "main_frame": True,
+            "via": "redirect",
+            "allowed": True,
+        }
+    ]
+    assert line["signin_loads"] == loads
     assert line["redirects"] == [{"to": "other", "host": "accounts.google.de", "path": "", "main_frame": True}]
     assert "first_pass" not in line and "typed" not in json.dumps(line)
 
