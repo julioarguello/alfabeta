@@ -132,6 +132,16 @@ def test_a_topic_past_10_items_is_read_whole_and_the_only_press_let_through_is_i
     assert not [i for i in data["items"] if i["title"] == "Si se ve, el guard falló"]
 
 
+def test_the_stream_is_read_past_its_first_load(tmp_path: Path) -> None:
+    # #293: the stream loads older posts when scrolled to its bottom, in the hidden frame too.
+    end, _, _ = _read("long_stream", tmp_path, SIGN_IN, only=frozenset({"synth-71"}))
+    assert end["outcome"] == "ok" and end["classes"] == {"read": 1, "failed": 0}, end
+    (path,) = [p for p in (tmp_path / "out").glob("*.json") if json.loads(p.read_text())["type"] == "class"]
+    data = json.loads(path.read_text())
+    older = sorted(int(s["id"]) for s in data["stream"] if 8200 <= int(s["id"]) < 8300)
+    assert older == list(range(8200, 8211)) and data["complete"] is True
+
+
 def test_the_guard_lets_through_the_extractors_button_only() -> None:
     # The same button the extractor presses (its MORE_BUTTON), and nothing in the guard wider than it.
     module = _production()

@@ -679,7 +679,9 @@ test.
   class of the current school year and since its start (archived ones are out): the topics of
   «Trabajo de clase» and their items (materials, assignments and questions, with title, type, topic,
   posting date, due date if any, and attachments), each item's detail and the stream
-  announcements. Classes hidden by the student are listed in the summary and are only synced if the
+  announcements, all of them: the stream shows its latest posts and loads older ones as it is
+  scrolled to its bottom, so it is scrolled until no older post comes, and one that never stops
+  growing is left out, the capture incomplete (#293; spec 006 research S17). Classes hidden by the student are listed in the summary and are only synced if the
   family links them to a subject.
 - **FR-008a**: An assignment's status MUST be read from its detail page, not from the
   «Trabajo de clase» listing, because they can disagree (a listing saying «Completada» (Completed)
