@@ -661,7 +661,9 @@ arrives.
   variable (Docker shows those in the container's configuration), on a command line, in the image
   or in a file; the container MUST be removed when the read ends. Docker not running, or the image
   failing to build, stops the read with `docker_unavailable`; no network from the container stops
-  it with `unreachable`; both are notified as FR-032 says. `classroom plan` and
+  it with `unreachable`, after one more try 120 s later when Classroom's home did not load before
+  any sign-in or class (the scheduled read of 2026-11-25 lost its day to a home that did not load
+  in 3 s; the log line says `retried`); both are notified as FR-032 says. `classroom plan` and
   `classroom apply` stay on the Mac, where the Google links are.
   The browser needs memory in Docker's machine, which every container shares. Before the read
   reads the password or signs in, it MUST read that machine's available memory through one short
