@@ -39,6 +39,7 @@ import datetime as dt
 import re
 import shutil
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
@@ -116,7 +117,12 @@ class Deps:
     started_by: str
     now: dt.datetime | None = None  # the Mac's local time; None = now (the tests fix it)
     say: Callable[[str], None] | None = None  # one progress line for people (stderr); None = quiet
+    pause: Callable[[float], None] | None = None  # waits that many seconds; None = time.sleep (the tests skip it)
 
+
+# How long a read waits before its one more try when Classroom's home did not load (a network that
+# was not there yet); within FR-015's window and the lock's lease, which the renewer keeps.
+RETRY_PAUSE_SECONDS = 120
 
 OK, FAIL, WARN = "✓", "✗", "⚠"  # python-cli-output §4: done, failed, a run that stays partial
 
@@ -275,7 +281,7 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
             {"type": "classroom_refresh", "run": run, "started_by": started_by}
             | {k: result.get(k) for k in ("outcome", "reason", "capture", "blocked")}
             | {"seconds": logged.get("seconds")}
-            | {k: logged[k] for k in ("refused_hosts", "attachments_pass", "step", "memory") if k in logged}
+            | {k: logged[k] for k in ("refused_hosts", "attachments_pass", "step", "memory", "retried") if k in logged}
             | _first_pass(logged.get("first_pass", []))
         )
         if not own:
@@ -307,6 +313,18 @@ def _first_pass(events: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _failed(step: dict[str, Any]) -> bool:
     return step.get("ok") is False
+
+
+def _home_unreachable(end: dict[str, Any]) -> bool:
+    """Whether the read stopped because Classroom's home did not load, before any sign-in or class."""
+    capture: dict[str, Any] = end.get("classes") or {}
+    return (
+        end.get("outcome") != "ok"
+        and end.get("reason") == StopReason.UNREACHABLE
+        and end.get("step") == "home"
+        and not capture.get("read")
+        and not capture.get("failed")
+    )
 
 
 def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: dict[str, Any]) -> dict[str, Any]:
@@ -346,6 +364,16 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         with _Renewer(lock, run):
             _say(deps, "opening Classroom …")
             end = deps.container.run(image, request, profile, out, _speaker(deps, events))
+            if _home_unreachable(end):
+                # A network that was not there yet (2026-11-25 15:15: Classroom's home did not load
+                # in 3 s, and loaded the next morning): one more try, before anything signed in.
+                _say(deps, f"{WARN} Classroom did not load; trying again in {RETRY_PAUSE_SECONDS} s")
+                (deps.pause or time.sleep)(RETRY_PAUSE_SECONDS)
+                shutil.rmtree(out, ignore_errors=True)
+                events.clear()
+                logged["retried"] = True
+                _say(deps, "opening Classroom …")
+                end = deps.container.run(image, request, profile, out, _speaker(deps, events))
     except ContainerError:
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))

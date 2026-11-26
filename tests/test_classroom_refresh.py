@@ -84,7 +84,9 @@ class FakeContainer:
         plant: Callable[[Path], None] | None = None,
         memory: Memory | None = PLENTY,
         fetch_reason: str | None = None,
+        first_ends: list[dict[str, Any]] | None = None,
     ) -> None:
+        self.first_ends = list(first_ends or [])  # ends the first read gives before `end`, in order
         self.memory_read = memory
         self.fetch_reason = fetch_reason
         self.probed: list[str] = []
@@ -139,6 +141,8 @@ class FakeContainer:
         self.out = out
         if self.dies:
             raise ContainerError("died")
+        if self.first_ends:
+            return self.first_ends.pop(0)
         time.sleep(self.takes)
         for event in self.events:
             on_event(event)
@@ -197,8 +201,10 @@ def _deps(
     started_by: str = "command",
     steps: FakeSteps | None = None,
     now: dt.datetime = NOW,
+    pauses: list[float] | None = None,
 ) -> tuple[refresh.Deps, FakeNotifier, FakeSteps]:
     notifier, steps = FakeNotifier(), steps or FakeSteps()
+    waited = pauses if pauses is not None else []
     deps = refresh.Deps(
         container=container,
         store=store or FakeStore(),
@@ -208,6 +214,7 @@ def _deps(
         inside_claude=inside,
         started_by=started_by,
         now=now,
+        pause=waited.append,
     )
     return deps, notifier, steps
 
@@ -884,3 +891,49 @@ def test_a_browser_that_crashed_midway_keeps_what_was_read_and_starts_no_second_
     assert [r for r in container.requests if "fetch" in r] == []
     assert result["capture"]["attachments"] == {"brought": 0, "not_brought": 1, "refused": 0}
     assert _log(data)[-1]["reason"] == "browser_crashed"
+
+
+UNREACHABLE_HOME = {
+    "event": "end",
+    "outcome": "stopped",
+    "reason": "unreachable",
+    "step": "home",
+    "classes": {"read": 0, "failed": 0},
+}
+
+
+def test_a_home_that_did_not_load_is_tried_once_more_after_a_pause(tmp_path: Path) -> None:
+    # 2026-11-25 15:15: Classroom's home did not load in 3 s and the day's read was lost.
+    pauses: list[float] = []
+    container = FakeContainer(OK, first_ends=[UNREACHABLE_HOME])
+    result, notifier, _, data = _go(tmp_path, container, started_by="schedule", pauses=pauses)
+    assert result["ok"] and result["outcome"] == "ok", result
+    assert pauses == [refresh.RETRY_PAUSE_SECONDS]
+    assert len([r for r in container.requests if "fetch" not in r]) == 2
+    assert notifier.texts == []
+    (line,) = [entry for entry in _log(data) if entry.get("type") == "classroom_refresh"]
+    assert line["retried"] is True and line["outcome"] == "ok"
+
+
+def test_a_home_that_does_not_load_twice_stops_unreachable_once(tmp_path: Path) -> None:
+    pauses: list[float] = []
+    container = FakeContainer(UNREACHABLE_HOME, first_ends=[UNREACHABLE_HOME])
+    result, notifier, _, _ = _go(tmp_path, container, started_by="schedule", pauses=pauses)
+    assert result["outcome"] == "stopped" and result["reason"] == "unreachable"
+    assert pauses == [refresh.RETRY_PAUSE_SECONDS] and len(container.requests) == 2
+    assert len(notifier.texts) == 1
+
+
+@pytest.mark.parametrize(
+    "end",
+    [
+        UNREACHABLE_HOME | {"step": "signin"},  # after the sign-in began: never a second sign-in
+        UNREACHABLE_HOME | {"classes": {"read": 3, "failed": 0}},  # classes were read
+        UNREACHABLE_HOME | {"reason": "session_expired"},
+    ],
+)
+def test_no_second_try_after_a_sign_in_a_read_or_another_stop(tmp_path: Path, end: dict[str, Any]) -> None:
+    pauses: list[float] = []
+    container = FakeContainer(OK, first_ends=[end])
+    _go(tmp_path, container, pauses=pauses)
+    assert pauses == [] and len([r for r in container.requests if "fetch" not in r]) == 1
