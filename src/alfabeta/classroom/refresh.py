@@ -315,11 +315,17 @@ def _failed(step: dict[str, Any]) -> bool:
     return step.get("ok") is False
 
 
-def _home_unreachable(end: dict[str, Any]) -> bool:
-    """Whether the read stopped because Classroom's home did not load, before any sign-in or class."""
+def _home_unreachable(end: dict[str, Any], events: list[dict[str, Any]]) -> bool:
+    """Whether the read stopped because Classroom's home did not load, before any sign-in or class.
+
+    The events say it too, not the step alone: read.py checks the home again after a sign-in, and a
+    second try must never follow one (a run signs in once at most).
+    """
     capture: dict[str, Any] = end.get("classes") or {}
+    signing = any(e.get("event") in ("signin_start", "signin", "typed") for e in events)
     return (
-        end.get("outcome") != "ok"
+        not signing
+        and end.get("outcome") != "ok"
         and end.get("reason") == StopReason.UNREACHABLE
         and end.get("step") == "home"
         and not capture.get("read")
@@ -364,7 +370,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
         with _Renewer(lock, run):
             _say(deps, "opening Classroom …")
             end = deps.container.run(image, request, profile, out, _speaker(deps, events))
-            if _home_unreachable(end):
+            if _home_unreachable(end, events):
                 # A network that was not there yet (2026-11-25 15:15: Classroom's home did not load
                 # in 3 s, and loaded the next morning): one more try, before anything signed in.
                 _say(deps, f"{WARN} Classroom did not load; trying again in {RETRY_PAUSE_SECONDS} s")

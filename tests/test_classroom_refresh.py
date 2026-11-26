@@ -85,8 +85,10 @@ class FakeContainer:
         memory: Memory | None = PLENTY,
         fetch_reason: str | None = None,
         first_ends: list[dict[str, Any]] | None = None,
+        first_events: list[dict[str, Any]] | None = None,
     ) -> None:
         self.first_ends = list(first_ends or [])  # ends the first read gives before `end`, in order
+        self.first_events = list(first_events or [])  # the events each of those gives first
         self.memory_read = memory
         self.fetch_reason = fetch_reason
         self.probed: list[str] = []
@@ -142,6 +144,8 @@ class FakeContainer:
         if self.dies:
             raise ContainerError("died")
         if self.first_ends:
+            for event in self.first_events:
+                on_event(event)
             return self.first_ends.pop(0)
         time.sleep(self.takes)
         for event in self.events:
@@ -909,7 +913,8 @@ def test_a_home_that_did_not_load_is_tried_once_more_after_a_pause(tmp_path: Pat
     result, notifier, _, data = _go(tmp_path, container, started_by="schedule", pauses=pauses)
     assert result["ok"] and result["outcome"] == "ok", result
     assert pauses == [refresh.RETRY_PAUSE_SECONDS]
-    assert len([r for r in container.requests if "fetch" not in r]) == 2
+    first, second = [r for r in container.requests if "fetch" not in r]
+    assert first == second and second["password"] and second["signin"] is True  # the same request again
     assert notifier.texts == []
     (line,) = [entry for entry in _log(data) if entry.get("type") == "classroom_refresh"]
     assert line["retried"] is True and line["outcome"] == "ok"
@@ -937,3 +942,12 @@ def test_no_second_try_after_a_sign_in_a_read_or_another_stop(tmp_path: Path, en
     container = FakeContainer(OK, first_ends=[end])
     _go(tmp_path, container, pauses=pauses)
     assert pauses == [] and len([r for r in container.requests if "fetch" not in r]) == 1
+
+
+@pytest.mark.parametrize("event", ["signin_start", "signin", "typed"])
+def test_no_second_try_once_a_sign_in_began_whatever_the_step_says(tmp_path: Path, event: str) -> None:
+    # read.py checks the home again after signing in; a home that fails then is never a second sign-in.
+    pauses: list[float] = []
+    container = FakeContainer(OK, first_ends=[UNREACHABLE_HOME], first_events=[{"event": event}])
+    result, _, _, _ = _go(tmp_path, container, pauses=pauses)
+    assert pauses == [] and len(container.requests) == 1 and result["reason"] == "unreachable"
