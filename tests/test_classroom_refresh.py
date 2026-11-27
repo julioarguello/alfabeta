@@ -1064,7 +1064,7 @@ def test_a_mac_asleep_through_the_window_stops_before_anything(tmp_path: Path) -
     result, notifier, steps, data = _go(tmp_path, container, started_by="schedule", clock=clock, store=store)
     assert result == {"ok": False, "started_by": "schedule", "outcome": "stopped", "reason": "mac_asleep"}
     assert container.requests == [] and container.probed == [] and steps.calls == [] and store.asked == 0
-    assert not (data / "lock").exists() or not state.Lock(tmp_path / "home", data).held()
+    assert not (data / "lock.json").exists()  # the lock was never taken
     # 08:10 + 615 s a probe: the fifth ends past 09:00, the window's end (wait_minutes = 60).
     assert len(clock.pauses) == 5
     (line,) = _log(data)
@@ -1177,3 +1177,17 @@ def test_the_wait_for_wake_never_outlasts_the_window_whatever_wait_minutes_says(
     result = refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps, None)
     assert result["reason"] == "mac_asleep"
     assert len(clock.pauses) * 615 <= 1440 * 60 + 615
+
+
+def test_a_retry_skipped_for_a_sleep_before_the_container_is_mac_asleep(tmp_path: Path) -> None:
+    # 6 s asleep before the container and 5 s in the first try: each under the margin, together over.
+    clock = FakeClock()
+    container = FakeContainer(
+        UNREACHABLE_HOME,
+        first_ends=[UNREACHABLE_HOME],
+        on_memory=lambda: clock.sleep(6),
+        on_run=[lambda: clock.sleep(5)],
+    )
+    result, _, _, data = _go(tmp_path, container, clock=clock)
+    assert result["reason"] == "mac_asleep" and len(container.requests) == 1
+    assert "retried" not in _read_line(data)

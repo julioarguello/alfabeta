@@ -451,6 +451,7 @@ def _read(
     logged["first_pass"] = events  # the sign-in's result and any redirect, by host and path (no query)
     out = cfg.data_dir / f"classroom-out-{run}"
     container_meter = awake.SleepMeter(deps.clocks or awake.clocks)
+    retry_slept = False  # the one more try was not made because the Mac slept
     try:
         with _Renewer(lock, run):
             _say(deps, "opening Classroom …")
@@ -462,7 +463,8 @@ def _read(
                 (deps.pause or time.sleep)(RETRY_PAUSE_SECONDS)
                 # The second try carries the password too: never on a Mac that slept since the probe
                 # (the first try and the pause are this meter's, and make the stop `mac_asleep`).
-                if since_gate.slept() < SLEPT_SECONDS:
+                retry_slept = since_gate.slept() >= SLEPT_SECONDS
+                if not retry_slept:
                     shutil.rmtree(out, ignore_errors=True)
                     events.clear()
                     logged["retried"] = True
@@ -478,7 +480,7 @@ def _read(
     capture = end.get("classes", {"read": 0, "failed": 0})
     blocked = end.get("blocked", {})
     reason = end.get("reason")
-    if reason == StopReason.UNREACHABLE and container_meter.slept() >= SLEPT_SECONDS:
+    if reason == StopReason.UNREACHABLE and (retry_slept or container_meter.slept() >= SLEPT_SECONDS):
         # Classroom did not load because the Mac slept, not because the network was away (2026-11-26).
         reason = str(StopReason.MAC_ASLEEP)
     if not capture.get("read") and end.get("outcome") != "ok":
