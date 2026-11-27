@@ -221,23 +221,28 @@ class Applier:
         path.parent.mkdir(parents=True, exist_ok=True)
         return write_atomic(path, text)
 
-    def _as_held(self, item: Item) -> Item:
-        """`item` with each copied file under the name of the copy the student holds (#299).
+    def _as_held(self, item: Item, *, arriving: bool = True) -> Item:
+        """`item` with each copied file under the name and kind of the copy the student holds (#299).
 
-        Classroom may show a file under another name whose bytes never come: one no longer shared with
-        the student keeps the attachment under a generic title, its download answering 404. The copy
-        takes a new name only when the bytes under that name arrive; until then it keeps its own name
-        and extension, and only a new folder moves it.
+        Classroom may show a file under another name, or as another kind, whose bytes never come: one no
+        longer shared with the student keeps the attachment under a generic title, its download
+        answering 404. The copy takes the new name only when the bytes under it arrive (`arriving`:
+        this run collected them, which only the placing of a class in scope may count on); until then
+        it keeps its own name and extension, and only a new folder moves it.
         """
 
         def held(attachment: Attachment) -> Attachment:
             record = cast("dict[str, Any] | None", self.replicas.get(f"{CLASSROOM}|{item.id}|{attachment.id}"))
-            name = record.get("name") if record is not None else None
-            if not isinstance(name, str) or not name or name == attachment.name:
+            if record is None:
                 return attachment
-            if self._inbox(item.id, attachment.id) is not None:
+            name, kind = record.get("name"), record.get("kind")
+            if not isinstance(name, str) or not name or kind not in {str(k) for k in AttachmentKind}:
                 return attachment
-            return replace(attachment, name=name)
+            if (name, kind) == (attachment.name, str(attachment.kind)):
+                return attachment
+            if arriving and self._inbox(item.id, attachment.id) is not None:
+                return attachment
+            return replace(attachment, name=name, kind=AttachmentKind(kind))
 
         return replace(
             item,
@@ -246,12 +251,14 @@ class Applier:
         )
 
     def _move(self, record: dict[str, Any], relative: str) -> None:
-        """Move a replica whose target changed; never a second copy."""
+        """Move a replica whose target changed; never a second copy, never over another file (#299)."""
         old = self.base / str(record["path"])
         new = self.base / relative
         if old == new or not old.exists():
             record["path"] = relative
             return
+        if new.exists() or new.is_symlink():
+            return  # another file holds that name: the copy stays where it is, both kept
         new.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(old), new)
         record["path"] = relative
@@ -413,7 +420,7 @@ class Applier:
 
     def _replace(self, placer: Placer, item: Item, topic_title: str | None) -> None:
         """Move the replicas of an item outside the scope to where the decisions in force put them."""
-        for target in placer.place(self._as_held(item), topic_title):
+        for target in placer.place(self._as_held(item, arriving=False), topic_title):
             if target.role not in PLACED_ROLES:
                 continue
             suffix = target.attachment or f"#{target.role}"

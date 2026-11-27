@@ -1017,8 +1017,9 @@ Example of the resulting structure (invented names):
   ran, while the plan asked for review downloads has not performed one, #290); in the plan's list
   the review's downloads come after every other download; if it finds the
   same bytes it writes nothing outside its own records (FR-025). The superseded version is kept
-  according to FR-015b. A replica takes a new name only when the bytes asked for under that name
-  arrive; until then it keeps its own name and extension, and only a new folder moves it. Classroom
+  according to FR-015b. A replica takes a new name (or kind) only when the bytes asked for under that
+  name arrive; until then it keeps its own name and extension, and only a new folder moves it. A move
+  never lands on another file: the replica then stays where it is. Classroom
   shows a file the student can no longer reach under a generic title («Archivo de Drive»), its
   download answering 404 (spike S10h, 2026-11-27): it is asked for again on every read, in case it
   is shared again, and the copy is never renamed to that title; a copy renamed so before (#299) gets
