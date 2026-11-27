@@ -6,7 +6,7 @@
 // never opens a form or a quiz, and waits at least 2 s with jitter between pages. It presses one
 // button only: a topic's «Ver más publicaciones» on «Trabajo de clase», which shows the items past
 // the topic's first 10 and changes nothing (#288). It scrolls one page only: the stream, to its
-// bottom, until no older post comes (#293).
+// bottom, until two scrolls in a row bring no older post (#293).
 // It returns the texts exactly as shown; Python interprets them (dates, statuses, categories).
 //
 // Two layers: pure readers (a document in, contract-shaped data out) and a driver whose page
@@ -477,9 +477,10 @@
   // (`more_unanswered`), or a button still shown after
   // `maxPresses` of them (`more_endless`), is a failed load: a list still cut is never read whole.
   // The stream, once it holds still, is scrolled to its bottom and waited for: older posts that come
-  // within `streamWaitMs` settle and it is scrolled again; none coming is its end (#293). More than
-  // `maxScrolls` is a failed load (`stream_endless`): the stream left out, the capture incomplete.
-  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300, moreTimeoutMs = 20000, maxPresses = 30, streamWaitMs = 6000, maxScrolls = 100 } = {}) {
+  // within `streamWaitMs` settle and it is scrolled again; `streamQuiet` scrolls in a row that bring
+  // nothing are its end, so one slow or lost load is not taken for it (#293). More than `maxScrolls`
+  // is a failed load (`stream_endless`), never tried again: the stream left out, the capture incomplete.
+  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300, moreTimeoutMs = 20000, maxPresses = 30, streamWaitMs = 6000, streamQuiet = 2, maxScrolls = 100 } = {}) {
     const classwork = (path) => /\/w\/[^/]+\/t\/all$/.test(path);
     const stream = (path) => /^\/u\/\d+\/c\/[^/]+$/.test(path);
     const once = (path) => new Promise((resolve, reject) => {
@@ -501,13 +502,14 @@
       let scrolls = 0; // the stream scrolled to its bottom on this page
       let scrolledFrom = null; // the posts it had then, until more come or none do within streamWaitMs
       let scrollWait = 0; // time on screen since that scroll
-      let streamEnded = false; // a scroll brought nothing: the stream is read whole
+      let quiet = 0; // scrolls in a row that brought nothing
+      let streamEnded = false; // `streamQuiet` scrolls brought nothing: the stream is read whole
       const stop = (err) => { win.clearInterval(poll); frame.remove(); reject(err); };
       const poll = win.setInterval(() => {
         const now = Date.now();
         if (win.document.visibilityState === "hidden") { started = now; tick = now; wasHidden = true; return; }
         const step = wasHidden ? 0 : now - tick;
-        if (wasHidden) { started = now; still = 0; } // back on screen: a held-back paint may come now
+        if (wasHidden) { started = now; still = 0; scrollWait = 0; } // back on screen: a held-back paint may come now
         tick = now;
         wasHidden = false;
         let doc = null;
@@ -530,12 +532,13 @@
           }
           if (scrolledFrom !== null) {
             if (postCount(doc) > scrolledFrom) {
-              scrolledFrom = null; reading = current; still = 0; settling = 0; started = now; // older posts came
+              scrolledFrom = null; quiet = 0; reading = current; still = 0; settling = 0; started = now; // older posts came
               return;
             }
             scrollWait += step;
             if (scrollWait < streamWaitMs) return;
-            scrolledFrom = null; streamEnded = true; // nothing came: the stream's end
+            scrolledFrom = null; quiet += 1; // nothing came: scrolled again, or the stream's end
+            streamEnded = quiet >= streamQuiet;
           }
           if (!ready) {
             ready = true; reading = current; still = 0;
@@ -569,7 +572,11 @@
       let last;
       for (let i = 0; i < attempts; i++) {
         await whileHidden(win);
-        try { return await once(path); } catch (err) { if (err && err.name === "SessionExpired") throw err; last = err; }
+        try { return await once(path); } catch (err) {
+          // An expired session, or a stream that keeps growing, would only fail again.
+          if (err && (err.name === "SessionExpired" || err.message === "stream_endless")) throw err;
+          last = err;
+        }
       }
       throw last;
     };

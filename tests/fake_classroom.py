@@ -9,7 +9,7 @@ redirects outside), `captcha` (an image captcha after the account), `rejected`, 
 `other_sign_in` (the account's own sign-in elsewhere), `other_account` (Classroom shows another
 account), `no_account` (Classroom names no account), `slow_list` (the class cards appear 1.5 s
 after the page, as right after a sign-in), `expire_mid` (the third class's pages leave for another origin, as an expired session
-does), `long_stream` (the stream loads older posts on scroll, see LONG_STREAM), `more` (a topic of «Trabajo de clase» shows «Ver más publicaciones», see MORE_TOPIC). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
+does), `long_stream` (the stream loads older posts on scroll, see LONG_STREAM), `boxed_stream` (on its inner box's scroll, see BOXED_STREAM), `more` (a topic of «Trabajo de clase» shows «Ver más publicaciones», see MORE_TOPIC). A stale cookie `fakestale` sends the identifier page to an account chooser, so the test can
 prove the read clears the cookies first. Class `synth-73` is unreadable (`unexpected_ui`).
 
 Attachments (R4's routes, served for any mode at `other_origin`, so the download host is not the
@@ -96,6 +96,21 @@ LONG_STREAM = (
     "inventado</h2><div class=\"pco8Kc\">Anuncio antiguo ' + n + '</div><div>Fecha de creación: 3 sept</div></div>';"
     "window.addEventListener('scroll', () => {{ if (busy || loads >= 2) return;"
     " if (window.scrollY + window.innerHeight < document.documentElement.scrollHeight - 200) return;"
+    " busy = true; setTimeout(() => {{ const first = 8203 + 4 * loads; loads += 1;"
+    " for (let n = first; n < first + 4; n++) document.getElementById('older').insertAdjacentHTML('beforeend', post(n));"
+    " busy = false; }}, 300); }});</script>"
+)
+# Mode `boxed_stream`: the same, but the posts sit in a box of their own that scrolls, and only that
+# box's scroll loads older ones: which of the two Classroom reacts to was not measured (S10d/S10e
+# scrolled both), so the extractor scrolls both and each is tested.
+BOXED_STREAM = (
+    '<div id="box" style="height: 600px; overflow: auto"><div id="older">{posts}</div>'
+    '<div style="height: 3000px"></div></div>'
+    "<script>let loads = 0, busy = false; const box = document.getElementById('box');"
+    " const post = (n) => '<div data-stream-item-id=\"' + n + '\"><h2>Autor "
+    "inventado</h2><div class=\"pco8Kc\">Anuncio antiguo ' + n + '</div><div>Fecha de creación: 3 sept</div></div>';"
+    "box.addEventListener('scroll', () => {{ if (busy || loads >= 2) return;"
+    " if (box.scrollTop + box.clientHeight < box.scrollHeight - 200) return;"
     " busy = true; setTimeout(() => {{ const first = 8203 + 4 * loads; loads += 1;"
     " for (let n = first; n < first + 4; n++) document.getElementById('older').insertAdjacentHTML('beforeend', post(n));"
     " busy = false; }}, 300); }});</script>"
@@ -289,9 +304,9 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         for pattern, name in ROUTES:
             if re.match(pattern, url.path):
                 body = _page(name)
-                if mode == "long_stream" and name == "stream.html":
+                if mode in ("long_stream", "boxed_stream") and name == "stream.html":
                     first = "".join(STREAM_POST.format(n=8200 + i) for i in range(3))
-                    long = LONG_STREAM.format(posts=first)
+                    long = (LONG_STREAM if mode == "long_stream" else BOXED_STREAM).format(posts=first)
                     body = body.replace(b"</body>", long.encode() + b"</body>", 1)
                 if name == "classwork.html":
                     body = body.replace(b"</body>", ANSWER_MORE.encode() + b"</body>", 1)

@@ -796,14 +796,14 @@ test("the stream is scrolled until no older post comes: every announcement is re
   try {
     const X = dom.window.alfabetaExtract;
     const loading = X.iframeLoader(dom.window, STREAM_FAST)(STREAM);
-    const loads = [[5, 9], [9, 12]]; // two scrolls bring older posts, the third none
+    const loads = [[5, 9], [9, 12]]; // two scrolls bring older posts, the next two none: its end
     const seen = await streamReady(dom, (doc, n) => {
       const next = loads[n - 1];
       if (next) setTimeout(() => doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(...next)), 60);
     });
     const { doc } = await loading;
     assert.equal(X.readStream(doc).length, 12);
-    assert.equal(seen.scrolls, 3);
+    assert.equal(seen.scrolls, 4);
   } finally {
     dom.window.close();
   }
@@ -819,6 +819,46 @@ test("older posts that come late, within streamWaitMs, are still waited for", { 
     });
     const { doc } = await loading;
     assert.equal(X.readStream(doc).length, 7);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a scroll that brings nothing is not the stream's end: the next one may", { timeout: 5000 }, async () => {
+  // Classroom's handler not attached yet, or its answer later than streamWaitMs: one load lost.
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const loading = X.iframeLoader(dom.window, STREAM_FAST)(STREAM);
+    const seen = await streamReady(dom, (doc, n) => {
+      if (n === 2) setTimeout(() => doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(5, 8)), 60);
+    });
+    const { doc } = await loading;
+    assert.equal(X.readStream(doc).length, 8);
+    assert.equal(seen.scrolls, 4);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a stream that never ends is not tried again", { timeout: 5000 }, async () => {
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    let frames = 0;
+    const seen = new Set();
+    const watch = dom.window.setInterval(() => {
+      const frame = dom.window.document.querySelector("iframe");
+      if (frame && !seen.has(frame)) { seen.add(frame); frames += 1; }
+    }, 5);
+    const outcome = X.iframeLoader(dom.window, { ...STREAM_FAST, attempts: 2, maxScrolls: 2 })(STREAM).then(() => "loaded", (err) => err.message);
+    let next = 5;
+    await streamReady(dom, (doc) => {
+      setTimeout(() => { doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(next, next + 1)); next += 1; }, 30);
+    });
+    assert.equal(await outcome, "stream_endless");
+    dom.window.clearInterval(watch);
+    assert.equal(frames, 1);
   } finally {
     dom.window.close();
   }
