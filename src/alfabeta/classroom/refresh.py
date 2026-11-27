@@ -80,7 +80,7 @@ ADVICE = {
     # The code states what was seen (the page died); memory is where to look, not a proven cause.
     "browser_crashed": "mira la memoria de Docker: cierra otros contenedores o súbela en Docker Desktop",
     # A closed lid sleeps the Mac with no external display, on power too; no assertion keeps it awake.
-    "mac_asleep": "deja el Mac abierto y encendido a la hora de la lectura",
+    "mac_asleep": "deja el Mac abierto y encendido mientras dura la lectura",
 }
 # Below this much available memory in Docker the read is not started (FR-028). Measured 2026-11-19
 # (#268, research S16): with 1213 MB available — read as here, by a short container of the image
@@ -281,20 +281,23 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
         return result | {"ok": True, "outcome": "skipped", "reason": "outside_hours"}
     clocks = deps.clocks or awake.clocks
     run_meter = awake.SleepMeter(clocks)
+    mac: dict[str, int] = {}
+    if started_by == "schedule":
+        # Before the lock: a wait of up to the window must not hold the student's lock (FR-015).
+        # Before the assertion too: held in a maintenance wake, it could keep that wake going and the
+        # probe would measure its own assertion.
+        stayed, waited = _await_awake(cfg, deps, clocks)
+        mac["waited_s"] = round(waited)
+        if not stayed:
+            mac["slept_s"] = round(run_meter.slept())
+            state.StateStore(cfg.data_dir).log(
+                {"type": "classroom_refresh", "run": None, "started_by": started_by}
+                | {"outcome": "stopped", "reason": str(StopReason.MAC_ASLEEP), "mac": mac}
+            )
+            return result | _stop(cfg, deps, str(StopReason.MAC_ASLEEP))
+    since_gate = awake.SleepMeter(clocks)
     with (deps.keep_awake or contextlib.nullcontext)():
-        mac: dict[str, int] = {}
-        if started_by == "schedule":
-            # Before the lock: a wait of up to the window must not hold the student's lock (FR-015).
-            stayed, waited = _await_awake(cfg, deps, clocks)
-            mac["waited_s"] = round(waited)
-            if not stayed:
-                mac["slept_s"] = round(run_meter.slept())
-                state.StateStore(cfg.data_dir).log(
-                    {"type": "classroom_refresh", "run": None, "started_by": started_by}
-                    | {"outcome": "stopped", "reason": str(StopReason.MAC_ASLEEP), "mac": mac}
-                )
-                return result | _stop(cfg, deps, str(StopReason.MAC_ASLEEP))
-        return _locked(cfg, lock, deps, run_env, result, awake.SleepMeter(clocks), run_meter, mac)
+        return _locked(cfg, lock, deps, run_env, result, since_gate, run_meter, mac)
 
 
 def _await_awake(cfg: RefreshConfig, deps: Deps, clocks: Callable[[], tuple[float, float]]) -> tuple[bool, float]:
@@ -302,17 +305,20 @@ def _await_awake(cfg: RefreshConfig, deps: Deps, clocks: Callable[[], tuple[floa
 
     Probes of AWAKE_PROBE_SECONDS until one finds the Mac slept less than SLEPT_SECONDS in it; a
     Mac in its maintenance wakes sleeps through each probe, until the family opens it or the window
-    closes.
+    closes. Never longer than the window itself, whatever `[schedule]` says: a `wait_minutes` of a
+    day would keep every day's window open.
     """
     waiting = awake.SleepMeter(clocks)
     begun = deps.now or dt.datetime.now()
+    longest = 60 * max(cfg.wait_minutes, GRACE_MINUTES)
     said = False
     while True:
         probe = awake.SleepMeter(clocks)
         (deps.pause or time.sleep)(AWAKE_PROBE_SECONDS)
         if probe.slept() < SLEPT_SECONDS:
             return True, waiting.wall()
-        if not in_hours(cfg.times, cfg.wait_minutes, begun + dt.timedelta(seconds=waiting.wall())):
+        now = begun + dt.timedelta(seconds=waiting.wall())
+        if waiting.wall() >= longest or not in_hours(cfg.times, cfg.wait_minutes, now):
             return False, waiting.wall()
         if not said:
             _say(deps, f"{WARN} the Mac is asleep; the read waits for it to wake while the window lasts")
@@ -435,6 +441,9 @@ def _read(
     except KeychainError:
         # The keychain did not answer (locked, or refused under launchd): the read cannot sign in.
         return _stop(cfg, deps, str(StopReason.NO_PASSWORD))
+    if since_gate.slept() >= SLEPT_SECONDS:  # the keychain can take its time under launchd
+        _say(deps, f"{FAIL} the Mac slept before the sign-in")
+        return _stop(cfg, deps, str(StopReason.MAC_ASLEEP))
     request: dict[str, Any] = {"run": run, "account": cfg.account, "password": password, "signin": signin}
     del password
     events: list[dict[str, Any]] = []
@@ -451,13 +460,14 @@ def _read(
                 # in 3 s, and loaded the next morning): one more try, before anything signed in.
                 _say(deps, f"{WARN} Classroom did not load; trying again in {RETRY_PAUSE_SECONDS} s")
                 (deps.pause or time.sleep)(RETRY_PAUSE_SECONDS)
-                shutil.rmtree(out, ignore_errors=True)
-                events.clear()
-                logged["retried"] = True
-                # Only the try that stopped the read says whether the Mac slept through it.
-                container_meter = awake.SleepMeter(deps.clocks or awake.clocks)
-                _say(deps, "opening Classroom …")
-                end = deps.container.run(image, request, profile, out, _speaker(deps, events))
+                # The second try carries the password too: never on a Mac that slept since the probe
+                # (the first try and the pause are this meter's, and make the stop `mac_asleep`).
+                if since_gate.slept() < SLEPT_SECONDS:
+                    shutil.rmtree(out, ignore_errors=True)
+                    events.clear()
+                    logged["retried"] = True
+                    _say(deps, "opening Classroom …")
+                    end = deps.container.run(image, request, profile, out, _speaker(deps, events))
     except ContainerError:
         shutil.rmtree(out, ignore_errors=True)
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
