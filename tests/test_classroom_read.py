@@ -20,7 +20,7 @@ import jsonschema
 import playwright.sync_api as playwright  # dev dependency; CI installs its Chromium (T007), never skipped
 import pytest
 
-from tests.fake_classroom import ACCOUNT, PASSWORD, PDF, UNREADABLE, FakeGoogle
+from tests.fake_classroom import ACCOUNT, PASSWORD, PDF, SCAN_TOKEN, UNREADABLE, FakeGoogle
 
 ROOT = Path(__file__).resolve().parents[1]
 READ = ROOT / "docker" / "classroom" / "read.py"
@@ -364,6 +364,35 @@ def test_a_page_or_a_missing_file_is_not_brought_and_not_retried(tmp_path: Path)
     assert end["outcome"] == "ok" and end["attachments"] == {"brought": 0, "not_brought": 2, "refused": 0}
     assert [e["why"] for e in events if e["event"] == "attachment"] == ["html", "status_404"]
     assert fake.served.count("/download") == 2
+
+
+def test_drive_s_virus_scan_warning_is_confirmed_once_and_the_file_brought(tmp_path: Path) -> None:
+    # A Drive file too large to scan answers a warning page whose `download-form` confirms the download
+    # (S10h, 2026-11-27): sent back once, by an address built from its hidden inputs, it brings the file;
+    # the page's token is never written to an event (#298).
+    end, events, fake = _fetch(tmp_path, [_want("i1", "f-scan", "Vídeo.mp4"), _want("i2", "f-pdf", "b.pdf")])
+    assert end["outcome"] == "ok" and end["attachments"] == {"brought": 2, "not_brought": 0, "refused": 0}, end
+    assert _inbox(tmp_path, "i1", "f-scan", "Vídeo.mp4").read_bytes() == PDF
+    assert fake.served.count("/download") == 3
+    assert SCAN_TOKEN not in json.dumps(events) + json.dumps(end)
+
+
+@pytest.mark.parametrize(
+    ("file_id", "asked"),
+    [
+        ("f-scan-loop", 2),  # its confirmation answers the warning again: one confirmation per file
+        ("f-scan-other", 1),  # the form names another file
+        ("f-scan-away", 1),  # the form is sent to another host
+    ],
+)
+def test_a_warning_page_that_is_not_this_file_s_confirmation_is_not_brought(
+    tmp_path: Path, file_id: str, asked: int
+) -> None:
+    end, events, fake = _fetch(tmp_path, [_want("i1", file_id, "Vídeo.mp4")])
+    assert end["outcome"] == "ok" and end["attachments"] == {"brought": 0, "not_brought": 1, "refused": 0}, end
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["html"]
+    assert fake.served.count("/download") == asked
+    assert not (tmp_path / "out" / "inbox" / f"i1__{file_id}").exists()
 
 
 def test_a_download_host_without_its_cookie_is_answered_by_the_live_session(tmp_path: Path) -> None:

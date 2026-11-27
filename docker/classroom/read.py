@@ -36,7 +36,10 @@ outcome and stop code. No line carries the account or the password.
   measured content hosts; one hop per file to the sign-in's `/ServiceLogin` is followed, since a live
   session answers it with a redirect back (#290); any other hop to Google's sign-in, or a page the
   sign-in serves, is the expired session (the rest is not brought); any other host is refused and
-  logged by host only. An HTML page, a wrong length or an oversized body is not a file: not brought.
+  logged by host only. Drive's warning for a file too large to scan for viruses — a page whose one
+  `download-form` confirms the download — is followed once per file, only on Drive's download path,
+  only for the same attachment id, at an address built from the form's hidden inputs (#298). Any
+  other HTML page, a wrong length or an oversized body is not a file: not brought.
 
 The tests run this module directly with Playwright's Chromium against a local fake, setting the
 host constants below in the module object; nothing here reads them from the environment.
@@ -49,9 +52,10 @@ import os
 import re
 import sys
 import time
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urljoin, urlsplit
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 CLASSROOM_HOME = "https://classroom.google.com/u/0/h"
 SIGN_IN_URL = "https://accounts.google.com/ServiceLogin?service=classroom&continue=" + CLASSROOM_HOME
@@ -83,6 +87,8 @@ SERVICE_LOGIN_PATH = "/ServiceLogin"
 FETCH_MAX_HOPS = 5
 FETCH_MAX_BYTES = 200 * 1024 * 1024
 FETCH_TIMEOUT_MS = 120_000
+# Drive's virus-scan warning is a small page (about 2.7 KB, S10h 2026-11-27): a bigger one is not read for its form.
+SCAN_WARNING_MAX_BYTES = 64 * 1024
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,200}$")
 # Spec 001 FR-007's pages: home, classwork, stream, item details.
 CLASSROOM_PAGES = re.compile(r"^/u/\d+/(h(/[^/]*)?|w/[^/]+/t/all|c/[^/]+(/(a|m|mc)/[^/]+/details)?)$")
@@ -639,6 +645,63 @@ def fetch_may_follow(url: str, scheme: str) -> bool:
     return parts.netloc in fetch_netlocs() or bool(FETCH_CONTENT_HOST.fullmatch(parts.netloc))
 
 
+class _ScanWarning(HTMLParser):
+    """Drive's virus-scan warning, read for its `download-form` only: the action and the hidden inputs."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.forms = 0
+        self.action = ""
+        self.method = ""
+        self.values: dict[str, str] = {}
+        self.repeated = False
+        self._inside = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Note the form and, inside it, each hidden input; a name given twice spoils it."""
+        a = {k: v or "" for k, v in attrs}
+        if tag == "form":
+            self._inside = a.get("id") == "download-form"
+            if self._inside:
+                self.forms += 1
+                self.action, self.method = a.get("action", ""), (a.get("method") or "get").lower()
+        elif tag == "input" and self._inside and a.get("type", "").lower() == "hidden" and a.get("name"):
+            name = a["name"]
+            self.repeated = self.repeated or name in self.values
+            self.values[name] = a.get("value", "")
+
+    def handle_endtag(self, tag: str) -> None:
+        """A form ends."""
+        if tag == "form":
+            self._inside = False
+
+
+def scan_confirmation(body: bytes, current: str, attachment: str) -> str | None:
+    """The address that confirms a download Drive's virus-scan warning stopped, or None if it is not one (#298).
+
+    Only a page answered on Drive's download path, holding one `download-form` (GET, its action that
+    same path) whose hidden `id` is the listed attachment and `export` is `download`. The address is
+    built from those hidden inputs, never taken from the page as written.
+    """
+    here = urlsplit(current)
+    if f"{here.scheme}://{here.netloc}{here.path}" != DRIVE_DOWNLOAD or len(body) > SCAN_WARNING_MAX_BYTES:
+        return None
+    form = _ScanWarning()
+    form.feed(body.decode("utf-8", "replace"))
+    form.close()
+    target = urlsplit(urljoin(current, form.action))
+    if (
+        form.forms != 1
+        or form.repeated
+        or form.method != "get"
+        or f"{target.scheme}://{target.netloc}{target.path}" != DRIVE_DOWNLOAD
+        or form.values.get("id") != attachment
+        or form.values.get("export") != "download"
+    ):
+        return None
+    return f"{DRIVE_DOWNLOAD}?{urlencode(form.values)}"
+
+
 def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | None, str | None]:
     """Fetch one listed attachment: (`brought`|`not_brought`|`refused`|`expired`, why, refused host)."""
     item, attachment, url, name = (wanted.get(k) for k in ("item", "attachment", "url", "expected_name"))
@@ -649,6 +712,7 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
     current = url
     scheme = urlsplit(url).scheme
     bounced = False  # the one hop through the sign-in host (SERVICE_LOGIN_PATH) taken
+    confirmed = False  # the one confirmation of Drive's virus-scan warning sent (#298)
     for _ in range(FETCH_MAX_HOPS + 1):
         try:
             response = page.request.get(current, max_redirects=0, timeout=FETCH_TIMEOUT_MS, fail_on_status_code=False)
@@ -691,7 +755,13 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
         headers = response.headers
         html = headers.get("content-type", "").split(";")[0].strip().lower() == "text/html"
         if html and not str(name).lower().endswith((".html", ".htm")):
-            return "not_brought", "html", None
+            confirm = None if confirmed else scan_confirmation(response.body(), current, attachment)
+            response.dispose()
+            if confirm is None:
+                return "not_brought", "html", None
+            confirmed = True
+            current = confirm
+            continue
         declared = headers.get("content-length")
         if declared and declared.isdigit() and int(declared) > FETCH_MAX_BYTES:
             return "not_brought", "too_large", None
