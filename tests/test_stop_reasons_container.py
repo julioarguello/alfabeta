@@ -13,6 +13,7 @@ CONTAINER_READ = {
     "docker_unavailable",
     "docker_low_memory",
     "browser_crashed",
+    "mac_asleep",
     "unreachable",
     "disabled",
 }

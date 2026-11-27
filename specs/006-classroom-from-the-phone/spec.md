@@ -516,7 +516,19 @@ arrives.
 
 - **FR-015**: When a student's switch is on, the times `[schedule]` sets for each weekday MUST run
   `classroom refresh` (FR-022) instead of the desktop app's scheduled task of spec 001 FR-021a, and only if the Mac is
-  awake; a time missed while it slept is logged and not made up outside those hours. This switch and
+  awake; a time missed while it slept is logged and not made up outside those hours. *(Amendment
+  2026-11-27: a Mac asleep runs the agent's job in its maintenance wakes, a few seconds each, with
+  no usable network — the scheduled read of 2026-11-26 started in one at 15:19, the lid closed,
+  and lost its day. Before it takes the lock, a scheduled read MUST find the Mac staying awake: a
+  stretch of 15 s in which the wall clock and the Mac's awake clock, which stops in a sleep, differ
+  by less than 10 s. While it does not, the read waits, probe after probe, without the lock, until
+  the Mac wakes or the window of `wait_minutes` closes (never longer than that window, whatever
+  `[schedule]` says); then it stops with `mac_asleep`, the notice of FR-032 and one log line
+  (`run: null`, `mac`). A read started by hand is not probed. Once the probe found the Mac awake
+  (not before: held in a maintenance wake, it could keep that wake going and be what the probe
+  measures), the read holds the Mac's idle-sleep assertion (`caffeinate -i -s`), which
+  keeps an idle Mac awake; no assertion keeps awake a Mac whose lid is closed with no external
+  display, on power or not.)* This switch and
   spec 001's unattended runner (FR-032) MUST NOT both be on for one student: the configuration check
   reports it. The family installs the launchd agent that runs those times with
   `classroom agent install --student <id>` and removes it with `classroom agent uninstall --student <id>`,
@@ -663,7 +675,12 @@ arrives.
   failing to build, stops the read with `docker_unavailable`; no network from the container stops
   it with `unreachable`, after one more try 120 s later when Classroom's home did not load before
   any sign-in or class (the scheduled read of 2026-11-25 lost its day to a home that did not load
-  in 3 s; the log line says `retried`); both are notified as FR-032 says. `classroom plan` and
+  in 3 s; the log line says `retried`); both are notified as FR-032 says. A Mac that slept 10 s or
+  more within the try that stopped `unreachable` stops it with `mac_asleep` instead. A sign-in cut
+  by a sleep is worse than none, so a Mac that slept so since the probe of FR-015, or a hand
+  start, stops the read with `mac_asleep` before the keychain is read, again before the container
+  starts, and instead of the one more try, which carries the password too. Every read's log line keeps
+  the seconds it slept (`mac: {slept_s}`, and `waited_s` for a scheduled one). `classroom plan` and
   `classroom apply` stay on the Mac, where the Google links are.
   The browser needs memory in Docker's machine, which every container shares. Before the read
   reads the password or signs in, it MUST read that machine's available memory through one short
@@ -710,13 +727,13 @@ arrives.
   log it, or take it as an option, an argument or an environment variable. Changing the password
   at Google stops the next scripted sign-in with `wrong_password`, and the family sets it again.
 - **FR-032**: When the scripted sign-in stops (FR-027), or Docker is not running or has too little
-  memory left, or the browser dies before a class was read (FR-028), the read
+  memory left, or the browser dies before a class was read, or the Mac slept (FR-015, FR-028), the read
   MUST stop with that code before
   reading anything, write nothing to the student's folder, show the macOS notification of spec 001
   FR-021a in Spanish naming the code and what to do (for `wrong_password` and `no_password`: run
   `classroom password set`; for `docker_low_memory` and `browser_crashed`: close other containers
   or raise Docker Desktop's memory — for `browser_crashed` as where to look, the cause not being
-  proven), and leave its log line (FR-020). That day's read is then the family's
+  proven; for `mac_asleep`: leave the Mac open and on while the read runs), and leave its log line (FR-020). That day's read is then the family's
   usual sync with Claude in Chrome (FR-018). The hand sign-in window is not opened: a session it
   made in the Mac's Chrome could not be read by the container (R2).
 

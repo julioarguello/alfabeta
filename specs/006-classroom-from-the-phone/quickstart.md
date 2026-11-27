@@ -13,6 +13,9 @@ name, an address or a Classroom title.
   `browserinfo` tests are S9's; comments, grades and returned marks stay open.
 - `[classroom] profile_read = true` and `notice_account` set in the student's configuration;
   `config check --student <id>` clean.
+- For a scheduled read: the Mac open and on at the time. A closed lid sleeps it with no external
+  display, on power too; the read then waits for it within `wait_minutes` and stops `mac_asleep`
+  (FR-015). Docker Desktop starts at sign-in only if its own setting says so.
 - For the container read: Docker Desktop running, with at least 1536 MB of memory available to
   containers when the read starts (FR-028). Under that the read stops with `docker_low_memory`
   before signing in; close other containers or raise Docker Desktop's memory. What a container has

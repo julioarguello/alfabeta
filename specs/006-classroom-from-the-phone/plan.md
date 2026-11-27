@@ -262,14 +262,20 @@ image needs no copy of the package. The host never runs a browser.
 
 ### Run flow (`classroom refresh`, container read)
 
-1. Read `[classroom] profile_read` (FR-019); off → `disabled`. Take the student's lock and the
-   browser lock (FR-024a).
+1. Read `[classroom] profile_read` (FR-019); off → `disabled`. Started by the agent: out of the
+   window → `outside_hours`; then probe that the Mac stays awake (15 s, the wall clock against its
+   awake clock), probe after probe until it does or the window closes → stop `mac_asleep` → step 7,
+   without the lock, never longer than the window (FR-015). Once it passes, hold `caffeinate -i -s`. Take the student's lock
+   and the browser lock (FR-024a).
 2. Docker not running → stop `docker_unavailable` (FR-028) → step 7. Build the image if its inputs
    changed (`docker build -f docker/classroom/Dockerfile` from the repository root, so the
    extractor is copied unchanged; the image labelled with the inputs' hash). Read Docker's
    available memory through one short container of that image (`cat /proc/meminfo`, nothing
    mounted, no network): under the floor → stop `docker_low_memory` (FR-028) → step 7, before the
-   keychain of step 3 is read; unreadable → go on; the reading goes to the log line.
+   keychain of step 3 is read; unreadable → go on; the reading goes to the log line. A Mac that
+   slept 10 s or more since the probe (or the start, by hand) → stop `mac_asleep`, before the
+   keychain, again before the container, and in place of the one more try after an unreachable
+   home; an `unreachable` try it slept through so ends `mac_asleep` (FR-028).
 3. Inside Claude Code (`CLAUDECODE` set): stdin carries the account and `"signin": false`, never the
    password (FR-027). Else, the `wrong_password` mark → `"signin": false` as well, so a dead
    session stops with `wrong_password`; otherwise `"signin": true` with the keychain's password, or
