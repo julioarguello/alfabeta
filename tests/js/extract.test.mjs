@@ -767,3 +767,137 @@ test("the button is found by its name or by its label, and not when an ancestor 
   doc.querySelector(".Mvr5Ef").hidden = true;
   assert.equal(X.shownMore(doc), null);
 });
+
+// The stream past its first load (#293; spec 006 research S17): scrolled to its bottom, it loads
+// older posts; the loader scrolls until none come within streamWaitMs.
+const STREAM = "/u/5/c/synth-1";
+const STREAM_FAST = { ...FAST, streamWaitMs: 300 };
+const post = (n) => `<div data-stream-item-id="${8100 + n}"><h2>Autor inventado</h2><div class="pco8Kc">Anuncio ${n}</div>`
+  + `<div>Fecha de creación: ${1 + (n % 28)} sept</div></div>`;
+const posts = (from, to) => Array.from({ length: to - from }, (_, i) => post(from + i)).join("");
+const streamPage = (n) => `<html><body><h1>Tablón</h1><main id="feed">${posts(0, n)}</main></body></html>`;
+
+// The frame's stream once it has posts, its scrolls counted and answered by `onScroll`.
+async function streamReady(dom, onScroll) {
+  for (;;) {
+    const frame = dom.window.document.querySelector("iframe");
+    const doc = frame && frame.contentDocument;
+    if (doc && doc.location.href !== "about:blank" && doc.body && doc.querySelector("[data-stream-item-id]")) {
+      const seen = { scrolls: 0 };
+      frame.contentWindow.scrollTo = () => { seen.scrolls += 1; onScroll(doc, seen.scrolls); };
+      return seen;
+    }
+    await pause(2);
+  }
+}
+
+test("the stream is scrolled until no older post comes: every announcement is read", { timeout: 5000 }, async () => {
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const loading = X.iframeLoader(dom.window, STREAM_FAST)(STREAM);
+    const loads = [[5, 9], [9, 12]]; // two scrolls bring older posts, the next two none: its end
+    const seen = await streamReady(dom, (doc, n) => {
+      const next = loads[n - 1];
+      if (next) setTimeout(() => doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(...next)), 60);
+    });
+    const { doc } = await loading;
+    assert.equal(X.readStream(doc).length, 12);
+    assert.equal(seen.scrolls, 4);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("older posts that come late, within streamWaitMs, are still waited for", { timeout: 5000 }, async () => {
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const loading = X.iframeLoader(dom.window, { ...STREAM_FAST, streamWaitMs: 1200 })(STREAM);
+    await streamReady(dom, (doc, n) => {
+      if (n === 1) setTimeout(() => doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(5, 7)), FAST.settleMs * 4);
+    });
+    const { doc } = await loading;
+    assert.equal(X.readStream(doc).length, 7);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a scroll that brings nothing is not the stream's end: the next one may", { timeout: 5000 }, async () => {
+  // Classroom's handler not attached yet, or its answer later than streamWaitMs: one load lost.
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const loading = X.iframeLoader(dom.window, STREAM_FAST)(STREAM);
+    const seen = await streamReady(dom, (doc, n) => {
+      if (n === 2) setTimeout(() => doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(5, 8)), 60);
+    });
+    const { doc } = await loading;
+    assert.equal(X.readStream(doc).length, 8);
+    assert.equal(seen.scrolls, 4);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a stream that never ends is not tried again", { timeout: 5000 }, async () => {
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    let frames = 0;
+    const seen = new Set();
+    const watch = dom.window.setInterval(() => {
+      const frame = dom.window.document.querySelector("iframe");
+      if (frame && !seen.has(frame)) { seen.add(frame); frames += 1; }
+    }, 5);
+    const outcome = X.iframeLoader(dom.window, { ...STREAM_FAST, attempts: 2, maxScrolls: 2 })(STREAM).then(() => "loaded", (err) => err.message);
+    let next = 5;
+    await streamReady(dom, (doc) => {
+      setTimeout(() => { doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(next, next + 1)); next += 1; }, 30);
+    });
+    assert.equal(await outcome, "stream_endless");
+    dom.window.clearInterval(watch);
+    assert.equal(frames, 1);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a stream that never ends is a failed load, never read as whole", { timeout: 5000 }, async () => {
+  const dom = framed(streamPage(5), STREAM);
+  try {
+    const X = dom.window.alfabetaExtract;
+    const outcome = X.iframeLoader(dom.window, { ...STREAM_FAST, maxScrolls: 3 })(STREAM).then(() => "loaded", (err) => err.message);
+    let next = 5;
+    await streamReady(dom, (doc) => {
+      setTimeout(() => { doc.getElementById("feed").insertAdjacentHTML("beforeend", posts(next, next + 1)); next += 1; }, 30);
+    });
+    assert.equal(await outcome, "stream_endless");
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("only the stream is scrolled: «Trabajo de clase» and an item page are not", { timeout: 5000 }, async () => {
+  for (const [html, path] of [[classworkPage().replace('<div style="">', '<div style="display: none;">'), CLASSWORK], [page("material-detail").serialize(), DETAIL]]) {
+    const dom = framed(html, path);
+    try {
+      const X = dom.window.alfabetaExtract;
+      const loading = X.iframeLoader(dom.window, STREAM_FAST)(path);
+      let scrolls = 0;
+      for (;;) {
+        const frame = dom.window.document.querySelector("iframe");
+        if (frame && frame.contentDocument && frame.contentDocument.body && frame.contentDocument.location.href !== "about:blank") {
+          frame.contentWindow.scrollTo = () => { scrolls += 1; };
+          break;
+        }
+        await pause(2);
+      }
+      await loading;
+      assert.equal(scrolls, 0, path);
+    } finally {
+      dom.window.close();
+    }
+  }
+});

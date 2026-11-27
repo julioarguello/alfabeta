@@ -5,7 +5,8 @@
 // materials and questions) in a hidden same-origin iframe, never navigates the tab, never submits,
 // never opens a form or a quiz, and waits at least 2 s with jitter between pages. It presses one
 // button only: a topic's «Ver más publicaciones» on «Trabajo de clase», which shows the items past
-// the topic's first 10 and changes nothing (#288).
+// the topic's first 10 and changes nothing (#288). It scrolls one page only: the stream, to its
+// bottom, until two scrolls in a row bring no older post (#293).
 // It returns the texts exactly as shown; Python interprets them (dates, statuses, categories).
 //
 // Two layers: pure readers (a document in, contract-shaped data out) and a driver whose page
@@ -447,6 +448,17 @@
     return true;
   }
 
+  // The stream shows its latest posts and loads older ones as its document is scrolled to the bottom
+  // (spec 006 research S17: 61 → 92 → 105 posts on one class, 2026-11-24; #293).
+  const postCount = (doc) => doc.querySelectorAll("[data-stream-item-id]").length;
+  function scrollToEnd(doc) {
+    const win = doc.defaultView;
+    try { win.scrollTo(0, doc.documentElement.scrollHeight); } catch (_) { /* a frame with no layout */ }
+    for (const el of doc.querySelectorAll("*")) {
+      if (el.scrollHeight > el.clientHeight + 20 && /(auto|scroll)/.test(win.getComputedStyle(el).overflowY)) el.scrollTop = el.scrollHeight;
+    }
+  }
+
   // The first «Ver más publicaciones» button a page shows, if any.
   function shownMore(doc) {
     return [...doc.querySelectorAll(MORE_BUTTON)].find(isShown) || null;
@@ -464,8 +476,13 @@
   // no topic shows the button (#288). A press the page does not answer within `moreTimeoutMs`
   // (`more_unanswered`), or a button still shown after
   // `maxPresses` of them (`more_endless`), is a failed load: a list still cut is never read whole.
-  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300, moreTimeoutMs = 20000, maxPresses = 30 } = {}) {
+  // The stream, once it holds still, is scrolled to its bottom and waited for: older posts that come
+  // within `streamWaitMs` settle and it is scrolled again; `streamQuiet` scrolls in a row that bring
+  // nothing are its end, so one slow or lost load is not taken for it (#293). More than `maxScrolls`
+  // is a failed load (`stream_endless`), never tried again: the stream left out, the capture incomplete.
+  function iframeLoader(win, { timeoutMs = 40000, attempts = 2, settleMs = 1500, settleCapMs = 10000, pollMs = 300, moreTimeoutMs = 20000, maxPresses = 30, streamWaitMs = 6000, streamQuiet = 2, maxScrolls = 100 } = {}) {
     const classwork = (path) => /\/w\/[^/]+\/t\/all$/.test(path);
+    const stream = (path) => /^\/u\/\d+\/c\/[^/]+$/.test(path);
     const once = (path) => new Promise((resolve, reject) => {
       const frame = win.document.createElement("iframe");
       frame.style.cssText = "position:absolute;left:-10000px;width:1200px;height:800px;visibility:hidden";
@@ -482,12 +499,17 @@
       let waiting = false; // a button was pressed and its rows have not come yet
       let pressed = null; // the reading when it was pressed
       let answering = 0; // time on screen since that press
+      let scrolls = 0; // the stream scrolled to its bottom on this page
+      let scrolledFrom = null; // the posts it had then, until more come or none do within streamWaitMs
+      let scrollWait = 0; // time on screen since that scroll
+      let quiet = 0; // scrolls in a row that brought nothing
+      let streamEnded = false; // `streamQuiet` scrolls brought nothing: the stream is read whole
       const stop = (err) => { win.clearInterval(poll); frame.remove(); reject(err); };
       const poll = win.setInterval(() => {
         const now = Date.now();
         if (win.document.visibilityState === "hidden") { started = now; tick = now; wasHidden = true; return; }
         const step = wasHidden ? 0 : now - tick;
-        if (wasHidden) { started = now; still = 0; } // back on screen: a held-back paint may come now
+        if (wasHidden) { started = now; still = 0; scrollWait = 0; } // back on screen: a held-back paint may come now
         tick = now;
         wasHidden = false;
         let doc = null;
@@ -508,6 +530,16 @@
             waiting = false; reading = current; still = 0; settling = 0; started = now; // answered: settle again
             return;
           }
+          if (scrolledFrom !== null) {
+            if (postCount(doc) > scrolledFrom) {
+              scrolledFrom = null; quiet = 0; reading = current; still = 0; settling = 0; started = now; // older posts came
+              return;
+            }
+            scrollWait += step;
+            if (scrollWait < streamWaitMs) return;
+            scrolledFrom = null; quiet += 1; // nothing came: scrolled again, or the stream's end
+            streamEnded = quiet >= streamQuiet;
+          }
           if (!ready) {
             ready = true; reading = current; still = 0;
           } else {
@@ -515,7 +547,11 @@
             if (current === reading) { still += step; } else { reading = current; still = 0; }
           }
           const more = still >= settleMs && classwork(path) ? shownMore(doc) : null;
-          if (more) {
+          if (still >= settleMs && stream(path) && !streamEnded) {
+            if (scrolls >= maxScrolls) { stop(new Error("stream_endless")); return; }
+            scrolls += 1; scrolledFrom = postCount(doc); scrollWait = 0; started = now;
+            scrollToEnd(doc);
+          } else if (more) {
             if (presses >= maxPresses) { stop(new Error("more_endless")); return; }
             presses += 1; waiting = true; pressed = current; answering = 0; started = now;
             more.click();
@@ -536,7 +572,11 @@
       let last;
       for (let i = 0; i < attempts; i++) {
         await whileHidden(win);
-        try { return await once(path); } catch (err) { if (err && err.name === "SessionExpired") throw err; last = err; }
+        try { return await once(path); } catch (err) {
+          // An expired session, or a stream that keeps growing, would only fail again.
+          if (err && (err.name === "SessionExpired" || err.message === "stream_endless")) throw err;
+          last = err;
+        }
       }
       throw last;
     };
