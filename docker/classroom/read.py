@@ -89,6 +89,9 @@ FETCH_MAX_BYTES = 200 * 1024 * 1024
 FETCH_TIMEOUT_MS = 120_000
 # Drive's virus-scan warning is a small page (about 2.7 KB, S10h 2026-11-27): a bigger one is not read for its form.
 SCAN_WARNING_MAX_BYTES = 64 * 1024
+# The warning form's hidden inputs as measured (S10h), and Drive's `resourcekey` for a file shared by link:
+# a form with any other sends nothing.
+SCAN_FORM_FIELDS = frozenset({"id", "export", "authuser", "confirm", "uuid", "at", "resourcekey"})
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,200}$")
 # Spec 001 FR-007's pages: home, classwork, stream, item details.
 CLASSROOM_PAGES = re.compile(r"^/u/\d+/(h(/[^/]*)?|w/[^/]+/t/all|c/[^/]+(/(a|m|mc)/[^/]+/details)?)$")
@@ -676,15 +679,23 @@ class _ScanWarning(HTMLParser):
             self._inside = False
 
 
-def scan_confirmation(body: bytes, current: str, attachment: str) -> str | None:
+def scan_confirmation(response: Any, current: str, attachment: str) -> str | None:
     """The address that confirms a download Drive's virus-scan warning stopped, or None if it is not one (#298).
 
-    Only a page answered on Drive's download path, holding one `download-form` (GET, its action that
-    same path) whose hidden `id` is the listed attachment and `export` is `download`. The address is
-    built from those hidden inputs, never taken from the page as written.
+    Only a page answered on Drive's download path, small (declared and read), holding one
+    `download-form` (GET, its action that same path) whose hidden inputs are all of the measured ones
+    (`SCAN_FORM_FIELDS`), none twice, `id` the listed attachment and `export` `download`. The address
+    is built from those hidden inputs, never taken from the page as written. The body is read only
+    once the path and the declared length pass.
     """
     here = urlsplit(current)
-    if f"{here.scheme}://{here.netloc}{here.path}" != DRIVE_DOWNLOAD or len(body) > SCAN_WARNING_MAX_BYTES:
+    if f"{here.scheme}://{here.netloc}{here.path}" != DRIVE_DOWNLOAD:
+        return None
+    declared = response.headers.get("content-length")
+    if declared and (not declared.isdigit() or int(declared) > SCAN_WARNING_MAX_BYTES):
+        return None
+    body = response.body()
+    if len(body) > SCAN_WARNING_MAX_BYTES:
         return None
     form = _ScanWarning()
     form.feed(body.decode("utf-8", "replace"))
@@ -695,6 +706,7 @@ def scan_confirmation(body: bytes, current: str, attachment: str) -> str | None:
         or form.repeated
         or form.method != "get"
         or f"{target.scheme}://{target.netloc}{target.path}" != DRIVE_DOWNLOAD
+        or not set(form.values) <= SCAN_FORM_FIELDS
         or form.values.get("id") != attachment
         or form.values.get("export") != "download"
     ):
@@ -755,7 +767,7 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
         headers = response.headers
         html = headers.get("content-type", "").split(";")[0].strip().lower() == "text/html"
         if html and not str(name).lower().endswith((".html", ".htm")):
-            confirm = None if confirmed else scan_confirmation(response.body(), current, attachment)
+            confirm = None if confirmed else scan_confirmation(response, current, attachment)
             response.dispose()
             if confirm is None:
                 return "not_brought", "html", None

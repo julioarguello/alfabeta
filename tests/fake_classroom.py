@@ -24,7 +24,11 @@ user in the address, `f-gzip` the PDF compressed (its Content-Length the packed 
 the same host, `f-nolen` the PDF with no Content-Length. Drive's virus-scan warning (S10h, 2026-11-27, #298):
 `f-scan` answers it, and the PDF once its form is sent back with the page's `confirm`, `uuid` and `at`;
 `f-scan-loop` answers it again to its own confirmation; `f-scan-other`'s form names another file;
-`f-scan-away`'s form is sent to another host.
+`f-scan-away`'s form is sent to another host; `f-scan-two` holds two such forms, `f-scan-twice` one
+input twice, `f-scan-post` a POST form, `f-scan-view` `export=view`, `f-scan-extra` an input not
+measured, `f-scan-big` a page over the read's cap. Every one but `f-scan-loop` answers the PDF to a
+confirmation, so a guard missing is a file brought. On the Docs export route `f-scan` answers the warning
+too, which only Drive's download path may confirm.
 """
 
 from __future__ import annotations
@@ -178,11 +182,23 @@ class _Handler(http.server.BaseHTTPRequestHandler):
 
     def _scan_warning(self, file_id: str, query: dict[str, list[str]]) -> None:
         confirmed = {k: query.get(k, [""])[0] for k in ("confirm", "uuid", "at")}
-        if file_id == "f-scan" and confirmed == {"confirm": "t", "uuid": "uuid-synth-1", "at": SCAN_TOKEN}:
+        if file_id != "f-scan-loop" and confirmed == {"confirm": "t", "uuid": "uuid-synth-1", "at": SCAN_TOKEN}:
             return self._send(PDF, content_type="application/pdf")
         action = "http://third.invalid/download" if file_id == "f-scan-away" else f"{self.fake.other_origin}/download"
         named = "f-pdf" if file_id == "f-scan-other" else file_id
-        return self._send(SCAN_WARNING.format(action=action, file_id=named, token=SCAN_TOKEN))
+        page = SCAN_WARNING.format(action=action, file_id=named, token=SCAN_TOKEN)
+        form = page[page.index("<form") : page.index("</form>") + len("</form>")]
+        hidden = '<input type="hidden"'
+        page = {
+            # a second, empty form of the same id: its inputs do not repeat, only the count tells
+            "f-scan-two": page.replace("</body>", form[: form.index(">") + 1] + "</form></body>"),
+            "f-scan-twice": page.replace("</form>", f'{hidden} name="export" value="download"></form>'),
+            "f-scan-post": page.replace('method="get"', 'method="post"'),
+            "f-scan-view": page.replace('name="export" value="download"', 'name="export" value="view"'),
+            "f-scan-extra": page.replace("</form>", f'{hidden} name="continue" value="x"></form>'),
+            "f-scan-big": page.replace("</body>", "<!--" + "x" * 70_000 + "--></body>"),
+        }.get(file_id, page)
+        return self._send(page)
 
     def _attachment(self, file_id: str, query: dict[str, list[str]] | None = None) -> None:
         if not self._signed_in():
