@@ -21,7 +21,14 @@ sign-in page. `doc-1`'s export answers 307 to `/content/doc-1`, as Google's to i
 `f-pdf` on the same host, `f-away` a redirect to another host, `f-html` an HTML page, `f-gone` 404,
 `f-signin` a redirect straight to the sign-in's identifier page, `f-userinfo` one to `/ServiceLogin` with a
 user in the address, `f-gzip` the PDF compressed (its Content-Length the packed size), `f-scheme` a redirect to `https` on
-the same host, `f-nolen` the PDF with no Content-Length.
+the same host, `f-nolen` the PDF with no Content-Length. Drive's virus-scan warning (S10h, 2026-11-27, #298):
+`f-scan` answers it, and the PDF once its form is sent back with the page's `confirm`, `uuid` and `at`;
+`f-scan-loop` answers it again to its own confirmation; `f-scan-other`'s form names another file;
+`f-scan-away`'s form is sent to another host; `f-scan-two` holds two such forms, `f-scan-twice` one
+input twice, `f-scan-post` a POST form, `f-scan-view` `export=view`, `f-scan-extra` an input not
+measured, `f-scan-big` a page over the read's cap. Every one but `f-scan-loop` answers the PDF to a
+confirmation, so a guard missing is a file brought. On the Docs export route `f-scan` answers the warning
+too, which only Drive's download path may confirm.
 """
 
 from __future__ import annotations
@@ -52,6 +59,15 @@ PASSWORD_PAGE = """<html><body><h1>Te damos la bienvenida</h1>{error}
 CAPTCHA = """<html><body><h1>Inicia sesión</h1><input type=email id=identifierId>
 <img id=captchaimg src="/captcha.png"><p>Escribe el texto que escuches o veas</p></body></html>"""
 GENERIC = "<html><body><h1>{title}</h1></body></html>"
+SCAN_WARNING = """<html><head><title>Google Drive - Advertencia de análisis de virus</title></head><body>
+<p>Google Drive no puede analizar este archivo en busca de virus.</p>
+<form id="download-form" action="{action}" method="get">
+<input type="submit" value="Descargar de todos modos">
+<input type="hidden" name="id" value="{file_id}"><input type="hidden" name="export" value="download">
+<input type="hidden" name="authuser" value="5"><input type="hidden" name="confirm" value="t">
+<input type="hidden" name="uuid" value="uuid-synth-1"><input type="hidden" name="at" value="{token}">
+</form></body></html>"""
+SCAN_TOKEN = "tok-synth-scan-1"
 # Planted on the home page: a press, a form submit, a form host and a page outside FR-007's pages.
 PLANTED = """<button id=planted>x</button><form id=plantedform></form>
 <img src="http://forms.invalid/planted"><iframe src="/u/5/outside"></iframe><iframe src="http://third.invalid/frame"></iframe>
@@ -164,7 +180,27 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def _signed_in(self) -> bool:
         return "fakesid=ok" in (self.headers.get("Cookie") or "")
 
-    def _attachment(self, file_id: str) -> None:
+    def _scan_warning(self, file_id: str, query: dict[str, list[str]]) -> None:
+        confirmed = {k: query.get(k, [""])[0] for k in ("confirm", "uuid", "at")}
+        if file_id != "f-scan-loop" and confirmed == {"confirm": "t", "uuid": "uuid-synth-1", "at": SCAN_TOKEN}:
+            return self._send(PDF, content_type="application/pdf")
+        action = "http://third.invalid/download" if file_id == "f-scan-away" else f"{self.fake.other_origin}/download"
+        named = "f-pdf" if file_id == "f-scan-other" else file_id
+        page = SCAN_WARNING.format(action=action, file_id=named, token=SCAN_TOKEN)
+        form = page[page.index("<form") : page.index("</form>") + len("</form>")]
+        hidden = '<input type="hidden"'
+        page = {
+            # a second, empty form of the same id: its inputs do not repeat, only the count tells
+            "f-scan-two": page.replace("</body>", form[: form.index(">") + 1] + "</form></body>"),
+            "f-scan-twice": page.replace("</form>", f'{hidden} name="export" value="download"></form>'),
+            "f-scan-post": page.replace('method="get"', 'method="post"'),
+            "f-scan-view": page.replace('name="export" value="download"', 'name="export" value="view"'),
+            "f-scan-extra": page.replace("</form>", f'{hidden} name="continue" value="x"></form>'),
+            "f-scan-big": page.replace("</body>", "<!--" + "x" * 70_000 + "--></body>"),
+        }.get(file_id, page)
+        return self._send(page)
+
+    def _attachment(self, file_id: str, query: dict[str, list[str]] | None = None) -> None:
         if not self._signed_in():
             back = quote(f"{self.fake.other_origin}{self.path}", safe="")
             return self._send("", 302, f"{self.fake.origin}/ServiceLogin?continue={back}")
@@ -188,6 +224,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._send("", 302, "http://third.invalid/file")
         if file_id == "f-html":
             return self._send(GENERIC.format(title="No se ha podido analizar el archivo"))
+        if file_id.startswith("f-scan"):
+            return self._scan_warning(file_id, query or {})
         return self._send("no", 404)
 
     def do_GET(self) -> None:
@@ -195,7 +233,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         mode = self.fake.mode
         self.fake.served.append(url.path)
         if url.path == "/download":
-            return self._attachment(parse_qs(url.query).get("id", [""])[0])
+            query = parse_qs(url.query)
+            return self._attachment(query.get("id", [""])[0], query)
         exported = re.match(r"^/document/d/([\w-]+)/export$", url.path) or re.match(r"^/content/([\w-]+)$", url.path)
         if exported:
             return self._attachment(exported.group(1))

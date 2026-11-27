@@ -716,7 +716,10 @@ arrives.
   chain, so a document redirected outside what the guard allows is fetched before it is seen. It
   MUST then be counted and MUST stop the read before its next step (`unexpected_ui`) — part of R18's
   weaker guarantee, never silent; a redirect to Google's sign-in is the expired session's signal, except an attachment's one hop
-  through the sign-in's `/ServiceLogin` that the live session answers with a redirect back (#290). Measured (research S14): 12 of 12
+  through the sign-in's `/ServiceLogin` that the live session answers with a redirect back (#290). Drive's warning for a file
+  too large to scan for viruses (a `200 text/html` page whose one `download-form` confirms the download, S10h 2026-11-27) is
+  followed once per file, only on Drive's download path and only for the listed attachment id, at an address built from
+  the form's hidden inputs; any other HTML page is not a file (#298). Measured (research S14): 12 of 12
   classes complete in 14 min 20 s, in UTC, with the items, posts and attachment counts of the
   previous day's Chrome read; two classes re-read in `Europe/Madrid` identical, times included.
   The read by Classroom's own calls (FR-003, FR-004, R1) stays planned, as a faster read of the
