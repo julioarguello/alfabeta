@@ -269,6 +269,78 @@ def test_an_item_the_capture_cannot_read_is_not_withdrawn(box: Box):
     assert not [k for k, r in state(box)["replicas"].items() if r.get("withdrawn_at")]
 
 
+GENERIC = "Archivo de Drive"  # how Classroom shows a file the student can no longer reach (S10h, #299)
+
+
+def renamed_never_brought(box: Box) -> dict[str, Any]:
+    """A later run in which Classroom shows synth-45 under the generic title and its bytes never come."""
+    (box.home / "sandbox-attachments" / GENERIC).write_bytes(b"never served")
+
+    def rename(capture: dict[str, Any]) -> None:
+        item(capture, "synth-23")["detail"]["attachments"][0]["name"] = GENERIC
+
+    later_capture(box, rename)
+    box.release()
+    box.take()
+    return box.collect_and_plan(drop_stop=True, skip=GENERIC)
+
+
+def test_a_new_name_whose_bytes_never_come_leaves_the_copy_its_own_name(box: Box):
+    first_run(box)
+    old = (box.base / NOTES / "apuntes-inventados.pdf").read_bytes()
+    assert why(renamed_never_brought(box)) == [("synth-45", "renamed")]
+    box.apply()
+    names = sorted(p.name for p in (box.base / NOTES).iterdir())
+    assert GENERIC not in names and (box.base / NOTES / "apuntes-inventados.pdf").read_bytes() == old
+    record = state(box)["replicas"]["classroom|synth-23|synth-45"]
+    assert record["name"] == "apuntes-inventados.pdf" and record["path"].endswith("/apuntes-inventados.pdf")
+    # The source may be shared again: it is asked for on the next read, the copy untouched meanwhile.
+    assert why(next_run(box)) == [("synth-45", "renamed")]
+
+
+def test_a_copy_renamed_to_the_generic_title_gets_its_name_back(box: Box):
+    # What apply did before #299: the copy moved to the generic title, its extension lost.
+    first_run(box)
+    renamed_never_brought(box)
+    data = state(box)
+    record = data["replicas"]["classroom|synth-23|synth-45"]
+    held = box.base / record["path"]
+    lost = held.with_name(GENERIC)
+    held.rename(lost)
+    record["path"] = str(lost.relative_to(box.base))
+    (box.data / "state.json").write_text(json.dumps(data, ensure_ascii=False))
+    box.apply()
+    names = sorted(p.name for p in (box.base / NOTES).iterdir())
+    assert "apuntes-inventados.pdf" in names and GENERIC not in names
+
+
+def test_a_new_folder_moves_a_copy_whose_new_name_never_came_under_its_own_name(box: Box):
+    first_run(box)
+    renamed_never_brought(box)
+    box.apply()
+    box.release()
+    box.take()  # a new run with no new capture: the move comes from the state, not from a capture
+    proposal = box.home / "p.json"
+    proposal.write_text(
+        json.dumps(
+            {
+                "type": "topic_match",
+                "origin": "synth-10",
+                "target": {"topic": "Tema 01 - Materia inventada"},
+                "reason": "same number and title",
+                "confidence": "high",
+            }
+        )
+    )
+    assert box("decision", "propose", "--student", "sample", "--file", str(proposal)).returncode == 0
+    confirm = ("decision", "confirm", "--student", "sample", "--type", "topic_match", "--origin", "synth-10")
+    assert box(*confirm).returncode == 0
+    box.apply()
+    moved = [f for f in box.files() if f.endswith("apuntes-inventados.pdf")]
+    assert moved and all(f.startswith(BOOK.rsplit("/", 1)[0]) for f in moved), moved
+    assert not [f for f in box.files() if f.endswith(GENERIC)]
+
+
 def test_a_run_cut_before_apply_is_finished_without_downloading_twice(box: Box, tmp_path: Path):
     box.collect_and_plan(drop_stop=True)  # the attachments reach data/, then the run dies before apply
     collected = {p.name for p in (box.data / "inbox").iterdir()}

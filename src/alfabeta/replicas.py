@@ -4,7 +4,8 @@
 the run collected, writes the notes (descriptions, statements, links, announcements, gradings), and records
 every replica in the state. A file identical to its replica is only deleted from `data/`; a file
 that changed keeps the previous one beside it as «<name> (anterior YYYY-MM-DD)» (FR-015b). An
-attachment that never arrived is noted in its item's `enlaces.md` as «no traído». Whatever the
+attachment that never arrived is noted in its item's `enlaces.md` as «no traído»; a replica Classroom
+shows under a new name keeps its own until the bytes under that name arrive (FR-026, #299). Whatever the
 scope, every replica is placed again with the decisions in force, from the last version of its
 item kept in the state, so a match confirmed after a first run moves files instead of copying them.
 An item a complete capture of its class no longer shows is marked withdrawn in the state, never
@@ -18,7 +19,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, cast
 
@@ -220,6 +221,30 @@ class Applier:
         path.parent.mkdir(parents=True, exist_ok=True)
         return write_atomic(path, text)
 
+    def _as_held(self, item: Item) -> Item:
+        """`item` with each copied file under the name of the copy the student holds (#299).
+
+        Classroom may show a file under another name whose bytes never come: one no longer shared with
+        the student keeps the attachment under a generic title, its download answering 404. The copy
+        takes a new name only when the bytes under that name arrive; until then it keeps its own name
+        and extension, and only a new folder moves it.
+        """
+
+        def held(attachment: Attachment) -> Attachment:
+            record = cast("dict[str, Any] | None", self.replicas.get(f"{CLASSROOM}|{item.id}|{attachment.id}"))
+            name = record.get("name") if record is not None else None
+            if not isinstance(name, str) or not name or name == attachment.name:
+                return attachment
+            if self._inbox(item.id, attachment.id) is not None:
+                return attachment
+            return replace(attachment, name=name)
+
+        return replace(
+            item,
+            attachments=tuple(held(a) for a in item.attachments),
+            submission=tuple(held(a) for a in item.submission),
+        )
+
     def _move(self, record: dict[str, Any], relative: str) -> None:
         """Move a replica whose target changed; never a second copy."""
         old = self.base / str(record["path"])
@@ -326,7 +351,7 @@ class Applier:
         """Every file a run places for one item."""
         for record in self._replicas_of(item.id):  # shown again: no longer withdrawn
             record.pop("withdrawn_at", None)
-        targets = [t for t in placer.place(item, topic_title) if t.role in PLACED_ROLES]
+        targets = [t for t in placer.place(self._as_held(item), topic_title) if t.role in PLACED_ROLES]
         by_id = {a.id: a for a in (*item.attachments, *item.submission)}
         missing: list[Attachment] = []
         for target in targets:
@@ -388,7 +413,7 @@ class Applier:
 
     def _replace(self, placer: Placer, item: Item, topic_title: str | None) -> None:
         """Move the replicas of an item outside the scope to where the decisions in force put them."""
-        for target in placer.place(item, topic_title):
+        for target in placer.place(self._as_held(item), topic_title):
             if target.role not in PLACED_ROLES:
                 continue
             suffix = target.attachment or f"#{target.role}"

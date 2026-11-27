@@ -1017,7 +1017,12 @@ Example of the resulting structure (invented names):
   ran, while the plan asked for review downloads has not performed one, #290); in the plan's list
   the review's downloads come after every other download; if it finds the
   same bytes it writes nothing outside its own records (FR-025). The superseded version is kept
-  according to FR-015b.
+  according to FR-015b. A replica takes a new name only when the bytes asked for under that name
+  arrive; until then it keeps its own name and extension, and only a new folder moves it. Classroom
+  shows a file the student can no longer reach under a generic title («Archivo de Drive»), its
+  download answering 404 (spike S10h, 2026-11-27): it is asked for again on every read, in case it
+  is shared again, and the copy is never renamed to that title; a copy renamed so before (#299) gets
+  its own name back on the next apply.
 - **FR-027**: An item withdrawn from Classroom MUST be kept, marked as withdrawn in the log
   and mentioned in the summary. It is marked as withdrawn only if its class's capture is complete:
   a cut-short capture (expired session, error) withdraws nothing. alfabeta MUST NOT delete anything
