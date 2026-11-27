@@ -86,7 +86,11 @@ class FakeContainer:
         fetch_reason: str | None = None,
         first_ends: list[dict[str, Any]] | None = None,
         first_events: list[dict[str, Any]] | None = None,
+        on_memory: Callable[[], None] | None = None,
+        on_run: list[Callable[[], None]] | None = None,
     ) -> None:
+        self.on_memory = on_memory  # called when Docker's memory is read (a Mac that sleeps then)
+        self.on_run = list(on_run or [])  # one per read's try, in order (a Mac that sleeps through it)
         self.first_ends = list(first_ends or [])  # ends the first read gives before `end`, in order
         self.first_events = list(first_events or [])  # the events each of those gives first
         self.memory_read = memory
@@ -115,6 +119,8 @@ class FakeContainer:
 
     def memory(self, image: str) -> Memory | None:
         self.probed.append(image)
+        if self.on_memory:
+            self.on_memory()
         return self.memory_read
 
     def run(
@@ -141,6 +147,8 @@ class FakeContainer:
             outcome = "stopped" if self.fetch_reason else "ok"
             return {"event": "end", "outcome": outcome, "reason": self.fetch_reason, "attachments": counts}
         self.out = out
+        if self.on_run:
+            self.on_run.pop(0)()
         if self.dies:
             raise ContainerError("died")
         if self.first_ends:
@@ -153,6 +161,51 @@ class FakeContainer:
         for i in range(self.end.get("classes", {}).get("read", 0)):
             (out / f"alfabeta-capture-{request['run']}-c{i}-20261118-080000.json").write_text("{}")
         return self.end
+
+
+class FakeClock:
+    """The wall and awake clocks of a Mac: a pause runs both; a sleep runs the wall clock only."""
+
+    def __init__(self, asleep_probes: int = 0, lid_closed: bool = False) -> None:
+        self.wall, self.awake = 1_000_000.0, 5_000.0
+        self.asleep_probes = asleep_probes  # how many awake probes in a row the Mac sleeps through
+        self.lid_closed = lid_closed  # every probe slept through, whatever the window
+        self.pauses: list[float] = []
+        self.on_pause: Callable[[float], None] | None = None
+
+    def read(self) -> tuple[float, float]:
+        return self.wall, self.awake
+
+    def sleep(self, seconds: float) -> None:
+        self.wall += seconds
+
+    def pause(self, seconds: float) -> None:
+        self.pauses.append(seconds)
+        if self.on_pause:
+            self.on_pause(seconds)
+        self.wall += seconds
+        self.awake += seconds
+        if seconds == refresh.AWAKE_PROBE_SECONDS and (self.lid_closed or self.asleep_probes > 0):
+            # Maintenance wakes of 5 s, the rest asleep (2026-11-26 15:19-15:32).
+            self.asleep_probes -= 1
+            self.awake -= seconds - 5
+            self.sleep(600)
+
+
+class Held:
+    """A keep-awake assertion that records when it is held."""
+
+    def __init__(self) -> None:
+        self.entered = self.exited = 0
+
+    def __call__(self) -> Held:
+        return self
+
+    def __enter__(self) -> None:
+        self.entered += 1
+
+    def __exit__(self, *exc: object) -> None:
+        self.exited += 1
 
 
 class FakeSteps:
@@ -206,9 +259,17 @@ def _deps(
     steps: FakeSteps | None = None,
     now: dt.datetime = NOW,
     pauses: list[float] | None = None,
+    clock: FakeClock | None = None,
+    held: Held | None = None,
 ) -> tuple[refresh.Deps, FakeNotifier, FakeSteps]:
     notifier, steps = FakeNotifier(), steps or FakeSteps()
     waited = pauses if pauses is not None else []
+    mac = clock or FakeClock()
+
+    def pause(seconds: float) -> None:
+        waited.append(seconds)
+        mac.pause(seconds)
+
     deps = refresh.Deps(
         container=container,
         store=store or FakeStore(),
@@ -218,7 +279,9 @@ def _deps(
         inside_claude=inside,
         started_by=started_by,
         now=now,
-        pause=waited.append,
+        pause=pause,
+        clocks=mac.read,
+        keep_awake=held,
     )
     return deps, notifier, steps
 
@@ -912,7 +975,7 @@ def test_a_home_that_did_not_load_is_tried_once_more_after_a_pause(tmp_path: Pat
     container = FakeContainer(OK, first_ends=[UNREACHABLE_HOME])
     result, notifier, _, data = _go(tmp_path, container, started_by="schedule", pauses=pauses)
     assert result["ok"] and result["outcome"] == "ok", result
-    assert pauses == [refresh.RETRY_PAUSE_SECONDS]
+    assert pauses == [refresh.AWAKE_PROBE_SECONDS, refresh.RETRY_PAUSE_SECONDS]
     first, second = [r for r in container.requests if "fetch" not in r]
     assert first == second and second["password"] and second["signin"] is True  # the same request again
     assert notifier.texts == []
@@ -925,7 +988,7 @@ def test_a_home_that_does_not_load_twice_stops_unreachable_once(tmp_path: Path) 
     container = FakeContainer(UNREACHABLE_HOME, first_ends=[UNREACHABLE_HOME])
     result, notifier, _, _ = _go(tmp_path, container, started_by="schedule", pauses=pauses)
     assert result["outcome"] == "stopped" and result["reason"] == "unreachable"
-    assert pauses == [refresh.RETRY_PAUSE_SECONDS] and len(container.requests) == 2
+    assert pauses == [refresh.AWAKE_PROBE_SECONDS, refresh.RETRY_PAUSE_SECONDS] and len(container.requests) == 2
     assert len(notifier.texts) == 1
 
 
@@ -951,3 +1014,108 @@ def test_no_second_try_once_a_sign_in_began_whatever_the_step_says(tmp_path: Pat
     container = FakeContainer(OK, first_ends=[UNREACHABLE_HOME], first_events=[{"event": event}])
     result, _, _, _ = _go(tmp_path, container, pauses=pauses)
     assert pauses == [] and len(container.requests) == 1 and result["reason"] == "unreachable"
+
+
+# A Mac asleep (spec 006 FR-015, FR-028): 2026-11-26 15:19, the lid closed on battery, the scheduled
+# read ran in 5-s maintenance wakes and ended `unreachable`, twice.
+
+
+def _read_line(data: Path) -> dict[str, Any]:
+    (line,) = [entry for entry in _log(data) if entry.get("type") == "classroom_refresh"]
+    return line
+
+
+def test_a_scheduled_read_finds_the_mac_awake_and_holds_it_so(tmp_path: Path) -> None:
+    clock, held = FakeClock(), Held()
+    result, notifier, _, data = _go(tmp_path, FakeContainer(OK), started_by="schedule", clock=clock, held=held)
+    assert result["ok"] and result["outcome"] == "ok"
+    assert clock.pauses == [refresh.AWAKE_PROBE_SECONDS] and (held.entered, held.exited) == (1, 1)
+    assert _read_line(data)["mac"] == {"waited_s": refresh.AWAKE_PROBE_SECONDS, "slept_s": 0}
+    assert notifier.texts == []
+
+
+def test_by_hand_there_is_no_probe_and_the_log_keeps_the_sleep(tmp_path: Path) -> None:
+    clock, held = FakeClock(), Held()
+    result, _, _, data = _go(tmp_path, FakeContainer(OK), clock=clock, held=held)
+    assert result["outcome"] == "ok" and clock.pauses == [] and held.entered == 1
+    assert _read_line(data)["mac"] == {"slept_s": 0}
+
+
+def test_a_scheduled_read_waits_for_the_mac_to_wake_without_the_lock(tmp_path: Path) -> None:
+    clock = FakeClock(asleep_probes=2)
+    cfg = _cfg(tmp_path)
+    lock = state.Lock(tmp_path / "home", cfg.data_dir)
+    held_in_waits: list[bool] = []
+    clock.on_pause = lambda seconds: (
+        held_in_waits.append(lock.held()) if seconds == refresh.AWAKE_PROBE_SECONDS else None
+    )
+    container = FakeContainer(OK)
+    deps, notifier, _ = _deps(container, started_by="schedule", clock=clock)
+    result = refresh.refresh(cfg, lock, deps, None)
+    assert result["ok"] and result["outcome"] == "ok"
+    assert clock.pauses == [refresh.AWAKE_PROBE_SECONDS] * 3 and held_in_waits == [False, False, False]
+    assert _read_line(cfg.data_dir)["mac"] == {"waited_s": 3 * 15 + 2 * 600, "slept_s": 2 * 610}
+    assert notifier.texts == []
+
+
+def test_a_mac_asleep_through_the_window_stops_before_anything(tmp_path: Path) -> None:
+    clock = FakeClock(lid_closed=True)
+    container, store = FakeContainer(OK), FakeStore()
+    result, notifier, steps, data = _go(tmp_path, container, started_by="schedule", clock=clock, store=store)
+    assert result == {"ok": False, "started_by": "schedule", "outcome": "stopped", "reason": "mac_asleep"}
+    assert container.requests == [] and container.probed == [] and steps.calls == []
+    # 08:10 + 615 s a probe: the fifth ends past 09:00, the window's end (wait_minutes = 60).
+    assert len(clock.pauses) == 5
+    (line,) = _log(data)
+    assert line["run"] is None and line["reason"] == "mac_asleep"
+    assert line["mac"] == {"waited_s": 5 * 615, "slept_s": 5 * 610}
+    assert notifier.texts == [
+        "alfabeta (s9): la lectura de Classroom se ha parado (mac_asleep). Para seguir, "
+        "deja el Mac abierto y encendido a la hora de la lectura."
+    ]
+
+
+def test_a_mac_that_sleeps_before_the_sign_in_stops_before_the_keychain(tmp_path: Path) -> None:
+    clock = FakeClock()
+    container = FakeContainer(OK, on_memory=lambda: clock.sleep(300))
+    store = FakeStore()
+    result, notifier, _, data = _go(tmp_path, container, clock=clock, store=store)
+    assert result["outcome"] == "stopped" and result["reason"] == "mac_asleep"
+    assert container.requests == [] and len(notifier.texts) == 1
+    assert _read_line(data)["mac"] == {"slept_s": 300}
+
+
+def test_unreachable_while_the_mac_slept_is_mac_asleep(tmp_path: Path) -> None:
+    clock = FakeClock()
+    asleep: Callable[[], None] = lambda: clock.sleep(150)  # noqa: E731
+    container = FakeContainer(UNREACHABLE_HOME, first_ends=[UNREACHABLE_HOME], on_run=[asleep, asleep])
+    result, _, _, data = _go(tmp_path, container, clock=clock)
+    assert result["outcome"] == "stopped" and result["reason"] == "mac_asleep"
+    assert _read_line(data)["reason"] == "mac_asleep"
+
+
+def test_only_the_last_try_says_whether_the_mac_slept(tmp_path: Path) -> None:
+    # Asleep through the first try, then a home that does not load on an awake Mac: a network away.
+    clock = FakeClock()
+    container = FakeContainer(UNREACHABLE_HOME, first_ends=[UNREACHABLE_HOME], on_run=[lambda: clock.sleep(150)])
+    result, _, _, _ = _go(tmp_path, container, clock=clock)
+    assert result["reason"] == "unreachable" and len(container.requests) == 2
+    clock = FakeClock()
+    noop: Callable[[], None] = lambda: None  # noqa: E731
+    container = FakeContainer(UNREACHABLE_HOME, first_ends=[UNREACHABLE_HOME], on_run=[noop, lambda: clock.sleep(150)])
+    result, _, _, _ = _go(tmp_path / "second", container, clock=clock)
+    assert result["reason"] == "mac_asleep"
+
+
+def test_a_short_step_of_the_clock_is_no_sleep(tmp_path: Path) -> None:
+    clock = FakeClock()
+    container = FakeContainer(UNREACHABLE_HOME, on_run=[lambda: clock.sleep(refresh.SLEPT_SECONDS - 1)])
+    result, _, _, _ = _go(tmp_path, container, clock=clock)
+    assert result["reason"] == "unreachable"
+
+
+def test_a_read_that_slept_but_read_its_classes_keeps_its_outcome(tmp_path: Path) -> None:
+    clock = FakeClock()
+    result, _, _, data = _go(tmp_path, FakeContainer(OK, on_run=[lambda: clock.sleep(400)]), clock=clock)
+    assert result["outcome"] == "ok" and result["reason"] is None
+    assert _read_line(data)["mac"] == {"slept_s": 400}

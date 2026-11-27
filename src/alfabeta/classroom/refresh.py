@@ -19,6 +19,10 @@ when the plan asks for nothing, the first pass found the session gone, or its pa
   sets the mark (FR-027, FR-031).
 - With the mark, a read that finds the session gone stops with `wrong_password`, not
   `session_expired`: the notice must keep asking for `classroom password set` (FR-027).
+- Started by the launchd agent, the read first finds the Mac staying awake (`_await_awake`, FR-015),
+  without the lock, or stops `mac_asleep` when the window closes first; from then on it holds
+  `caffeinate` (`Deps.keep_awake`). A Mac that slept before the password, or through the try that
+  ended `unreachable`, stops the read `mac_asleep` (`awake.SleepMeter`); the log keeps `mac`.
 - Started by the launchd agent (`started_by: schedule`) more than `[schedule] wait_minutes` (at
   least GRACE_MINUTES) after its day's time, or on a day with none (a Mac that slept through it,
   FR-015), the read is not made up: `outcome: skipped`, `reason: outside_hours`, one log line, no
@@ -44,6 +48,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from alfabeta import state
+from alfabeta.classroom import awake
 from alfabeta.classroom.container import ContainerError
 from alfabeta.classroom.password import PasswordStore
 from alfabeta.downloads import inbox_path
@@ -52,6 +57,7 @@ from alfabeta.model import RunMode, StopReason
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
+    from contextlib import AbstractContextManager
     from pathlib import Path
 
     from alfabeta.classroom.container import ReadContainer
@@ -73,6 +79,8 @@ ADVICE = {
     "docker_low_memory": "cierra otros contenedores o sube la memoria de Docker Desktop",
     # The code states what was seen (the page died); memory is where to look, not a proven cause.
     "browser_crashed": "mira la memoria de Docker: cierra otros contenedores o súbela en Docker Desktop",
+    # A closed lid sleeps the Mac with no external display, on power too; no assertion keeps it awake.
+    "mac_asleep": "deja el Mac abierto y encendido a la hora de la lectura",
 }
 # Below this much available memory in Docker the read is not started (FR-028). Measured 2026-11-19
 # (#268, research S16): with 1213 MB available — read as here, by a short container of the image
@@ -118,11 +126,19 @@ class Deps:
     now: dt.datetime | None = None  # the Mac's local time; None = now (the tests fix it)
     say: Callable[[str], None] | None = None  # one progress line for people (stderr); None = quiet
     pause: Callable[[float], None] | None = None  # waits that many seconds; None = time.sleep (the tests skip it)
+    clocks: Callable[[], tuple[float, float]] | None = None  # wall and awake seconds; None = awake.clocks
+    keep_awake: Callable[[], AbstractContextManager[None]] | None = None  # None = no assertion (the tests)
 
 
 # How long a read waits before its one more try when Classroom's home did not load (a network that
 # was not there yet); within FR-015's window and the lock's lease, which the renewer keeps.
 RETRY_PAUSE_SECONDS = 120
+# A scheduled read starts only on a Mac that stays awake (FR-015): a stretch of AWAKE_PROBE_SECONDS
+# in which it slept less than SLEPT_SECONDS. A maintenance wake lasts about 5 s (2026-11-26), so the
+# stretch outlasts it; the margin leaves room for a step of the wall clock. The same margin, slept
+# within a read, makes its `unreachable` a `mac_asleep`.
+AWAKE_PROBE_SECONDS = 15
+SLEPT_SECONDS = 10
 
 OK, FAIL, WARN = "✓", "✗", "⚠"  # python-cli-output §4: done, failed, a run that stays partial
 
@@ -263,6 +279,58 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
             | {"reason": "outside_hours"}
         )
         return result | {"ok": True, "outcome": "skipped", "reason": "outside_hours"}
+    clocks = deps.clocks or awake.clocks
+    run_meter = awake.SleepMeter(clocks)
+    with (deps.keep_awake or contextlib.nullcontext)():
+        mac: dict[str, int] = {}
+        if started_by == "schedule":
+            # Before the lock: a wait of up to the window must not hold the student's lock (FR-015).
+            stayed, waited = _await_awake(cfg, deps, clocks)
+            mac["waited_s"] = round(waited)
+            if not stayed:
+                mac["slept_s"] = round(run_meter.slept())
+                state.StateStore(cfg.data_dir).log(
+                    {"type": "classroom_refresh", "run": None, "started_by": started_by}
+                    | {"outcome": "stopped", "reason": str(StopReason.MAC_ASLEEP), "mac": mac}
+                )
+                return result | _stop(cfg, deps, str(StopReason.MAC_ASLEEP))
+        return _locked(cfg, lock, deps, run_env, result, awake.SleepMeter(clocks), run_meter, mac)
+
+
+def _await_awake(cfg: RefreshConfig, deps: Deps, clocks: Callable[[], tuple[float, float]]) -> tuple[bool, float]:
+    """Whether the Mac stays awake before the window closes, and the wall seconds it took (FR-015).
+
+    Probes of AWAKE_PROBE_SECONDS until one finds the Mac slept less than SLEPT_SECONDS in it; a
+    Mac in its maintenance wakes sleeps through each probe, until the family opens it or the window
+    closes.
+    """
+    waiting = awake.SleepMeter(clocks)
+    begun = deps.now or dt.datetime.now()
+    said = False
+    while True:
+        probe = awake.SleepMeter(clocks)
+        (deps.pause or time.sleep)(AWAKE_PROBE_SECONDS)
+        if probe.slept() < SLEPT_SECONDS:
+            return True, waiting.wall()
+        if not in_hours(cfg.times, cfg.wait_minutes, begun + dt.timedelta(seconds=waiting.wall())):
+            return False, waiting.wall()
+        if not said:
+            _say(deps, f"{WARN} the Mac is asleep; the read waits for it to wake while the window lasts")
+            said = True
+
+
+def _locked(
+    cfg: RefreshConfig,
+    lock: state.Lock,
+    deps: Deps,
+    run_env: str | None,
+    result: dict[str, Any],
+    since_gate: awake.SleepMeter,
+    run_meter: awake.SleepMeter,
+    mac: dict[str, int],
+) -> dict[str, Any]:
+    """The read under the student's lock, and its log line."""
+    started_by = result["started_by"]
     lease = lock.lease()
     own = bool(run_env and lease is not None and lease.get("run") == run_env and lock.held())
     if own:
@@ -275,13 +343,14 @@ def refresh(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run_env: str | Non
     store = state.StateStore(cfg.data_dir)
     logged: dict[str, Any] = {}  # what the passes add to the log line
     try:
-        result |= _read(cfg, lock, deps, run, logged)
+        result |= _read(cfg, lock, deps, run, logged, since_gate)
     finally:
         store.log(
             {"type": "classroom_refresh", "run": run, "started_by": started_by}
             | {k: result.get(k) for k in ("outcome", "reason", "capture", "blocked")}
             | {"seconds": logged.get("seconds")}
             | {k: logged[k] for k in ("refused_hosts", "attachments_pass", "step", "memory", "retried") if k in logged}
+            | {"mac": mac | {"slept_s": round(run_meter.slept())}}
             | _first_pass(logged.get("first_pass", []))
         )
         if not own:
@@ -333,7 +402,9 @@ def _home_unreachable(end: dict[str, Any], events: list[dict[str, Any]]) -> bool
     )
 
 
-def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: dict[str, Any]) -> dict[str, Any]:
+def _read(
+    cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: dict[str, Any], since_gate: awake.SleepMeter
+) -> dict[str, Any]:
     if not deps.container.available():
         return _stop(cfg, deps, str(StopReason.DOCKER_UNAVAILABLE))
     try:
@@ -352,6 +423,10 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
             f"{FAIL} Docker has {memory.available_mb} MB of memory available; the floor for a read is {READ_FLOOR_MB} MB",
         )
         return _stop(cfg, deps, str(StopReason.DOCKER_LOW_MEMORY))
+    # Nor on a Mac that slept since it was found awake: a sign-in cut by a sleep is worse than none.
+    if since_gate.slept() >= SLEPT_SECONDS:
+        _say(deps, f"{FAIL} the Mac slept before the sign-in")
+        return _stop(cfg, deps, str(StopReason.MAC_ASLEEP))
     passwords = PasswordStore(deps.store, cfg.data_dir, cfg.student)
     marked = passwords.marked()
     signin = not deps.inside_claude and not marked
@@ -366,6 +441,7 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     profile = cfg.data_dir / "classroom-profile"
     logged["first_pass"] = events  # the sign-in's result and any redirect, by host and path (no query)
     out = cfg.data_dir / f"classroom-out-{run}"
+    container_meter = awake.SleepMeter(deps.clocks or awake.clocks)
     try:
         with _Renewer(lock, run):
             _say(deps, "opening Classroom …")
@@ -378,6 +454,8 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
                 shutil.rmtree(out, ignore_errors=True)
                 events.clear()
                 logged["retried"] = True
+                # Only the try that stopped the read says whether the Mac slept through it.
+                container_meter = awake.SleepMeter(deps.clocks or awake.clocks)
                 _say(deps, "opening Classroom …")
                 end = deps.container.run(image, request, profile, out, _speaker(deps, events))
     except ContainerError:
@@ -390,6 +468,9 @@ def _read(cfg: RefreshConfig, lock: state.Lock, deps: Deps, run: str, logged: di
     capture = end.get("classes", {"read": 0, "failed": 0})
     blocked = end.get("blocked", {})
     reason = end.get("reason")
+    if reason == StopReason.UNREACHABLE and container_meter.slept() >= SLEPT_SECONDS:
+        # Classroom did not load because the Mac slept, not because the network was away (2026-11-26).
+        reason = str(StopReason.MAC_ASLEEP)
     if not capture.get("read") and end.get("outcome") != "ok":
         other_account = {"event": "account", "result": "other_account"} in events
         if marked and not deps.inside_claude and reason == StopReason.SESSION_EXPIRED and not other_account:

@@ -37,6 +37,6 @@ or absent = `command`; the launcher is not built with the container read).
 Stop reasons are spec 001's (`session_expired`, `challenge`, `unexpected_ui`, `timeout`,
 `lock_busy`), plus `disabled` and `outside_hours` here, and for the container read `rejected`,
 `second_factor`, `other_sign_in`, `wrong_password`, `no_password`, `unreachable`,
-`docker_unavailable`, `docker_low_memory` and `browser_crashed` (the table above); `log write-stop` keeps spec 001's list. Codes follow `.claude/rules/python-cli-output.md` §8: 0 success, 1 failure with its `reason`, 3 partial as in spec 005; 2 stays argparse's. `--started-by` is not an option: `classroom
+`docker_unavailable`, `docker_low_memory`, `browser_crashed` and `mac_asleep` (the table above; FR-015, FR-028); `log write-stop` keeps spec 001's list. Codes follow `.claude/rules/python-cli-output.md` §8: 0 success, 1 failure with its `reason`, 3 partial as in spec 005; 2 stays argparse's. `--started-by` is not an option: `classroom
 refresh` reads `ALFABETA_STARTED_BY` (`schedule` from the agent's plist, `launcher` from the
 launcher; absent = `command`), run plumbing as `ALFABETA_RUN` is.

@@ -189,6 +189,7 @@ class StopReason(StrEnum):
     DOCKER_LOW_MEMORY = "docker_low_memory"  # measured before the read starts (#268)
     BROWSER_CRASHED = "browser_crashed"  # the container's page died during the read (#268)
     UNREACHABLE = "unreachable"
+    MAC_ASLEEP = "mac_asleep"  # the Mac slept: before the read, or through an `unreachable` (FR-015)
     DISABLED = "disabled"
 
 

@@ -37,6 +37,7 @@ from alfabeta import (
     state,
 )
 from alfabeta.classification import CANDIDATE, Classifier
+from alfabeta.classroom import awake as classroom_awake
 from alfabeta.classroom import cli as classroom_cli
 from alfabeta.classroom import password as classroom_password
 from alfabeta.classroom import refresh as classroom_refresh
@@ -1102,6 +1103,7 @@ def main(argv: list[str] | None = None) -> int:
                     started_by=started_by,
                     now=dt.datetime.now(),
                     say=classroom_cli.say,
+                    keep_awake=classroom_awake.keep_awake,
                 ),
             )
         if args.group == "classroom" and args.verb == "password":
