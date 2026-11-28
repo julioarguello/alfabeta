@@ -690,7 +690,7 @@ def test_a_file_too_large_to_bring_is_counted_and_said(tmp_path: Path) -> None:
     deps, _, _ = _deps(container, steps=steps)
     deps = dataclasses.replace(deps, say=lines.append)
     refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps, None)
-    assert "⚠ attachments: 1 too large to bring (#300); each is noted «no traído»" in lines
+    assert "⚠ attachments: 1 too large to bring (#300); each is noted as not brought in its links file" in lines
     assert _log(cfg.data_dir)[-1]["attachments_pass"]["too_large"] == 1
 
 

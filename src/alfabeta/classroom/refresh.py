@@ -618,7 +618,10 @@ def _attachments(
     counts = {"brought": placed, "not_brought": len(wanted) - placed - refused, "refused": refused}
     _say(deps, f"{OK} attachments: {placed} brought, {counts['not_brought']} not brought, {refused} refused")
     if too_large:
-        _say(deps, f"{WARN} attachments: {too_large} too large to bring (#300); each is noted «no traído»")
+        _say(
+            deps,
+            f"{WARN} attachments: {too_large} too large to bring (#300); each is noted as not brought in its links file",
+        )
     return counts
 
 
