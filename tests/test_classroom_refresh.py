@@ -679,6 +679,32 @@ def test_the_refused_hosts_reach_the_log(tmp_path: Path) -> None:
     assert _log(data)[-1]["refused_hosts"] == ["doc-0s.googleusercontent.com"]
 
 
+def test_a_file_too_large_to_bring_is_counted_and_said(tmp_path: Path) -> None:
+    # #300: never silent until it can be streamed to disk.
+    big = {"event": "attachment", "result": "not_brought", "why": "too_large"}
+    other = {"event": "attachment", "result": "not_brought", "why": "html"}
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.mp4"), _download("i2", "f2", "b.pdf")])
+    container = FakeContainer(OK, fetch_events=[big, other])
+    cfg = _cfg(tmp_path)
+    lines: list[str] = []
+    deps, _, _ = _deps(container, steps=steps)
+    deps = dataclasses.replace(deps, say=lines.append)
+    refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps, None)
+    assert "⚠ attachments: 1 too large to bring (#300); each is noted «no traído»" in lines
+    assert _log(cfg.data_dir)[-1]["attachments_pass"]["too_large"] == 1
+
+
+def test_no_file_too_large_says_nothing_of_it(tmp_path: Path) -> None:
+    steps = FakeSteps(downloads=[_download("i1", "f1", "a.pdf")])
+    cfg = _cfg(tmp_path)
+    lines: list[str] = []
+    deps, _, _ = _deps(FakeContainer(OK), steps=steps)
+    deps = dataclasses.replace(deps, say=lines.append)
+    refresh.refresh(cfg, state.Lock(tmp_path / "home", cfg.data_dir), deps, None)
+    assert _log(cfg.data_dir)[-1]["attachments_pass"]["too_large"] == 0
+    assert not [line for line in lines if "too large" in line]
+
+
 def test_a_symlinked_folder_in_out_moves_nothing(tmp_path: Path) -> None:
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()

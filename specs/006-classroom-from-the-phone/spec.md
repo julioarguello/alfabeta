@@ -406,8 +406,9 @@ arrives.
   under the Mac's browser lock (FR-021a), and each notice names its student by id.
 - **The notice does not arrive.** The read waits its full time regardless; the log shows the wait and
   its outcome.
-- **An attachment Drive holds behind its virus-scan notice.** It is noted as not brought, with its
-  link, as today (spec 001 research R4).
+- **An attachment Drive holds behind its virus-scan notice.** Its form is confirmed once and the file
+  brought (FR-030, #298); over 64 MB it is noted as not brought, with its link, until it can be
+  streamed to disk (#300).
 
 ## Requirements *(mandatory)*
 
@@ -719,7 +720,11 @@ arrives.
   through the sign-in's `/ServiceLogin` that the live session answers with a redirect back (#290). Drive's warning for a file
   too large to scan for viruses (a `200 text/html` page whose one `download-form` confirms the download, S10h 2026-11-27) is
   followed once per file, only on Drive's download path and only for the listed attachment id, at an address built from
-  the form's hidden inputs; any other HTML page is not a file (#298). Measured (research S14): 12 of 12
+  the form's hidden inputs; any other HTML page is not a file (#298). The request context holds a whole answer in
+  memory before it can be checked, so a file over 64 MB is not brought (`too_large`, counted on the run's log line
+  and in its summary, noted «no traído»): on Drive's download path a HEAD learns its size and the GET is never sent
+  (#300; measured 2026-11-28 in the read's image under the 1536 MB floor: a 50 MB body peaked at 1045 MB, a
+  131 MB one killed the driver). Until such a file is streamed to disk it is not brought. Measured (research S14): 12 of 12
   classes complete in 14 min 20 s, in UTC, with the items, posts and attachment counts of the
   previous day's Chrome read; two classes re-read in `Europe/Madrid` identical, times included.
   The read by Classroom's own calls (FR-003, FR-004, R1) stays planned, as a faster read of the

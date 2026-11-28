@@ -20,7 +20,7 @@ import jsonschema
 import playwright.sync_api as playwright  # dev dependency; CI installs its Chromium (T007), never skipped
 import pytest
 
-from tests.fake_classroom import ACCOUNT, PASSWORD, PDF, SCAN_TOKEN, UNREADABLE, FakeGoogle
+from tests.fake_classroom import ACCOUNT, HUGE, PASSWORD, PDF, SCAN_TOKEN, UNREADABLE, FakeGoogle
 
 ROOT = Path(__file__).resolve().parents[1]
 READ = ROOT / "docker" / "classroom" / "read.py"
@@ -346,6 +346,7 @@ def test_listed_attachments_are_fetched_into_the_inbox(tmp_path: Path) -> None:
     assert _inbox(tmp_path, "i2", "f-hop", "Ejercicios.pdf").read_bytes() == PDF
     assert _inbox(tmp_path, "i3", "doc-1", "Apuntes.pdf").read_bytes() == PDF
     assert fake.password_attempts == 0 and not [e for e in events if e["event"] == "typed"]
+    assert fake.heads and set(fake.heads) == {"/download"}  # no HEAD on the export's hosts (#300)
     _no_secret(events, end, tmp_path)
 
 
@@ -548,12 +549,41 @@ def test_refresh_places_what_the_real_read_fetched(tmp_path: Path) -> None:
 
 
 def test_a_body_over_the_limit_is_not_brought(tmp_path: Path) -> None:
-    # Declared too large, and too large with nothing declared.
-    wanted = [_want("i1", "f-pdf", "a.pdf"), _want("i2", "f-nolen", "b.pdf")]
+    # Declared too large to Drive's HEAD, too large with nothing declared, and declared too large by an
+    # export, which is sent no HEAD.
+    wanted = [
+        _want("i1", "f-pdf", "a.pdf"),
+        _want("i2", "f-nolen", "b.pdf"),
+        _want("i3", "doc-1", "c.pdf", "{docs}/document/d/doc-1/export?format=pdf&authuser=5"),
+    ]
     end, events, _ = _fetch(tmp_path, wanted, FETCH_MAX_BYTES=5)
-    assert end["attachments"]["not_brought"] == 2
-    assert [e["why"] for e in events if e["event"] == "attachment"] == ["too_large", "too_large"]
+    assert end["attachments"]["not_brought"] == 3
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["too_large"] * 3
     assert not (tmp_path / "out" / "inbox").exists() or not list((tmp_path / "out" / "inbox").rglob("*.pdf"))
+
+
+def test_a_file_drive_declares_over_the_limit_is_never_asked_for(tmp_path: Path) -> None:
+    # #300: the request context would hold the whole answer before any check, so the HEAD decides.
+    wanted = [_want("i1", "f-huge", "clase.mp4"), _want("i2", "f-pdf", "a.pdf")]
+    end, events, fake = _fetch(tmp_path, wanted, FETCH_MAX_BYTES=10_000)
+    assert end["attachments"] == {"brought": 1, "not_brought": 1, "refused": 0}, end
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["too_large", None]
+    assert fake.got == ["f-pdf"]
+    assert not _inbox(tmp_path, "i1", "f-huge", "clase.mp4").exists()
+
+
+def test_a_file_behind_the_warning_declared_over_the_limit_is_never_asked_for(tmp_path: Path) -> None:
+    # The warning page is asked for; the confirmed address only HEADed.
+    end, events, fake = _fetch(tmp_path, [_want("i1", "f-scan-huge", "clase.mp4")], FETCH_MAX_BYTES=10_000)
+    assert end["attachments"] == {"brought": 0, "not_brought": 1, "refused": 0}, end
+    assert [e["why"] for e in events if e["event"] == "attachment"] == ["too_large"]
+    assert fake.got == ["f-scan-huge"]
+
+
+def test_a_file_under_the_limit_is_brought_after_its_head(tmp_path: Path) -> None:
+    end, _, fake = _fetch(tmp_path, [_want("i1", "f-huge", "clase.mp4")], FETCH_MAX_BYTES=len(HUGE))
+    assert end["attachments"]["brought"] == 1, end
+    assert _inbox(tmp_path, "i1", "f-huge", "clase.mp4").read_bytes() == HUGE and fake.got == ["f-huge"]
 
 
 def test_a_compressed_body_is_brought_whole(tmp_path: Path) -> None:
