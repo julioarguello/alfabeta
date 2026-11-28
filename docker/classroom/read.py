@@ -41,7 +41,8 @@ outcome and stop code. No line carries the account or the password.
   only for the same attachment id, at an address built from the form's hidden inputs (#298). Any
   other HTML page, a wrong length or an oversized body is not a file: not brought. The request context
   holds a whole answer in memory, so on Drive's download path a HEAD comes first and a file it
-  declares over `FETCH_MAX_BYTES` is never asked for (`too_large`, #300).
+  declares over `FETCH_MAX_BYTES` is never asked for (`too_large`, #300). A HEAD with no length, or
+  a Docs export (sent no HEAD), is still asked for whole: streaming to disk stays open in #300.
 
 The tests run this module directly with Playwright's Chromium against a local fake, setting the
 host constants below in the module object; nothing here reads them from the environment.
