@@ -592,7 +592,11 @@ def _attachments(
     # A file over the read's in-memory cap is never brought until it can be streamed to disk (#300):
     # counted on the log line and in the summary, and apply notes it «no traído» as any file not brought.
     too_large = sum(1 for e in events if e.get("event") == "attachment" and e.get("why") == "too_large")
-    logged["attachments_pass"] = {"reason": end.get("reason"), "blocked": end.get("blocked", {}), "too_large": too_large}
+    logged["attachments_pass"] = {
+        "reason": end.get("reason"),
+        "blocked": end.get("blocked", {}),
+        "too_large": too_large,
+    }
     placed = 0
     root = out.resolve()
     for download in wanted:
