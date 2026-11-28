@@ -39,7 +39,10 @@ outcome and stop code. No line carries the account or the password.
   logged by host only. Drive's warning for a file too large to scan for viruses — a page whose one
   `download-form` confirms the download — is followed once per file, only on Drive's download path,
   only for the same attachment id, at an address built from the form's hidden inputs (#298). Any
-  other HTML page, a wrong length or an oversized body is not a file: not brought.
+  other HTML page, a wrong length or an oversized body is not a file: not brought. The request context
+  holds a whole answer in memory, so on Drive's download path a HEAD comes first and a file it
+  declares over `FETCH_MAX_BYTES` is never asked for (`too_large`, #300). A HEAD with no length, or
+  a Docs export (sent no HEAD), is still asked for whole: streaming to disk stays open in #300.
 
 The tests run this module directly with Playwright's Chromium against a local fake, setting the
 host constants below in the module object; nothing here reads them from the environment.
@@ -85,7 +88,12 @@ FETCH_CONTENT_HOST = re.compile(r"^doc-[0-9a-z]{1,4}-[0-9a-z]{1,4}-(docstext|sli
 # host that answers anything else (a page, another of its own pages) is an expired session.
 SERVICE_LOGIN_PATH = "/ServiceLogin"
 FETCH_MAX_HOPS = 5
-FETCH_MAX_BYTES = 200 * 1024 * 1024
+# The request context holds a whole answer, in its driver and again in Python, before any check of it
+# can run: measured 2026-11-28 in this image under a 1536 MB limit (the read's floor, #274), a 50 MB body
+# peaked at 1045 MB and a 131 MB one killed the driver, so did the GET of a 634 MB one with its body never
+# read. Every copied file but one video was at most 44 MB. A file over this is not brought (#300), and on
+# Drive's download path a HEAD learns its size before the GET is sent.
+FETCH_MAX_BYTES = 64 * 1024 * 1024
 FETCH_TIMEOUT_MS = 120_000
 # Drive's virus-scan warning is a small page (about 2.7 KB, S10h 2026-11-27): a bigger one is not read for its form.
 SCAN_WARNING_MAX_BYTES = 64 * 1024
@@ -714,6 +722,24 @@ def scan_confirmation(response: Any, current: str, attachment: str) -> str | Non
     return f"{DRIVE_DOWNLOAD}?{urlencode(form.values)}"
 
 
+def declared_too_large(page: Any, current: str) -> bool:
+    """Whether Drive's download path declares, to a HEAD, a file over `FETCH_MAX_BYTES` (#300).
+
+    Measured on a confirmed address (S10h, 2026-11-27: 200 with the file's Content-Length). An answer
+    with no length says nothing, and the GET is sent as before. Any other host is sent no HEAD: none
+    was measured there.
+    """
+    here = urlsplit(current)
+    if f"{here.scheme}://{here.netloc}{here.path}" != DRIVE_DOWNLOAD:
+        return False
+    head = page.request.fetch(
+        current, method="HEAD", max_redirects=0, timeout=FETCH_TIMEOUT_MS, fail_on_status_code=False
+    )
+    declared = head.headers.get("content-length", "")
+    head.dispose()
+    return declared.isdigit() and int(declared) > FETCH_MAX_BYTES
+
+
 def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | None, str | None]:
     """Fetch one listed attachment: (`brought`|`not_brought`|`refused`|`expired`, why, refused host)."""
     item, attachment, url, name = (wanted.get(k) for k in ("item", "attachment", "url", "expected_name"))
@@ -727,6 +753,8 @@ def fetch_one(page: Any, wanted: dict[str, Any], out: Path) -> tuple[str, str | 
     confirmed = False  # the one confirmation of Drive's virus-scan warning sent (#298)
     for _ in range(FETCH_MAX_HOPS + 1):
         try:
+            if declared_too_large(page, current):
+                return "not_brought", "too_large", None
             response = page.request.get(current, max_redirects=0, timeout=FETCH_TIMEOUT_MS, fail_on_status_code=False)
         except Exception:
             return "not_brought", "error", None

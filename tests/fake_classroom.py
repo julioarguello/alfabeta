@@ -28,7 +28,9 @@ the same host, `f-nolen` the PDF with no Content-Length. Drive's virus-scan warn
 input twice, `f-scan-post` a POST form, `f-scan-view` `export=view`, `f-scan-extra` an input not
 measured, `f-scan-big` a page over the read's cap. Every one but `f-scan-loop` answers the PDF to a
 confirmation, so a guard missing is a file brought. On the Docs export route `f-scan` answers the warning
-too, which only Drive's download path may confirm.
+too, which only Drive's download path may confirm. A HEAD on `/download` answers as its GET, with no body
+(#300): `f-huge` is a file of `HUGE` bytes, `f-scan-huge` one behind the warning; `got` names each
+id a GET of `/download` asked for, `heads` each path a HEAD did.
 """
 
 from __future__ import annotations
@@ -133,6 +135,7 @@ BOXED_STREAM = (
 )
 MORE_ROW = '<li data-stream-item-type="5" data-stream-item-id="{n}"><span class="Vu2fZd">Material {n}</span></li>'
 PDF = b"%PDF-1.4 fichero inventado\n"
+HUGE = PDF * 4000  # about 108 KB: over a cap a test sets, under none of the read's own
 
 ROUTES = [
     (r"^/u/5/w/[^/]+/t/all$", "classwork.html"),
@@ -158,6 +161,8 @@ class FakeGoogle(http.server.ThreadingHTTPServer):
         self.password_attempts = 0
         self.service_logins = 0
         self.served: list[str] = []
+        self.got: list[str] = []
+        self.heads: list[str] = []
         self.thread = threading.Thread(target=self.serve_forever, daemon=True)
 
     @property
@@ -206,7 +211,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         if length:
             self.send_header("Content-Length", str(len(body.encode() if isinstance(body, str) else body)))
         self.end_headers()
-        self.wfile.write(body.encode() if isinstance(body, str) else body)
+        if self.command != "HEAD":
+            self.wfile.write(body.encode() if isinstance(body, str) else body)
 
     def _signed_in(self) -> bool:
         return "fakesid=ok" in (self.headers.get("Cookie") or "")
@@ -214,7 +220,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def _scan_warning(self, file_id: str, query: dict[str, list[str]]) -> None:
         confirmed = {k: query.get(k, [""])[0] for k in ("confirm", "uuid", "at")}
         if file_id != "f-scan-loop" and confirmed == {"confirm": "t", "uuid": "uuid-synth-1", "at": SCAN_TOKEN}:
-            return self._send(PDF, content_type="application/pdf")
+            return self._send(HUGE if file_id == "f-scan-huge" else PDF, content_type="application/pdf")
         action = "http://third.invalid/download" if file_id == "f-scan-away" else f"{self.fake.other_origin}/download"
         named = "f-pdf" if file_id == "f-scan-other" else file_id
         page = SCAN_WARNING.format(action=action, file_id=named, token=SCAN_TOKEN)
@@ -239,6 +245,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._send("", 307, "/content/doc-1")
         if file_id in ("f-pdf", "doc-1"):
             return self._send(PDF, content_type="application/pdf")
+        if file_id == "f-huge":
+            return self._send(HUGE, content_type="video/mp4")
         if file_id == "f-hop":
             return self._send("", 302, "/download?id=f-pdf&export=download&authuser=5")
         if file_id == "f-gzip":
@@ -259,12 +267,21 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return self._scan_warning(file_id, query or {})
         return self._send("no", 404)
 
+    def do_HEAD(self) -> None:
+        url = urlsplit(self.path)
+        self.fake.heads.append(url.path)
+        if url.path == "/download":
+            query = parse_qs(url.query)
+            return self._attachment(query.get("id", [""])[0], query)
+        return self._send("", 405)
+
     def do_GET(self) -> None:
         url = urlsplit(self.path)
         mode = self.fake.mode
         self.fake.served.append(url.path)
         if url.path == "/download":
             query = parse_qs(url.query)
+            self.fake.got.append(query.get("id", [""])[0])
             return self._attachment(query.get("id", [""])[0], query)
         exported = re.match(r"^/document/d/([\w-]+)/export$", url.path) or re.match(r"^/content/([\w-]+)$", url.path)
         if exported:
